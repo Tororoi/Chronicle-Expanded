@@ -8,6 +8,7 @@
 #include "btactstatus.hpp"
 #include "character.hpp"
 #include "collisiondata.hpp"
+#include "confuse.hpp"
 #include "dngstatusdata.hpp"
 #include "dun/gameloop.hpp"
 #include "framevu1.hpp"
@@ -393,15 +394,122 @@ PORT_OVERRIDE MONSTOR_MODEL MonstorTable[167] = {
 };
 // clang-format on
 
+namespace {
+
+// A hit another monster's attack landed on sphere i of the monster being checked (ConfuseFriendlyHit): blocked
+// by a guard window as a character's hit is, else damage as from a hit no character owns, the attack's damage
+// less the monster's defence (at least 1) scaled by its item damage rate. What CheckDmg gives back for it,
+// MONSTER_DMG_NONE where a guard blocked it.
+int FriendlyHit(CMonstorUnit &unit, int i, int hit) {
+    int            slot = unit.current_monster;
+    MONSTOR       &monster = unit.monster[slot];
+    COLLISION_HIT *record = NowColData->Get(hit);
+    ConfuseLanded(unit, hit, slot);
+
+    for (int j = 0; j < 3; j++) {
+        float time = unit.chara[slot][0].motion_type.state.time;
+
+        if (unit.guard[slot].active[j] != 0 && unit.guard[slot].motion_start[j] <= time && !(unit.guard[slot].motion_end[j] < time)) {
+            sceVu0FVECTOR guard_direction = {0, 2.5f, 0, 1};
+            HitMark[hitCnt].Set(unit.effect[slot].position[i], guard_direction, HIT_MARK_GUARD, 0.8f, 0.005f, 0.02f, 1.3f, 32, monster.ground_y);
+            HitPointMark[hitCnt].Set(unit.effect[slot].position[i]);
+            SndSePlay(SE_HIT_BLOCKED, -1, 0);
+            return MONSTER_DMG_NONE;
+        }
+    }
+
+    int result = MONSTER_DMG_HIT;
+    unit.effect[slot].hit_slot = i;
+    unit.effect[slot].hit_attributes = record->weapon_flags;
+    monster.last_hit_id = -1;
+    monster.hit_element = WEAPON_ELEMENT_NONE;
+
+    if (record->knockback_mode == 2) {
+        sceVu0FVECTOR knockback_position, knockback_origin;
+        unit.chara[slot][0].GetPosition(knockback_position);
+        sceVu0CopyVector(knockback_origin, record->knockback_origin);
+        knockback_position[1] = 0;
+        knockback_origin[1] = 0;
+        sceVu0SubVector(monster.knockback_direction, knockback_position, knockback_origin);
+        sceVu0Normalize(monster.knockback_direction, monster.knockback_direction);
+        monster.knockback[0] = record->knockback_speed * monster.knockback[2];
+        monster.knockback[1] = record->knockback_decay * monster.knockback[2];
+    }
+
+    sceVu0FVECTOR hit_direction = {0, 1.1f, 0, 1};
+    HitMark[hitCnt].Set(unit.effect[slot].position[i], hit_direction, HIT_MARK_HIT, 0.5f, 0.01f, 0.02f, 1.0f, 32, monster.ground_y);
+    HitPointMark[hitCnt].Set(unit.effect[slot].position[i]);
+    hitCnt = hitCnt == 15 ? 0 : hitCnt + 1;
+
+    float damage = (float) record->damage - (float) monster.defense;
+
+    if (damage <= 0.0f) {
+        damage = 1.0f;
+    }
+
+    damage *= 0.01f * (float) monster.item_damage_rate;
+
+    if (monster.anger_timer > 0) {
+        damage /= 2.0f;
+    }
+
+    if (damage <= 0.0f) {
+        damage = 0;
+    }
+
+    int amount = (int) damage;
+
+    if (!(damage - (float) amount <= 0.0f)) {
+        amount++;
+    }
+
+    monster.hp -= amount;
+
+    if (monster.hp <= 0) {
+        monster.last_attacker = -1;
+        monster.hp = 0;
+        unit.alive_count--;
+        result = MONSTER_DMG_KILLED;
+        ((CDngStatusData *) UserStatus)->AddKills();
+
+        if (monster.event_flag2 != -1) {
+            monster.event_flag2_pending = 1;
+        }
+    }
+
+    monster.palette_target[0] = 255;
+    monster.palette_target[1] = amount > 0 ? 0 : 255;
+    monster.palette_target[2] = amount > 0 ? 0 : 255;
+    monster.palette_cycles = 1;
+    monster.palette_step = 0.08f;
+    monster.palette_blend = 0;
+
+    if (amount > 0) {
+        HitValueEntry(NowHitValue, unit.effect[slot].position[i], amount, HIT_VALUE_MONSTER, NULL);
+        SndSePlay(SE_MONSTER_HIT, -1, 0);
+    } else {
+        HitValueEntry(NowHitValue, unit.effect[slot].position[i], 0, HIT_VALUE_ZERO, NULL);
+        SndSePlay(SE_HIT_NO_DAMAGE, -1, 0);
+    }
+
+    return result;
+}
+
+} // namespace
+
+
 // Retail's CheckDmg, which deals the monster the hits that reach it, but for the weapon wear of a
 // landed hit: Ungaga's held charge pays for each shot as it fires it (UngagaKey_Play), so the hits
 // its shots land wear nothing more. A guarded hit wears the weapon only for an owner's attack 0,
 // which leaves the charge shots (attack 2) out already.
+// With the Confuse ability (confuse.hpp): a hit that carries it may confuse the monster, and an attack
+// another monster planted hurts it (FriendlyHit) where that monster is confused, or provoked by it.
 PORT_OVERRIDE int CMonstorUnit::CheckDmg() {
     int            result = MONSTER_DMG_NONE;
     COLLISION_HIT *record;
     int            immune = 0;
     sceVu0FVECTOR  direction, position;
+    ConfuseStep(*this, current_monster);
 
     if (monster[current_monster].stop_timer <= 0) {
         for (int i = 0; i < 16; i++) {
@@ -763,6 +871,10 @@ PORT_OVERRIDE int CMonstorUnit::CheckDmg() {
                         }
                     }
 
+                    if (effect[current_monster].hit_attributes & kWeaponFlagConfuse) {
+                        ConfuseRoll(*this, current_monster);
+                    }
+
                     chance = monster[current_monster].status_chance == 0 ? 100.0f : 0.0f;
 
                     if (original_record->flags & 0x200) {
@@ -961,6 +1073,18 @@ PORT_OVERRIDE int CMonstorUnit::CheckDmg() {
 
                     if (result == MONSTER_DMG_KILLED) {
                         return MONSTER_DMG_KILLED;
+                    }
+
+                    break;
+                }
+
+                int friendly = ConfuseFriendlyHit(*this, current_monster, effect[current_monster].position[i], effect[current_monster].radius[i]);
+
+                if (friendly != -1) {
+                    int taken = FriendlyHit(*this, i, friendly);
+
+                    if (taken != MONSTER_DMG_NONE) {
+                        return taken;
                     }
 
                     break;
