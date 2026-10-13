@@ -16,6 +16,7 @@
 #include "itemdata.hpp"
 #include "mathutil.hpp"
 #include "mglib.hpp"
+#include "monstorunit_port.hpp"
 #include "snd.hpp"
 #include "stealitem.hpp"
 #include "userstatus.hpp"
@@ -393,10 +394,41 @@ PORT_OVERRIDE MONSTOR_MODEL MonstorTable[167] = {
 };
 // clang-format on
 
-// Retail's CheckDmg, which deals the monster the hits that reach it, but for the weapon wear of a
-// landed hit: Ungaga's held charge pays for each shot as it fires it (UngagaKey_Play), so the hits
-// its shots land wear nothing more. A guarded hit wears the weapon only for an owner's attack 0,
-// which leaves the charge shots (attack 2) out already.
+// Steps the floor has run unpaused: DunMoveChara advances it each step CMonstorUnit::Step runs
+// unpaused, whether or not any monster takes part.
+static int monster_step_clock;
+
+void MonstorStepClockAdvance() {
+    monster_step_clock++;
+}
+
+// Steps poison lasts: ten of its 180-step ticks, 30 seconds.
+static const int kPoisonSteps = 1800;
+
+// monster_step_clock when each monster was poisoned; read only while its poison_timer runs.
+static int poison_start[16];
+
+// Takes hold of a monster with poison. A monster already poisoned keeps its poison as it is, so
+// the hit neither restarts its ticks nor lengthens it.
+static void Poison(MONSTOR *target, int slot) {
+    if (target->poison_timer <= 0) {
+        target->poison_timer = 180;
+        poison_start[slot] = monster_step_clock;
+    }
+
+    target->slow_timer = 0;
+}
+
+// Retail's CheckDmg, which deals the monster the hits that reach it, with two changes.
+//
+// The weapon wear of a landed hit: Ungaga's held charge pays for each shot as it fires it
+// (UngagaKey_Play), so the hits its shots land wear nothing more. A guarded hit wears the weapon
+// only for an owner's attack 0, which leaves the charge shots (attack 2) out already.
+//
+// Poison: it lasts kPoisonSteps of monster_step_clock from the hit that poisoned the monster,
+// counted on while the monster is out of view, so one kept in view takes its ten ticks and is then
+// cured, and one that comes back into view later is cured without a tick. Each tick takes a tenth
+// of its life scaled by status_chance (1 at the least), and death ends the poison.
 PORT_OVERRIDE int CMonstorUnit::CheckDmg() {
     int            result = MONSTER_DMG_NONE;
     COLLISION_HIT *record;
@@ -468,6 +500,7 @@ PORT_OVERRIDE int CMonstorUnit::CheckDmg() {
             monster[current_monster].motion_reset_pending = true;
         }
 
+        monster[current_monster].poison_timer = 0;
         return MONSTER_DMG_NONE;
     }
 
@@ -500,6 +533,10 @@ PORT_OVERRIDE int CMonstorUnit::CheckDmg() {
         monster[current_monster].anger_timer--;
     }
 
+    if (monster[current_monster].poison_timer > 0 && monster_step_clock - poison_start[current_monster] > kPoisonSteps) {
+        monster[current_monster].poison_timer = 0;
+    }
+
     if (monster[current_monster].poison_timer > 0) {
         monster[current_monster].palette_override[0] = 47.0f;
         monster[current_monster].palette_override[1] = 0.5f;
@@ -509,8 +546,13 @@ PORT_OVERRIDE int CMonstorUnit::CheckDmg() {
 
         if (monster[current_monster].poison_timer == 0) {
             monster[current_monster].poison_timer = 180;
-            float damage = 0.1f * (float) monster[current_monster].max_hp;
-            monster[current_monster].hp -= (int) damage;
+            int damage = monster[current_monster].max_hp * monster[current_monster].status_chance / 1000;
+
+            if (damage < 1) {
+                damage = 1;
+            }
+
+            monster[current_monster].hp -= damage;
             result = MONSTER_DMG_HIT;
 
             if (monster[current_monster].hp <= 0) {
@@ -522,7 +564,11 @@ PORT_OVERRIDE int CMonstorUnit::CheckDmg() {
 
             chara[current_monster][0].GetPosition(poison_position);
             poison_position[1] += chara[current_monster][0].body_height;
-            HitValueEntry(NowHitValue, poison_position, (int) damage, HIT_VALUE_MONSTER, NULL);
+            HitValueEntry(NowHitValue, poison_position, damage, HIT_VALUE_MONSTER, NULL);
+        }
+
+        if (monster_step_clock - poison_start[current_monster] >= kPoisonSteps) {
+            monster[current_monster].poison_timer = 0;
         }
     }
 
@@ -740,8 +786,7 @@ PORT_OVERRIDE int CMonstorUnit::CheckDmg() {
 
                     if (effect[current_monster].hit_attributes & 0x20) {
                         if (100.0f * (float) rand() / 2147483648.0f <= 10.0f && chance < (float) monster[current_monster].status_chance) {
-                            monster[current_monster].poison_timer = 180;
-                            monster[current_monster].slow_timer = 0;
+                            Poison(&monster[current_monster], current_monster);
                         } else if (owner == -1) {
                             immune = 1;
                         }
@@ -768,8 +813,7 @@ PORT_OVERRIDE int CMonstorUnit::CheckDmg() {
                     if (original_record->flags & 0x200) {
                         if (chance < (float) monster[current_monster].status_chance) {
                             if (monster[current_monster].stop_timer == 0 && monster[current_monster].anger_timer == 0) {
-                                monster[current_monster].poison_timer = 180;
-                                monster[current_monster].slow_timer = 0;
+                                Poison(&monster[current_monster], current_monster);
                             }
                         } else if (owner == -1) {
                             immune = 1;

@@ -59,6 +59,7 @@
 #include "menuitemstep.hpp"
 #include "mglib.hpp"
 #include "monstorunit.hpp"
+#include "monstorunit_port.hpp"
 #include "motionmodel.hpp"
 #include "nowload.hpp"
 #include "npcharacter.hpp"
@@ -2973,6 +2974,10 @@ PORT_OVERRIDE void DunMoveChara() {
             infoMap = 1;
             infoMapOld = 1;
         }
+    }
+
+    if (BtAllDrawFlag != 0 && BtEventMode == 0 && (driveStepHold | CMonUnitHold) == 0) {
+        MonstorStepClockAdvance();
     }
 
     motionDrive();
