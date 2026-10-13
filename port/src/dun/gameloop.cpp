@@ -17,6 +17,7 @@
 #include "clothread.hpp"
 #include "clsmes.hpp"
 #include "collisiondata.hpp"
+#include "confuse.hpp"
 #include "dataread.hpp"
 #include "debugfont.hpp"
 #include "dispctrl.hpp"
@@ -335,6 +336,7 @@ PORT_OVERRIDE void DunMainDraw() {
             shot[i].Draw();
         }
 
+        ConfuseStarsDraw();
         NowMainEffect->Draw();
     }
 

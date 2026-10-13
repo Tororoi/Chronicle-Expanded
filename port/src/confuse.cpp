@@ -7,11 +7,18 @@
 
 #include <libvu0.h>
 
+#include "bt_shot_effect.hpp"
 #include "collisiondata.hpp"
+#include "dataread.hpp"
 #include "dun/gameloop.hpp"
+#include "itembombeffect.hpp"
 #include "itemdata.hpp"
 #include "mathutil.hpp"
 #include "monstorunit.hpp"
+#include "nowload.hpp"
+#include "shot_effect.hpp"
+#include "shot_effect_pack.hpp"
+#include "snd.hpp"
 #include "texture_port.hpp"
 
 #include "icon/confuse.hpp"
@@ -28,41 +35,52 @@ constexpr float kConfuseChance = 5.0f;
 // open.
 constexpr int kContactSteps = kStepsPerSecond / 2;
 
+// The stars: the Terra nut's e114ex, one key (frames 1 to 50) played round and round, grown in over a
+// quarter second to 1.5 times its size, 3 above the monster's head.
+constexpr int   kStars = 8;
+constexpr int   kStarsBlock = 0x26;
+constexpr float kStarsLift = 3.0f;
+constexpr float kStarsScale = 1.5f;
+constexpr int   kStarsGrowSteps = kStepsPerSecond / 4;
+constexpr float kStarsLead = 1.5f;
+
 // Babel's Spear carries the ability from its weapon data.
 const bool kBabelConfuses = [] {
     WeaponList[ITEM_WEAPON_BABEL_S_SPEAR - ITEM_WEAPON_START].flags |= kWeaponFlagConfuse;
     return true;
 }();
 
+// The stars as an effect that does nothing but play: no flight, no hit, no end.
+BT_SHOT_EFFECT StarsDescription = {
+    "e114ex", 1, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, 0, 0, 0, {0, -1, -1, -1}, -1, {0, 0}, 0.0f, 0,
+    {-1, -1, -1, -1}};
+
 struct Confusion {
     CMonstorUnit *unit = nullptr;
-    // Damage checks of the monsters in play run in slot order once a step: a slot not above the last one
-    // starts the next step. A slot not checked in the step before has been out of play and starts afresh.
-    int pass = 0;
-    int last_slot = 16;
-    int seen[16] = {};
-    // Steps left of each monster's confusion.
-    int timer[16] = {};
+    // Steps of play since the floor's monsters were set up.
+    int tick = 0;
+    // The step each monster's confusion ends on, 0 for none.
+    int until[16] = {};
     // The confused monsters that hit each monster, most recent first, -1 past the last.
     int hit_by[16][16];
     // The target each monster goes after, for the log: -1 the player, -2 nothing chosen.
     int target[16];
     // The step each attacker last hurt each victim.
     int contact[16][16] = {};
+    // Each monster's star (a slot of the stars effect, or -1) and the step it came on.
+    int star[16];
+    int star_from[16] = {};
 
-    Confusion() { Clear(); }
-
-    void Clear() {
-        std::memset(timer, 0, sizeof(timer));
+    Confusion() {
         std::memset(hit_by, -1, sizeof(hit_by));
-        std::memset(contact, 0, sizeof(contact));
-        for (int &t : target) {
-            t = -2;
+        for (int i = 0; i < 16; i++) {
+            target[i] = -2;
+            star[i] = -1;
         }
     }
 
     void Forget(int slot) {
-        timer[slot] = 0;
+        until[slot] = 0;
         target[slot] = -2;
         std::memset(hit_by[slot], -1, sizeof(hit_by[slot]));
     }
@@ -73,13 +91,21 @@ Confusion &State() {
     return state;
 }
 
+// The stars' effect, in the floor's monster memory and texture block once loaded.
+CSHOT_EFFECT &Stars() {
+    static CSHOT_EFFECT stars;
+    return stars;
+}
+
+bool g_stars_loaded = false;
+
 bool InPlay(const CMonstorUnit &unit, int slot) {
     const MONSTOR &monster = unit.monster[slot];
     return monster.state == 2 && monster.hp > 0 && monster.revealed != 0;
 }
 
 bool Confused(const CMonstorUnit &unit, int slot) {
-    return slot >= 0 && slot < 16 && State().timer[slot] > 0 && InPlay(unit, slot);
+    return slot >= 0 && slot < 16 && State().until[slot] != 0 && InPlay(unit, slot);
 }
 
 // The confused monster a monster that is not confused goes after: the last one to hit it still confused,
@@ -127,52 +153,130 @@ void LogTarget(int slot, int target) {
     }
 }
 
+void StarOff(int slot) {
+    Confusion &state = State();
+    if (state.star[slot] >= 0 && g_stars_loaded) {
+        Stars().active[state.star[slot]] = 0;
+    }
+    state.star[slot] = -1;
+}
+
+// The projectile that planted hit (a shot of the monster pack the attacker fired, at the hit's place or one
+// step of flight past it) ends on it as on anything it meets in flight (CSHOT_EFFECT::Step): its impact
+// motion from where it struck, or, with none, put out (and a bomb goes off).
+void ShotImpact(int hit) {
+    COLLISION_HIT &record = NowColData->hit[hit];
+    if (NowShotEffect == nullptr || record.monster_no < 0) {
+        return;
+    }
+    CSHOT_EFFECT *found = nullptr;
+    int           slot = -1;
+    float         best = 0.0f;
+    for (CSHOT_EFFECT &effect : NowShotEffect->effect) {
+        if (effect.effect_data == nullptr) {
+            continue;
+        }
+        for (int i = 0; i < effect.slot_count && i < 8; i++) {
+            if (effect.active[i] == 0 || effect.phase[i] >= 2 || effect.user_id_2[i] != record.monster_no) {
+                continue;
+            }
+            sceVu0FVECTOR at;
+            effect.chara[i].GetPosition(at);
+            float distance = DistVector(at, record.pos);
+            float reach = 1.0f + std::abs(effect.effect_data->speed[effect.phase[i]]);
+            if (distance <= reach && (found == nullptr || distance < best)) {
+                found = &effect;
+                slot = i;
+                best = distance;
+            }
+        }
+    }
+    if (found == nullptr) {
+        return;
+    }
+    BT_SHOT_EFFECT *data = found->effect_data;
+    found->chara[slot].SetPosition(record.pos);
+    found->phase[slot] = 2;
+    int motion = data->motion[2];
+    if (motion == -1) {
+        found->active[slot] = 0;
+        if (data->end_effect == SHOT_END_EFFECT_BOMB) {
+            SetBombEffect(record.pos, data->target, data->bomb_damage, data->bomb_scale);
+        }
+        return;
+    }
+    found->chara[slot].motion_type.state.time = (float) found->chara[slot].motion_type.motion_info[motion].start;
+    found->chara[slot].SetMotion(motion, 6);
+    sceVu0Normalize(found->velocity[slot], found->velocity[slot]);
+    sceVu0ScaleVectorXYZ(found->velocity[slot], found->velocity[slot], data->speed[2]);
+    if (data->sound[2] != -1 && found->no_sound[slot] == 0) {
+        SndSePlay(data->sound[2], -1, 0);
+    }
+}
+
 } // namespace
 
 int ConfuseOptionMessage(int bit) {
     return bit == kConfuseOptionBit ? kConfuseNameMessage : bit + 69;
 }
 
+void ConfuseTick() {
+    Confusion &state = State();
+    state.tick++;
+    for (int slot = 0; slot < 16; slot++) {
+        if (state.until[slot] == 0) {
+            continue;
+        }
+        if (state.unit != nullptr && state.unit->monster[slot].hp <= 0) {
+            state.Forget(slot);
+            continue;
+        }
+        if (state.tick >= state.until[slot]) {
+            state.Forget(slot);
+            std::fprintf(stderr, "confuse: monster %d comes to its senses\n", slot);
+        }
+    }
+}
+
+void ConfuseFloorReset(bool drop_stars) {
+    for (int slot = 0; slot < 16; slot++) {
+        StarOff(slot);
+    }
+    State() = Confusion();
+    if (drop_stars) {
+        Stars().Initialize();
+        g_stars_loaded = false;
+    }
+}
+
+void ConfuseFloorLoaded() {
+    ConfuseFloorReset(true);
+    LoadFile(const_cast<char *>("gedit/s04/chara/e114ex.chr"), read_buffer, NULL);
+    wait_now_loading_vsync();
+    g_stars_loaded = Stars().Entry2(&StarsDescription, read_buffer, kStarsBlock, &MonstorModelBuffer, kStars) != 0;
+}
+
 void ConfuseStep(CMonstorUnit &unit, int slot) {
     Confusion &state = State();
     if (state.unit != &unit) {
+        for (int i = 0; i < 16; i++) {
+            StarOff(i);
+        }
+        int tick = state.tick;
         state = Confusion();
         state.unit = &unit;
+        state.tick = tick;
     }
-    if (slot <= state.last_slot) {
-        state.pass++;
-    }
-    state.last_slot = slot;
-    if (state.seen[slot] != state.pass - 1 && state.seen[slot] != state.pass) {
-        state.Forget(slot);
-    }
-    state.seen[slot] = state.pass;
-
-    MONSTOR &monster = unit.monster[slot];
-    if (monster.hp <= 0) {
+    if (unit.monster[slot].hp <= 0) {
         state.Forget(slot);
         return;
     }
-    if (state.timer[slot] > 0 && --state.timer[slot] == 0) {
-        state.target[slot] = -2;
-        std::fprintf(stderr, "confuse: monster %d comes to its senses\n", slot);
-    }
-
     int provoker = Provoker(unit, slot);
     if (provoker >= 0) {
         LogTarget(slot, provoker);
-    } else if (state.timer[slot] == 0 && state.target[slot] != -2) {
+    } else if (state.until[slot] == 0 && state.target[slot] != -2) {
         state.target[slot] = -2;
         std::fprintf(stderr, "confuse: monster %d goes back to the player\n", slot);
-    }
-
-    if (state.timer[slot] > 0) {
-        // A slow pulse of yellow over the monster's ambient light.
-        float pulse = 0.5f + 0.5f * std::sin(static_cast<float>(state.pass) * (2.0f * 3.14159265f / kStepsPerSecond));
-        monster.palette_override[0] = 110.0f + 30.0f * pulse;
-        monster.palette_override[1] = 100.0f + 25.0f * pulse;
-        monster.palette_override[2] = 20.0f;
-        monster.palette_override_pending = true;
     }
 }
 
@@ -185,11 +289,11 @@ void ConfuseRoll(CMonstorUnit &unit, int slot) {
         return;
     }
     Confusion &state = State();
-    if (state.timer[slot] == 0) {
+    if (state.until[slot] == 0) {
         state.target[slot] = -2;
         std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
     }
-    state.timer[slot] = kConfuseSteps;
+    state.until[slot] = state.tick + kConfuseSteps;
 }
 
 bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {
@@ -246,7 +350,7 @@ int ConfuseFriendlyHit(CMonstorUnit &unit, int victim, const float *position, fl
         if (!Confused(unit, attacker) && Provoker(unit, attacker) != victim) {
             continue;
         }
-        if (state.contact[attacker][victim] != 0 && state.pass - state.contact[attacker][victim] < kContactSteps) {
+        if (state.contact[attacker][victim] != 0 && state.tick - state.contact[attacker][victim] < kContactSteps) {
             continue;
         }
         sceVu0FVECTOR at;
@@ -264,8 +368,14 @@ void ConfuseLanded(CMonstorUnit &unit, int hit, int victim) {
     if (attacker < 0) {
         return;
     }
-    state.contact[attacker][victim] = state.pass;
-    std::fprintf(stderr, "confuse: monster %d hits monster %d\n", attacker, victim);
+    state.contact[attacker][victim] = state.tick;
+    if (NowColData->hit[hit].monster_no >= 0) {
+        std::fprintf(stderr, "confuse: monster %d's shot hits monster %d\n", attacker, victim);
+        ShotImpact(hit);
+        NowColData->active[hit] = 0;
+    } else {
+        std::fprintf(stderr, "confuse: monster %d hits monster %d\n", attacker, victim);
+    }
     if (!Confused(unit, attacker)) {
         return;
     }
@@ -285,6 +395,80 @@ void ConfuseLanded(CMonstorUnit &unit, int hit, int victim) {
     if (!Confused(unit, victim) && Provoker(unit, victim) == attacker) {
         std::fprintf(stderr, "confuse: monster %d turns on monster %d\n", victim, attacker);
     }
+}
+
+void ConfuseStarsDraw() {
+    Confusion &state = State();
+    CMonstorUnit *unit = state.unit;
+    if (!g_stars_loaded || unit == nullptr || unit != NowMonstorUnit) {
+        return;
+    }
+    CSHOT_EFFECT &stars = Stars();
+    // The confused monsters in play nearest the player, at most one a star.
+    int   order[16];
+    float distance[16];
+    int   count = 0;
+    for (int slot = 0; slot < 16; slot++) {
+        if (!Confused(*unit, slot)) {
+            continue;
+        }
+        sceVu0FVECTOR at;
+        Position(*unit, slot, at);
+        float d = DistVector(at, CharaMain.pos);
+        int   i = count++;
+        while (i > 0 && distance[i - 1] > d) {
+            order[i] = order[i - 1];
+            distance[i] = distance[i - 1];
+            i--;
+        }
+        order[i] = slot;
+        distance[i] = d;
+    }
+    bool wanted[16] = {};
+    for (int i = 0; i < count && i < kStars; i++) {
+        wanted[order[i]] = true;
+    }
+    for (int slot = 0; slot < 16; slot++) {
+        if (!wanted[slot]) {
+            StarOff(slot);
+        }
+    }
+    for (int slot = 0; slot < 16; slot++) {
+        if (!wanted[slot]) {
+            continue;
+        }
+        MONSTOR      &monster = unit->monster[slot];
+        // Over the head: the body's height above its feet, or the lock-on point where that is higher.
+        sceVu0FVECTOR head;
+        Position(*unit, slot, head);
+        head[1] += unit->chara[slot][0].body_height;
+        if (monster.lockon_frame != NULL && monster.lockon_position[1] > head[1]) {
+            head[1] = monster.lockon_position[1];
+        }
+        head[1] += kStarsLift;
+        head[3] = 1.0f;
+        int star = state.star[slot];
+        if (star < 0 || stars.active[star] == 0) {
+            star = stars.Set(head, head, -1, -1, 0, NULL, -1);
+            if (star < 0) {
+                state.star[slot] = -1;
+                continue;
+            }
+            stars.SetLoop(0);
+            state.star[slot] = star;
+            state.star_from[slot] = state.tick;
+        }
+        CCharacter  &model = stars.chara[star];
+        MOTION_INFO &key = model.motion_type.motion_info[0];
+        if (model.motion_type.state.time >= (float) key.end - kStarsLead) {
+            model.motion_type.state.time = (float) key.start;
+        }
+        float grown = static_cast<float>(state.tick - state.star_from[slot]) / kStarsGrowSteps;
+        float scale = kStarsScale * (grown < 1.0f ? (grown > 0.01f ? grown : 0.01f) : 1.0f);
+        model.SetPosition(head);
+        model.SetScale(scale, scale, scale);
+    }
+    stars.Draw();
 }
 
 void ConfuseIconTexture(const char *name, PortDecodedTexture &texture) {
