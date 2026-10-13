@@ -1,3 +1,25 @@
+# Chronicle-Expanded
+
+> **Work in progress:** this repository is the move of the Dark Cloud Expanded mod to the PC port of
+> [Chronicle](https://github.com/TheMoonPeople/Chronicle), the Dark Cloud decompilation project. Everything
+> below this section is Chronicle's own README.
+
+## Pulling in upstream changes
+
+`upstream` is Chronicle (`TheMoonPeople/Chronicle`, fetch only); `origin` is this repository.
+
+```sh
+git fetch upstream
+git merge upstream/master
+git submodule update --init --recursive   # picks up any change to the Kazarov pin
+git push
+```
+
+Changes meant for Chronicle itself go in a fork of Chronicle on a branch from `upstream/master`, and are
+cherry-picked here if they are needed before upstream merges them.
+
+---
+
 # Chronicle
 
 [![NTSC Progress]](https://decomp.dev/TheMoonPeople/Chronicle/ntsc)
