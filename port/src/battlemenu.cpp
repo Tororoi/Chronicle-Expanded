@@ -1,6 +1,7 @@
 #include "battlemenu.hpp"
 
 #include "clsmes.hpp"
+#include "confuse.hpp"
 #include "memcard.hpp"
 #include "menu_draw.hpp"
 #include "menu_manual.hpp"
@@ -315,4 +316,147 @@ PORT_OVERRIDE void BattleMenuDraw() {
     }
 
     setbilinear(1);
+}
+
+// Retail's MenuClsMes::NowWeaponStatus, which lists the names of a weapon's options for its SPECIAL window, with
+// Confuse (bit 14) listed after the thirteen retail options under its own name.
+PORT_OVERRIDE void MenuClsMes::NowWeaponStatus(WEAPON_HAVE *selected_weapon) {
+    weapon = selected_weapon;
+    option_flags = 1;
+    option_count = 0;
+
+    if (selected_weapon != NULL) {
+        option_flags = selected_weapon->flags;
+
+        for (int slot = 0; slot < 6; slot++) {
+            ATTACH_LIST *attachment = &weapon->attach[slot];
+            s16          attachment_flags = attachment->sphere_flags;
+
+            if (attachment_flags != 0 && attachment_flags != 1) {
+                option_flags |= attachment_flags;
+            }
+        }
+
+        option_flags = CheckWeaponOptionStatus(option_flags);
+        option_count = 0;
+        int clear_slot;
+        int changed = 0;
+
+        for (int bit = 1; bit <= kConfuseOptionBit; bit++) {
+            if (option_flags & (1 << bit)) {
+                int     message_no = ConfuseOptionMessage(bit);
+                ClsMes *window = message;
+                int     index = option_count;
+
+                if (message_no != window->mes_no[index]) {
+                    changed = 1;
+                }
+
+                window->mes_no[index] = message_no;
+                option_count++;
+            }
+        }
+
+        for (clear_slot = option_count; clear_slot < 10; clear_slot++) {
+            ClsMes *window = message;
+            window->mes_no[clear_slot] = 0;
+        }
+
+        if (changed != 0) {
+            message->mes_made = -1;
+            message->MakeMesWin(422);
+        }
+    }
+}
+
+namespace {
+
+// Shifts a message line's x left by five pixels for each of its characters.
+int OptionLineX(int x, int len) {
+    return x - len * 5;
+}
+
+// Places one line of a message window, ignoring lines past the window's ten.
+void OptionLinePos(ClsMes *window, int line, int x, int y) {
+    if (line >= 0 && line < 10) {
+        window->line_pos[line].x = x;
+        window->line_pos[line].y = y;
+    }
+}
+
+} // namespace
+
+// Retail's MenuClsMes::Draw1, which draws the SPECIAL window's rows, with Confuse (bit 14) drawn as a benefit
+// with its own icon.
+PORT_OVERRIDE void MenuClsMes::Draw1(int x, int y, int draw_alpha) {
+    if (message != NULL && weapon != NULL) {
+        int row_y = y;
+        int option;
+
+        switch (mode) {
+            case MENU_CLSMES_OFF:
+                break;
+            case MENU_CLSMES_OPTIONS:
+            case MENU_CLSMES_UNK_2:
+                if (option_flags == 0 || option_flags == 1) {
+                    return;
+                }
+
+                row_y -= option_count * 10;
+                DrawMenu2DSprite(PerBoardTex, CRect_i_(x + 0x1E, row_y - 0x17, 0x52, 0x17), CRect_i_(0x80, 0x68, 0x52, 0x18), alpha);
+                DrawMenu2DSprite(PerBoardTex, CRect_i_(x - 0x24, y - 10, 0x20, 0x20), CRect_i_(0x80, 0x80, 0x20, 0x20), alpha);
+                CRect_i_  left(0x20, 0x80, 0x20, 0x18);
+                CRect_i_  middle(0x40, 0x80, 0x14, 0x18);
+                CRect_i_  right(0x78, 0x80, 0x8, 0x18);
+                CRect_i_  icon_src(0xEC, 0x50, 0x14, 0x14);
+                CTexture *face = TexManager.GetTexture(const_cast<char *>("charaface"), -1);
+
+                for (option = 1; option <= kConfuseOptionBit; option++) {
+                    if (option == 8) {
+                        icon_src.x -= icon_src.width;
+                    }
+
+                    if (option_flags & (1 << option)) {
+                        if (IsWeaponOptionGoodOrBad(option)) {
+                            left.y = middle.y = right.y = 0x80;
+                        } else {
+                            left.y = middle.y = right.y = 0x68;
+                        }
+
+                        int icon = option;
+
+                        if (option > 7) {
+                            icon = option - 7;
+                        }
+
+                        if (option == 8 && icon == 1) {
+                            icon++;
+                        }
+
+                        if (option == 9 && icon == 2) {
+                            icon--;
+                        }
+
+                        icon_src.y = icon_src.height * (icon - 1) + 0x50;
+                        DrawMenu2DSprite(PerBoardTex, CRect_i_(x, row_y, left.width, left.height), left, alpha);
+                        DrawMenu2DSprite(PerBoardTex, CRect_i_(x + left.width, row_y, 100, middle.height), middle, alpha);
+                        DrawMenu2DSprite(PerBoardTex, CRect_i_(x + left.width + 100, row_y, right.width, right.height), right, alpha);
+                        DrawMenu2DSprite(face, CRect_i_(x + 2, row_y + 2, 0x14, 0x15), icon_src, alpha);
+                        row_y += left.height;
+                    }
+                }
+
+                MenuTextureReload(message->tex_block);
+                x = (int) (x + 0xB);
+                row_y = y - option_count * 10;
+
+                for (option = 0; option < option_count; option++, row_y += left.height) {
+                    OptionLinePos(message, option, OptionLineX(x + 0x11, message->GetMesLen_system(message->mes_no[option])), row_y);
+                }
+
+                message->edge_alpha = alpha;
+                message->DrawMesWin();
+                break;
+        }
+    }
 }

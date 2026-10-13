@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <string>
 
+#include "confuse.hpp"
 #include "dataalloc.hpp"
 #include "mglib.hpp"
 #include "localize_texture.hpp"
@@ -350,6 +351,7 @@ void Enter(CTextureManager &manager, EnterMode mode, int block, char *name, u_ch
             return;
         }
         LocalizeTexture(name, decoded);
+        ConfuseIconTexture(name, decoded);
         MakeGroundPeriodic(name, decoded);
         DumpTexture(name, decoded);
         tbp = PortCreateTexture(decoded, PortTextureOwner::Manager, &cbp);

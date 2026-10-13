@@ -152,6 +152,14 @@ string(REGEX REPLACE "(..)" "0x\\1," icon_bytes "${icon_hex}")
 file(CONFIGURE OUTPUT ${SHADER_HEADER_DIR}/icon/chronicle.hpp
     CONTENT "#pragma once\n#include <cstdint>\ninline constexpr int kIconSize = 128;\ninline constexpr std::uint8_t kIconRgba[] = {${icon_bytes}};\n")
 
+# port/icon/confuse-20.rgba, the Confuse ability's 20x20 menu icon (confuse-20.png) as raw RGBA, as a byte array.
+set(CONFUSE_ICON_RGBA ${CMAKE_SOURCE_DIR}/port/icon/confuse-20.rgba)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CONFUSE_ICON_RGBA})
+file(READ ${CONFUSE_ICON_RGBA} confuse_icon_hex HEX)
+string(REGEX REPLACE "(..)" "0x\\1," confuse_icon_bytes "${confuse_icon_hex}")
+file(CONFIGURE OUTPUT ${SHADER_HEADER_DIR}/icon/confuse.hpp
+    CONTENT "#pragma once\n#include <cstdint>\ninline constexpr int kConfuseIconSize = 20;\ninline constexpr std::uint8_t kConfuseIconRgba[] = {${confuse_icon_bytes}};\n")
+
 # CREDITS, one contributor a line and # for comments, as the About page's list of names.
 set(CREDITS_FILE ${CMAKE_SOURCE_DIR}/CREDITS)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CREDITS_FILE})
