@@ -39,6 +39,10 @@
 #include "userstatus.hpp"
 #include "weaponelement.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/ungaga.hpp"
+#endif
+
 int           hitCnt;
 BEE_STATE     BeeTbl[800];
 CTexAnimeData MonsterTexAnim[320];
@@ -1325,7 +1329,11 @@ int CMonstorUnit::CheckDmg() {
 
                     int attacker = NowColData->hit[hit].owner;
 
+#ifdef CHRONICLE_EXPANDED
+                    if ((attacker == 0 || attacker == 2 || attacker == 4) && !expanded::ChargeShotHit(attacker, original_record)) {
+#else
                     if (attacker == 0 || attacker == 2 || attacker == 4) {
+#endif
                         SwordDmgCheck1(1.0f, monster[current_monster].hardness);
                     }
 
