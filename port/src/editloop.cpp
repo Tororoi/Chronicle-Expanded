@@ -75,6 +75,10 @@ void BtSetMapJumpFloor(int floor);
 #include "weaponlevelup.hpp"
 #include "wind.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town_ally.hpp"
+#endif
+
 // The bodies are retail's, which pass string literals as char *.
 #pragma clang diagnostic ignored "-Wwritable-strings"
 
@@ -445,6 +449,9 @@ PORT_OVERRIDE int EditLoop() {
 
             break;
         case ED_MODE_WALK:
+#ifdef CHRONICLE_EXPANDED
+            expanded::TownAllyWalk();
+#endif
             if (loop_counter > 0) {
                 TownMouseBegin(&MainCamera, pEditGround, MapNo, GameMode);
                 if (EdCheckViewMode() == 0) TownZoomBegin(&MainCamera, pEditGround, MapNo);
@@ -466,10 +473,17 @@ PORT_OVERRIDE int EditLoop() {
             if (goto_cmp_event != 0) {
                 goto_return_menu = 0;
 
+#ifdef CHRONICLE_EXPANDED
+                if (expanded::TownAllySkipsCutscene(goto_cmp_event) || EdFadeOutCheck() != 0) {
+#else
                 if (EdFadeOutCheck() != 0) {
+#endif
                     if (goto_cmp_event < 0) {
                         EdExitLoop();
                     } else {
+#ifdef CHRONICLE_EXPANDED
+                        if (!expanded::TownAllySkipsCutscene(goto_cmp_event))
+#endif
                         RunEvent(goto_cmp_event, NULL);
                         EdFadeIn(60, 0.0f, 0.0f, 0.0f);
                     }
