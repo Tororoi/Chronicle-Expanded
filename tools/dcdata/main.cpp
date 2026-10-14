@@ -10,6 +10,9 @@ int Usage() {
     std::fputs("usage: dcdata extract <iso-or-directory> <data-directory>\n"
                "       dcdata list <iso-or-directory>\n",
                stderr);
+#ifdef CHRONICLE_EXPANDED
+    std::fputs("       dcdata expanded <data-directory>\n", stderr);
+#endif
     return 2;
 }
 
@@ -67,6 +70,11 @@ int main(int argc, char **argv) {
         if (argc == 3 && std::strcmp(argv[1], "list") == 0) {
             return List(argv[2]);
         }
+#ifdef CHRONICLE_EXPANDED
+        if (argc == 3 && std::strcmp(argv[1], "expanded") == 0) {
+            return expanded::RebuildExpandedData(argv[2], stdout);
+        }
+#endif
         return Usage();
     } catch (const std::exception &error) {
         std::fprintf(stderr, "dcdata: %s\n", error.what());
