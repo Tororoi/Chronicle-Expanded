@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "battlemenu.hpp"
 #include "character.hpp"
 #include "editground.hpp"
 #include "editloop.hpp"
@@ -66,4 +67,26 @@ TEST(TownAlly, ToanIsTheFirstBody) {
     EXPECT_STREQ(expanded::kTownAllyBodies[0].info, "info.cfg");
     EXPECT_EQ(expanded::kTownAllyBodies[0].mark_lift, 0.0f);
     EXPECT_EQ(expanded::kTownAllyBodies[0].eye_height, 14.0f);
+}
+
+TEST(TownAllyMenu, ASwapPlaysTheDungeonChangeAndARefusalLeavesThePage) {
+    int saved_map = MapNo;
+
+    MapNo = TOWN_NORUNE;
+    expanded::TownAllyReset();
+    MenuChara.state = MENU_CHARA_SELECT;
+    expanded::TownAllyMenuCommit(2, 1);
+    EXPECT_EQ(MenuChara.state, MENU_CHARA_SELECT);
+
+    expanded::TownAllyMenuCommit(0, 6);
+    EXPECT_EQ(MenuChara.state, MENU_CHARA_SELECT);
+
+    MenuChara.change_counter = 9;
+    expanded::TownAllyMenuCommit(2, 6);
+    EXPECT_EQ(MenuChara.state, MENU_CHARA_CHANGE_LOAD);
+    EXPECT_EQ(MenuChara.change_counter, 0);
+
+    MenuChara.state = MENU_CHARA_SELECT;
+    expanded::TownAllyReset();
+    MapNo = saved_map;
 }
