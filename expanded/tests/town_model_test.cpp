@@ -224,21 +224,39 @@ TEST(TownModel, SkipsAnAllyWhoseBaseIsMissing) {
     fs::remove_all(dir);
 }
 
-// DC_TEST_DATA, an extracted data directory: Xiao's model as the mod's ISO bake builds it.
-TEST(TownModel, XiaoMatchesTheModsBake) {
+// DC_TEST_DATA, an extracted data directory: every ally's model as the mod's ISO bake builds it.
+TEST(TownModel, AlliesMatchTheModsBakes) {
     const char *data = std::getenv("DC_TEST_DATA");
     if (!data) {
         GTEST_SKIP() << "DC_TEST_DATA is not set";
     }
-    const TownAlly &xiao = TownAllies().at(0);
-    Bytes           model = BuildTownModel(xiao, [&](std::string_view path) {
-        std::ifstream stream(fs::path(data) / fs::path(path), std::ios::binary);
-        return Bytes(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
-    });
-    std::uint64_t   hash = 0xcbf29ce484222325ULL;
-    for (unsigned char byte : model) {
-        hash = (hash ^ byte) * 0x100000001b3ULL;
+
+    struct Bake {
+        std::string_view name;
+        std::size_t      size;
+        std::uint64_t    hash;
+    };
+
+    const Bake bakes[] = {
+        {"Xiao",   710128, 0xd1f9fe06cb7888a2ULL},
+        {"Goro",   749872, 0x5becc581c0882fbfULL},
+        {"Ruby",   783776, 0x5ec46375b0d3e4ecULL},
+        {"Ungaga", 796160, 0xdc82671c2936b419ULL},
+        {"Osmond", 802656, 0xbe9fdd77fd5b663dULL},
+    };
+    ASSERT_EQ(TownAllies().size(), std::size(bakes));
+    for (std::size_t i = 0; i < std::size(bakes); i++) {
+        const TownAlly &ally = TownAllies()[i];
+        Bytes           model = BuildTownModel(ally, [&](std::string_view path) {
+            std::ifstream stream(fs::path(data) / fs::path(path), std::ios::binary);
+            return Bytes(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
+        });
+        std::uint64_t   hash = 0xcbf29ce484222325ULL;
+        for (unsigned char byte : model) {
+            hash = (hash ^ byte) * 0x100000001b3ULL;
+        }
+        EXPECT_EQ(ally.name, bakes[i].name);
+        EXPECT_EQ(model.size(), bakes[i].size) << ally.name;
+        EXPECT_EQ(hash, bakes[i].hash) << ally.name;
     }
-    EXPECT_EQ(model.size(), 710128u);
-    EXPECT_EQ(hash, 0xd1f9fe06cb7888a2ULL);
 }
