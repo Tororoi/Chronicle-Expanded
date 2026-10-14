@@ -11,7 +11,6 @@ unmarked entries are this repository's own.
 - Linux Flatpak package. (Chronicle) adf65d80
 - Game icons for every platform. (Chronicle) TheMoonPeople/Chronicle#77
 - Discord Rich Presence showing the character and the town or dungeon floor, with a toggle. (Chronicle) TheMoonPeople/Chronicle#68, TheMoonPeople/Chronicle#69
-- The allies' town models are built from your disc's data when it is extracted, or later with `dcdata expanded`. #9, #12
 
 ## Display and graphics
 
@@ -19,12 +18,12 @@ unmarked entries are this repository's own.
 - Widescreen: the 3D view fills the window, the dungeon HUD and town clock sit in the window's corners, and a 4:3 letterbox setting is kept. (Chronicle) e928c0ee, TheMoonPeople/Chronicle#145
 - Full-screen 4:3 cutscene stills and full-size menu pictures stretch to the window's edges. (Chronicle) TheMoonPeople/Chronicle#122, TheMoonPeople/Chronicle#126
 - Interface Size setting scales the HUD and menus. (Chronicle) e928c0ee
-- The game runs at 60 Hz on PAL data too, without PAL's 50 Hz speed-up. (Chronicle) TheMoonPeople/Chronicle#53
-- High frame rates: frames are interpolated between the game's 60 ticks (Smooth Motion), with V-Sync and Frame Limit settings. (Chronicle) 733c40f6
+- The PAL version runs at full speed and full smoothness, like NTSC. (Chronicle) TheMoonPeople/Chronicle#53
+- Smooth motion at high frame rates, with V-Sync and Frame Limit settings. (Chronicle) 733c40f6
 - FPS counter (F3) in the game's font, with a setting for what it shows. (Chronicle) TheMoonPeople/Chronicle#79, TheMoonPeople/Chronicle#84, TheMoonPeople/Chronicle#85, TheMoonPeople/Chronicle#132
 - Anisotropic texture filtering. (Chronicle) TheMoonPeople/Chronicle#118
 - Depth of field, heat haze and water refraction are drawn at full resolution without retail's blocky blur; the heat haze ramps smoothly to the horizon. (Chronicle) c49d92b8, TheMoonPeople/Chronicle#120
-- Optional full-detail and full-shadow distances for town parts, villagers and dungeon monsters (`config.json`); distant villagers and shadows they bring in take the town's soft focus. (Chronicle) e928c0ee, TheMoonPeople/Chronicle#176
+- Optional settings to draw distant town buildings, villagers and dungeon monsters in full detail and with their shadows, softened by the town's haze. (Chronicle) e928c0ee, TheMoonPeople/Chronicle#176
 - Georama mode draws town parts at walking's level of detail, and the part on the cursor at its finest. (Chronicle) TheMoonPeople/Chronicle#173
 
 ## Controls
@@ -41,7 +40,7 @@ unmarked entries are this repository's own.
 
 ## Audio
 
-- Mono, stereo or surround (stereo spread to 5.1), and a master volume. (Chronicle) 5673e6e0, TheMoonPeople/Chronicle#136
+- Mono, stereo or surround sound, and a master volume. (Chronicle) 5673e6e0, TheMoonPeople/Chronicle#136
 - Custom soundtrack: map the game's tracks to your own WAV, FLAC or Ogg recordings in `soundtrack.json`. (Chronicle) 5673e6e0
 
 ## Saves
@@ -61,7 +60,7 @@ unmarked entries are this repository's own.
 
 ## Options
 
-- New settings screen with Game, Display, Audio, Controls, Text, Accessibility and Bindings pages; changes apply at once and save to `config.json`. (Chronicle) TheMoonPeople/Chronicle#65, TheMoonPeople/Chronicle#67, TheMoonPeople/Chronicle#100, TheMoonPeople/Chronicle#130
+- New settings screen with Game, Display, Audio, Controls, Text, Accessibility and Bindings pages; changes apply at once and are kept for every save. (Chronicle) TheMoonPeople/Chronicle#65, TheMoonPeople/Chronicle#67, TheMoonPeople/Chronicle#100, TheMoonPeople/Chronicle#130
 - Always Win QTEs (Accessibility): button-prompt events still play but always end in a perfect. (Chronicle) TheMoonPeople/Chronicle#96
 - Quit Game action. (Chronicle) TheMoonPeople/Chronicle#144, TheMoonPeople/Chronicle#155, TheMoonPeople/Chronicle#171
 
@@ -93,7 +92,7 @@ unmarked entries are this repository's own.
 
 ## Towns
 
-- Play as any ally in town: commit them in the party menu with the dungeon's change sequence, and they walk with full animations. #10, #11, #13
+- Play as any ally in town: commit them in the party menu with the dungeon's change sequence, and they walk with full animations. #9, #10, #11, #12, #13
 - Each ally takes ladders their own way: Xiao leaps, Goro hops, Ruby floats, Osmond flies and Ungaga refuses. #14
 
 ## Fishing
