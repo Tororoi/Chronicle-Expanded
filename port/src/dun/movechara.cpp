@@ -83,6 +83,10 @@
 #include "weaponelement.hpp"
 #include "wind.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/freeze.hpp"
+#endif
+
 // Defined by ps2/src/dun/gameloop.cpp without a header declaration.
 struct ENEMY_LIFE_GAGE {
     s32 life_max;
@@ -201,9 +205,8 @@ extern s32 viewMode__2;
 // The dungeon's MoveChara (renamed DunMoveChara by port/include/stubs/dun/gameloop.hpp, as the PS2
 // link does) and BtCheckDamageProc, retail's, with the addresses of NowDngMap's parts and of the
 // active item counters formed on the whole pointer instead of an unsigned int, and the mouse
-// turning the camera beside the right stick (camera_port.hpp), and BtCheckDamageProc letting a
-// hit break the player's freeze. EyeCamera, the first-person view, is retail's with the mouse
-// turning it beside the left stick.
+// turning the camera beside the right stick (camera_port.hpp). EyeCamera, the first-person view,
+// is retail's with the mouse turning it beside the left stick.
 
 namespace {
 
@@ -3071,14 +3074,9 @@ PORT_OVERRIDE int BtCheckDamageProc() {
             int            roll;
             COLLISION_HIT *hit = &NowColData->hit[hit_no];
 
-            // A hit breaks the player's freeze as its timer would end it, except that any
-            // other ailment stays, and loses its own Freeze, so it only breaks the freeze.
-            if (UserStatus->ailments[UserStatus->cur_chara] & AILMENT_FREEZE) {
-                UserStatus->ailments[UserStatus->cur_chara] &= ~AILMENT_FREEZE;
-                UserStatus->ailment_frames[UserStatus->cur_chara] = 0;
-                BtActStatus.movement_locked = 0;
-                hit->flags &= ~(0x100 | 0x100000);
-            }
+#ifdef CHRONICLE_EXPANDED
+            expanded::BreakFreeze(hit);
+#endif
 
             if (StatusErrCheck(AILMENT_STAMINA) != 0) {
                 guard *= 2;
