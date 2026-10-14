@@ -39,6 +39,12 @@
 #include "userstatus.hpp"
 #include "weaponelement.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/confuse.hpp"
+#include "expanded/poison.hpp"
+#include "expanded/ungaga.hpp"
+#endif
+
 int           hitCnt;
 BEE_STATE     BeeTbl[800];
 CTexAnimeData MonsterTexAnim[320];
@@ -1062,6 +1068,9 @@ int CMonstorUnit::CheckDmg() {
     COLLISION_HIT *record;
     int            immune = 0;
     sceVu0FVECTOR  direction, position;
+#ifdef CHRONICLE_EXPANDED
+    expanded::ConfuseStep(*this, current_monster);
+#endif
 
     if (monster[current_monster].stop_timer <= 0) {
         for (int i = 0; i < 16; i++) {
@@ -1128,6 +1137,9 @@ int CMonstorUnit::CheckDmg() {
             monster[current_monster].motion_reset_pending = true;
         }
 
+#ifdef CHRONICLE_EXPANDED
+        expanded::PoisonCureDead(&monster[current_monster]);
+#endif
         return MONSTER_DMG_NONE;
     }
 
@@ -1160,6 +1172,10 @@ int CMonstorUnit::CheckDmg() {
         monster[current_monster].anger_timer--;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::PoisonCureLapsed(&monster[current_monster], current_monster);
+#endif
+
     if (monster[current_monster].poison_timer > 0) {
         monster[current_monster].palette_override[0] = 47.0f;
         monster[current_monster].palette_override[1] = 0.5f;
@@ -1169,7 +1185,11 @@ int CMonstorUnit::CheckDmg() {
 
         if (monster[current_monster].poison_timer == 0) {
             monster[current_monster].poison_timer = 180;
+#ifdef CHRONICLE_EXPANDED
+            float damage = (float) expanded::PoisonTickDamage(&monster[current_monster]);
+#else
             float damage = 0.1f * (float) monster[current_monster].max_hp;
+#endif
             monster[current_monster].hp -= (int) damage;
             result = MONSTER_DMG_HIT;
 
@@ -1184,6 +1204,10 @@ int CMonstorUnit::CheckDmg() {
             poison_position[1] += chara[current_monster][0].body_height;
             HitValueEntry(NowHitValue, poison_position, (int) damage, HIT_VALUE_MONSTER, NULL);
         }
+
+#ifdef CHRONICLE_EXPANDED
+        expanded::PoisonCureFinished(&monster[current_monster], current_monster);
+#endif
     }
 
     if (monster[current_monster].invincible_timer > 0) {
@@ -1325,7 +1349,11 @@ int CMonstorUnit::CheckDmg() {
 
                     int attacker = NowColData->hit[hit].owner;
 
+#ifdef CHRONICLE_EXPANDED
+                    if ((attacker == 0 || attacker == 2 || attacker == 4) && !expanded::ChargeShotHit(attacker, original_record)) {
+#else
                     if (attacker == 0 || attacker == 2 || attacker == 4) {
+#endif
                         SwordDmgCheck1(1.0f, monster[current_monster].hardness);
                     }
 
@@ -1396,8 +1424,12 @@ int CMonstorUnit::CheckDmg() {
 
                     if (effect[current_monster].hit_attributes & 0x20) {
                         if (100.0f * (float) rand() / 2147483648.0f <= 10.0f && chance < (float) monster[current_monster].status_chance) {
+#ifdef CHRONICLE_EXPANDED
+                            expanded::Poison(&monster[current_monster], current_monster);
+#else
                             monster[current_monster].poison_timer = 180;
                             monster[current_monster].slow_timer = 0;
+#endif
                         } else if (owner == -1) {
                             immune = 1;
                         }
@@ -1419,13 +1451,21 @@ int CMonstorUnit::CheckDmg() {
                         }
                     }
 
+#ifdef CHRONICLE_EXPANDED
+                    expanded::ConfuseRoll(*this, current_monster);
+#endif
+
                     chance = monster[current_monster].status_chance == 0 ? 100.0f : 0.0f;
 
                     if (original_record->flags & 0x200) {
                         if (chance < (float) monster[current_monster].status_chance) {
                             if (monster[current_monster].stop_timer == 0 && monster[current_monster].anger_timer == 0) {
+#ifdef CHRONICLE_EXPANDED
+                                expanded::Poison(&monster[current_monster], current_monster);
+#else
                                 monster[current_monster].poison_timer = 180;
                                 monster[current_monster].slow_timer = 0;
+#endif
                             }
                         } else if (owner == -1) {
                             immune = 1;
@@ -1621,6 +1661,18 @@ int CMonstorUnit::CheckDmg() {
 
                     break;
                 }
+
+#ifdef CHRONICLE_EXPANDED
+                int friendly = expanded::ConfuseMonsterHit(*this, i);
+
+                if (friendly != -1) {
+                    if (friendly != MONSTER_DMG_NONE) {
+                        return friendly;
+                    }
+
+                    break;
+                }
+#endif
             }
         }
     }

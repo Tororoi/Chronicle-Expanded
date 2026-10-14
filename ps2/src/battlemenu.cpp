@@ -65,6 +65,10 @@ static int GetVisitInfo(int place, int menu_mode);
 #include "userstatus.hpp"
 #include "vutext.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/confuse.hpp"
+#endif
+
 static void DrawStatusNumberNowAndMax(int *values, int x, int y, int color, int alpha);
 static void BattleMenuAppear();
 static int  BattleMenuExit();
@@ -10525,9 +10529,17 @@ void MenuClsMes::NowWeaponStatus(WEAPON_HAVE *selected_weapon) {
         int clear_slot;
         int changed = 0;
 
+#ifdef CHRONICLE_EXPANDED
+        for (int bit = 1; bit <= expanded::kConfuseOptionBit; bit++) {
+#else
         for (int bit = 1; bit <= 13; bit++) {
+#endif
             if (option_flags & (1 << bit)) {
+#ifdef CHRONICLE_EXPANDED
+                int     message_no = expanded::ConfuseOptionMessage(bit);
+#else
                 int     message_no = bit + 69;
+#endif
                 ClsMes *window = message;
                 int     index = option_count;
 
@@ -10596,7 +10608,11 @@ void MenuClsMes::Draw1(int x, int y, int draw_alpha) {
                 CRect_i_  icon_src(0xEC, 0x50, 0x14, 0x14);
                 CTexture *face = TexManager.GetTexture("charaface", -1);
 
+#ifdef CHRONICLE_EXPANDED
+                for (option = 1; option <= expanded::kConfuseOptionBit; option++) {
+#else
                 for (option = 1; option <= 13; option++) {
+#endif
                     if (option == 8) {
                         icon_src.x -= icon_src.width;
                     }

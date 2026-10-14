@@ -83,6 +83,12 @@
 #include "weaponelement.hpp"
 #include "wind.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/confuse.hpp"
+#include "expanded/freeze.hpp"
+#include "expanded/poison.hpp"
+#endif
+
 // Defined by ps2/src/dun/gameloop.cpp without a header declaration.
 struct ENEMY_LIFE_GAGE {
     s32 life_max;
@@ -1702,6 +1708,9 @@ PORT_OVERRIDE void DunMoveChara() {
                 }
 
                 NowMonstorUnit->CleanViewMonstor(BtUraDongeon);
+#ifdef CHRONICLE_EXPANDED
+                expanded::ConfuseFloorReset(false);
+#endif
 
                 CMonstorUnit *unit = (CMonstorUnit *) NowMonstorUnit;
 
@@ -1754,6 +1763,9 @@ PORT_OVERRIDE void DunMoveChara() {
                 }
 
                 MainMonstorUnit.CleanViewMonstor(BtUraDongeon);
+#ifdef CHRONICLE_EXPANDED
+                expanded::ConfuseFloorReset(true);
+#endif
                 MonstorModelBuffer.used = 0;
                 u8 *cash = MonstorModelBuffer.base;
                 u32 cash_size = MonstorModelBuffer.limit;
@@ -2975,6 +2987,11 @@ PORT_OVERRIDE void DunMoveChara() {
         }
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::MonsterStepClockAdvance();
+    expanded::ConfuseTick();
+#endif
+
     motionDrive();
 }
 
@@ -3069,6 +3086,10 @@ PORT_OVERRIDE int BtCheckDamageProc() {
             int            monster;
             int            roll;
             COLLISION_HIT *hit = &NowColData->hit[hit_no];
+
+#ifdef CHRONICLE_EXPANDED
+            expanded::BreakFreeze(hit);
+#endif
 
             if (StatusErrCheck(AILMENT_STAMINA) != 0) {
                 guard *= 2;

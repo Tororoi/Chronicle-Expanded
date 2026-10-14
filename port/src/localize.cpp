@@ -21,6 +21,10 @@
 #include "platform/config.hpp"
 #include "platform/paths.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/localize.hpp"
+#endif
+
 namespace fs = std::filesystem;
 
 namespace {
@@ -73,6 +77,9 @@ std::vector<fs::path> Directories() {
     fs::path              exe = PathsExecutable();
     if (!exe.empty()) {
         directories.push_back(exe.parent_path() / "lang");
+#ifdef CHRONICLE_EXPANDED
+        directories.push_back(exe.parent_path() / expanded::kLanguageFolder);
+#endif
     }
     directories.push_back(PathsSaveRoot() / "lang");
     return directories;
