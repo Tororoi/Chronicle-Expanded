@@ -41,6 +41,9 @@ still matches retail.
       if (!(heal_counter < 240)) {
   #endif
   ```
+- **The truncation report.** Edits to `ps2/` and `port/` shift `docs/port/truncations.md`'s line numbers,
+  which CI checks on Linux: regenerate it with `scripts/port/truncations.py --build <Linux build dir>`,
+  and on a merge conflict in it, take either side and regenerate.
 - **Whole-function copies** only when rewriting most of a function: put the copy in `expanded/src` as a
   `PORT_OVERRIDE`, under the retail function's name.
 - **Fixes to retail bugs go to Chronicle first**, from a fork of Chronicle on a branch from
