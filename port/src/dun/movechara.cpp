@@ -84,6 +84,7 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/freeze.hpp"
 #include "expanded/poison.hpp"
 #endif
 
@@ -3077,6 +3078,10 @@ PORT_OVERRIDE int BtCheckDamageProc() {
             int            monster;
             int            roll;
             COLLISION_HIT *hit = &NowColData->hit[hit_no];
+
+#ifdef CHRONICLE_EXPANDED
+            expanded::BreakFreeze(hit);
+#endif
 
             if (StatusErrCheck(AILMENT_STAMINA) != 0) {
                 guard *= 2;
