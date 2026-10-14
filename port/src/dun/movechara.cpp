@@ -83,6 +83,10 @@
 #include "weaponelement.hpp"
 #include "wind.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/freeze.hpp"
+#endif
+
 // Defined by ps2/src/dun/gameloop.cpp without a header declaration.
 struct ENEMY_LIFE_GAGE {
     s32 life_max;
@@ -3069,6 +3073,10 @@ PORT_OVERRIDE int BtCheckDamageProc() {
             int            monster;
             int            roll;
             COLLISION_HIT *hit = &NowColData->hit[hit_no];
+
+#ifdef CHRONICLE_EXPANDED
+            expanded::BreakFreeze(hit);
+#endif
 
             if (StatusErrCheck(AILMENT_STAMINA) != 0) {
                 guard *= 2;
