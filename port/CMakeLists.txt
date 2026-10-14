@@ -46,6 +46,14 @@ set(PS2_UNITS "")
 # What both halves are compiled with (dc_options below). PORT leaves out the
 # functions ps2/src writes in MIPS assembly.
 set(PORT_DEFINITIONS PORT PAL)
+# Chronicle-Expanded: the mod's code in expanded/, and its CHRONICLE_EXPANDED macro. OFF builds the vanilla port.
+option(CHRONICLE_EXPANDED "Build Chronicle-Expanded's changes" ON)
+set(EXPANDED_DIR ${CMAKE_SOURCE_DIR}/expanded)
+set(EXPANDED_SOURCES "")
+if(CHRONICLE_EXPANDED)
+    file(GLOB_RECURSE EXPANDED_SOURCES CONFIGURE_DEPENDS ${EXPANDED_DIR}/src/*.cpp)
+    list(APPEND PORT_DEFINITIONS CHRONICLE_EXPANDED)
+endif()
 list(TRANSFORM PORT_DEFINITIONS PREPEND --define= OUTPUT_VARIABLE port_override_defines)
 # The names port/src's PORT_OVERRIDE definitions link under. The list is rewritten
 # only when it changes, so other edits to port/src rebuild nothing of ps2/src.
@@ -55,13 +63,24 @@ set(PORT_OVERRIDE_SCRIPT ${KZ_ROOT}/scripts/port_override.py)
 set(PORT_OVERRIDES ${CMAKE_BINARY_DIR}/port_overrides.txt)
 set(PORT_OVERRIDE_SOURCES ${CMAKE_BINARY_DIR}/port_override_sources.txt)
 file(GLOB_RECURSE PORT_OVERRIDE_STUBS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/port/include/stubs/*.hpp)
-string(JOIN "\n" port_override_sources ${PORT_SOURCES} ${PS2_SOURCES} ${PORT_OVERRIDE_STUBS})
+string(JOIN "\n" port_override_sources ${PORT_SOURCES} ${EXPANDED_SOURCES} ${PS2_SOURCES} ${PORT_OVERRIDE_STUBS})
 file(CONFIGURE OUTPUT ${PORT_OVERRIDE_SOURCES} CONTENT "${port_override_sources}\n" @ONLY)
+if(CHRONICLE_EXPANDED)
+    add_custom_command(OUTPUT ${PORT_OVERRIDES}
+        COMMAND ${Python3_EXECUTABLE} ${PORT_OVERRIDE_SCRIPT} list ${PORT_DIR} -o ${PORT_OVERRIDES}.port
+        COMMAND ${Python3_EXECUTABLE} ${PORT_OVERRIDE_SCRIPT} list ${EXPANDED_DIR}/src -o ${PORT_OVERRIDES}.expanded
+        COMMAND ${CMAKE_COMMAND} -DPORT=${PORT_OVERRIDES}.port -DEXPANDED=${PORT_OVERRIDES}.expanded -DOUT=${PORT_OVERRIDES}
+            -P ${EXPANDED_DIR}/cmake/merge_overrides.cmake
+        DEPENDS ${PORT_SOURCES} ${EXPANDED_SOURCES} ${PORT_OVERRIDE_SOURCES} ${PORT_OVERRIDE_SCRIPT}
+        COMMENT "Listing port/src's and expanded/src's PORT_OVERRIDE definitions"
+        VERBATIM)
+else()
 add_custom_command(OUTPUT ${PORT_OVERRIDES}
     COMMAND ${Python3_EXECUTABLE} ${PORT_OVERRIDE_SCRIPT} list ${PORT_DIR} -o ${PORT_OVERRIDES}
     DEPENDS ${PORT_SOURCES} ${PORT_OVERRIDE_SOURCES} ${PORT_OVERRIDE_SCRIPT}
     COMMENT "Listing port/src's PORT_OVERRIDE definitions"
     VERBATIM)
+endif()
 # What is compiled of a unit is its copy without the definitions of those names.
 # port/include/stubs/<unit>.hpp, if it exists, is included ahead of that unit
 # of ps2/src: it declares what the port defines in place of code PORT leaves
@@ -105,7 +124,8 @@ add_custom_command(OUTPUT ${PORT_OVERRIDES_CHECKED}
 add_library(dc_options INTERFACE)
 target_compile_definitions(dc_options INTERFACE ${PORT_DEFINITIONS})
 target_include_directories(dc_options INTERFACE
-    ${CMAKE_SOURCE_DIR}/port/include ${KZ_ROOT}/include ${CMAKE_SOURCE_DIR}/ps2/include ${CMAKE_SOURCE_DIR}/ps2/include/sce)
+    ${CMAKE_SOURCE_DIR}/port/include ${KZ_ROOT}/include ${CMAKE_SOURCE_DIR}/ps2/include ${CMAKE_SOURCE_DIR}/ps2/include/sce
+    ${EXPANDED_DIR}/include)
 target_compile_options(dc_options INTERFACE
     "SHELL:-include \"${CMAKE_SOURCE_DIR}/port/include/port.h\""
     -fms-extensions -ffunction-sections -fdata-sections
@@ -139,7 +159,7 @@ target_compile_options(dc_ps2 PRIVATE -Wall -Wno-writable-strings -Wno-unknown-p
     -Wno-unused-local-typedef -Wno-unused-label -Wno-unused-function -Wno-unused-value
     -Wno-unused-const-variable -Wno-undefined-internal -Wno-self-assign -Wno-deprecated-volatile)
 
-set(PORT_LIB_SOURCES ${PORT_SOURCES})
+set(PORT_LIB_SOURCES ${PORT_SOURCES} ${EXPANDED_SOURCES})
 list(FILTER PORT_LIB_SOURCES EXCLUDE REGEX "/tests/|/main\\.cpp$")
 
 set(SHADER_HEADER_DIR ${CMAKE_BINARY_DIR}/generated)

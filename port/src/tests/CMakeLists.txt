@@ -14,6 +14,11 @@ FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
 
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp)
+# Chronicle-Expanded's own cases.
+if(CHRONICLE_EXPANDED)
+    file(GLOB_RECURSE EXPANDED_TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/expanded/tests/*_test.cpp)
+    list(APPEND TEST_SOURCES ${EXPANDED_TEST_SOURCES})
+endif()
 add_executable(darkcloud_tests ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp ${TEST_SOURCES})
 set_target_properties(darkcloud_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 target_include_directories(darkcloud_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
