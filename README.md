@@ -27,12 +27,14 @@ still matches retail.
 - **The mod's code lives in `expanded/`:**
   - `expanded/src/`: compiled into the port. Functions are in namespace `expanded`.
   - `expanded/include/expanded/`: headers, included as `"expanded/<name>.hpp"`.
+  - `expanded/src/data/`: what is built from the extracted disc data (see "Game data built at
+    extraction"); it includes no game header and is compiled into `dcdata` too.
   - `expanded/tests/`: `*_test.cpp` cases, run with the port's tests.
-- **Edits to Chronicle's files (`ps2/`, `port/`) are guarded hooks:**
+- **Edits to Chronicle's files (`ps2/`, `port/`, `tools/dcdata/`) are guarded hooks:**
   - Wrap each in `#ifdef CHRONICLE_EXPANDED`; one that replaces code keeps retail's in the `#else`.
   - Keep each to a call into `expanded::` or a constant; the logic lives in `expanded/src`.
   - Don't reformat, rename or move the code around them.
-  - `grep -rn CHRONICLE_EXPANDED ps2 port` lists every one.
+  - `grep -rn CHRONICLE_EXPANDED ps2 port tools/dcdata` lists every one.
 
   ```cpp
   #ifdef CHRONICLE_EXPANDED
@@ -49,6 +51,20 @@ still matches retail.
 - **Fixes to retail bugs go to Chronicle first**, from a fork of Chronicle on a branch from
   `upstream/master`, and are cherry-picked here if they are needed before upstream merges them.
 - **Comments** are short and say what the code does.
+
+## Game data built at extraction
+
+What the mod makes from the disc's own files can't ship with it, so `dcdata extract` builds it into the
+data directory after extracting, and the game's first-run extraction does the same; the vanilla build
+writes none of it. For a data directory extracted before, rebuild just these files:
+
+```sh
+port/build/pc/dcdata expanded data
+```
+
+It writes only what changed and exits 1 if anything failed to build. What it builds:
+
+- `expanded/town/<ally>.chr`: each ally's town model (`expanded/docs/town-models.md`).
 
 ---
 

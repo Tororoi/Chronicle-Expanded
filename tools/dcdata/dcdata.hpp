@@ -21,6 +21,10 @@
 #include <utility>
 #include <vector>
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/data.hpp"
+#endif
+
 namespace dcdata {
 
 namespace fs = std::filesystem;
@@ -1122,6 +1126,9 @@ inline Summary Extract(const Archive &archive, const fs::path &out, std::FILE *l
         FillFloorPlates(out);
     }
     WriteLanguages(out, release);
+#ifdef CHRONICLE_EXPANDED
+    summary.warnings += expanded::BuildExpandedData(out, log);
+#endif
     return summary;
 }
 
