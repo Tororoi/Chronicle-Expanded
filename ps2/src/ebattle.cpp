@@ -35,6 +35,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/town_ally.hpp"
+#include "expanded/town_ladder.hpp"
 #endif
 
 #pragma helper_mask_gpr 0x30
@@ -1597,6 +1598,12 @@ void EdMoveChara() {
     interior = EdMoveCharaInfo.interior;
     ground = EdMoveCharaInfo.ground;
 
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::TownAllyLadderStep()) {
+        return;
+    }
+#endif
+
     if (key_lock != 0) {
         chara_mode |= 1;
     } else {
@@ -2257,7 +2264,7 @@ void EdMoveChara() {
                 EdEventInfo.draw_exclamation_mark = true;
 
 #ifdef CHRONICLE_EXPANDED
-                if (PadDown(0x40) != 0 && (interior != 0 || viewMode == 0) && !expanded::TownAllyBlocksLadder()) {
+                if (PadDown(0x40) != 0 && (interior != 0 || viewMode == 0) && !expanded::TownAllyTakesLadder(param)) {
 #else
                 if (PadDown(0x40) != 0 && (interior != 0 || viewMode == 0)) {
 #endif

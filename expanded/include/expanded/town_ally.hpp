@@ -50,9 +50,6 @@ void TownAllyEventBody();
 // Points a script's load of Toan's town body at the current party member's.
 void TownAllyMainCharaPack(char **pack, char **info, CDataAlloc2<1> *arena);
 
-// Whether the main character's body can't climb ladders (Toan's climb is rigged to his body).
-bool TownAllyBlocksLadder();
-
 // Whether a story cutscene the town fades into is skipped, as it is while an ally walks the town.
 bool TownAllySkipsCutscene(int event_no);
 
