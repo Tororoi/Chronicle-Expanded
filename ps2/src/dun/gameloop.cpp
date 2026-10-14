@@ -125,6 +125,10 @@
 #include "weaponelement.hpp"
 #include "wind.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/confuse.hpp"
+#endif
+
 /**
  * Defines the life gauge that the locked-on enemy draws above itself.
  */
@@ -6549,6 +6553,9 @@ void BtLoadMonstor(int ura) {
         count += NowMonstorUnit->SetupBaseModel(count, layout->monster[monster].monster_no, 0x26, &MonstorModelBuffer);
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::ConfuseFloorLoaded();
+#endif
     MemoryMapDump();
 }
 

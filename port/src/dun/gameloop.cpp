@@ -66,6 +66,10 @@
 #include "weaponeffect.hpp"
 #include "weaponelement.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/confuse.hpp"
+#endif
+
 // The dungeon's MainDraw and LoaderLoop, replaced to drop what the renderer has no use for: the VU1
 // program call each opens with and MainDraw's wait for GIF path idle before the frame grab, which
 // the renderer orders itself. Everything else is retail's, PAL's branch only.
@@ -335,6 +339,9 @@ PORT_OVERRIDE void DunMainDraw() {
             shot[i].Draw();
         }
 
+#ifdef CHRONICLE_EXPANDED
+        expanded::ConfuseStarsDraw();
+#endif
         NowMainEffect->Draw();
     }
 

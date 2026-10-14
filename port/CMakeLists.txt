@@ -264,6 +264,10 @@ add_dependencies(darkcloud dc_lang)
 install(DIRECTORY lang/ DESTINATION ${CMAKE_INSTALL_BINDIR}/lang)
 install(FILES ${CMAKE_SOURCE_DIR}/tools/font/DarkCloudCompendium.ttf DESTINATION ${CMAKE_INSTALL_BINDIR}/lang RENAME font.ttf)
 install(FILES ${CMAKE_SOURCE_DIR}/tools/font/DarkCloudCompendiumThin.ttf DESTINATION ${CMAKE_INSTALL_BINDIR}/lang RENAME font_thin.ttf)
+# Chronicle-Expanded's icon and strings.
+if(CHRONICLE_EXPANDED)
+    include(${EXPANDED_DIR}/cmake/resources.cmake)
+endif()
 
 # The button symbols (docs/GLYPHS.md): glyphs/ beside the executable. Rebuilt from art by tools/glyphs/build_glyphs.py.
 add_custom_target(dc_glyphs
