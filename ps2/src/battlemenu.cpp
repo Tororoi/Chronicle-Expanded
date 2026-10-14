@@ -51,6 +51,10 @@
 #include "weapon_buildup.hpp"
 #include "weaponlevelup.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town_ally.hpp"
+#endif
+
 static int GetVisitInfo(int place, int menu_mode);
 
 #include <cstdlib>
@@ -1950,7 +1954,11 @@ int BattleMenuCharaKey() {
                         break;
                     }
                     default:
+#ifdef CHRONICLE_EXPANDED
+                        ComMenuSePlay(expanded::TownAllyCommit(MenuChara.chara, BtlMenuStatusPt->party_size) ? MENU_SOUND_CONFIRM : MENU_SOUND_REFUSE);
+#else
                         ComMenuSePlay(MENU_SOUND_REFUSE);
+#endif
                         break;
                 }
             }

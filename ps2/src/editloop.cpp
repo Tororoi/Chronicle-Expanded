@@ -94,6 +94,10 @@ void BtSetMapJumpFloor(int floor);
 #include "weaponlevelup.hpp"
 #include "wind.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town_ally.hpp"
+#endif
+
 CTexture  *StayTexture;
 int        NowEditMap;
 u_long128 *EdNPCReadBuffer;
@@ -2666,7 +2670,11 @@ void EdDrawSysCursor(ED_EVENT_POINT *points, int count) {
             sceVu0FVECTOR position;
             Chara->GetPosition(position);
             static float a = 0.0f;
+#ifdef CHRONICLE_EXPANDED
+            position[1] += 3.0f + Chara->body_height + 0.5f * sinf(a) + expanded::TownAllyMarkLift();
+#else
             position[1] += 3.0f + Chara->body_height + 0.5f * sinf(a);
+#endif
             a += 0.1f;
 
             if (!(a <= PI_SHORT)) {
@@ -3783,6 +3791,10 @@ int GotoInterior(char *name, int entrance, int direction, ED_EVENT_PARAM *param,
     if (start_event < 0) {
         EdInteriorStartEvent = 128;
     }
+
+#ifdef CHRONICLE_EXPANDED
+    EdInteriorStartEvent = expanded::TownAllyInteriorStartEvent(EdInteriorStartEvent, entrance);
+#endif
 
     return 1;
 }

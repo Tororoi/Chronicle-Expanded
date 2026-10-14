@@ -33,6 +33,10 @@
 #include "sysmes.hpp"
 #include "texture.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town_ally.hpp"
+#endif
+
 #pragma helper_mask_gpr 0x30
 #pragma helper_mask_fpr 0x1000
 #pragma name_counter 517
@@ -1442,7 +1446,11 @@ void EdEyeCamera(CCamera *camera, CCharacter *character) {
     sceVu0RotMatrixY(rotation, rotation, viewAngleH);
     sceVu0ApplyMatrix(reference, rotation, reference);
     character->GetPosition(position);
+#ifdef CHRONICLE_EXPANDED
+    position[1] += expanded::TownAllyEyeHeight();
+#else
     position[1] += 14.0f;
+#endif
     reference[0] += position[0];
     reference[1] += position[1];
     reference[2] += position[2];
@@ -2248,7 +2256,11 @@ void EdMoveChara() {
             if (param->kind == ED_EVENT_POINT_LADDER_BOTTOM || param->kind == ED_EVENT_POINT_LADDER_TOP) {
                 EdEventInfo.draw_exclamation_mark = true;
 
+#ifdef CHRONICLE_EXPANDED
+                if (PadDown(0x40) != 0 && (interior != 0 || viewMode == 0) && !expanded::TownAllyBlocksLadder()) {
+#else
                 if (PadDown(0x40) != 0 && (interior != 0 || viewMode == 0)) {
+#endif
                     EdInitHashigo(&EdEventInfo, param);
                     system_event_no = 1;
                 }

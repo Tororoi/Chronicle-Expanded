@@ -51,6 +51,10 @@
 #include "texture.hpp"
 #include "water.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town_ally.hpp"
+#endif
+
 // The bodies are retail's, which pass string literals as char *.
 #pragma clang diagnostic ignored "-Wwritable-strings"
 
@@ -543,6 +547,9 @@ PORT_OVERRIDE int EditInLoop() {
 
     switch (GameMode) {
         case ED_IN_MODE_WALK:
+#ifdef CHRONICLE_EXPANDED
+            expanded::TownAllyWalk();
+#endif
             if (EdIn_loop_counter > 0) {
                 MoveCharacter();
             }

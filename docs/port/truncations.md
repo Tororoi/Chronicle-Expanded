@@ -61,8 +61,8 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 | site | function | state | class | expression | origin | use |
 |---|---|---|---|---|---|---|
 | port/src/dataread.cpp:246 | LoadFileBG | port | low-bits | `reinterpret_cast < std :: uintptr_t >(buffer)` | parameter | test |
-| port/src/edit_in.cpp:1762 | LoadData | port | low-bits | `(intptr_t)func_point[i].parts` | field | index: InteriorParts[(int)(intptr_t)func_point[i].parts] |
-| port/src/editloop_init.cpp:405 | EditInit | port | low-bits | `reinterpret_cast < std :: intptr_t >(EdNPCReadBuffer)` | global pointer | store: read_misalign |
+| port/src/edit_in.cpp:1769 | LoadData | port | low-bits | `(intptr_t)func_point[i].parts` | field | index: InteriorParts[(int)(intptr_t)func_point[i].parts] |
+| port/src/editloop_init.cpp:409 | EditInit | port | low-bits | `reinterpret_cast < std :: intptr_t >(EdNPCReadBuffer)` | global pointer | store: read_misalign |
 | port/src/texture_buffer.cpp:14 | CTextureManager::SetBuffer | port | low-bits | `reinterpret_cast < std :: uintptr_t >(this->buffer)` | field | store: misalignment |
 | ps2/src/dataset.cpp:381 | LoadMDSFile | retail | low-bits | `(int)data` | parameter | test |
 | ps2/src/gameutil.cpp:290 | MotionProc | retail | low-bits | `(int)list` | parameter | test |
@@ -90,11 +90,11 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 | port/src/title/title.cpp:1741 | InitProcG | port | resolved | `(intptr_t)& Wind__4` | image | store: Chara__3[2].wind (read back only in CCharacter::ClothStep) |
 | port/src/title/title.cpp:1930 | InitProcH | port | resolved | `(intptr_t)& Wind__4` | image | store: Chara__3[1].wind (read back only in CCharacter::ClothStep) |
 | port/src/title/title.cpp:2157 | InitProcI | port | resolved | `(intptr_t)& Wind__4` | image | store: Chara__3[0].wind (read back only in CCharacter::ClothStep) |
-| ps2/src/editloop.cpp:3357 | MainEditMode | retail | resolved | `(int)& EdWind` | image | store: Chara->wind (read back only in CCharacter::ClothStep) |
-| ps2/src/editloop.cpp:5213 | LoadObjectParts | retail | resolved | `(int)parts->frame[3]` | field | store: parts->preview_frame (read back only in CEditGround::DrawPartsCursor) |
-| ps2/src/editloop.cpp:5215 | LoadObjectParts | retail | resolved | `(int)parts->frame[2]` | field | store: parts->preview_frame (read back only in CEditGround::DrawPartsCursor) |
-| ps2/src/editloop.cpp:5217 | LoadObjectParts | retail | resolved | `(int)parts->frame[1]` | field | store: parts->preview_frame (read back only in CEditGround::DrawPartsCursor) |
-| ps2/src/editloop.cpp:5219 | LoadObjectParts | retail | resolved | `(int)parts->frame[0]` | field | store: parts->preview_frame (read back only in CEditGround::DrawPartsCursor) |
+| ps2/src/editloop.cpp:3365 | MainEditMode | retail | resolved | `(int)& EdWind` | image | store: Chara->wind (read back only in CCharacter::ClothStep) |
+| ps2/src/editloop.cpp:5225 | LoadObjectParts | retail | resolved | `(int)parts->frame[3]` | field | store: parts->preview_frame (read back only in CEditGround::DrawPartsCursor) |
+| ps2/src/editloop.cpp:5227 | LoadObjectParts | retail | resolved | `(int)parts->frame[2]` | field | store: parts->preview_frame (read back only in CEditGround::DrawPartsCursor) |
+| ps2/src/editloop.cpp:5229 | LoadObjectParts | retail | resolved | `(int)parts->frame[1]` | field | store: parts->preview_frame (read back only in CEditGround::DrawPartsCursor) |
+| ps2/src/editloop.cpp:5231 | LoadObjectParts | retail | resolved | `(int)parts->frame[0]` | field | store: parts->preview_frame (read back only in CEditGround::DrawPartsCursor) |
 | ps2/src/title/op_d.cpp:673 | OpD_MotionProcess | retail | resolved | `(int)& Wind` | image | store: Chara__3[cloth_actor].wind (read back only in CCharacter::ClothStep) |
 
 ## Sites that never run (117)
@@ -136,14 +136,14 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 | ps2/src/edit_in.cpp:465 | InitWorkBuffer | dead | round-trip | `(int)free_start` | arena (base) | cast back: (u_char *)((((int)free_start >> 6)+ 1)<< 6) |
 | ps2/src/edit_in.cpp:1867 | LoadData | replaced | low-bits | `(int)func_point[i].parts` | field | index: InteriorParts[(int)func_point[i].parts] |
 | ps2/src/edit_in.cpp:2019 | GetFuncPoint | replaced | low-bits | `(int)header->func` | field | pointer offset: (char *)header +(int)header->func |
-| ps2/src/editloop.cpp:509 | InitWorkBuffer | replaced | round-trip | `(int)free_start` | arena (base) | cast back: (u_char *)((((int)free_start >> 6)+ 1)<< 6) |
-| ps2/src/editloop.cpp:966 | EditInit | replaced | resolved | `(int)DataBuffer__2.base` | arena (base) | store: free_start (read back only in EditInit) |
-| ps2/src/editloop.cpp:990 | EditInit | replaced | low-bits | `(int)EdNPCReadBuffer` | global pointer | store: read_misalign |
-| ps2/src/editloop.cpp:992 | EditInit | replaced | round-trip | `(int)EdNPCReadBuffer` | global pointer | compare: LT |
-| ps2/src/editloop.cpp:5261 | LoadPTS | replaced | low-bits | `(int)source->cell` | field | pointer offset: (u8 *)header +(int)source->cell |
-| ps2/src/editloop.cpp:5265 | LoadPTS | replaced | low-bits | `(int)source->element_name[i]` | field | pointer offset: (char *)header +(int)source->element_name[i] |
-| ps2/src/editloop.cpp:5269 | LoadPTS | replaced | low-bits | `(int)source->func` | field | pointer offset: (char *)header +(int)source->func |
-| ps2/src/editloop.cpp:5278 | LoadPTS | replaced | escapes | `(int)header->func` | field | store: parts->func_data |
+| ps2/src/editloop.cpp:513 | InitWorkBuffer | replaced | round-trip | `(int)free_start` | arena (base) | cast back: (u_char *)((((int)free_start >> 6)+ 1)<< 6) |
+| ps2/src/editloop.cpp:970 | EditInit | replaced | resolved | `(int)DataBuffer__2.base` | arena (base) | store: free_start (read back only in EditInit) |
+| ps2/src/editloop.cpp:994 | EditInit | replaced | low-bits | `(int)EdNPCReadBuffer` | global pointer | store: read_misalign |
+| ps2/src/editloop.cpp:996 | EditInit | replaced | round-trip | `(int)EdNPCReadBuffer` | global pointer | compare: LT |
+| ps2/src/editloop.cpp:5273 | LoadPTS | replaced | low-bits | `(int)source->cell` | field | pointer offset: (u8 *)header +(int)source->cell |
+| ps2/src/editloop.cpp:5277 | LoadPTS | replaced | low-bits | `(int)source->element_name[i]` | field | pointer offset: (char *)header +(int)source->element_name[i] |
+| ps2/src/editloop.cpp:5281 | LoadPTS | replaced | low-bits | `(int)source->func` | field | pointer offset: (char *)header +(int)source->func |
+| ps2/src/editloop.cpp:5290 | LoadPTS | replaced | escapes | `(int)header->func` | field | store: parts->func_data |
 | ps2/src/editmapscript.cpp:1072 | CommandWATER_SHAKE | replaced | resolved | `(u_int)info` | global pointer | store: offset (read back only in CommandWATER_SHAKE) |
 | ps2/src/main.cpp:755 | main | replaced | resolved | `(int)Vif1Packet` | global pointer | store: vif1_packet (read back only in main) |
 | ps2/src/memcard.cpp:3433 | InitMenuOption | replaced | low-bits | `(int)buffer` | parameter | test |
@@ -238,7 +238,7 @@ pointer where it is stored, or resolve the integer where it comes back.
 | ps2/src/btsysscript.cpp:107 | BtSystemScriptLoad | replaced | `(void *)BtEventData` | BtEventData |
 | ps2/src/btsysscript.cpp:114 | BtSystemScriptLoad | replaced | `(char *)BtEventData` | BtEventData |
 | ps2/src/btsysscript.cpp:258 | BtSystemScriptRun | replaced | `(char *)BtEventData` | BtEventData |
-| ps2/src/character.cpp:792 | CCharacter::ClothStep | replaced | `(void *)this->wind` | Chara__3[8].wind |
+| ps2/src/character.cpp:799 | CCharacter::ClothStep | replaced | `(void *)this->wind` | Chara__3[8].wind |
 | ps2/src/cloth.cpp:554 | CCloth::CreateVUData | replaced | `(u_long128 *)span` | span |
 | ps2/src/dataread.cpp:100 | SearchFile | dead | `(char *)record->name` | records[i].name |
 | ps2/src/dataread.cpp:513 | InitCDFile | replaced | `(char *)records[i].name` | records[i].name |
@@ -261,8 +261,8 @@ pointer where it is stored, or resolve the integer where it comes back.
 | ps2/src/dungeonmap.cpp:3396 | CDungeonMap::SetCharaDoor | replaced | `(CDungeonMap *)address` | address |
 | ps2/src/dungeonmap.cpp:3408 | CDungeonMap::SetCharaDoor | replaced | `(CDungeonMap *)address` | address |
 | ps2/src/editground.cpp:1446 | CEditGround::DrawPartsCursor | replaced | `(CFrame *)source->preview_frame` | parts->preview_frame |
-| ps2/src/editloop.cpp:983 | EditInit | replaced | `(u_char *)free_start` | free_start |
-| ps2/src/editloop.cpp:986 | EditInit | replaced | `(u_char *)free_start` | free_start |
+| ps2/src/editloop.cpp:987 | EditInit | replaced | `(u_char *)free_start` | free_start |
+| ps2/src/editloop.cpp:990 | EditInit | replaced | `(u_char *)free_start` | free_start |
 | ps2/src/editmapscript.cpp:1073 | CommandWATER_SHAKE | replaced | `(EDIT_WATER_WAVE_VIEW *)offset` | offset |
 | ps2/src/main.cpp:757 | main | replaced | `(sceVif1Packet *)vif1_packet` | vif1_packet |
 | ps2/src/menu_draw.cpp:131 | MenuCalcBufAlignment | replaced | `(u_long128 *)offset` | offset |

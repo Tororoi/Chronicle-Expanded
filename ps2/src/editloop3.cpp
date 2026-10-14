@@ -59,6 +59,10 @@
 #include "textureanime.hpp"
 #include "visualvu1.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town_ally.hpp"
+#endif
+
 /* Retail editloop3.cpp: editor event points, villagers, script opcodes and talk handling. */
 
 /**
@@ -3753,6 +3757,9 @@ static int _LOAD_CHARA(RS_STACKDATA *stack, int argument_count) {
             return 0;
         }
 
+#ifdef CHRONICLE_EXPANDED
+        expanded::TownAllyEventBody();
+#endif
         CDataAlloc2<1> *first = get_buffer();
         CDataAlloc2<1> *second = get_buffer();
         character->LoadPackData2(pack, name, first, EdEventInfo.player_texture_block, second, 0);
@@ -7864,6 +7871,9 @@ static int _LOAD_MAIN_CHARA(RS_STACKDATA *stack, int argument_count) {
         arena = &EdVillagerBuffer;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::TownAllyMainCharaPack(&model, &motion, arena);
+#endif
     EdLoadMainChara(model, motion, arena);
     return 1;
 }

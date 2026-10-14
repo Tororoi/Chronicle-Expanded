@@ -70,6 +70,10 @@
 #include "wind.hpp"
 #include "edit_in.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town_ally.hpp"
+#endif
+
 // The bodies are retail's, which pass string literals as char *.
 #pragma clang diagnostic ignored "-Wwritable-strings"
 
@@ -416,6 +420,9 @@ PORT_OVERRIDE int EditInit(void *param) {
     EdInitVillagerControl();
     EdInitVillagerTable(NowTime, EditMapInfo);
     EdLoadMainChara("chara/c01d.chr", "info.cfg", &CharaBuffer);
+#ifdef CHRONICLE_EXPANDED
+    expanded::TownAllyReset();
+#endif
     sceVu0FVECTOR start_position = {0.0f, 0.0f, 0.0f, 1.0f};
     sceVu0FVECTOR start_rotation = {0.0f, 0.0f, 0.0f, 0.0f};
     sceVu0FVECTOR fade;
