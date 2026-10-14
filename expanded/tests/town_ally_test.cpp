@@ -5,6 +5,8 @@
 #include <format>
 #include <fstream>
 
+#include "battlemenu.hpp"
+#include "character.hpp"
 #include "editground.hpp"
 #include "editloop.hpp"
 #include "expanded/town_ally.hpp"
@@ -89,4 +91,26 @@ TEST(TownAlly, BuiltModelsReplaceTheDiscBodies) {
     PathsReset();
     expanded::TownAllyReset();
     fs::remove_all(dir);
+}
+
+TEST(TownAllyMenu, ASwapPlaysTheDungeonChangeAndARefusalLeavesThePage) {
+    int saved_map = MapNo;
+
+    MapNo = TOWN_NORUNE;
+    expanded::TownAllyReset();
+    MenuChara.state = MENU_CHARA_SELECT;
+    expanded::TownAllyMenuCommit(2, 1);
+    EXPECT_EQ(MenuChara.state, MENU_CHARA_SELECT);
+
+    expanded::TownAllyMenuCommit(0, 6);
+    EXPECT_EQ(MenuChara.state, MENU_CHARA_SELECT);
+
+    MenuChara.change_counter = 9;
+    expanded::TownAllyMenuCommit(2, 6);
+    EXPECT_EQ(MenuChara.state, MENU_CHARA_CHANGE_LOAD);
+    EXPECT_EQ(MenuChara.change_counter, 0);
+
+    MenuChara.state = MENU_CHARA_SELECT;
+    expanded::TownAllyReset();
+    MapNo = saved_map;
 }

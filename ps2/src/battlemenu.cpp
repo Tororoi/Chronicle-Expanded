@@ -1735,10 +1735,16 @@ int BattleMenuCharaKey() {
             MenuChara.change_counter++;
 
             if (ReadBGSync() == 0 && MenuChara.change_counter > 20) {
+#ifdef CHRONICLE_EXPANDED
+                if (BtlMenuMode == BATTLE_MENU_MODE_DUNGEON) {
+#endif
                 BtMenuLoadChara();
                 BreakReadBG();
                 StartReadBG();
                 CharaChangeInitToGL2(1);
+#ifdef CHRONICLE_EXPANDED
+                }
+#endif
                 MenuChara.state = MENU_CHARA_CHANGE_EXIT;
             }
 
@@ -1747,8 +1753,14 @@ int BattleMenuCharaKey() {
             MenuChara.change_counter++;
 
             if (ReadBGSync() == 0 && MenuChara.change_counter > 20) {
+#ifdef CHRONICLE_EXPANDED
+                if (BtlMenuMode == BATTLE_MENU_MODE_DUNGEON) {
+#endif
                 BtMenuLoad2(1);
                 LockOffTargte();
+#ifdef CHRONICLE_EXPANDED
+                }
+#endif
                 ExitBattleMenu(1);
                 return 0;
             }
@@ -1955,7 +1967,7 @@ int BattleMenuCharaKey() {
                     }
                     default:
 #ifdef CHRONICLE_EXPANDED
-                        ComMenuSePlay(expanded::TownAllyCommit(MenuChara.chara, BtlMenuStatusPt->party_size) ? MENU_SOUND_CONFIRM : MENU_SOUND_REFUSE);
+                        expanded::TownAllyMenuCommit(MenuChara.chara, BtlMenuStatusPt->party_size);
 #else
                         ComMenuSePlay(MENU_SOUND_REFUSE);
 #endif
