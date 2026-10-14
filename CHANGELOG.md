@@ -112,10 +112,6 @@ Each section lists this repository's own changes first, then those that come fro
 - Play as any ally in town: commit them in the party menu with the dungeon's change sequence, and they walk with full animations. #9, #10, #11, #12, #13
 - Each ally takes ladders their own way: Xiao leaps, Goro hops, Ruby floats, Osmond flies and Ungaga refuses. #14
 
-### From Chronicle
-
-- Muska Racka's walking villagers follow the town's sloped ground instead of the flat building grid. f27b0f44, 97118dbc
-
 ## Fishing
 
 ### From Chronicle
