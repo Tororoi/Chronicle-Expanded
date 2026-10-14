@@ -42,7 +42,6 @@ TEST(TownAlly, ToansBodyLoadsAsItIsWhileToanWalks) {
     EXPECT_STREQ(pack_ptr, "chara/c01d.chr");
     EXPECT_STREQ(info_ptr, "info.cfg");
     EXPECT_EQ(expanded::TownAllyLoaded(), 0);
-    EXPECT_FALSE(expanded::TownAllyBlocksLadder());
 }
 
 TEST(TownAlly, OtherBodiesLeaveTheTownBody) {

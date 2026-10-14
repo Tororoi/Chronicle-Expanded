@@ -145,6 +145,24 @@ on at its frame 15, and its hub `tukene1` spun 72 degrees a frame through slots 
 | 13, 14 | 240-255, 260-270 | 0.25, 0.20 | take off, fly | `gedit/s13/chara/e402c18a.chr` 345-360, 360-370 |
 | 15, 16 | 275-290, 295-350 | 0.25, 0.30 | land, fold the propeller | slots 13 and 12, reversed |
 
+## Ladders
+
+Toan's climb is rigged to his body, so an ally in its built model takes a ladder its own way
+(`expanded/src/town_ladder.cpp`, the mod's `Town/TownLadder.cs`): the press builds a frame-by-frame
+sequence of positions, facings and motions, which `EdMoveChara` plays in place of its own step, with the
+camera following at the ladder's angle as Toan's climb has it.
+
+| Ally | Up | Down |
+|---|---|---|
+| Xiao | walk to the ladder, step back (13), crouch (11), leap (12, then 8), the town lands her | crouch, leap (8) |
+| Goro | four hops (11, 12 by turns), the last onto the ledge, crouch (9) | stand and crouch (13, 9), jump (8), crouch (9) |
+| Ruby | float (8) up, over the ledge and down onto it | float out and down |
+| Ungaga | refuses (7) | refuses (7) |
+| Osmond | propeller out (12), take off (13), fly up and over (14), land (15), fold it away (16) | dive (11), fall (8), land (9) |
+
+A ladder whose ends can't be read gets the refusal (none for Osmond), and an ally in its disc model,
+which has neither, can't take a ladder.
+
 ## Adding an ally
 
 Add a `TownAlly` to `town_allies.cpp` with its output file, base and slots; the mod's

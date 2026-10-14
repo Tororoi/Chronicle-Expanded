@@ -12,6 +12,7 @@
 #include "editground.hpp"
 #include "editloop.hpp"
 #include "editpartsinfo.hpp"
+#include "expanded/town_ladder.hpp"
 #include "main.hpp"
 #include "menu_draw.hpp"
 #include "platform/paths.hpp"
@@ -79,6 +80,7 @@ void SwapBody(int ally) {
     sceVu0FVECTOR position;
     sceVu0FVECTOR rotation;
 
+    TownAllyLadderCancel();
     Chara->GetPosition(position);
     Chara->GetRotation(rotation);
     u_int *events_buffer = read_buffer;
@@ -118,6 +120,7 @@ void TownAllyReset() {
     current_ally = 0;
     pending_ally = -1;
     loaded_body = 0;
+    TownAllyLadderCancel();
     FindModels();
 }
 
@@ -177,10 +180,6 @@ void TownAllyMainCharaPack(char **pack, char **info, CDataAlloc2<1> *arena) {
     *info = const_cast<char *>(ally_info);
     loaded_body = current_ally;
     stand_in = false;
-}
-
-bool TownAllyBlocksLadder() {
-    return loaded_body > 0;
 }
 
 bool TownAllySkipsCutscene(int event_no) {
