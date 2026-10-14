@@ -69,9 +69,82 @@ Base `gedit/e01/chara/c04pcat.chr`, the cat model no cutscene animates.
 | 12 | 285-294 | 0.60 | ladder jump: up | `gedit/e01/chara/e04c04cat.chr` 160-169 |
 | 13 | 300-320 | 0.30 | walk backwards | the base's 60-80, reversed |
 
+## Goro
+
+Base `gedit/s01/chara/c06p.chr`, with root motion. `e101` and `e102` hold Toan too, so their slots name
+the cfgs `e101c06a.cfg` and `e102c06a.cfg`.
+
+| Slot | Frames | Speed | Motion | From |
+|---|---|---|---|---|
+| 0 | 10-20 | 0.15 | idle | base |
+| 1 | 60-80 | 0.40 | run | base |
+| 2 | 30-50 | 0.25 | walk | base |
+| 3, 4, 10 | 10-20 | 0.15 | doors: the idle | base |
+| 5 | 90-100 | 0.30 | item get | `dun/mainchara/c06b.chr` 515-525 |
+| 6 | 105-115 | 0.30 | item get, held | `dun/mainchara/c06b.chr` 530-540 |
+| 7 | 120-149 | 0.50 | ladder refusal | `dun/mainchara/c06b.chr` 421-450 |
+| 8 | 155-175 | 0.30 | fall | `gedit/s01/chara/e101.chr` 75-95 |
+| 9 | 180-190 | 0.25 | land | `gedit/s01/chara/e101.chr` 95-105 |
+| 11, 12 | 195-215, 220-240 | 0.30 | ladder hops | `gedit/s01/chara/e102.chr` 90-110, 110-130 |
+| 13 | 245-255 | 0.25 | the landing reversed | `gedit/s01/chara/e101.chr` 95-105 |
+
+## Ruby
+
+Base `gedit/e03/chara/c05a.chr`, with root motion and the shadow of `gedit/e03/chara/e223c05a.chr`
+(`e223c05s.*`), as the base has none.
+
+| Slot | Frames | Speed | Motion | From |
+|---|---|---|---|---|
+| 0 | 10-20 | 0.15 | idle | `dun/mainchara/c05a.chr` 10-20 |
+| 1 | 60-80 | 0.55 | run | `dun/mainchara/c05a.chr` 60-80 |
+| 2 | 30-50 | 0.25 | walk | `dun/mainchara/c05a.chr` 30-50 |
+| 3, 4, 10 | 90-102 | 0.15 | doors: a pat | `gedit/e03/chara/e223c05a.chr` 100-112, 3 back |
+| 5 | 120-130 | 0.30 | item get | `dun/mainchara/c05a.chr` 575-585 |
+| 6 | 135-145 | 0.30 | item get, held | `dun/mainchara/c05a.chr` 590-600 |
+| 7 | 150-170 | 0.20 | ladder refusal | `dun/mainchara/c05a.chr` 605-625 |
+| 8 | 175-195 | 0.10 | fall: a float | `gedit/e03/chara/e228c05a.chr` 10-30 |
+| 9 | 10-20 | 0.15 | land: the idle | base |
+| 11 | 200-230 | 0.20 | ladder jump | `gedit/e03/chara/e228c05a.chr` 285-315, travel frozen at 200 |
+| 12 | 235-245 | 0.10 | ladder jump, held | `gedit/e03/chara/e228c05a.chr` 320-330, travel frozen at 175 |
+
+## Ungaga
+
+Base `gedit/e04/chara/e323_2c10a.chr`, with root motion; its cfg is `e323_2c10a.cfg`.
+
+| Slot | Frames | Speed | Motion | From |
+|---|---|---|---|---|
+| 0 | 10-20 | 0.10 | idle | base |
+| 1 | 60-80 | 0.55 | run | `dun/mainchara/c10b.chr` 60-80 |
+| 2 | 30-50 | 0.27 | walk | base |
+| 3, 4, 10 | 115-131 | 0.20 | doors: a hand to the chest | base, slot 3 2.5 back |
+| 5 | 240-250 | 0.30 | item get | `dun/mainchara/c10b.chr` 630-640 |
+| 6 | 255-265 | 0.30 | item get, held | `dun/mainchara/c10b.chr` 643-653 |
+| 7 | 270-310 | 0.22 | ladder refusal | `dun/mainchara/c10b.chr` 490-530, `kon_1` and `r_handa` held at 15 |
+| 8 | 315 | 0 | fall: one pose | `dun/mainchara/c10b.chr` 296 |
+| 9 | 357-358 | 0.20 | land | `dun/mainchara/c10b.chr` 295-296, reversed |
+
+## Osmond
+
+Base `gedit/e05/chara/c18p.chr`, with the propeller of `gedit/s13/chara/e402c18a.chr` (13 nodes) grafted
+on at its frame 15, and its hub `tukene1` spun 72 degrees a frame through slots 13 to 15.
+
+| Slot | Frames | Speed | Motion | From |
+|---|---|---|---|---|
+| 0 | 10-20 | 0.10 | idle | base |
+| 1 | 130-150 | 0.75 | run: the walk, sped up | base 30-50 |
+| 2 | 30-50 | 0.20 | walk | base |
+| 3, 4, 10 | 60-80 | 0.20, 0.30 | doors: the talk | base |
+| 5, 6 | 90-92 | 0.10 | item get: the talk's frame 69, held | base |
+| 7 | 10-20 | 0.10 | damage: the idle | base |
+| 8 | 100-108 | 0.30 | fall | `gedit/e05/chara/e403c18a.chr` 210-218 |
+| 9 | 110-125 | 0.30 | land | `gedit/e05/chara/e403c18a.chr` 220-235 |
+| 11 | 155-175 | 0.30 | ladder down: a dive | `gedit/e05/chara/e403c18a.chr` 185-205 |
+| 12 | 180-235 | 0.25 | ladder up: the propeller unfolds | `gedit/s13/chara/e402c18a.chr` 280-335 |
+| 13, 14 | 240-255, 260-270 | 0.25, 0.20 | take off, fly | `gedit/s13/chara/e402c18a.chr` 345-360, 360-370 |
+| 15, 16 | 275-290, 295-350 | 0.25, 0.30 | land, fold the propeller | slots 13 and 12, reversed |
+
 ## Adding an ally
 
 Add a `TownAlly` to `town_allies.cpp` with its output file, base and slots; the mod's
-`TownModelBakes.cs` has the configs of all five allies and `docs/town-swap-animation-map.md` why each
-clip was chosen. `TownModel.XiaoMatchesTheModsBake` checks Xiao against the mod's bytes when
-`DC_TEST_DATA` names an extracted data directory.
+`docs/town-swap-animation-map.md` says why each clip was chosen. `TownModel.AlliesMatchTheModsBakes`
+checks every ally against the mod's bytes when `DC_TEST_DATA` names an extracted data directory.
