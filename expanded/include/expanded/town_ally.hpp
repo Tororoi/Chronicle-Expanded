@@ -37,6 +37,9 @@ void TownAllyReset();
 // Party-menu commit in a town: queues the swap to party member chara; false refuses it.
 bool TownAllyCommit(int chara, int party_size);
 
+// Party-menu commit in a town: the dungeon's confirm, spread and close for a swap; the reject beep for a refusal.
+void TownAllyMenuCommit(int chara, int party_size);
+
 // Each walking frame: swaps in the committed party member, or back from Toan after an event.
 void TownAllyWalk();
 

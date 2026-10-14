@@ -3,12 +3,14 @@
 #include <cstring>
 #include <iterator>
 
+#include "battlemenu.hpp"
 #include "character.hpp"
 #include "dataread.hpp"
 #include "editground.hpp"
 #include "editloop.hpp"
 #include "editpartsinfo.hpp"
 #include "main.hpp"
+#include "menu_draw.hpp"
 
 namespace expanded {
 
@@ -86,6 +88,20 @@ bool TownAllyCommit(int chara, int party_size) {
 
     pending_ally = chara == current_ally ? -1 : chara;
     return true;
+}
+
+void TownAllyMenuCommit(int chara, int party_size) {
+    if (!TownAllyCommit(chara, party_size)) {
+        ComMenuSePlay(MENU_SOUND_REFUSE);
+        return;
+    }
+
+    ComMenuSePlay(MENU_SOUND_CONFIRM);
+
+    if (pending_ally >= 0) {
+        MenuChara.state = MENU_CHARA_CHANGE_LOAD;
+        MenuChara.change_counter = 0;
+    }
 }
 
 void TownAllyWalk() {
