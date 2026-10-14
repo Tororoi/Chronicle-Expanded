@@ -10,13 +10,42 @@
 
 ```sh
 git fetch upstream
-git merge upstream/master
+git merge --no-edit upstream/master
 git submodule update --init --recursive   # picks up any change to the Kazarov pin
 git push
 ```
 
-Changes meant for Chronicle itself go in a fork of Chronicle on a branch from `upstream/master`, and are
-cherry-picked here if they are needed before upstream merges them.
+Conflicts land on the guarded edits described below; keep the `#ifdef CHRONICLE_EXPANDED` around them.
+
+## Conventions
+
+The mod keeps its changes to Chronicle's own files small, so upstream merges stay easy and the PS2 build
+still matches retail.
+
+- **The switch.** The CMake option `CHRONICLE_EXPANDED` (on by default) defines the macro of the same name
+  for the port build only. `-DCHRONICLE_EXPANDED=OFF` builds the vanilla port.
+- **The mod's code lives in `expanded/`:**
+  - `expanded/src/`: compiled into the port. Functions are in namespace `expanded`.
+  - `expanded/include/expanded/`: headers, included as `"expanded/<name>.hpp"`.
+  - `expanded/tests/`: `*_test.cpp` cases, run with the port's tests.
+- **Edits to Chronicle's files (`ps2/`, `port/`) are guarded hooks:**
+  - Wrap each in `#ifdef CHRONICLE_EXPANDED`; one that replaces code keeps retail's in the `#else`.
+  - Keep each to a call into `expanded::` or a constant; the logic lives in `expanded/src`.
+  - Don't reformat, rename or move the code around them.
+  - `grep -rn CHRONICLE_EXPANDED ps2 port` lists every one.
+
+  ```cpp
+  #ifdef CHRONICLE_EXPANDED
+      if (!(heal_counter < expanded::kHealPeriod)) {
+  #else
+      if (!(heal_counter < 240)) {
+  #endif
+  ```
+- **Whole-function copies** only when rewriting most of a function: put the copy in `expanded/src` as a
+  `PORT_OVERRIDE`, under the retail function's name.
+- **Fixes to retail bugs go to Chronicle first**, from a fork of Chronicle on a branch from
+  `upstream/master`, and are cherry-picked here if they are needed before upstream merges them.
+- **Comments** are short and say what the code does.
 
 ---
 
