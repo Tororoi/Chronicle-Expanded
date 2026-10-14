@@ -89,7 +89,6 @@ Each section lists this repository's own changes first, then those that come fro
 - A bomb's blast throws the player away from it, not always the same way. TheMoonPeople/Chronicle#181
 - The HUD's weapon icon keeps its colours after closing a menu on the PAL disc in English. TheMoonPeople/Chronicle#91
 - No pausing during events, and no time-of-day text over cutscenes. TheMoonPeople/Chronicle#124, TheMoonPeople/Chronicle#172
-- Muska Racka's villagers no longer bob up and down as they walk. 97118dbc
 
 ## Game mechanics
 
@@ -113,6 +112,10 @@ Each section lists this repository's own changes first, then those that come fro
 
 - Play as any ally in town: commit them in the party menu with the dungeon's change sequence, and they walk with full animations. #9, #10, #11, #12, #13
 - Each ally takes ladders their own way: Xiao leaps, Goro hops, Ruby floats, Osmond flies and Ungaga refuses. #14
+
+### From Chronicle
+
+- Muska Racka's walking villagers follow the town's sloped ground instead of the flat building grid. f27b0f44, 97118dbc
 
 ## Fishing
 
