@@ -238,7 +238,7 @@ pointer where it is stored, or resolve the integer where it comes back.
 | ps2/src/btsysscript.cpp:107 | BtSystemScriptLoad | replaced | `(void *)BtEventData` | BtEventData |
 | ps2/src/btsysscript.cpp:114 | BtSystemScriptLoad | replaced | `(char *)BtEventData` | BtEventData |
 | ps2/src/btsysscript.cpp:258 | BtSystemScriptRun | replaced | `(char *)BtEventData` | BtEventData |
-| ps2/src/character.cpp:799 | CCharacter::ClothStep | replaced | `(void *)this->wind` | Chara__3[8].wind |
+| ps2/src/character.cpp:792 | CCharacter::ClothStep | replaced | `(void *)this->wind` | Chara__3[8].wind |
 | ps2/src/cloth.cpp:554 | CCloth::CreateVUData | replaced | `(u_long128 *)span` | span |
 | ps2/src/dataread.cpp:100 | SearchFile | dead | `(char *)record->name` | records[i].name |
 | ps2/src/dataread.cpp:513 | InitCDFile | replaced | `(char *)records[i].name` | records[i].name |
