@@ -84,6 +84,7 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/confuse.hpp"
 #include "expanded/freeze.hpp"
 #include "expanded/poison.hpp"
 #endif
@@ -1707,6 +1708,9 @@ PORT_OVERRIDE void DunMoveChara() {
                 }
 
                 NowMonstorUnit->CleanViewMonstor(BtUraDongeon);
+#ifdef CHRONICLE_EXPANDED
+                expanded::ConfuseFloorReset(false);
+#endif
 
                 CMonstorUnit *unit = (CMonstorUnit *) NowMonstorUnit;
 
@@ -1759,6 +1763,9 @@ PORT_OVERRIDE void DunMoveChara() {
                 }
 
                 MainMonstorUnit.CleanViewMonstor(BtUraDongeon);
+#ifdef CHRONICLE_EXPANDED
+                expanded::ConfuseFloorReset(true);
+#endif
                 MonstorModelBuffer.used = 0;
                 u8 *cash = MonstorModelBuffer.base;
                 u32 cash_size = MonstorModelBuffer.limit;
@@ -2982,6 +2989,7 @@ PORT_OVERRIDE void DunMoveChara() {
 
 #ifdef CHRONICLE_EXPANDED
     expanded::MonsterStepClockAdvance();
+    expanded::ConfuseTick();
 #endif
 
     motionDrive();

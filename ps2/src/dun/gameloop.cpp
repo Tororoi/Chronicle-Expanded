@@ -126,6 +126,7 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/confuse.hpp"
 #include "expanded/heal.hpp"
 #endif
 
@@ -6557,6 +6558,9 @@ void BtLoadMonstor(int ura) {
         count += NowMonstorUnit->SetupBaseModel(count, layout->monster[monster].monster_no, 0x26, &MonstorModelBuffer);
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::ConfuseFloorLoaded();
+#endif
     MemoryMapDump();
 }
 

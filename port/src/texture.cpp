@@ -14,6 +14,10 @@
 #include "texture_port.hpp"
 #include "tim2.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/confuse.hpp"
+#endif
+
 namespace {
 
 constexpr int kPsmT8H = 27;
@@ -351,6 +355,9 @@ void Enter(CTextureManager &manager, EnterMode mode, int block, char *name, u_ch
             return;
         }
         LocalizeTexture(name, decoded);
+#ifdef CHRONICLE_EXPANDED
+        expanded::ConfuseIconTexture(name, decoded);
+#endif
         caption::PreparePainted(name, decoded);
         MakeGroundPeriodic(name, decoded);
         DumpTexture(name, decoded);
