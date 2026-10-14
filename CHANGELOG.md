@@ -88,7 +88,6 @@ Each section lists this repository's own changes first, then those that come fro
 - The Broken Dagger glitch in the item shop is gone. TheMoonPeople/Chronicle#158
 - A bomb's blast throws the player away from it, not always the same way. TheMoonPeople/Chronicle#181
 - The HUD's weapon icon keeps its colours after closing a menu on the PAL disc in English. TheMoonPeople/Chronicle#91
-- No pausing during events, and no time-of-day text over cutscenes. TheMoonPeople/Chronicle#124, TheMoonPeople/Chronicle#172
 
 ## Game mechanics
 
