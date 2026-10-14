@@ -4,6 +4,8 @@ An ally played in town needs every motion the town plays on the player, but the 
 models carry only a few. `dcdata` builds each ally a full set from the disc's own models when it
 extracts (README, "Game data built at extraction"), into `<data>/expanded/town/<ally>.chr`. The game
 loads one as it loads Toan's `chara/c01d.chr`: `EdLoadMainChara("expanded/town/xiao.chr", "info.cfg", ...)`.
+The town ally swap (`kTownAllyBodies` in `town_ally.hpp`) loads an ally's built model when the data has
+it, and otherwise the ally's disc model, which lacks most motions, logging once which models are missing.
 
 The code is `expanded/src/data/`: `chr_pack.cpp` reads and rebuilds `.chr` packs and their `.mot`
 motions, `town_model.cpp` assembles a model, and `town_allies.cpp` is the table of allies. It is the

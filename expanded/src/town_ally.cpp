@@ -1,7 +1,10 @@
 #include "expanded/town_ally.hpp"
 
+#include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <iterator>
+#include <string>
 
 #include "character.hpp"
 #include "dataread.hpp"
@@ -9,6 +12,7 @@
 #include "editloop.hpp"
 #include "editpartsinfo.hpp"
 #include "main.hpp"
+#include "platform/paths.hpp"
 
 namespace expanded {
 
@@ -31,6 +35,12 @@ int loaded_body;
 // Whether Toan stands in for the party member through an event that poses him.
 bool stand_in;
 
+// Whether the data has each party member's built model.
+bool has_model[kAllyCount];
+
+// Whether the missing built models were logged.
+bool logged_missing;
+
 // Holds a body's pack while it loads, as events keep their own packs in read_buffer.
 alignas(64) u_char pack_buffer[0x200000];
 
@@ -42,6 +52,26 @@ bool IsTownBody(const char *pack, const char *info, int ally) {
     return std::strcmp(pack, Body(ally).pack) == 0 && std::strcmp(info, Body(ally).info) == 0;
 }
 
+// Looks for the built models in the data, logging once those it lacks.
+void FindModels() {
+    std::string missing;
+
+    for (int ally = 0; ally < kAllyCount; ally++) {
+        std::error_code error;
+        const char     *model = Body(ally).model;
+        has_model[ally] = model != nullptr && std::filesystem::is_regular_file(PathsDataRoot() / model, error);
+        if (model != nullptr && !has_model[ally]) {
+            missing += missing.empty() ? model : std::string(", ") + model;
+        }
+    }
+
+    if (!missing.empty() && !logged_missing) {
+        logged_missing = true;
+        std::printf("town: the data lacks %s; those allies walk in their disc bodies (dcdata expanded <data> builds them)\n",
+                    missing.c_str());
+    }
+}
+
 // Loads a party member's body where the current one stands, facing the same way.
 void SwapBody(int ally) {
     sceVu0FVECTOR position;
@@ -51,7 +81,8 @@ void SwapBody(int ally) {
     Chara->GetRotation(rotation);
     u_int *events_buffer = read_buffer;
     read_buffer = reinterpret_cast<u_int *>(pack_buffer);
-    EdLoadMainChara(const_cast<char *>(Body(ally).pack), const_cast<char *>(Body(ally).info), nullptr);
+    auto [pack, info] = TownAllyPack(ally);
+    EdLoadMainChara(const_cast<char *>(pack), const_cast<char *>(info), nullptr);
     read_buffer = events_buffer;
     Chara->SetPosition(position);
     Chara->SetRotation(rotation);
@@ -63,6 +94,14 @@ void SwapBody(int ally) {
 }
 
 } // namespace
+
+std::pair<const char *, const char *> TownAllyPack(int ally) {
+    if (has_model[ally]) {
+        return {Body(ally).model, Body(ally).model_info};
+    }
+
+    return {Body(ally).pack, Body(ally).info};
+}
 
 int TownAllyCurrent() {
     return current_ally;
@@ -77,6 +116,7 @@ void TownAllyReset() {
     current_ally = 0;
     pending_ally = -1;
     loaded_body = 0;
+    FindModels();
 }
 
 bool TownAllyCommit(int chara, int party_size) {
@@ -116,8 +156,9 @@ void TownAllyMainCharaPack(char **pack, char **info, CDataAlloc2<1> *arena) {
         return;
     }
 
-    *pack = const_cast<char *>(Body(current_ally).pack);
-    *info = const_cast<char *>(Body(current_ally).info);
+    auto [ally_pack, ally_info] = TownAllyPack(current_ally);
+    *pack = const_cast<char *>(ally_pack);
+    *info = const_cast<char *>(ally_info);
     loaded_body = current_ally;
     stand_in = false;
 }
@@ -142,20 +183,6 @@ int TownAllyInteriorStartEvent(int event_no, int house) {
     }
 
     return kInteriorEntryEvent;
-}
-
-int TownAllyMotionIndex(const CCharacter *chara, const tagMOTION_TYPE *motion, int index) {
-    if (chara != &MainChara || loaded_body <= 0 || motion->motion_info == nullptr) {
-        return index;
-    }
-
-    for (int i = 0; i <= index; i++) {
-        if (motion->motion_info[i].start < 0 && motion->motion_info[i].end < 0) {
-            return 0;
-        }
-    }
-
-    return index;
 }
 
 float TownAllyMarkLift() {

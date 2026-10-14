@@ -1,10 +1,15 @@
 #include <gtest/gtest.h>
 
-#include "character.hpp"
+#include <cstdlib>
+#include <filesystem>
+#include <format>
+#include <fstream>
+
 #include "editground.hpp"
 #include "editloop.hpp"
 #include "expanded/town_ally.hpp"
 #include "main.hpp"
+#include "platform/paths.hpp"
 
 TEST(TownAlly, CommitsOnlyPartyMembersOutsideYellowDrops) {
     int saved_map = MapNo;
@@ -53,11 +58,10 @@ TEST(TownAlly, OtherBodiesLeaveTheTownBody) {
     expanded::TownAllyReset();
 }
 
-TEST(TownAlly, ToanKeepsRetailEventsAndMotions) {
+TEST(TownAlly, ToanKeepsRetailEvents) {
     expanded::TownAllyReset();
     EXPECT_FALSE(expanded::TownAllySkipsCutscene(0x83));
     EXPECT_EQ(expanded::TownAllyInteriorStartEvent(205, 3), 205);
-    EXPECT_EQ(expanded::TownAllyMotionIndex(&MainChara, MainChara.motion[0], 9), 9);
     EXPECT_EQ(expanded::TownAllyMarkLift(), 0.0f);
 }
 
@@ -66,4 +70,23 @@ TEST(TownAlly, ToanIsTheFirstBody) {
     EXPECT_STREQ(expanded::kTownAllyBodies[0].info, "info.cfg");
     EXPECT_EQ(expanded::kTownAllyBodies[0].mark_lift, 0.0f);
     EXPECT_EQ(expanded::kTownAllyBodies[0].eye_height, 14.0f);
+}
+
+TEST(TownAlly, BuiltModelsReplaceTheDiscBodies) {
+    namespace fs = std::filesystem;
+    fs::path dir = fs::temp_directory_path() / std::format("dc_town_ally_{}", std::rand());
+    fs::create_directories(dir / "expanded/town");
+    std::ofstream(dir / "expanded/town/ungaga.chr") << "chr";
+
+    PathsSetDataRoot(dir);
+    expanded::TownAllyReset();
+    EXPECT_STREQ(expanded::TownAllyPack(0).first, "chara/c01d.chr");
+    EXPECT_STREQ(expanded::TownAllyPack(4).first, "expanded/town/ungaga.chr");
+    EXPECT_STREQ(expanded::TownAllyPack(4).second, "e323_2c10a.cfg");
+    EXPECT_STREQ(expanded::TownAllyPack(2).first, "gedit/s01/chara/c06p.chr");
+    EXPECT_STREQ(expanded::TownAllyPack(2).second, "info.cfg");
+
+    PathsReset();
+    expanded::TownAllyReset();
+    fs::remove_all(dir);
 }

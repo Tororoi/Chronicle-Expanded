@@ -21,10 +21,6 @@
 #include "snd.hpp"
 #include "texture.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/town_ally.hpp"
-#endif
-
 /* External */
 
 /* sbss */
@@ -454,9 +450,6 @@ tagMOTION_TYPE *CCharacter::GetMotionParam(int motion_no, int *out_index, int *o
         return NULL;
     }
 
-#ifdef CHRONICLE_EXPANDED
-    index = expanded::TownAllyMotionIndex(this, found, index);
-#endif
     *out_index = index;
     return found;
 }
