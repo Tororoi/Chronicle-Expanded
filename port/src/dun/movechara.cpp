@@ -83,6 +83,10 @@
 #include "weaponelement.hpp"
 #include "wind.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/poison.hpp"
+#endif
+
 // Defined by ps2/src/dun/gameloop.cpp without a header declaration.
 struct ENEMY_LIFE_GAGE {
     s32 life_max;
@@ -2974,6 +2978,10 @@ PORT_OVERRIDE void DunMoveChara() {
             infoMapOld = 1;
         }
     }
+
+#ifdef CHRONICLE_EXPANDED
+    expanded::MonsterStepClockAdvance();
+#endif
 
     motionDrive();
 }
