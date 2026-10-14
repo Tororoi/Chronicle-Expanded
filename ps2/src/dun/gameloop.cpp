@@ -125,6 +125,10 @@
 #include "weaponelement.hpp"
 #include "wind.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/heal.hpp"
+#endif
+
 /**
  * Defines the life gauge that the locked-on enemy draws above itself.
  */
@@ -6190,7 +6194,11 @@ void motionDrive() {
 
     heal_counter++;
 
+#ifdef CHRONICLE_EXPANDED
+    if (!(heal_counter < expanded::kHealPeriod)) {
+#else
     if (!(heal_counter < 240)) {
+#endif
         if ((NowWeaponHave->flags & 0x800) && status->hp[*healed_ref] > 0) {
             status->AddNowLife((s8) *healed_ref, 1, 255.0f);
         }
