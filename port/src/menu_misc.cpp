@@ -8,7 +8,6 @@
 #include "btmisc.hpp"
 #include "character.hpp"
 #include "clsmes.hpp"
-#include "confuse.hpp"
 #include "dataalloc.hpp"
 #include "dataread.hpp"
 #include "dngstatusdata.hpp"
@@ -264,68 +263,4 @@ PORT_OVERRIDE int DngWeaponEquipModelBuild(int chara, int texture_block, u_long1
     LoadWeapon2(*first, *second, *equipped, chara, 1);
     MenuWeaponEffectSet(1);
     return 1;
-}
-
-// Retail's IsWeaponOptionGoodOrBad, with Confuse (bit 14) a benefit beside the thirteen retail options.
-PORT_OVERRIDE int IsWeaponOptionGoodOrBad(int option) {
-    static const s16 good_or_bad[15] = {0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1};
-    return option >= 0 && option < 15 ? good_or_bad[option] : 0;
-}
-
-// Retail's WeaponOptionStatusDraw, which draws a weapon's option icons, with Confuse (bit 14) drawn from its
-// own tile: the seventh row of the second column, beside Steal.
-PORT_OVERRIDE void WeaponOptionStatusDraw(WEAPON_HAVE *weapon, int x, int y, int alpha) {
-    int draw_x = x;
-    int draw_y = y;
-    int flags = weapon->flags;
-
-    for (int i = 0; i < 6; i++) {
-        int option = ((ATTACH_LIST *) &weapon->attach[i])->sphere_flags;
-
-        if (option != 0 && option != 1) {
-            flags |= option;
-        }
-    }
-
-    flags = CheckWeaponOptionStatus(flags);
-    CTexture *texture = TexManager.GetTexture("charaface", -1);
-
-    if (texture == NULL) {
-        return;
-    }
-
-    int      count = 0;
-    CRect_i_ source(0xEC, 0x50, 0x14, 0x14);
-
-    for (int bit = 1; bit <= kConfuseOptionBit; bit++) {
-        if (bit == 8) {
-            source.x -= source.width;
-        }
-
-        if (flags & (1 << bit)) {
-            int row = bit;
-
-            if (bit > 7) {
-                row = bit - 7;
-            }
-
-            if (bit == 8 && row == 1) {
-                row++;
-            }
-
-            if (bit == 9 && row == 2) {
-                row--;
-            }
-
-            source.y = source.height * (row - 1) + 0x50;
-            DrawMenu2DSprite(texture, CRect_i_(draw_x, draw_y, 0x14, 0x15), source, alpha);
-            draw_x += source.width;
-            count++;
-
-            if (count == 5) {
-                draw_x = x;
-                draw_y += source.height;
-            }
-        }
-    }
 }

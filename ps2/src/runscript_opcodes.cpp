@@ -18,6 +18,10 @@
 #include "snd.hpp"
 #include "userstatus.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/confuse.hpp"
+#endif
+
 /**
  * Describes one opcode a monster script can call and the number that calls it.
  */
@@ -200,7 +204,11 @@ int _GET_DISTANCE(RS_STACKDATA *stack, int argc) {
     NowMonstorUnit->chara[monster_no][0].GetPosition(monster_position);
 
     if (argc == 1) {
+#ifdef CHRONICLE_EXPANDED
+        expanded::ConfuseScriptPlayerPosition(target_position);
+#else
         sceVu0CopyVector(target_position, CharaMain.pos);
+#endif
     } else {
         target_position[0] = GetStackFloat(stack++);
         target_position[1] = GetStackFloat(stack++);
@@ -221,7 +229,11 @@ int _GET_POSITION(RS_STACKDATA *stack, int argc) {
     }
 
     if (target == -2) {
+#ifdef CHRONICLE_EXPANDED
+        expanded::ConfuseScriptPlayerPosition(position);
+#else
         sceVu0CopyVector(position, CharaMain.pos);
+#endif
     }
 
     SetStack(stack++, position[0]);

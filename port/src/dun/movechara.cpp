@@ -24,7 +24,6 @@
 #include "clsmes.hpp"
 #include "collision.hpp"
 #include "collisiondata.hpp"
-#include "confuse.hpp"
 #include "dataalloc.hpp"
 #include "dataread.hpp"
 #include "dataset.hpp"
@@ -83,6 +82,10 @@
 #include "weaponeffect.hpp"
 #include "weaponelement.hpp"
 #include "wind.hpp"
+
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/confuse.hpp"
+#endif
 
 // Defined by ps2/src/dun/gameloop.cpp without a header declaration.
 struct ENEMY_LIFE_GAGE {
@@ -1703,7 +1706,9 @@ PORT_OVERRIDE void DunMoveChara() {
                 }
 
                 NowMonstorUnit->CleanViewMonstor(BtUraDongeon);
-                ConfuseFloorReset(false);
+#ifdef CHRONICLE_EXPANDED
+                expanded::ConfuseFloorReset(false);
+#endif
 
                 CMonstorUnit *unit = (CMonstorUnit *) NowMonstorUnit;
 
@@ -1756,7 +1761,9 @@ PORT_OVERRIDE void DunMoveChara() {
                 }
 
                 MainMonstorUnit.CleanViewMonstor(BtUraDongeon);
-                ConfuseFloorReset(true);
+#ifdef CHRONICLE_EXPANDED
+                expanded::ConfuseFloorReset(true);
+#endif
                 MonstorModelBuffer.used = 0;
                 u8 *cash = MonstorModelBuffer.base;
                 u32 cash_size = MonstorModelBuffer.limit;
@@ -2978,11 +2985,9 @@ PORT_OVERRIDE void DunMoveChara() {
         }
     }
 
-    // The monsters step in motionDrive unless held: a step of play for the Confuse ability's time.
-    if (BtAllDrawFlag != 0 && BtEventMode == 0 && (driveStepHold | CMonUnitHold) == 0) {
-        ConfuseTick();
-    }
-
+#ifdef CHRONICLE_EXPANDED
+    expanded::ConfuseTick();
+#endif
     motionDrive();
 }
 
@@ -3459,70 +3464,4 @@ PORT_OVERRIDE void EyeCamera() {
 
     NowCamera__3->SetPos(pos);
     NowCamera__3->SetRef(ref);
-}
-
-// Retail's BtLoadMonstor, which sets up the floor's kinds of monster, then the Confuse ability's stars beside
-// them (confuse.hpp).
-PORT_OVERRIDE void BtLoadMonstor(int ura) {
-    int             count;
-    BT_ENEMY_FLOOR *layout;
-    int             monster;
-    int             i;
-    int             slot;
-
-    MonstorModelBuffer.used = 0;
-
-    s32           ura_dungeon = BtUraDongeon;
-    CMonstorUnit *unit = NowMonstorUnit;
-
-    unit->model_count = 0;
-    unit->current_monster = 0;
-
-    for (slot = 0; slot < 16; slot++) {
-        unit->script[slot] = &MonstorScriptBuffer[slot];
-    }
-
-    unit->requested_event = -1;
-    unit->CleanViewMonstor(ura_dungeon);
-    BtSetEventExtendTable();
-
-    for (i = 0; i < 320; i++) {
-        MonsterTexAnim[i].Initialize();
-    }
-
-    TexManager.DeleteTextureBlock(0x2A);
-    TexManager.DeleteTextureBlock(0x26);
-    TexManager.CleanUpBuffer();
-    TexManager.CleanUpTextureList();
-
-    LoadFile("dun/etc/atrcol.mds", read_buffer, NULL);
-    wait_now_loading_vsync();
-    NowMonstorUnit->collision = LoadCollisionFile(read_buffer, &MonstorModelBuffer);
-
-    CSHOT_EFFECT *effects = NowShotEffect->effect;
-
-    for (i = 0; i < 5; i++) {
-        effects[i].Initialize();
-    }
-
-    count = 0;
-
-    if (ura == 0) {
-        layout = BtEnemyLayoutList[selectMapNo];
-    } else {
-        layout = BtUraEnemyLayoutList[selectMapNo];
-    }
-
-    layout += UserStatus->cur_floor;
-
-    for (monster = 0; monster < 9; monster++) {
-        if (layout->monster[monster].monster_no == -1) {
-            break;
-        }
-
-        count += NowMonstorUnit->SetupBaseModel(count, layout->monster[monster].monster_no, 0x26, &MonstorModelBuffer);
-    }
-
-    ConfuseFloorLoaded();
-    MemoryMapDump();
 }

@@ -682,11 +682,6 @@ TEST(LocalizeOptions, ShippedTranslationsHaveExactlyTheCodesKeys) {
             EXPECT_EQ(tokens(translated), tokens(text)) << name << " " << key << ": placeholders and pad glyphs differ";
         }
         for (const auto &item : shipped.items()) {
-            // A key ending in a message id is a message the port adds to a disc file (the Confuse ability's name).
-            const std::string id = item.key().substr(item.key().rfind('.') + 1);
-            if (!id.empty() && id.find_first_not_of("0123456789") == std::string::npos) {
-                continue;
-            }
             EXPECT_TRUE(english.count(item.key()) != 0) << name << " has " << item.key() << " that the code does not";
         }
     }

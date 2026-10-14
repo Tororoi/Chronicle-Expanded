@@ -1,4 +1,4 @@
-#include "confuse.hpp"
+#include "expanded/confuse.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -21,22 +21,22 @@
 #include "snd.hpp"
 #include "texture_port.hpp"
 
-#include "icon/confuse.hpp"
+#include "expanded/confuse_icon.hpp"
 
 extern WEAPON_DATA WeaponList[120];
 
+namespace expanded {
+
 namespace {
 
-// The game steps the dungeon once a tick, 60 times a second.
+// The dungeon steps 60 times a second.
 constexpr int   kStepsPerSecond = 60;
 constexpr int   kConfuseSteps = 20 * kStepsPerSecond;
 constexpr float kConfuseChance = 5.0f;
-// One hurt of a monster by the same attacker this often: an attack sphere is planted again every step it is
-// open.
+// How often the same attacker may hurt the same monster.
 constexpr int kContactSteps = kStepsPerSecond / 2;
 
-// The stars: the Terra nut's e114ex, one key (frames 1 to 50) played round and round, grown in over a
-// quarter second to 1.5 times its size, 3 above the monster's head.
+// The stars (e114ex): looped, grown in over a quarter second to 1.5x, 3 above the head.
 constexpr int   kStars = 8;
 constexpr int   kStarsBlock = 0x26;
 constexpr float kStarsLift = 3.0f;
@@ -50,20 +50,20 @@ const bool kBabelConfuses = [] {
     return true;
 }();
 
-// The stars as an effect that does nothing but play: no flight, no hit, no end.
+// The stars as an effect that only plays.
 BT_SHOT_EFFECT StarsDescription = {
     "e114ex", 1, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, 0, 0, 0, 0, {0, -1, -1, -1}, -1, {0, 0}, 0.0f, 0,
     {-1, -1, -1, -1}};
 
 struct Confusion {
     CMonstorUnit *unit = nullptr;
-    // Steps of play since the floor's monsters were set up.
+    // Steps of play since the floor was set up.
     int tick = 0;
     // The step each monster's confusion ends on, 0 for none.
     int until[16] = {};
     // The confused monsters that hit each monster, most recent first, -1 past the last.
     int hit_by[16][16];
-    // The target each monster goes after, for the log: -1 the player, -2 nothing chosen.
+    // Each monster's logged target: -1 the player, -2 none.
     int target[16];
     // The step each attacker last hurt each victim.
     int contact[16][16] = {};
@@ -91,7 +91,7 @@ Confusion &State() {
     return state;
 }
 
-// The stars' effect, in the floor's monster memory and texture block once loaded.
+// The stars' effect, loaded into the floor's monster memory.
 CSHOT_EFFECT &Stars() {
     static CSHOT_EFFECT stars;
     return stars;
@@ -108,8 +108,7 @@ bool Confused(const CMonstorUnit &unit, int slot) {
     return slot >= 0 && slot < 16 && State().until[slot] != 0 && InPlay(unit, slot);
 }
 
-// The confused monster a monster that is not confused goes after: the last one to hit it still confused,
-// or -1.
+// The last still-confused monster to hit an unconfused monster, or -1.
 int Provoker(const CMonstorUnit &unit, int slot) {
     if (Confused(unit, slot)) {
         return -1;
@@ -125,8 +124,7 @@ int Provoker(const CMonstorUnit &unit, int slot) {
     return -1;
 }
 
-// The monster whose attack planted a hit: an attack sphere's owner is its slot * 5 + 200, a projectile names
-// its monster. -1 for anything else.
+// The monster that planted a hit (sphere owner slot * 5 + 200, or a shot's monster), or -1.
 int Attacker(const COLLISION_HIT &hit) {
     if (hit.monster_no >= 0 && hit.monster_no < 16) {
         return hit.monster_no;
@@ -161,9 +159,7 @@ void StarOff(int slot) {
     state.star[slot] = -1;
 }
 
-// The projectile that planted hit (a shot of the monster pack the attacker fired, at the hit's place or one
-// step of flight past it) ends on it as on anything it meets in flight (CSHOT_EFFECT::Step): its impact
-// motion from where it struck, or, with none, put out (and a bomb goes off).
+// Ends the shot that planted hit where it struck, as CSHOT_EFFECT::Step ends one on a target.
 void ShotImpact(int hit) {
     COLLISION_HIT &record = NowColData->hit[hit];
     if (NowShotEffect == nullptr || record.monster_no < 0) {
@@ -221,6 +217,9 @@ int ConfuseOptionMessage(int bit) {
 }
 
 void ConfuseTick() {
+    if (BtAllDrawFlag == 0 || BtEventMode != 0 || (driveStepHold | CMonUnitHold) != 0) {
+        return;
+    }
     Confusion &state = State();
     state.tick++;
     for (int slot = 0; slot < 16; slot++) {
@@ -281,6 +280,9 @@ void ConfuseStep(CMonstorUnit &unit, int slot) {
 }
 
 void ConfuseRoll(CMonstorUnit &unit, int slot) {
+    if (!(unit.effect[slot].hit_attributes & kWeaponFlagConfuse)) {
+        return;
+    }
     MONSTOR &monster = unit.monster[slot];
     if (monster.kind == MONSTER_KIND_NO_LOCK_ON || monster.hp <= 0) {
         return;
@@ -330,6 +332,12 @@ bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {
     }
     Position(unit, provoker, position);
     return true;
+}
+
+void ConfuseScriptPlayerPosition(float *position) {
+    if (!ConfuseTarget(*NowMonstorUnit, NowMonstorUnit->current_monster, position)) {
+        sceVu0CopyVector(position, CharaMain.pos);
+    }
 }
 
 int ConfuseFriendlyHit(CMonstorUnit &unit, int victim, const float *position, float radius) {
@@ -404,7 +412,7 @@ void ConfuseStarsDraw() {
         return;
     }
     CSHOT_EFFECT &stars = Stars();
-    // The confused monsters in play nearest the player, at most one a star.
+    // The confused monsters nearest the player, one star each.
     int   order[16];
     float distance[16];
     int   count = 0;
@@ -438,7 +446,7 @@ void ConfuseStarsDraw() {
             continue;
         }
         MONSTOR      &monster = unit->monster[slot];
-        // Over the head: the body's height above its feet, or the lock-on point where that is higher.
+        // Over the body's height, or the lock-on point where higher.
         sceVu0FVECTOR head;
         Position(*unit, slot, head);
         head[1] += unit->chara[slot][0].body_height;
@@ -472,7 +480,7 @@ void ConfuseStarsDraw() {
 }
 
 void ConfuseIconTexture(const char *name, PortDecodedTexture &texture) {
-    // The tile of bit 14: the column of bits 8 to 14, the seventh row.
+    // Bit 14's tile: the column of bits 8 to 14, seventh row.
     constexpr int kTileX = 0xD8;
     constexpr int kTileY = 0x50 + 0x14 * 6;
     if (name == nullptr || std::strcmp(name, "charaface") != 0 || texture.width != 256 || texture.height != 320 ||
@@ -486,7 +494,7 @@ void ConfuseIconTexture(const char *name, PortDecodedTexture &texture) {
         return;
     }
     auto at = [&](int x, int y) { return (static_cast<size_t>(y) * texture.width + x) * bytes; };
-    // Only a sheet whose tile is empty: one colour throughout.
+    // Only into an empty tile, one colour throughout.
     for (int y = 0; y < kConfuseIconSize; y++) {
         for (int x = 0; x < kConfuseIconSize; x++) {
             if (std::memcmp(&pixels[at(kTileX + x, kTileY + y)], &pixels[at(kTileX, kTileY)], bytes) != 0) {
@@ -531,3 +539,4 @@ void ConfuseIconTexture(const char *name, PortDecodedTexture &texture) {
     }
 }
 
+} // namespace expanded

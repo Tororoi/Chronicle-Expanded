@@ -1,11 +1,17 @@
 #include <gtest/gtest.h>
 
-#include "confuse.hpp"
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+
+#include "expanded/confuse.hpp"
+#include "expanded/confuse_icon.hpp"
 #include "itemdata.hpp"
+#include "localize.hpp"
 #include "menu_misc.hpp"
 #include "texture_port.hpp"
 
-#include "icon/confuse.hpp"
+using namespace expanded;
 
 // Babel's Spear carries Confuse from its weapon data, and no other weapon does.
 TEST(Confuse, OnlyBabelsSpearCarriesIt) {
@@ -18,8 +24,7 @@ TEST(Confuse, OnlyBabelsSpearCarriesIt) {
     }
 }
 
-// The menus name bit 14 with the system bank's message 0x45 and count it a benefit; the retail bits keep
-// their names (bit + 69) and colours.
+// The menus name bit 14 with message 0x45 and count it a benefit; the retail bits keep theirs.
 TEST(Confuse, MenusNameItAndCountItGood) {
     EXPECT_EQ(ConfuseOptionMessage(kConfuseOptionBit), 0x45);
     EXPECT_EQ(ConfuseOptionMessage(1), 0x46);
@@ -48,8 +53,7 @@ PortDecodedTexture Sheet() {
 
 } // namespace
 
-// The icon goes into the empty tile of bit 14, each opaque pixel as the palette's nearest colour, and only
-// there: the clear pixels and the rest of the sheet stay.
+// The icon fills only bit 14's empty tile, each opaque pixel as the nearest palette colour.
 TEST(Confuse, IconFillsItsEmptyTile) {
     PortDecodedTexture sheet = Sheet();
     ConfuseIconTexture("charaface", sheet);
@@ -87,4 +91,19 @@ TEST(Confuse, IconLeavesOtherSheetsAlone) {
     PortDecodedTexture other = Sheet();
     ConfuseIconTexture("charaface2", other);
     EXPECT_EQ(other.levels[0], std::vector<uint8_t>(256 * 320, 0));
+}
+
+// Every language file of expanded/lang names Confuse in both system banks.
+TEST(Confuse, EveryLanguageNamesIt) {
+    const std::filesystem::path lang = std::filesystem::path(__FILE__).parent_path().parent_path() / "lang";
+    for (const char *name : {"en_us", "en_gb", "fr_fr", "de_de", "it_it", "es_es"}) {
+        std::ifstream stream(lang / (std::string(name) + ".json"));
+        ASSERT_TRUE(stream) << name;
+        std::string   text((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+        LocalizeTable table;
+        std::string   why;
+        ASSERT_TRUE(LocalizeParse(text, table, why)) << name << ": " << why;
+        EXPECT_FALSE(table.files["meswin.system"][kConfuseNameMessage].empty()) << name;
+        EXPECT_FALSE(table.files["meswin.system14"][kConfuseNameMessage].empty()) << name;
+    }
 }

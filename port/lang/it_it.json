@@ -271,7 +271,5 @@
     "area.mt301": "ALTARE OSCURO",
     "area.mt40": "CASTELLO OSCURO",
     "options.quit_game.help": "Esci dal gioco e torna al desktop.",
-    "options.quit_game.label": "Esci dal gioco",
-    "meswin.system.69": "Confusione",
-    "meswin.system14.69": "Confusione"
+    "options.quit_game.label": "Esci dal gioco"
 }

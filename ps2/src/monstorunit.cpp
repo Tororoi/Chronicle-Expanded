@@ -40,6 +40,7 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/confuse.hpp"
 #include "expanded/ungaga.hpp"
 #endif
 
@@ -1066,6 +1067,9 @@ int CMonstorUnit::CheckDmg() {
     COLLISION_HIT *record;
     int            immune = 0;
     sceVu0FVECTOR  direction, position;
+#ifdef CHRONICLE_EXPANDED
+    expanded::ConfuseStep(*this, current_monster);
+#endif
 
     if (monster[current_monster].stop_timer <= 0) {
         for (int i = 0; i < 16; i++) {
@@ -1427,6 +1431,10 @@ int CMonstorUnit::CheckDmg() {
                         }
                     }
 
+#ifdef CHRONICLE_EXPANDED
+                    expanded::ConfuseRoll(*this, current_monster);
+#endif
+
                     chance = monster[current_monster].status_chance == 0 ? 100.0f : 0.0f;
 
                     if (original_record->flags & 0x200) {
@@ -1629,6 +1637,18 @@ int CMonstorUnit::CheckDmg() {
 
                     break;
                 }
+
+#ifdef CHRONICLE_EXPANDED
+                int friendly = expanded::ConfuseMonsterHit(*this, i);
+
+                if (friendly != -1) {
+                    if (friendly != MONSTER_DMG_NONE) {
+                        return friendly;
+                    }
+
+                    break;
+                }
+#endif
             }
         }
     }

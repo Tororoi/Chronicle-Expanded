@@ -132,10 +132,6 @@ would show now, so a translator starts from the shipped text. A translation writ
 the place of the shipped one, key by key. The translations are first drafts: a native speaker should look
 at them.
 
-The same files, `en_gb.json` and `en_us.json` among them, hold the messages the port adds to the disc's files,
-in every language: the system bank's message 69 (`meswin.system.69`, and `meswin.system14.69` beside it), the
-name of the Confuse weapon ability (`port/src/confuse.hpp`).
-
 ## Choosing the language
 
 The language screen at the start of the game sets the language, as retail does. To skip it, and to change

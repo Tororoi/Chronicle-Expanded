@@ -8,12 +8,15 @@
 #include <string>
 
 #include "caption_text.hpp"
-#include "confuse.hpp"
 #include "dataalloc.hpp"
 #include "localize_texture.hpp"
 #include "mglib.hpp"
 #include "texture_port.hpp"
 #include "tim2.hpp"
+
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/confuse.hpp"
+#endif
 
 namespace {
 
@@ -352,7 +355,9 @@ void Enter(CTextureManager &manager, EnterMode mode, int block, char *name, u_ch
             return;
         }
         LocalizeTexture(name, decoded);
-        ConfuseIconTexture(name, decoded);
+#ifdef CHRONICLE_EXPANDED
+        expanded::ConfuseIconTexture(name, decoded);
+#endif
         caption::PreparePainted(name, decoded);
         MakeGroundPeriodic(name, decoded);
         DumpTexture(name, decoded);
