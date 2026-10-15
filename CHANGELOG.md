@@ -272,7 +272,7 @@ Blessing Gun → Skunk ★
 
 - A monster met outside its home dungeon (or Demon Shaft band) fits in with the monsters there: one from earlier in the game has its life, ABS, defense and damage raised to their average, one from later has them lowered to the strongest met so far, and look-alikes such as Cave Bat and Evil Bat keep their order. Bosses and mimics keep theirs. [#149](https://github.com/Tororoi/Chronicle-Expanded/pull/149)
 - Stronger Enemies option (Options, Expanded page): every monster has the life, defense and damage of a region deeper, past the last Demon Shaft floors too, and is never weakened; a mimic is at least as strong as the next one. ABS rewards stay as they were. [#150](https://github.com/Tororoi/Chronicle-Expanded/pull/150)
-- New Randomize Enemies option (Options, Expanded page): each time you enter a dungeon, every floor but the boss and event floors gets nine kinds of monster drawn from the whole game, front and back floor alike, often with the dungeon's own mimic and king mimic among them. A floor keeps its monsters until you leave the dungeon. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
+- New Randomize Enemies option (Options, Expanded page): each time you enter a dungeon, every floor but the boss and event floors gets nine kinds of monster drawn from the whole game, front and back floor alike, often with the dungeon's own mimic and king mimic among them. A floor keeps its monsters until you leave the dungeon. [#155](https://github.com/Tororoi/Chronicle-Expanded/pull/155)
 - Enemy poison lasts 30 seconds, and each tick's damage scales with the monster's resistance. [#7](https://github.com/Tororoi/Chronicle-Expanded/pull/7)
 
 ## Towns
@@ -288,7 +288,7 @@ Blessing Gun → Skunk ★
 
 ## Developer tools
 
-- Enemy roster: the developer menu's "enemy roster" row (typed in) or `--roster 20!,60` lays out these monster kinds on every dungeon floor from the next dungeon visit, in debug mode. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
+- Enemy roster: the developer menu's "enemy roster" row (typed in) or `--roster 20!,60` lays out these monster kinds on every dungeon floor from the next dungeon visit, in debug mode. [#156](https://github.com/Tororoi/Chronicle-Expanded/pull/156)
 
 ### From Chronicle
 
