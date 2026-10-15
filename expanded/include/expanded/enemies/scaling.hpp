@@ -34,7 +34,8 @@ EnemyScale operator*(const EnemyScale &a, const EnemyScale &b);
 // value * scale rounded half to even, at least 1; 0 and below stay as they are.
 int ScaleStat(int value, float scale);
 
-// A MonstorTable kind's stats: its record and the damage its dun/monstor script deals.
+// A MonstorTable kind's stats: its record and the damage its dun/monstor script deals, as dcdata read it
+// into the data directory (kScriptDamageFile); no melee or shot when the data lacks that file.
 EnemyStats NativeStats(int model_no);
 
 // The MonstorTable kind set up in a model slot of the floor, or -1.

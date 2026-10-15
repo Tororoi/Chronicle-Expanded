@@ -79,6 +79,8 @@ port/build/pc/dcdata expanded data
 It writes only what changed and exits 1 if anything failed to build. What it builds:
 
 - `expanded/town/<ally>.chr`: each ally's town model (`expanded/docs/town-models.md`).
+- `expanded/enemies/script_damage.txt`: each monster script's strongest melee hit and shot, which the
+  enemy stat scaling starts from; without it monster damage is left as it is.
 
 ---
 
