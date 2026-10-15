@@ -672,9 +672,8 @@ TEST(LocalizeOptions, ShippedTranslationsHaveExactlyTheCodesKeys) {
         ASSERT_TRUE(stream) << name;
 #ifdef CHRONICLE_EXPANDED
         auto shipped = nlohmann::ordered_json::parse(stream);
-        // The Expanded page's strings ship in expanded/lang.
+        // Expanded's option strings are translated in expanded/lang.
         std::ifstream expanded_stream(lang.parent_path().parent_path() / "expanded" / "lang" / (std::string(name) + ".json"));
-        ASSERT_TRUE(expanded_stream) << name;
         for (const auto &item : nlohmann::ordered_json::parse(expanded_stream).items()) {
             if (item.key().starts_with("options.")) {
                 shipped[item.key()] = item.value();

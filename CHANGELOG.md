@@ -270,6 +270,8 @@ Blessing Gun → Skunk ★
 
 ## Enemies
 
+- A monster met outside its home dungeon (or Demon Shaft band) fits in with the monsters there: one from earlier in the game has its life, ABS, defense and damage raised to their average, one from later has them lowered to the strongest met so far, and look-alikes such as Cave Bat and Evil Bat keep their order. Bosses and mimics keep theirs. [#149](https://github.com/Tororoi/Chronicle-Expanded/pull/149)
+- Stronger Enemies option (Options, Expanded page): every monster has the life, defense and damage of a region deeper, past the last Demon Shaft floors too, and is never weakened; a mimic is at least as strong as the next one. ABS rewards stay as they were. [#150](https://github.com/Tororoi/Chronicle-Expanded/pull/150)
 - Enemy poison lasts 30 seconds, and each tick's damage scales with the monster's resistance. [#7](https://github.com/Tororoi/Chronicle-Expanded/pull/7)
 - New Harder Enemy AI option (Options, Expanded page): a defeated monster that has a get-up animation, such as a Skeleton Soldier, the Days of the Week or the card soldiers, gets back up about 30% of the time with part of its life, and the undead that already could (Mummy, Master Jacket, Gacious, Horn Head, Silver Gear) do so about 45% of the time. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
 
