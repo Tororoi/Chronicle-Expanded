@@ -149,8 +149,8 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 | ps2/src/memcard.cpp:3433 | InitMenuOption | replaced | low-bits | `(int)buffer` | parameter | test |
 | ps2/src/memorycardaccess.cpp:111 | CMemoryCardAccess::SetBuff | replaced | round-trip | `(int)buffer` | parameter | cast back: (char *)((((int)buffer >> 6)+ 1)<< 6) |
 | ps2/src/memorycardaccess.cpp:132 | CMemoryCardAccess::SetBuff | replaced | round-trip | `(int)sum` | local pointer | cast back: (char *)((((int)sum >> 6)+ 1)<< 6) |
-| ps2/src/menu_draw.cpp:120 | MenuCalcBufAlignment | replaced | resolved | `(int)buffer` | parameter | store: offset (read back only in MenuCalcBufAlignment) |
-| ps2/src/menu_misc.cpp:776 | EnterWeaponModel | replaced | escapes | `(int)file` | arena (GetPackFile) | store to memory: * GetMenuWeaponModelData(i) |
+| ps2/src/menu_draw.cpp:124 | MenuCalcBufAlignment | replaced | resolved | `(int)buffer` | parameter | store: offset (read back only in MenuCalcBufAlignment) |
+| ps2/src/menu_misc.cpp:777 | EnterWeaponModel | replaced | escapes | `(int)file` | arena (GetPackFile) | store to memory: * GetMenuWeaponModelData(i) |
 | ps2/src/mglib.cpp:246 | MGInitVif1Packet | replaced | escapes | `(int)buffer0` | parameter | store: packetbuf[0] |
 | ps2/src/mglib.cpp:247 | MGInitVif1Packet | replaced | escapes | `(int)buffer1` | parameter | store: packetbuf[1] |
 | ps2/src/nowload.cpp:94 | init_now_loading | replaced | low-bits | `(int)archive` | stack | store: misalignment |
@@ -265,5 +265,5 @@ pointer where it is stored, or resolve the integer where it comes back.
 | ps2/src/editloop.cpp:990 | EditInit | replaced | `(u_char *)free_start` | free_start |
 | ps2/src/editmapscript.cpp:1073 | CommandWATER_SHAKE | replaced | `(EDIT_WATER_WAVE_VIEW *)offset` | offset |
 | ps2/src/main.cpp:757 | main | replaced | `(sceVif1Packet *)vif1_packet` | vif1_packet |
-| ps2/src/menu_draw.cpp:131 | MenuCalcBufAlignment | replaced | `(u_long128 *)offset` | offset |
+| ps2/src/menu_draw.cpp:135 | MenuCalcBufAlignment | replaced | `(u_long128 *)offset` | offset |
 | ps2/src/shop.cpp:5750 | FishingExchangeKey | replaced | `(DNG_CONSUMABLE *)entry` | entry |

@@ -40,6 +40,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/confuse.hpp"
+#include "expanded/weapon_abilities.hpp"
 #endif
 
 static int defWeapon[6] = {ITEM_WEAPON_DAGGER_BROKEN, ITEM_WEAPON_WOODENSLINGSHOT_BROKEN, ITEM_WEAPON_MALLET_BROKEN, ITEM_WEAPON_GOLD_RING_BROKEN, ITEM_WEAPON_FIGHTING_STICK_BROKEN, ITEM_WEAPON_MACHINE_GUN_BROKEN};
@@ -1663,7 +1664,11 @@ int DefaultWeaponOptionSet(int weapon_no) {
         return 1;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    return expanded::WeaponAbilities(weapon_no, data->flags);
+#else
     return data->flags;
+#endif
 }
 
 void WeaponOptionStatusDraw(WEAPON_HAVE *weapon, int x, int y, int alpha) {
