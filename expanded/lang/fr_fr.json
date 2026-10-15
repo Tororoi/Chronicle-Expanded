@@ -1,4 +1,10 @@
 {
     "meswin.system.69": "Confusion",
-    "meswin.system14.69": "Confusion"
+    "meswin.system14.69": "Confusion",
+    "options.page.expanded": "Expanded",
+    "options.page.expanded.help": "\"Expanded\"\nLes changements de\nChronicle-Expanded.",
+    "options.expanded.stronger_enemies.label": "Ennemis renforcés",
+    "options.expanded.stronger_enemies.help": "\"Ennemis renforcés\"\nLes monstres sont aussi\nforts qu'une région\nplus loin.",
+    "options.expanded.stronger_enemies.choice.0": "Activé",
+    "options.expanded.stronger_enemies.choice.1": "Désactivé"
 }

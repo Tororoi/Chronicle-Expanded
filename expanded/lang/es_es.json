@@ -1,4 +1,10 @@
 {
     "meswin.system.69": "Confusión",
-    "meswin.system14.69": "Confusión"
+    "meswin.system14.69": "Confusión",
+    "options.page.expanded": "Expanded",
+    "options.page.expanded.help": "\"Expanded\"\nLos cambios de\nChronicle-Expanded.",
+    "options.expanded.stronger_enemies.label": "Enemigos más fuertes",
+    "options.expanded.stronger_enemies.help": "\"Enemigos más fuertes\"\nLos monstruos son tan\nfuertes como una\nregión más adelante.",
+    "options.expanded.stronger_enemies.choice.0": "Sí",
+    "options.expanded.stronger_enemies.choice.1": "No"
 }
