@@ -270,7 +270,7 @@ Blessing Gun → Skunk ★
 
 ## Enemies
 
-- A monster met outside its home dungeon (or Demon Shaft band) fits in with the monsters there: one from earlier in the game has its life, ABS, defense and damage raised to their average, one from later has them lowered to the strongest met so far, and look-alikes such as Cave Bat and Evil Bat keep their order. Bosses and mimics keep theirs. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
+- A monster met outside its home dungeon (or Demon Shaft band) fits in with the monsters there: one from earlier in the game has its life, ABS, defense and damage raised to their average, one from later has them lowered to the strongest met so far, and look-alikes such as Cave Bat and Evil Bat keep their order. Bosses and mimics keep theirs. [#149](https://github.com/Tororoi/Chronicle-Expanded/pull/149)
 - Enemy poison lasts 30 seconds, and each tick's damage scales with the monster's resistance. [#7](https://github.com/Tororoi/Chronicle-Expanded/pull/7)
 
 ## Towns
