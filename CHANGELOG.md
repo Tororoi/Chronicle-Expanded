@@ -138,153 +138,130 @@ Changes to which weapons build up into which, [#144](https://github.com/Tororoi/
 
 #### Toan
 
-> Heaven's Cloud is a final form (it built up into Dark Cloud). Choora builds up only into Maneater (no longer into Heaven's Cloud).
+> **Mod changes:** Choora builds up to Maneater only. Heaven's Cloud is a terminal weapon.
 
 ```
 Baselard
-├─ Shamshir → Dusack
-│  ├─ Brave Ark → Dark Cloud → 7th Heaven ★
-│  └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
-└─ Sax → Dusack
-   ├─ Brave Ark → Dark Cloud → 7th Heaven ★
-   └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
+  ├─ Sax ─────┐
+  └─ Shamshir ─┴─ Dusack ─┬─ Brave Ark → Dark Cloud → 7th Heaven ★
+                           └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
 
 Gladius
-├─ Small Sword → Tsukikage → Heaven's Cloud ★
-└─ Chopper
-   ├─ Choora → Maneater → Atlamillia Sword → Chronicle Sword ★
-   └─ Dusack
-      ├─ Brave Ark → Dark Cloud → 7th Heaven ★
-      └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
-
-Wise Owl Sword → Lamb's Sword → Atlamillia Sword → Chronicle Sword ★
+  ├─ Small Sword → Tsukikage → Heaven's Cloud ★
+  └─ Chopper ─┬─ Choora → Maneater → Atlamillia Sword → Chronicle Sword ★
+               └─ Dusack ─┬─ Brave Ark → Dark Cloud → 7th Heaven ★
+                           └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
 
 Crysknife
-├─ Small Sword → Tsukikage → Heaven's Cloud ★
-└─ Sand Breaker → Antique Sword → Brave Ark → Dark Cloud → 7th Heaven ★
+  ├─ Small Sword → Tsukikage → Heaven's Cloud ★
+  └─ Sandbreaker → Antique Sword → Brave Ark → Dark Cloud → 7th Heaven ★
 
 Buster Sword → Claymore → Cross Hinder → Big Bang → Sword of Zeus ★
 
+Wise Owl Sword → Lamb's Sword → Atlamillia Sword → Chronicle Sword ★
+
+Bone Rapier → Evilcise → Drainseeker → Dark Cloud → 7th Heaven ★
+
 Kitchen Knife
-├─ Chopper
-│  ├─ Choora → Maneater → Atlamillia Sword → Chronicle Sword ★
-│  └─ Dusack
-│     ├─ Brave Ark → Dark Cloud → 7th Heaven ★
-│     └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
-└─ Sax → Dusack
-   ├─ Brave Ark → Dark Cloud → 7th Heaven ★
-   └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
+  ├─ Sax ─────────────────┐
+  └─ Chopper ─┬─ Choora → Maneater → Atlamillia Sword → Chronicle Sword ★
+               └──────────┴─ Dusack ─┬─ Brave Ark → Dark Cloud → 7th Heaven ★
+                                      └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
 
 Sun Sword → Big Bang → Sword of Zeus ★
 
-Serpent Sword
-├─ Tsukikage → Heaven's Cloud ★
-└─ Evilcise → Drain Seeker → Dark Cloud → 7th Heaven ★
-
 Macho Sword
-├─ Aga's Sword → Atlamillia Sword → Chronicle Sword ★
-└─ Cross Hinder → Big Bang → Sword of Zeus ★
+  ├─ Aga's Sword → Atlamillia Sword → Chronicle Sword ★
+  └─ Cross Hinder → Big Bang → Sword of Zeus ★
+
+Serpent Sword
+  ├─ Tsukikage → Heaven's Cloud ★
+  └─ Evilcise → Drainseeker → Dark Cloud → 7th Heaven ★
 
 Mardan Eins → Mardan Twei → Arise Mardan ★
 
-Bone Rapier → Evilcise → Drain Seeker → Dark Cloud → 7th Heaven ★
+Chronicle 2 ★
 ```
 
 #### Xiao
 
-> Hardshooter builds up only into Double Impact (no longer into Matador). Double Impact builds up into Matador instead of Divine Beast Title.
+> **Mod changes:** Hardshooter builds up to Double Impact only (Matador path removed). Double Impact builds up to Matador only (was Divine Beast Title), so every Steel and Bandit line runs through Matador before Divine Beast Title.
 
 ```
 Steel Slingshot → Hardshooter → Double Impact → Matador → Divine Beast Title → Angel Shooter → Angel Gear ★
 
-Bandit Slingshot
-├─ Hardshooter → Double Impact → Matador → Divine Beast Title → Angel Shooter → Angel Gear ★
-└─ Double Impact → Matador → Divine Beast Title → Angel Shooter → Angel Gear ★
+Bone Slingshot → Flamingo → Dragon's Y → Divine Beast Title → Angel Shooter → Angel Gear ★
+
+Bandit Slingshot ─┬─ Hardshooter → Double Impact → Matador → Divine Beast Title → Angel Shooter → Angel Gear ★
+                  └─ Double Impact → Matador → Divine Beast Title → Angel Shooter → Angel Gear ★
 
 Steve → Super Steve ★
-
-Bone Slingshot → Flamingo → Dragon's Y → Divine Beast Title → Angel Shooter → Angel Gear ★
 ```
 
 #### Goro
 
-> Big Bucks Hammer builds up only into Magical Hammer (no longer into Gaia Hammer). Frozen Tuna is a final form (it built up into Turtle Shell).
+> **Mod changes:** Big Bucks Hammer builds up to Magical Hammer only (direct Gaia Hammer path removed). Frozen Tuna is a terminal weapon.
 
 ```
-Steel Hammer → Plate Hammer → Magical Hammer
-├─ Gaia Hammer → Tall Hammer ★
-└─ Last Judgement → Tall Hammer ★
-
-Turtle Shell
-├─ Magical Hammer
-│  ├─ Gaia Hammer → Tall Hammer ★
-│  └─ Last Judgement → Tall Hammer ★
-└─ Battle Ax → Satan's Ax → Inferno ★
-
-Big Bucks Hammer → Magical Hammer
-├─ Gaia Hammer → Tall Hammer ★
-└─ Last Judgement → Tall Hammer ★
+Steel Hammer → Plate Hammer → Magical Hammer ─┬─ Gaia Hammer ─┐
+                                               └─ Last Judgement ┴─ Tall Hammer ★
 
 Trial Hammer → Gaia Hammer → Tall Hammer ★
+
+Big Bucks Hammer → Magical Hammer ─┬─ Gaia Hammer ─┐
+                                    └─ Last Judgement ┴─ Tall Hammer ★
+
+Turtle Shell ─┬─ Magical Hammer ─┬─ Gaia Hammer ─┐
+              │                   └─ Last Judgement ┴─ Tall Hammer ★
+              └─ Battle Axe → Satan's Axe → Inferno ★
+
+Battle Axe → Satan's Axe → Inferno ★
 
 Frozen Tuna ★
 ```
 
 #### Ruby
 
-> Platinum Ring builds up into Crystal Ring or Thorn Armlet (was Crystal Ring or Fairy's Ring). Thorn Armlet builds up into Destruction Ring (was Platinum Ring). Pocklekul builds up into Fairy's Ring, Goddess Ring or Satan's Ring (was Fairy's Ring only).
+> **Mod changes:** Platinum Ring builds up to Crystal Ring or Thorn Armlet (was Crystal Ring or Fairy Ring). Thorn Armlet builds up to Destruction Ring only (was Platinum Ring). Pocklekul builds up to Fairy Ring, Goddess Ring or Satan's Ring (was Fairy Ring).
 
 ```
-Bandit's Ring
-├─ Crystal Ring
-│  ├─ Goddess Ring → Athena's Armlet → Secret Armlet ★
-│  └─ Satan's Ring → Mobius Ring ★
-└─ Pocklekul
-   ├─ Fairy's Ring → Destruction Ring → Mobius Ring ★
-   ├─ Goddess Ring → Athena's Armlet → Secret Armlet ★
-   └─ Satan's Ring → Mobius Ring ★
+Platinum Ring ─┬─ Crystal Ring ─┬─ Goddess Ring → Athena's Armlet → Secret Armlet ★
+               │                └─ Satan's Ring → Mobius Ring ★
+               └─ Thorn Armlet → Destruction Ring → Mobius Ring ★
 
-Platinum Ring
-├─ Crystal Ring
-│  ├─ Goddess Ring → Athena's Armlet → Secret Armlet ★
-│  └─ Satan's Ring → Mobius Ring ★
-└─ Thorn Armlet → Destruction Ring → Mobius Ring ★
+Bandit's Ring ─┬─ Crystal Ring ─┬─ Goddess Ring → Athena's Armlet → Secret Armlet ★
+               │                └─ Satan's Ring → Mobius Ring ★
+               └─ Pocklekul ─┬─ Fairy Ring → Destruction Ring → Mobius Ring ★
+                             ├─ Goddess Ring → Athena's Armlet → Secret Armlet ★
+                             └─ Satan's Ring → Mobius Ring ★
 ```
 
 #### Ungaga
 
-> No changes.
-
 ```
-Javelin
-├─ DeSanga → Cactus → Terra Sword → Babel's Spear ★
-└─ Partisan → Cactus → Terra Sword → Babel's Spear ★
+Javelin ─┬─ Desanga ─┐
+          └─ Partisan ┴─ Cactus → Terra Sword → Babel Spear ★
 
-Halberd → Scorpion
-├─ Mirage
-│  ├─ Terra Sword → Babel's Spear ★
-│  └─ Hercules' Wrath ★
-└─ Cactus → Terra Sword → Babel's Spear ★
+Halberd → Scorpion ─┬─ Mirage ─┬─ Terra Sword → Babel Spear ★
+                    │           └─ Hercules' Wrath ★
+                    └─ Cactus → Terra Sword → Babel Spear ★
 
-5 Foot Nail
-├─ Scorpion
-│  ├─ Mirage
-│  │  ├─ Terra Sword → Babel's Spear ★
-│  │  └─ Hercules' Wrath ★
-│  └─ Cactus → Terra Sword → Babel's Spear ★
-└─ Partisan → Cactus → Terra Sword → Babel's Spear ★
+5 Foot Nail ─┬─ Scorpion ─┬─ Mirage ─┬─ Terra Sword → Babel Spear ★
+             │             │           └─ Hercules' Wrath ★
+             │             └─ Cactus → Terra Sword → Babel Spear ★
+             └─ Partisan → Cactus → Terra Sword → Babel Spear ★
 ```
 
 #### Osmond
 
-> Jackal and Snail no longer build up into Blessing Gun. Skunk is a final form (it built up into Hexa Blaster).
+> **Mod changes:** Skunk is a terminal weapon. Jackal and Snail no longer build up to Blessing Gun; Blessing Gun is a standalone starting weapon.
 
 ```
 Jackal → Swallow → G Crusher → Star Breaker ★
 
-Blessing Gun → Skunk ★
-
 Snail → Hexa Blaster → Supernova ★
+
+Blessing Gun → Skunk ★
 ```
 
 ## Enemies
