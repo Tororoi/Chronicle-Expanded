@@ -128,6 +128,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/confuse.hpp"
 #include "expanded/heal.hpp"
+#include "expanded/weapon_stats.hpp"
 #endif
 
 /**
@@ -6685,7 +6686,11 @@ void SwordDmgCheck1(float amount, int kind) {
     s8           chara = status->cur_chara;
     WEAPON_HAVE *weapon = &status->chara_weapons[chara][status->equipped_weapon_slot[chara]];
     float        was = weapon->durability_f;
+#ifdef CHRONICLE_EXPANDED
+    float        warn = weapon->durability * expanded::kLambSwordThreshold;
+#else
     float        warn = (float) (weapon->durability * 0.2);
+#endif
 
     broke = BattleSubWeaponDmg(amount, kind);
 

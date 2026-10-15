@@ -68,7 +68,7 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 | ps2/src/gameutil.cpp:290 | MotionProc | retail | low-bits | `(int)list` | parameter | test |
 | ps2/src/gameutil.cpp:302 | MotionProc | retail | low-bits | `(int)list` | parameter | test |
 | ps2/src/gameutil.cpp:315 | MotionProc | retail | low-bits | `(int)list` | parameter | test |
-| ps2/src/main.cpp:387 | LoadSndTxt | retail | low-bits | `(int)buffer` | stack | store: offset |
+| ps2/src/main.cpp:391 | LoadSndTxt | retail | low-bits | `(int)buffer` | stack | store: offset |
 
 ## Round trips resolved where the value comes back (22)
 
@@ -115,12 +115,12 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 | ps2/src/dataread.cpp:199 | LoadFileBG | replaced | low-bits | `(int)buffer` | parameter | test |
 | ps2/src/dataread.cpp:511 | InitCDFile | replaced | resolved | `(int)header_buff` | image | store: records[i].name (read back only in InitCDFile, SearchFile) |
 | ps2/src/dataread.cpp:617 | LoadFile2 | replaced | round-trip | `(int)buffer` | parameter | compare: GT |
-| ps2/src/dun/gameloop.cpp:5007 | DunMoveChara | replaced | resolved | `(unsigned int)NowDngMap` | global pointer | store: address (read back only in DunMoveChara) |
-| ps2/src/dun/gameloop.cpp:5011 | DunMoveChara | replaced | resolved | `(unsigned int)NowDngMap` | global pointer | store: address (read back only in DunMoveChara) |
-| ps2/src/dun/gameloop.cpp:7216 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
-| ps2/src/dun/gameloop.cpp:7241 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
-| ps2/src/dun/gameloop.cpp:7266 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
-| ps2/src/dun/gameloop.cpp:7291 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
+| ps2/src/dun/gameloop.cpp:5008 | DunMoveChara | replaced | resolved | `(unsigned int)NowDngMap` | global pointer | store: address (read back only in DunMoveChara) |
+| ps2/src/dun/gameloop.cpp:5012 | DunMoveChara | replaced | resolved | `(unsigned int)NowDngMap` | global pointer | store: address (read back only in DunMoveChara) |
+| ps2/src/dun/gameloop.cpp:7221 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
+| ps2/src/dun/gameloop.cpp:7246 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
+| ps2/src/dun/gameloop.cpp:7271 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
+| ps2/src/dun/gameloop.cpp:7296 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
 | ps2/src/dungeonmap.cpp:3175 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
 | ps2/src/dungeonmap.cpp:3190 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
 | ps2/src/dungeonmap.cpp:3203 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
@@ -145,12 +145,12 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 | ps2/src/editloop.cpp:5281 | LoadPTS | replaced | low-bits | `(int)source->func` | field | pointer offset: (char *)header +(int)source->func |
 | ps2/src/editloop.cpp:5290 | LoadPTS | replaced | escapes | `(int)header->func` | field | store: parts->func_data |
 | ps2/src/editmapscript.cpp:1072 | CommandWATER_SHAKE | replaced | resolved | `(u_int)info` | global pointer | store: offset (read back only in CommandWATER_SHAKE) |
-| ps2/src/main.cpp:755 | main | replaced | resolved | `(int)Vif1Packet` | global pointer | store: vif1_packet (read back only in main) |
+| ps2/src/main.cpp:762 | main | replaced | resolved | `(int)Vif1Packet` | global pointer | store: vif1_packet (read back only in main) |
 | ps2/src/memcard.cpp:3433 | InitMenuOption | replaced | low-bits | `(int)buffer` | parameter | test |
 | ps2/src/memorycardaccess.cpp:111 | CMemoryCardAccess::SetBuff | replaced | round-trip | `(int)buffer` | parameter | cast back: (char *)((((int)buffer >> 6)+ 1)<< 6) |
 | ps2/src/memorycardaccess.cpp:132 | CMemoryCardAccess::SetBuff | replaced | round-trip | `(int)sum` | local pointer | cast back: (char *)((((int)sum >> 6)+ 1)<< 6) |
 | ps2/src/menu_draw.cpp:120 | MenuCalcBufAlignment | replaced | resolved | `(int)buffer` | parameter | store: offset (read back only in MenuCalcBufAlignment) |
-| ps2/src/menu_misc.cpp:776 | EnterWeaponModel | replaced | escapes | `(int)file` | arena (GetPackFile) | store to memory: * GetMenuWeaponModelData(i) |
+| ps2/src/menu_misc.cpp:785 | EnterWeaponModel | replaced | escapes | `(int)file` | arena (GetPackFile) | store to memory: * GetMenuWeaponModelData(i) |
 | ps2/src/mglib.cpp:246 | MGInitVif1Packet | replaced | escapes | `(int)buffer0` | parameter | store: packetbuf[0] |
 | ps2/src/mglib.cpp:247 | MGInitVif1Packet | replaced | escapes | `(int)buffer1` | parameter | store: packetbuf[1] |
 | ps2/src/nowload.cpp:94 | init_now_loading | replaced | low-bits | `(int)archive` | stack | store: misalignment |
@@ -242,12 +242,12 @@ pointer where it is stored, or resolve the integer where it comes back.
 | ps2/src/cloth.cpp:554 | CCloth::CreateVUData | replaced | `(u_long128 *)span` | span |
 | ps2/src/dataread.cpp:100 | SearchFile | dead | `(char *)record->name` | records[i].name |
 | ps2/src/dataread.cpp:513 | InitCDFile | replaced | `(char *)records[i].name` | records[i].name |
-| ps2/src/dun/gameloop.cpp:5007 | DunMoveChara | replaced | `(CDungeonMap *)(offset + address)` | address |
-| ps2/src/dun/gameloop.cpp:5011 | DunMoveChara | replaced | `(CDungeonMap *)(offset + address)` | address |
-| ps2/src/dun/gameloop.cpp:7217 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
-| ps2/src/dun/gameloop.cpp:7242 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
-| ps2/src/dun/gameloop.cpp:7267 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
-| ps2/src/dun/gameloop.cpp:7292 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
+| ps2/src/dun/gameloop.cpp:5008 | DunMoveChara | replaced | `(CDungeonMap *)(offset + address)` | address |
+| ps2/src/dun/gameloop.cpp:5012 | DunMoveChara | replaced | `(CDungeonMap *)(offset + address)` | address |
+| ps2/src/dun/gameloop.cpp:7222 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
+| ps2/src/dun/gameloop.cpp:7247 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
+| ps2/src/dun/gameloop.cpp:7272 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
+| ps2/src/dun/gameloop.cpp:7297 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
 | ps2/src/dungeonmap.cpp:3176 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
 | ps2/src/dungeonmap.cpp:3191 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
 | ps2/src/dungeonmap.cpp:3204 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
@@ -264,6 +264,6 @@ pointer where it is stored, or resolve the integer where it comes back.
 | ps2/src/editloop.cpp:987 | EditInit | replaced | `(u_char *)free_start` | free_start |
 | ps2/src/editloop.cpp:990 | EditInit | replaced | `(u_char *)free_start` | free_start |
 | ps2/src/editmapscript.cpp:1073 | CommandWATER_SHAKE | replaced | `(EDIT_WATER_WAVE_VIEW *)offset` | offset |
-| ps2/src/main.cpp:757 | main | replaced | `(sceVif1Packet *)vif1_packet` | vif1_packet |
+| ps2/src/main.cpp:764 | main | replaced | `(sceVif1Packet *)vif1_packet` | vif1_packet |
 | ps2/src/menu_draw.cpp:131 | MenuCalcBufAlignment | replaced | `(u_long128 *)offset` | offset |
 | ps2/src/shop.cpp:5750 | FishingExchangeKey | replaced | `(DNG_CONSUMABLE *)entry` | entry |
