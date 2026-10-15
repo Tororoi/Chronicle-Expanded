@@ -28,10 +28,18 @@ TEST(WeaponStats, SetsListedStatsAndKeepsTheRest) {
     const WEAPON_DATA &branch = Weapon(ITEM_WEAPON_7BRANCH_SWORD);
     EXPECT_EQ(branch.durability, 47);
     EXPECT_EQ(branch.endurance, 47);
-    EXPECT_EQ(branch.vs_monster[7], 10);
-    EXPECT_EQ(branch.speed, Retail(ITEM_WEAPON_7BRANCH_SWORD).speed);
+    EXPECT_EQ(branch.attack, 67);
+    EXPECT_EQ(branch.speed, 77);
+    for (int i = 0; i < 5; i++) {
+        EXPECT_EQ(branch.elem[i], 17) << i;
+    }
+    for (int i = 0; i < 10; i++) {
+        EXPECT_EQ(branch.vs_monster[i], 7) << i;
+    }
 
     EXPECT_EQ(Weapon(ITEM_WEAPON_CHRONICLE2).attack_max, 999);
+    EXPECT_EQ(Weapon(ITEM_WEAPON_POCKLEKUL).attack, 28);
+    EXPECT_EQ(Weapon(ITEM_WEAPON_POCKLEKUL).elem[4], Retail(ITEM_WEAPON_POCKLEKUL).elem[4]);
     EXPECT_EQ(Weapon(ITEM_WEAPON_FROZEN_TUNA).durability, Retail(ITEM_WEAPON_FROZEN_TUNA).durability);
     EXPECT_EQ(Weapon(ITEM_WEAPON_BLESSING_GUN).attack_max, 87);
     EXPECT_EQ(Weapon(ITEM_WEAPON_SKUNK).magic_max, 105);
