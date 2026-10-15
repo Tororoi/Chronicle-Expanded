@@ -29,14 +29,14 @@ constexpr WeaponStats kStats[] = {
     {.weapon = ITEM_WEAPON_BRAVE_ARK, .slots = 3},
     {.weapon = ITEM_WEAPON_SAND_BREAKER, .slots = 3},
     {.weapon = ITEM_WEAPON_CHOORA, .slots = 3},
-    {.weapon = ITEM_WEAPON_7BRANCH_SWORD, .whp = 47, .endurance = 47, .magic = 37, .dino_slayer = 7, .undead_buster = 7, .sea_killer = 7, .stone_breaker = 7, .plant_buster = 7, .beast_buster = 8, .sky_hunter = 7, .metal_breaker = 10, .mimic_breaker = 7, .mage_slayer = 8},
+    {.weapon = ITEM_WEAPON_7BRANCH_SWORD, .whp = 47, .attack = 67, .endurance = 47, .speed = 77, .magic = 37, .fire = 17, .ice = 17, .thunder = 17, .wind = 17, .holy = 17, .dino_slayer = 7, .undead_buster = 7, .sea_killer = 7, .stone_breaker = 7, .plant_buster = 7, .beast_buster = 7, .sky_hunter = 7, .metal_breaker = 7, .mimic_breaker = 7, .mage_slayer = 7},
     {.weapon = ITEM_WEAPON_CHRONICLE2, .max_attack = 999},
     // Goro
     {.weapon = ITEM_WEAPON_FROZEN_TUNA, .max_attack = 100, .max_magic = 678, .slots = 3},
     // Ruby
     {.weapon = ITEM_WEAPON_PLATINUM_RING, .ice = 0, .holy = 20},
     {.weapon = ITEM_WEAPON_CRYSTAL_RING, .ice = 20, .holy = 0},
-    {.weapon = ITEM_WEAPON_POCKLEKUL, .attack = 28, .magic = 28, .holy = 0},
+    {.weapon = ITEM_WEAPON_POCKLEKUL, .attack = 28, .magic = 28},
     {.weapon = ITEM_WEAPON_THORN_ARMLET, .stone_breaker = 20, .beast_buster = 20, .max_attack = 70, .max_magic = 65},
     {.weapon = ITEM_WEAPON_DESTRUCTION_RING, .attack = 60, .metal_breaker = 40, .max_magic = 140},
     // Ungaga
