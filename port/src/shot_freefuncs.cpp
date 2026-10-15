@@ -18,6 +18,10 @@
 #include "userstatus.hpp"
 #include "menu_inventory.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/super_steve.hpp"
+#endif
+
 extern int statusAlarmRate;
 
 namespace {
@@ -295,4 +299,7 @@ PORT_OVERRIDE void topStatusInfo(int y, int selected_item, int floor) {
     }
 
     set2DSprite(Vif1Packet, icons, CRect_i_(0x1D, 0x1A4, 0x20, 0x20), CRect_i_(u, v, 0x20, 0x20), alpha);
+#ifdef CHRONICLE_EXPANDED
+    expanded::SphereIconDraw(alpha);
+#endif
 }
