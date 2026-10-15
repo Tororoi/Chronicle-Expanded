@@ -20,6 +20,10 @@
 #include <cstdio>
 #include <cstdlib>
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/shot_effects.hpp"
+#endif
+
 /** Default weapon id per character. */
 static s32 defWeapon[6] = {ITEM_WEAPON_DAGGER_BROKEN, ITEM_WEAPON_WOODENSLINGSHOT_BROKEN, ITEM_WEAPON_MALLET_BROKEN, ITEM_WEAPON_GOLD_RING_BROKEN, ITEM_WEAPON_FIGHTING_STICK_BROKEN, ITEM_WEAPON_MACHINE_GUN_BROKEN};
 
@@ -435,6 +439,9 @@ int CDngStatusData::GetItem(int item_id, int qty) {
         for (jj = 0; (valid = jj < 11) != 0; jj++) {
             if (this->chara_weapons[chara_no][jj].item_no < ITEM_WEAPON_START) {
                 WepDataListToHaveCopy(item_id, &this->chara_weapons[chara_no][jj]);
+#ifdef CHRONICLE_EXPANDED
+                expanded::ShotEffectsWeaponsChanged();
+#endif
 
                 int count = 0;
                 int kk;
