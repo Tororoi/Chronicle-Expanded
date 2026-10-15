@@ -102,7 +102,7 @@ Each section lists this repository's own changes first, then those that come fro
 - The Heal ability heals every 3 seconds instead of 4. [#3](https://github.com/Tororoi/Chronicle-Expanded/pull/3)
 - Ungaga's charge shots wear his weapon only when fired, not again for every hit. [#5](https://github.com/Tororoi/Chronicle-Expanded/pull/5)
 - New Confuse ability on Babel's Spear (and its SynthSphere): 5% of hits confuse a non-boss monster for 20 seconds, turning it on other monsters. [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6)
-- New weapon abilities: Evilcise always has Poor, Macho Sword and Athena's Armlet Abs Up, Matador Critical, Frozen Tuna Stop, Goddess Ring Heal and DeSanga Drain, and each new Bone Slingshot or Hardshooter has a 50% chance of Fragile. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
+- New weapon abilities: Evilcise always has Poor, Macho Sword and Athena's Armlet Abs Up, Matador Critical, Frozen Tuna Stop, Goddess Ring Heal and DeSanga Drain, and each new Bone Slingshot or Hardshooter has a 50% chance of Fragile. [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143)
 
 ## Enemies
 
