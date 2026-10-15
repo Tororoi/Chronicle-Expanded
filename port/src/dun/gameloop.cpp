@@ -340,6 +340,7 @@ PORT_OVERRIDE void DunMainDraw() {
         }
 
 #ifdef CHRONICLE_EXPANDED
+        expanded::ShotEffectsDraw();
         expanded::ConfuseStarsDraw();
 #endif
         NowMainEffect->Draw();

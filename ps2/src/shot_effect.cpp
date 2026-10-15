@@ -606,13 +606,21 @@ int CSHOT_EFFECT_PACK::Entry(BT_SHOT_EFFECT *description, unsigned int *resource
 
 void CSHOT_EFFECT_PACK::SetUserID2(s32 id) {
     if (current_effect != -1) {
+#ifdef CHRONICLE_EXPANDED
+        expanded::ShotEffectAt(current_effect)->SetUserID2(id);
+#else
         effect[current_effect].SetUserID2(id);
+#endif
     }
 }
 
 void CSHOT_EFFECT_PACK::SetDmg(s32 damage) {
     if (current_effect != -1) {
+#ifdef CHRONICLE_EXPANDED
+        expanded::ShotEffectAt(current_effect)->SetDmg(damage);
+#else
         effect[current_effect].SetDmg(damage);
+#endif
     }
 }
 

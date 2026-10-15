@@ -7,6 +7,10 @@
 
 #include "platform/settings.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/options.hpp"
+#endif
+
 enum class ConfigAspect {
     Auto,
     FourThree,
@@ -67,6 +71,10 @@ struct Config : HostSettings {
     int                           name_shadow = 50;
     int                           floor_shadow = 50;
     int                           boss_shadow = 50;
+#ifdef CHRONICLE_EXPANDED
+    // expanded: the mod's gameplay toggles.
+    expanded::OptionValues        expanded_options;
+#endif
 
     bool operator==(const Config &) const = default;
 };

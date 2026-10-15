@@ -16,6 +16,10 @@
 #include "platform/input.hpp"
 #include "platform/window.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/options_page.hpp"
+#endif
+
 namespace options {
 
 namespace {
@@ -812,7 +816,12 @@ std::span<const Page> Pages() {
         {"Accessibility", "\"Accessibility\"\nHelp with harder parts\nof the game.", kAccessibilityRows},
         {"Bindings",      "\"Bindings\"\nWhat each key and\nmouse button does.",       BindingRows()     },
     };
+#ifdef CHRONICLE_EXPANDED
+    static const std::vector<Page> with_expanded = expanded::OptionsPages(pages);
+    return with_expanded;
+#else
     return pages;
+#endif
 }
 
 // The Options screen's own text is looked up by key, in the language the game is in (localize.hpp); the

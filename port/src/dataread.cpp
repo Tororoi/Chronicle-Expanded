@@ -19,6 +19,10 @@
 #include "localize.hpp"
 #include "platform/paths.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/menu_text.hpp"
+#endif
+
 namespace fs = std::filesystem;
 
 namespace {
@@ -325,6 +329,9 @@ PORT_OVERRIDE u_int *GetPackFile(u_int *pack, char *name, int *out_size) {
             u_int *data = reinterpret_cast<u_int *>(reinterpret_cast<char *>(entry) + entry->offset);
             int    size = entry->size;
             data = const_cast<u_int *>(LocalizePack(pack, base, data, &size));
+#ifdef CHRONICLE_EXPANDED
+            expanded::MenuTextLoaded(base, data);
+#endif
             if (out_size) {
                 *out_size = size;
             }
