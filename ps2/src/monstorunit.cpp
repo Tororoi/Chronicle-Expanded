@@ -41,6 +41,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/confuse.hpp"
+#include "expanded/kick_back.hpp"
 #include "expanded/poison.hpp"
 #include "expanded/ungaga.hpp"
 #endif
@@ -1390,6 +1391,10 @@ int CMonstorUnit::CheckDmg() {
                         monster[current_monster].knockback[0] = record->knockback_speed * monster[current_monster].knockback[2];
                         monster[current_monster].knockback[1] = record->knockback_decay * monster[current_monster].knockback[2];
                     }
+
+#ifdef CHRONICLE_EXPANDED
+                    expanded::WeaponKickBack(*this, current_monster, *record);
+#endif
 
                     hit_direction[0] = 0;
                     hit_direction[1] = 1.1f;
