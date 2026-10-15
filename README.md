@@ -51,6 +51,8 @@ still matches retail.
 - **Fixes to retail bugs go to Chronicle first**, from a fork of Chronicle on a branch from
   `upstream/master`, and are cherry-picked here if they are needed before upstream merges them.
 - **Comments** are short and say what the code does.
+- **The changelog.** A PR that changes behaviour adds its entry to `CHANGELOG.md`; an upstream sync adds the
+  new upstream changes under each section's "From Chronicle" group.
 
 ## Game data built at extraction
 
