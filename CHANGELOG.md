@@ -271,8 +271,8 @@ Blessing Gun → Skunk ★
 ## Enemies
 
 - Enemy poison lasts 30 seconds, and each tick's damage scales with the monster's resistance. [#7](https://github.com/Tororoi/Chronicle-Expanded/pull/7)
-- Minibosses: about one monster a floor, back floors included, is a miniboss, half again as big, with four times the life, ABS and money, half again the defense and damage (shots too), and a longer reach. It spots you and attacks from farther away, takes a tenth of the damage of thrown items, and always drops something. One you leave alive is still there when you come back from the back floor, or go back down to it; one you defeat stays gone. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
-- Miniboss loot: instead of money, a miniboss drops an item from its dungeon's tables below: its rare drop 5% of the time and its common drop 30%; otherwise the back floor's key (35%), one of the dungeon's weapons, a gem or attachment, or a powder, Stamina Drink or Dran's Feather. Some weapons come boosted: once picked up, they have the stats in the second table. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
+- Minibosses: about one monster a floor, back floors included, is a miniboss, half again as big, with four times the life, ABS and money, half again the defense and damage (shots too), and a longer reach. It spots you and attacks from farther away, takes a tenth of the damage of thrown items, and always drops something. One you leave alive is still there when you come back from the back floor, or go back down to it; one you defeat stays gone. [#153](https://github.com/Tororoi/Chronicle-Expanded/pull/153)
+- Miniboss loot: instead of money, a miniboss drops an item from its dungeon's tables below: its rare drop 5% of the time and its common drop 30%; otherwise the back floor's key (35%), one of the dungeon's weapons, a gem or attachment, or a powder, Stamina Drink or Dran's Feather. Some weapons come boosted: once picked up, they have the stats in the second table. [#154](https://github.com/Tororoi/Chronicle-Expanded/pull/154)
 
 ### Miniboss loot
 
