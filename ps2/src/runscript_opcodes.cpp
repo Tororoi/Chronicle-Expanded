@@ -19,6 +19,7 @@
 #include "userstatus.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/miniboss.hpp"
 #include "expanded/status/confuse.hpp"
 #endif
 
@@ -215,7 +216,11 @@ int _GET_DISTANCE(RS_STACKDATA *stack, int argc) {
         target_position[2] = GetStackFloat(stack++);
     }
 
+#ifdef CHRONICLE_EXPANDED
+    SetStack(stack, expanded::MinibossScriptDistance(monster_no, argc, DistVector(monster_position, target_position)));
+#else
     SetStack(stack, DistVector(monster_position, target_position));
+#endif
     return 1;
 }
 
