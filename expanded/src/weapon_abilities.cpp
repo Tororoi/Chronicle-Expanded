@@ -8,15 +8,6 @@ namespace expanded {
 
 namespace {
 
-// The weapon ability bits.
-constexpr int kPoor = 0x0004;
-constexpr int kStop = 0x0040;
-constexpr int kFragile = 0x0100;
-constexpr int kDrain = 0x0400;
-constexpr int kHeal = 0x0800;
-constexpr int kCritical = 0x1000;
-constexpr int kAbsUp = 0x2000;
-
 // An ability a weapon gains, in chance percent of the weapons built.
 struct WeaponAbility {
     int weapon;
@@ -26,19 +17,20 @@ struct WeaponAbility {
 
 constexpr WeaponAbility kAbilities[] = {
     // Toan
-    {ITEM_WEAPON_EVILCISE, kPoor, 100},
-    {ITEM_WEAPON_MACHO_SWORD, kAbsUp, 100},
+    {ITEM_WEAPON_EVILCISE, kAbilityPoor, 100},
+    {ITEM_WEAPON_MACHO_SWORD, kAbilityAbsUp, 100},
     // Xiao
-    {ITEM_WEAPON_BONE_SLINGSHOT, kFragile, 50},
-    {ITEM_WEAPON_HARDSHOOTER, kFragile, 50},
-    {ITEM_WEAPON_MATADOR, kCritical, 100},
+    {ITEM_WEAPON_BONE_SLINGSHOT, kAbilityFragile, 50},
+    {ITEM_WEAPON_HARDSHOOTER, kAbilityFragile, 50},
+    {ITEM_WEAPON_MATADOR, kAbilityCritical, 100},
     // Goro
-    {ITEM_WEAPON_FROZEN_TUNA, kStop, 100},
+    {ITEM_WEAPON_FROZEN_TUNA, kAbilityStop, 100},
     // Ruby
-    {ITEM_WEAPON_GODDESS_RING, kHeal, 100},
-    {ITEM_WEAPON_ATHENA_S_ARMLET, kAbsUp, 100},
+    {ITEM_WEAPON_GODDESS_RING, kAbilityHeal, 100},
+    {ITEM_WEAPON_ATHENA_S_ARMLET, kAbilityAbsUp, 100},
     // Ungaga
-    {ITEM_WEAPON_DE_SANGA, kDrain, 100},
+    {ITEM_WEAPON_DE_SANGA, kAbilityDrain, 100},
+    {ITEM_WEAPON_BABEL_S_SPEAR, kAbilityConfuse, 100},
 };
 
 } // namespace

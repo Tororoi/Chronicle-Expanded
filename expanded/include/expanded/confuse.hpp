@@ -2,13 +2,13 @@
 
 #include <cstdint>
 
+#include "expanded/weapon_abilities.hpp"
+
 class CMonstorUnit;
 struct PortDecodedTexture;
 
 namespace expanded {
 
-// The Confuse weapon ability, bit 14 of a weapon's flags; Babel's Spear has it.
-inline constexpr int kWeaponFlagConfuse = 0x4000;
 // Its option bit and its name, the system bank's message 0x45.
 inline constexpr int kConfuseOptionBit = 14;
 inline constexpr int kConfuseNameMessage = 0x45;
