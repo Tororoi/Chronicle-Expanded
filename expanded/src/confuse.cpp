@@ -1,4 +1,5 @@
 #include "expanded/confuse.hpp"
+#include "expanded/shot_effects.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -168,7 +169,8 @@ void ShotImpact(int hit) {
     CSHOT_EFFECT *found = nullptr;
     int           slot = -1;
     float         best = 0.0f;
-    for (CSHOT_EFFECT &effect : NowShotEffect->effect) {
+    for (int index = 0; index < ShotEffectCount(); index++) {
+        CSHOT_EFFECT &effect = *ShotEffectAt(index);
         if (effect.effect_data == nullptr) {
             continue;
         }

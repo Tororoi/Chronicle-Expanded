@@ -6,6 +6,10 @@
 #include "dataalloc_fwd.hpp"
 #include "shot_effect.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/shot_effects.hpp"
+#endif
+
 /**
  * Holds the projectile effects the dungeon can run, and which one is being set up.
  */
@@ -19,7 +23,11 @@ public:
      * Fires one effect from a position in a direction, and selects it.
      */
     void Set(int index, float *position, float *direction) {
+#ifdef CHRONICLE_EXPANDED
+        expanded::ShotEffectAt(index)->Set(position, direction, -1, -1, 0, NULL, -1);
+#else
         effect[index].Set(position, direction, -1, -1, 0, NULL, -1);
+#endif
         current_effect = index;
     }
 
