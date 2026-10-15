@@ -49,7 +49,7 @@
 #include "water.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/weapon_stats.hpp"
+#include "expanded/weapons/stats.hpp"
 #endif
 
 /**

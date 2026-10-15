@@ -19,7 +19,7 @@
 #include "menu_inventory.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/super_steve.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #endif
 
 extern int statusAlarmRate;

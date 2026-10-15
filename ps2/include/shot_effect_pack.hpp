@@ -7,7 +7,7 @@
 #include "shot_effect.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/shot_effects.hpp"
+#include "expanded/dungeon/shot_effects.hpp"
 #endif
 
 /**

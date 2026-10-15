@@ -26,7 +26,7 @@
 #include "weapon_buildup.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/shot_effects.hpp"
+#include "expanded/dungeon/shot_effects.hpp"
 #endif
 
 CDataAlloc2<1> MenuEffectCashBuffer(-1);

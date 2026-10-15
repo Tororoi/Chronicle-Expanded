@@ -67,7 +67,7 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/confuse.hpp"
+#include "expanded/status/confuse.hpp"
 #endif
 
 // The dungeon's MainDraw and LoaderLoop, replaced to drop what the renderer has no use for: the VU1

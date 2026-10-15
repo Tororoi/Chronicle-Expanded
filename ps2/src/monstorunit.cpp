@@ -40,10 +40,10 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/confuse.hpp"
-#include "expanded/kick_back.hpp"
-#include "expanded/poison.hpp"
-#include "expanded/ungaga.hpp"
+#include "expanded/status/confuse.hpp"
+#include "expanded/weapons/kick_back.hpp"
+#include "expanded/status/poison.hpp"
+#include "expanded/weapons/ungaga/charge_shot.hpp"
 #endif
 
 int           hitCnt;

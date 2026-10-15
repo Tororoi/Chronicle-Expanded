@@ -4,7 +4,7 @@ An ally played in town needs every motion the town plays on the player, but the 
 models carry only a few. `dcdata` builds each ally a full set from the disc's own models when it
 extracts (README, "Game data built at extraction"), into `<data>/expanded/town/<ally>.chr`. The game
 loads one as it loads Toan's `chara/c01d.chr`: `EdLoadMainChara("expanded/town/xiao.chr", "info.cfg", ...)`.
-The town ally swap (`kTownAllyBodies` in `town_ally.hpp`) loads an ally's built model when the data has
+The town ally swap (`kTownAllyBodies` in `town/ally.hpp`) loads an ally's built model when the data has
 it, and otherwise the ally's disc model, which lacks most motions, logging once which models are missing.
 
 The code is `expanded/src/data/`: `chr_pack.cpp` reads and rebuilds `.chr` packs and their `.mot`
@@ -148,7 +148,7 @@ on at its frame 15, and its hub `tukene1` spun 72 degrees a frame through slots 
 ## Ladders
 
 Toan's climb is rigged to his body, so an ally in its built model takes a ladder its own way
-(`expanded/src/town_ladder.cpp`, the mod's `Town/TownLadder.cs`): the press builds a frame-by-frame
+(`expanded/src/town/ladder.cpp`, the mod's `Town/TownLadder.cs`): the press builds a frame-by-frame
 sequence of positions, facings and motions, which `EdMoveChara` plays in place of its own step, with the
 camera following at the ladder's angle as Toan's climb has it.
 

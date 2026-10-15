@@ -8,7 +8,7 @@
 #include "platform/settings.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/options.hpp"
+#include "expanded/core/options.hpp"
 #endif
 
 enum class ConfigAspect {

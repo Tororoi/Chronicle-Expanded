@@ -76,7 +76,7 @@ void BtSetMapJumpFloor(int floor);
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/town_ally.hpp"
+#include "expanded/town/ally.hpp"
 #endif
 
 // The bodies are retail's, which pass string literals as char *.

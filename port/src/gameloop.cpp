@@ -49,7 +49,7 @@
 #include "title/title.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/save.hpp"
+#include "expanded/core/save.hpp"
 #endif
 
 int  EditInit(void *param);

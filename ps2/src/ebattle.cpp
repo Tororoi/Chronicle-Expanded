@@ -34,8 +34,8 @@
 #include "texture.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/town_ally.hpp"
-#include "expanded/town_ladder.hpp"
+#include "expanded/town/ally.hpp"
+#include "expanded/town/ladder.hpp"
 #endif
 
 #pragma helper_mask_gpr 0x30

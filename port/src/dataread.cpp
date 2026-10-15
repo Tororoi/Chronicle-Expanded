@@ -20,7 +20,7 @@
 #include "platform/paths.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/menu_text.hpp"
+#include "expanded/core/menu_text.hpp"
 #endif
 
 namespace fs = std::filesystem;

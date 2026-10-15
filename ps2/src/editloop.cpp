@@ -95,7 +95,7 @@ void BtSetMapJumpFloor(int floor);
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/town_ally.hpp"
+#include "expanded/town/ally.hpp"
 #endif
 
 CTexture  *StayTexture;

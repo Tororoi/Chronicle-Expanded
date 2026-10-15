@@ -21,7 +21,7 @@
 #include <cstdlib>
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/shot_effects.hpp"
+#include "expanded/dungeon/shot_effects.hpp"
 #endif
 
 /** Default weapon id per character. */

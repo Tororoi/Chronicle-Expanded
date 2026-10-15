@@ -52,7 +52,7 @@
 #include "weaponlevelup.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/town_ally.hpp"
+#include "expanded/town/ally.hpp"
 #endif
 
 static int GetVisitInfo(int place, int menu_mode);
@@ -70,8 +70,8 @@ static int GetVisitInfo(int place, int menu_mode);
 #include "vutext.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/confuse.hpp"
-#include "expanded/shot_effects.hpp"
+#include "expanded/status/confuse.hpp"
+#include "expanded/dungeon/shot_effects.hpp"
 #endif
 
 static void DrawStatusNumberNowAndMax(int *values, int x, int y, int color, int alpha);

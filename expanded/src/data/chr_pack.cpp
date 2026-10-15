@@ -1,4 +1,4 @@
-#include "expanded/chr_pack.hpp"
+#include "expanded/data/chr_pack.hpp"
 
 #include <algorithm>
 #include <bit>

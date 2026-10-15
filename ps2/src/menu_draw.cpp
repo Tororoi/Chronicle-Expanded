@@ -36,7 +36,7 @@
 #include "userstatus.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/weapon_abilities.hpp"
+#include "expanded/weapons/abilities.hpp"
 #endif
 
 /** Player data used by personal-board item operations. */

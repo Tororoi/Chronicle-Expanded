@@ -22,7 +22,7 @@
 #include "texture.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/menu_text.hpp"
+#include "expanded/core/menu_text.hpp"
 #endif
 
 /* The external-character code of every letter of each registered name. */

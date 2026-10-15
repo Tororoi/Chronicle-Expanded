@@ -17,7 +17,7 @@
 #include "platform/window.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/options_page.hpp"
+#include "expanded/core/options_page.hpp"
 #endif
 
 namespace options {

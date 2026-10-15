@@ -22,7 +22,7 @@
 #include "platform/paths.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/localize.hpp"
+#include "expanded/core/localize.hpp"
 #endif
 
 namespace fs = std::filesystem;
