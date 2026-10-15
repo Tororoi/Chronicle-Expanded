@@ -1,4 +1,10 @@
 {
     "meswin.system.69": "Confusion",
-    "meswin.system14.69": "Confusion"
+    "meswin.system14.69": "Confusion",
+    "options.page.expanded": "Expanded",
+    "options.page.expanded.help": "\"Expanded\"\nLes changements de\nChronicle-Expanded.",
+    "options.expanded.faster_enemies.label": "Ennemis rapides",
+    "options.expanded.faster_enemies.help": "\"Ennemis rapides\"\nLes monstres bougent\net attaquent deux\nfois plus vite.",
+    "options.expanded.faster_enemies.choice.0": "Activé",
+    "options.expanded.faster_enemies.choice.1": "Désactivé"
 }

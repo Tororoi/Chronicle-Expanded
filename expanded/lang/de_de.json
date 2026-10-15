@@ -1,4 +1,10 @@
 {
     "meswin.system.69": "Verwirrung",
-    "meswin.system14.69": "Verwirrung"
+    "meswin.system14.69": "Verwirrung",
+    "options.page.expanded": "Expanded",
+    "options.page.expanded.help": "\"Expanded\"\nDie Änderungen von\nChronicle-Expanded.",
+    "options.expanded.faster_enemies.label": "Schnellere Gegner",
+    "options.expanded.faster_enemies.help": "\"Schnellere Gegner\"\nMonster bewegen sich\nund greifen doppelt\nso schnell an.",
+    "options.expanded.faster_enemies.choice.0": "An",
+    "options.expanded.faster_enemies.choice.1": "Aus"
 }

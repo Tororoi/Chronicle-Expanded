@@ -34,6 +34,7 @@ still matches retail.
     - `data/`: what is built from the extracted disc data (see "Game data built at extraction"); it
       includes no game header and is compiled into `dcdata` too.
     - `dungeon/`: dungeon systems shared by several features, such as the shot effects.
+    - `enemies/`: how every monster moves, fights and dies (Faster Enemies, Harder Enemy AI).
     - `status/`: status effects and new abilities' effects on monsters and the player (Confuse, poison,
       freeze).
     - `town/`: town features.

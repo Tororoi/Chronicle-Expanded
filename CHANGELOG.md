@@ -271,6 +271,7 @@ Blessing Gun → Skunk ★
 ## Enemies
 
 - Enemy poison lasts 30 seconds, and each tick's damage scales with the monster's resistance. [#7](https://github.com/Tororoi/Chronicle-Expanded/pull/7)
+- New Faster Enemies option (Options, Expanded page): monsters move and act twice as fast. Each attack still slows to its normal speed for the moment it can hit, so its blows land as before. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
 
 ## Towns
 
