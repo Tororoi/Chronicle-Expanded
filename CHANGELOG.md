@@ -102,7 +102,12 @@ Each section lists this repository's own changes first, then those that come fro
 - The Heal ability heals every 3 seconds instead of 4. [#3](https://github.com/Tororoi/Chronicle-Expanded/pull/3)
 - Ungaga's charge shots wear his weapon only when fired, not again for every hit. [#5](https://github.com/Tororoi/Chronicle-Expanded/pull/5)
 - New Confuse ability on Babel's Spear (and its SynthSphere): 5% of hits confuse a non-boss monster for 20 seconds, turning it on other monsters. [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6)
-- Rebalanced weapon stats: new WHP, Attack, Endurance, Speed, Magic, elements and anti-monster values for many weapons; a third attachment slot on Heaven's Cloud, Lamb's Sword, Brave Ark, Sand Breaker, Choora and Frozen Tuna and a fourth on Babel's Spear; higher max Attack or Magic on Aga's Sword, Heaven's Cloud, Chronicle 2, Frozen Tuna, Thorn Armlet, Destruction Ring, Blessing Gun and Skunk; every Ungaga weapon but Babel's Spear has 10 more Attack and max Attack and 15 more Endurance, and every Osmond weapon 15 more Attack and max Attack; Lamb's Sword transforms and gains its power boost at half its WHP instead of a fifth. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
+- A third attachment slot on Heaven's Cloud, Lamb's Sword, Brave Ark, Sand Breaker, Choora and Frozen Tuna, and a fourth on Babel's Spear. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
+- Lamb's Sword transforms and gains its power boost at half its WHP instead of a fifth. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
+- Heaven's Cloud's max Attack and Magic are 180, and Chronicle 2's max Attack is 999. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
+- 7 Branch Sword has 47 WHP, 47 Endurance and 37 Magic, and 7–10 against every monster type. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
+- Frozen Tuna has 65 WHP (was 80), max Attack 100 and max Magic 678. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
+- Ruby's weapons: Platinum Ring is Holy instead of Ice, and Crystal Ring Ice instead of Holy; Pocklekul has 28 Attack and 28 Magic (was 35 and 55) and no Holy; Thorn Armlet has 20 Stone Breaker, 20 Beast Buster, max Attack 70 and max Magic 65; Destruction Ring has 60 Attack, 40 Metal Breaker and max Magic 140. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
 
 ## Enemies
 

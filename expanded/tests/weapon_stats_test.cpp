@@ -25,34 +25,26 @@ TEST(WeaponStats, SetsListedStatsAndKeepsTheRest) {
     std::memcpy(list, WeaponList, sizeof(list));
     expanded::WeaponStatsApply(list);
 
-    const WEAPON_DATA &knife = Weapon(ITEM_WEAPON_KITCHEN_KNIFE);
-    EXPECT_EQ(knife.durability, 50);
-    EXPECT_EQ(knife.attack, 25);
-    EXPECT_EQ(knife.endurance, 30);
-    EXPECT_EQ(knife.speed, Retail(ITEM_WEAPON_KITCHEN_KNIFE).speed);
-    EXPECT_EQ(knife.elem[1], 0);
-    EXPECT_EQ(knife.elem[2], 8);
-    EXPECT_EQ(knife.vs_monster[2], 90);
+    const WEAPON_DATA &branch = Weapon(ITEM_WEAPON_7BRANCH_SWORD);
+    EXPECT_EQ(branch.durability, 47);
+    EXPECT_EQ(branch.endurance, 47);
+    EXPECT_EQ(branch.vs_monster[7], 10);
+    EXPECT_EQ(branch.speed, Retail(ITEM_WEAPON_7BRANCH_SWORD).speed);
 
     EXPECT_EQ(Weapon(ITEM_WEAPON_CHRONICLE2).attack_max, 999);
-    EXPECT_EQ(Weapon(ITEM_WEAPON_DAGGER).attack, Retail(ITEM_WEAPON_DAGGER).attack);
+    EXPECT_EQ(Weapon(ITEM_WEAPON_PLATINUM_RING).elem[4], 20);
+    EXPECT_EQ(Weapon(ITEM_WEAPON_PLATINUM_RING).elem[1], 0);
+    EXPECT_EQ(Weapon(ITEM_WEAPON_SAND_BREAKER).durability, Retail(ITEM_WEAPON_SAND_BREAKER).durability);
 }
 
-TEST(WeaponStats, AddsTheCharacterBonusesBeforeTheWeaponStats) {
+TEST(WeaponStats, LeavesTheOtherWeaponsRetail) {
     std::memcpy(list, WeaponList, sizeof(list));
     expanded::WeaponStatsApply(list);
 
-    const WEAPON_DATA &stick = Weapon(ITEM_WEAPON_FIGHTING_STICK);
-    EXPECT_EQ(stick.attack, Retail(ITEM_WEAPON_FIGHTING_STICK).attack + 10);
-    EXPECT_EQ(stick.attack_max, Retail(ITEM_WEAPON_FIGHTING_STICK).attack_max + 10);
-    EXPECT_EQ(stick.endurance, Retail(ITEM_WEAPON_FIGHTING_STICK).endurance + 15);
-    EXPECT_EQ(Weapon(ITEM_WEAPON_BABEL_S_SPEAR).attack, Retail(ITEM_WEAPON_BABEL_S_SPEAR).attack);
-    EXPECT_EQ(Weapon(ITEM_WEAPON_FIGHTING_STICK_BROKEN).attack, Retail(ITEM_WEAPON_FIGHTING_STICK_BROKEN).attack);
-
-    EXPECT_EQ(Weapon(ITEM_WEAPON_SWALLOW).attack, Retail(ITEM_WEAPON_SWALLOW).attack + 15);
-    EXPECT_EQ(Weapon(ITEM_WEAPON_SWALLOW).endurance, Retail(ITEM_WEAPON_SWALLOW).endurance);
-    EXPECT_EQ(Weapon(ITEM_WEAPON_BLESSING_GUN).attack, Retail(ITEM_WEAPON_BLESSING_GUN).attack + 15);
-    EXPECT_EQ(Weapon(ITEM_WEAPON_BLESSING_GUN).attack_max, 87);
+    for (int weapon : {ITEM_WEAPON_KITCHEN_KNIFE, ITEM_WEAPON_AGA_S_SWORD, ITEM_WEAPON_GOLD_RING, ITEM_WEAPON_FIGHTING_STICK,
+                       ITEM_WEAPON_MACHINE_GUN, ITEM_WEAPON_SWALLOW, ITEM_WEAPON_BLESSING_GUN, ITEM_WEAPON_SKUNK}) {
+        EXPECT_EQ(std::memcmp(&Weapon(weapon), &Retail(weapon), sizeof(WEAPON_DATA)), 0) << weapon;
+    }
 }
 
 TEST(WeaponStats, OpensSlotsUpToTheCount) {
