@@ -106,7 +106,8 @@ Each section lists this repository's own changes first, then those that come fro
 - Lamb's Sword transforms and gains its power boost at half its WHP instead of a fifth. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
 - Heaven's Cloud's max Attack and Magic are 180, and Chronicle 2's max Attack is 999. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
 - 7 Branch Sword has 47 WHP, 47 Endurance and 37 Magic, and 7–10 against every monster type. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
-- Frozen Tuna has 65 WHP (was 80), max Attack 100 and max Magic 678. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
+- Frozen Tuna has max Attack 100 and max Magic 678. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
+- Blessing Gun has max Attack 87 and max Magic 80, and Skunk max Attack 143 and max Magic 105. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
 - Ruby's weapons: Platinum Ring is Holy instead of Ice, and Crystal Ring Ice instead of Holy; Pocklekul has 28 Attack and 28 Magic (was 35 and 55) and no Holy; Thorn Armlet has 20 Stone Breaker, 20 Beast Buster, max Attack 70 and max Magic 65; Destruction Ring has 60 Attack, 40 Metal Breaker and max Magic 140. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
 
 ## Enemies

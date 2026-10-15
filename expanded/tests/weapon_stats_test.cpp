@@ -32,6 +32,10 @@ TEST(WeaponStats, SetsListedStatsAndKeepsTheRest) {
     EXPECT_EQ(branch.speed, Retail(ITEM_WEAPON_7BRANCH_SWORD).speed);
 
     EXPECT_EQ(Weapon(ITEM_WEAPON_CHRONICLE2).attack_max, 999);
+    EXPECT_EQ(Weapon(ITEM_WEAPON_FROZEN_TUNA).durability, Retail(ITEM_WEAPON_FROZEN_TUNA).durability);
+    EXPECT_EQ(Weapon(ITEM_WEAPON_BLESSING_GUN).attack_max, 87);
+    EXPECT_EQ(Weapon(ITEM_WEAPON_SKUNK).magic_max, 105);
+    EXPECT_EQ(Weapon(ITEM_WEAPON_SKUNK).attack, Retail(ITEM_WEAPON_SKUNK).attack);
     EXPECT_EQ(Weapon(ITEM_WEAPON_PLATINUM_RING).elem[4], 20);
     EXPECT_EQ(Weapon(ITEM_WEAPON_PLATINUM_RING).elem[1], 0);
     EXPECT_EQ(Weapon(ITEM_WEAPON_SAND_BREAKER).durability, Retail(ITEM_WEAPON_SAND_BREAKER).durability);
@@ -42,7 +46,7 @@ TEST(WeaponStats, LeavesTheOtherWeaponsRetail) {
     expanded::WeaponStatsApply(list);
 
     for (int weapon : {ITEM_WEAPON_KITCHEN_KNIFE, ITEM_WEAPON_AGA_S_SWORD, ITEM_WEAPON_GOLD_RING, ITEM_WEAPON_FIGHTING_STICK,
-                       ITEM_WEAPON_MACHINE_GUN, ITEM_WEAPON_SWALLOW, ITEM_WEAPON_BLESSING_GUN, ITEM_WEAPON_SKUNK}) {
+                       ITEM_WEAPON_MACHINE_GUN, ITEM_WEAPON_SWALLOW}) {
         EXPECT_EQ(std::memcmp(&Weapon(weapon), &Retail(weapon), sizeof(WEAPON_DATA)), 0) << weapon;
     }
 }
