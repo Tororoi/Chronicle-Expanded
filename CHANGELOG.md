@@ -140,7 +140,7 @@ Changes to which weapons build up into which, [#144](https://github.com/Tororoi/
 
 #### Toan
 
-> **Mod changes:** Choora builds up to Maneater only. Heaven's Cloud is a terminal weapon.
+> **Mod changes:** Choora builds up to Maneater only (Heaven's Cloud path removed). Heaven's Cloud is a terminal weapon (Dark Cloud path removed).
 
 ```
 Baselard
@@ -202,7 +202,7 @@ Steve → Super Steve ★
 
 #### Goro
 
-> **Mod changes:** Big Bucks Hammer builds up to Magical Hammer only (direct Gaia Hammer path removed). Frozen Tuna is a terminal weapon.
+> **Mod changes:** Big Bucks Hammer builds up to Magical Hammer only (direct Gaia Hammer path removed). Frozen Tuna is a terminal weapon (Turtle Shell path removed).
 
 ```
 Steel Hammer → Plate Hammer → Magical Hammer ─┬─ Gaia Hammer ─┐
@@ -256,7 +256,7 @@ Halberd → Scorpion ─┬─ Mirage ─┬─ Terra Sword → Babel Spear ★
 
 #### Osmond
 
-> **Mod changes:** Skunk is a terminal weapon. Jackal and Snail no longer build up to Blessing Gun; Blessing Gun is a standalone starting weapon.
+> **Mod changes:** Skunk is a terminal weapon (Hexa Blaster path removed). Jackal and Snail no longer build up to Blessing Gun; Blessing Gun is a standalone starting weapon.
 
 ```
 Jackal → Swallow → G Crusher → Star Breaker ★
