@@ -38,6 +38,10 @@
 #include "texture.hpp"
 #include "userstatus.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/super_steve.hpp"
+#endif
+
 /**
  * Steps of the character change menu, as CHARA_CHANGE_MENU::step holds them.
  */
@@ -2076,6 +2080,9 @@ int DngActiveWeaponTextureCopy() {
         }
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::SphereIconCopy(source);
+#endif
     return 1;
 }
 

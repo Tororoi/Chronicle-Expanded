@@ -18,6 +18,10 @@
 #include "snd.hpp"
 #include "texture.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/super_steve.hpp"
+#endif
+
 int GetWeaponElementAttr(int element);
 
 /**
@@ -30,7 +34,11 @@ int GetWeaponElementAttr(int element);
 void CSHOT::draw() {
     for (int shot = 0; shot < 12; shot++) {
         if (used[shot] != 0) {
+#ifdef CHRONICLE_EXPANDED
+            int texture_cell = expanded::PelletWeapon() - 299;
+#else
             int texture_cell = NowWeaponHave->item_no - 299;
+#endif
             texture_cell--;
 
             if (texture_cell <= 0) {

@@ -102,6 +102,7 @@ Each section lists this repository's own changes first, then those that come fro
 - The Heal ability heals every 3 seconds instead of 4. [#3](https://github.com/Tororoi/Chronicle-Expanded/pull/3)
 - Ungaga's charge shots wear his weapon only when fired, not again for every hit. [#5](https://github.com/Tororoi/Chronicle-Expanded/pull/5)
 - New Confuse ability: 5% of hits confuse a non-boss monster for 20 seconds, turning it on other monsters. A weapon's SynthSphere passes it on. [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6)
+- Super Steve shows the weapon icon of the SynthSphere attached to it on the dungeon screen, and a slingshot's sphere makes it fire that slingshot's pellets. [#145](https://github.com/Tororoi/Chronicle-Expanded/pull/145)
 
 ### Weapon stats and abilities
 
