@@ -105,32 +105,34 @@ Each section lists this repository's own changes first, then those that come fro
 
 ### Weapon stats and abilities
 
-| Weapon | Change | PR |
-|---|---|---|
-| Evilcise | Always has Poor | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
-| Macho Sword | Always has Abs Up | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
-| Heaven's Cloud | Max Attack 102 → 180, max Magic 85 → 180, attachment slots 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Lamb's Sword | Attachment slots 2 → 3; transforms and gains its power boost at 50% WHP instead of 20% | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Brave Ark | Attachment slots 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Sand Breaker | Attachment slots 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Choora | Attachment slots 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| 7 Branch Sword | WHP 30 → 47, Endurance 40 → 47, Magic 35 → 37; Dino Slayer, Undead Buster, Sea Killer, Stone Breaker, Plant Buster, Sky Hunter and Mimic Breaker 0 → 7, Beast Buster and Mage Slayer 0 → 8, Metal Breaker 0 → 10 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Chronicle 2 | Max Attack 350 → 999 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Bone Slingshot | 50% chance of Fragile | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
-| Hardshooter | 50% chance of Fragile | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
-| Matador | Always has Critical | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
-| Frozen Tuna | Always has Stop; max Attack 56 → 100, max Magic 30 → 678, attachment slots 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142), [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
-| Platinum Ring | Ice 20 → 0, Holy 0 → 20 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Crystal Ring | Holy 20 → 0, Ice 0 → 20 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Pocklekul | Attack 35 → 28, Magic 55 → 28, Holy 20 → 0 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Thorn Armlet | Stone Breaker 0 → 20, Beast Buster 0 → 20, max Attack 60 → 70, max Magic 46 → 65 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Destruction Ring | Attack 50 → 60, Metal Breaker 30 → 40, max Magic 99 → 140 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Goddess Ring | Always has Heal | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
-| Athena's Armlet | Always has Abs Up | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
-| DeSanga | Always has Drain | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
-| Babel's Spear | Has Confuse; attachment slots 3 → 4 | [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6), [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Blessing Gun | Max Attack 56 → 87, max Magic 30 → 80 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
-| Skunk | Max Attack 72 → 143, max Magic 55 → 105 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Weapon | Ability | WHP | AT | ED | SP | MP | Elements | Anti | Slots | PR |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Evilcise | Poor (always) |  |  |  |  |  |  |  |  | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Macho Sword | Abs Up (always) |  |  |  |  |  |  |  |  | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Heaven's Cloud |  |  | max 102 → 180 |  |  | max 85 → 180 |  |  | 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Lamb's Sword¹ |  |  |  |  |  |  |  |  | 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Brave Ark |  |  |  |  |  |  |  |  | 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Sand Breaker |  |  |  |  |  |  |  |  | 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Choora |  |  |  |  |  |  |  |  | 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| 7 Branch Sword |  | 30 → 47 |  | 40 → 47 |  | 35 → 37 |  | Dino Slayer, Undead Buster, Sea Killer, Stone Breaker, Plant Buster, Sky Hunter, Mimic Breaker 0 → 7; Beast Buster, Mage Slayer 0 → 8; Metal Breaker 0 → 10 |  | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Chronicle 2 |  |  | max 350 → 999 |  |  |  |  |  |  | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Bone Slingshot | Fragile (50% chance) |  |  |  |  |  |  |  |  | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Hardshooter | Fragile (50% chance) |  |  |  |  |  |  |  |  | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Matador | Critical (always) |  |  |  |  |  |  |  |  | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Frozen Tuna | Stop (always) |  | max 56 → 100 |  |  | max 30 → 678 |  |  | 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142), [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Platinum Ring |  |  |  |  |  |  | Ice 20 → 0, Holy 0 → 20 |  |  | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Crystal Ring |  |  |  |  |  |  | Holy 20 → 0, Ice 0 → 20 |  |  | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Pocklekul |  |  | 35 → 28 |  |  | 55 → 28 | Holy 20 → 0 |  |  | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Thorn Armlet |  |  | max 60 → 70 |  |  | max 46 → 65 |  | Stone Breaker 0 → 20, Beast Buster 0 → 20 |  | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Destruction Ring |  |  | 50 → 60 |  |  | max 99 → 140 |  | Metal Breaker 30 → 40 |  | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Goddess Ring | Heal (always) |  |  |  |  |  |  |  |  | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Athena's Armlet | Abs Up (always) |  |  |  |  |  |  |  |  | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| DeSanga | Drain (always) |  |  |  |  |  |  |  |  | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Babel's Spear | Confuse |  |  |  |  |  |  |  | 3 → 4 | [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6), [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Blessing Gun |  |  | max 56 → 87 |  |  | max 30 → 80 |  |  |  | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Skunk |  |  | max 72 → 143 |  |  | max 55 → 105 |  |  |  | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+
+¹ Lamb's Sword also transforms and gains its power boost at 50% WHP instead of 20%. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
 
 ### Buildup paths
 
