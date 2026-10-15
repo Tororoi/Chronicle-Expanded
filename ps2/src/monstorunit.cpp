@@ -40,6 +40,7 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/kick_back.hpp"
@@ -615,7 +616,11 @@ void CMonstorUnit::ArrangementPos(CDungeonMap *map, int count, int model_no, int
                         if (model_no == -1) {
                             selected = (int) ((float) model_count * (float) rand() / 2147483648.0f);
 
+#ifdef CHRONICLE_EXPANDED
+                            if (expanded::RosterSpawnsOnce(*this, selected)) {
+#else
                             if (model[selected].kind != MONSTER_KIND_NORMAL && model[selected].kind != MONSTER_KIND_MIMIC_SMALL) {
+#endif
                                 if (used[selected] != 0) {
                                     continue;
                                 }
