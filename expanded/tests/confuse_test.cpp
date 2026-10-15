@@ -13,14 +13,14 @@
 
 using namespace expanded;
 
-// Babel's Spear carries Confuse from its weapon data, and no other weapon does.
+// Babel's Spear is built with Confuse, and no other weapon is.
 TEST(Confuse, OnlyBabelsSpearCarriesIt) {
     for (int item = ITEM_WEAPON_START; item < ITEM_WEAPON_START + 120; item++) {
         const WEAPON_DATA *data = GetWeaponData(item);
         if (data == nullptr) {
             continue;
         }
-        EXPECT_EQ((data->flags & kWeaponFlagConfuse) != 0, item == ITEM_WEAPON_BABEL_S_SPEAR) << item;
+        EXPECT_EQ((WeaponAbilities(item, data->flags, 99) & kAbilityConfuse) != 0, item == ITEM_WEAPON_BABEL_S_SPEAR) << item;
     }
 }
 

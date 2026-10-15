@@ -40,6 +40,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/confuse.hpp"
+#include "expanded/weapon_abilities.hpp"
 #include "expanded/weapon_stats.hpp"
 #endif
 
@@ -1672,7 +1673,11 @@ int DefaultWeaponOptionSet(int weapon_no) {
         return 1;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    return expanded::WeaponAbilities(weapon_no, data->flags);
+#else
     return data->flags;
+#endif
 }
 
 void WeaponOptionStatusDraw(WEAPON_HAVE *weapon, int x, int y, int alpha) {

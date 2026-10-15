@@ -24,8 +24,6 @@
 
 #include "expanded/confuse_icon.hpp"
 
-extern WEAPON_DATA WeaponList[120];
-
 namespace expanded {
 
 namespace {
@@ -44,12 +42,6 @@ constexpr float kStarsLift = 3.0f;
 constexpr float kStarsScale = 1.5f;
 constexpr int   kStarsGrowSteps = kStepsPerSecond / 4;
 constexpr float kStarsLead = 1.5f;
-
-// Babel's Spear carries the ability from its weapon data.
-const bool kBabelConfuses = [] {
-    WeaponList[ITEM_WEAPON_BABEL_S_SPEAR - ITEM_WEAPON_START].flags |= kWeaponFlagConfuse;
-    return true;
-}();
 
 // The stars as an effect that only plays.
 BT_SHOT_EFFECT StarsDescription = {
@@ -282,7 +274,7 @@ void ConfuseStep(CMonstorUnit &unit, int slot) {
 }
 
 void ConfuseRoll(CMonstorUnit &unit, int slot) {
-    if (!(unit.effect[slot].hit_attributes & kWeaponFlagConfuse)) {
+    if (!(unit.effect[slot].hit_attributes & kAbilityConfuse)) {
         return;
     }
     MONSTOR &monster = unit.monster[slot];
