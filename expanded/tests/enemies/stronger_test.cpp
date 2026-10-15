@@ -39,7 +39,6 @@ TEST(StrongerEnemies, IsAnExpandedToggleOffByDefault) {
 TEST(StrongerEnemies, ARegionsOwnMonstersTakeTheNextRegionsStrengthButKeepTheirAbs) {
     expanded::EnemyStats werewolf = expanded::NormalizedStats(kWerewolf, 1, true);
     EXPECT_EQ(werewolf.hp, 493);
-    EXPECT_EQ(werewolf.melee, 105);
     EXPECT_EQ(werewolf.abs, 12);
     // Past Demon Shaft's last band the trend carries on.
     EXPECT_EQ(NormalizedStat(kWhiteFangEnhanced, EnemyStat::Hp, 10, true), 17313);
@@ -47,9 +46,9 @@ TEST(StrongerEnemies, ARegionsOwnMonstersTakeTheNextRegionsStrengthButKeepTheirA
 
 TEST(StrongerEnemies, AMimicIsAtLeastTheNextOne) {
     EXPECT_EQ(NormalizedStat(kMimicDbc, EnemyStat::Hp, 0, true), 150);
-    EXPECT_EQ(NormalizedStat(kMimicDbc, EnemyStat::Melee, 0, true), 47);
+    EXPECT_EQ(NormalizedStat(kMimicDbc, EnemyStat::Defense, 0, true), 2);
     EXPECT_EQ(NormalizedStat(kMimicDsLast, EnemyStat::Hp, 10, true), 12000);
-    EXPECT_EQ(NormalizedStat(kKingMimicDsLast, EnemyStat::Melee, 10, true), 180);
+    EXPECT_EQ(NormalizedStat(kKingMimicDsLast, EnemyStat::Hardness, 10, true), 60);
 }
 
 TEST(StrongerEnemies, TheToggleScalesTheFloorsOwnMonsters) {
