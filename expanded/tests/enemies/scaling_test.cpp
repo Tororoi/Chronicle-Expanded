@@ -1,23 +1,41 @@
 #include <gtest/gtest.h>
 
+#include <filesystem>
+#include <fstream>
 #include <memory>
+#include <string>
 
 #include "dun/gameloop.hpp"
+#include "expanded/data/script_damage.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "monstorunit.hpp"
+#include "platform/paths.hpp"
+#include "platform_fixture.hpp"
 #include "shot_effect_pack.hpp"
 
 namespace {
 
 constexpr int kSkeletonSoldier = 1;
 constexpr int kWerewolf = 4;
+constexpr int kFliFli = 5;
 constexpr int kGemronFire = 111;
 
 int g_models = 0;
 int g_spawns = 0;
 
+// A data directory whose scripts deal these: Skeleton Soldier, Werewolf, FliFli (a shot without damage,
+// its effect's 26) and Gemron (Fire).
+void UseScriptDamage() {
+    std::filesystem::path root =
+        std::filesystem::temp_directory_path() / ("dc_enemy_scaling_" + std::to_string(dc::test::ProcessId()));
+    std::filesystem::create_directories((root / expanded::kScriptDamageFile).parent_path());
+    std::ofstream(root / expanded::kScriptDamageFile) << "e03a 21 0 0\ne07a 68 0 0\ne08a 37 0 1\ne111a 100 100 0\n";
+    PathsSetDataRoot(root);
+}
+
 // A floor with nothing on it, off the dungeons so that no feature scales what it sets up.
 std::unique_ptr<CMonstorUnit> EmptyFloor() {
+    UseScriptDamage();
     selectMapNo = -1;
     auto unit = std::make_unique<CMonstorUnit>();
     for (MONSTOR &monster : unit->monster) {
@@ -56,6 +74,7 @@ TEST(EnemyScaling, RoundsHalfToEvenAndKeepsAtLeastOne) {
 }
 
 TEST(EnemyScaling, NativeStatsAreTheRecordAndTheScriptsDamage) {
+    UseScriptDamage();
     expanded::EnemyStats werewolf = expanded::NativeStats(kWerewolf);
     EXPECT_EQ(werewolf.hp, 180);
     EXPECT_EQ(werewolf.abs, 12);
@@ -64,6 +83,7 @@ TEST(EnemyScaling, NativeStatsAreTheRecordAndTheScriptsDamage) {
     EXPECT_EQ(werewolf.melee, 68);
     EXPECT_EQ(werewolf.shot, 0);
     EXPECT_EQ(expanded::NativeStats(kGemronFire).shot, 100);
+    EXPECT_EQ(expanded::NativeStats(kFliFli).shot, 26);
     EXPECT_EQ(expanded::NativeStats(167).hp, 0);
 }
 
@@ -169,4 +189,12 @@ TEST(EnemyScaling, ListenersHearSetUpsAndSpawns) {
     Spawn(*unit, 0, 3);
     EXPECT_EQ(g_spawns, 1);
     EXPECT_EQ(unit->monster[0].max_hp, 360);
+}
+
+TEST(EnemyScaling, WithoutTheDataFileMonstersDealTheirOwnDamage) {
+    PathsSetDataRoot(std::filesystem::temp_directory_path() / "dc_enemy_scaling_no_data");
+    expanded::EnemyStats werewolf = expanded::NativeStats(kWerewolf);
+    EXPECT_EQ(werewolf.hp, 180);
+    EXPECT_EQ(werewolf.melee, 0);
+    EXPECT_EQ(expanded::EnemyMeleeDamage(0, 68), 68);
 }

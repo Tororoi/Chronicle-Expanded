@@ -35,30 +35,28 @@ TEST(EnemyNormalize, RegionsAreTheDungeonsAndDemonShaftsBands) {
 TEST(EnemyNormalize, ARegionsOwnMonstersKeepTheirStats) {
     EXPECT_EQ(expanded::NormalizedStats(kWerewolf, 1, false), expanded::NativeStats(kWerewolf));
     EXPECT_EQ(NormalizedStat(kWerewolf, EnemyStat::Hp, 1, false), 180);
-    EXPECT_EQ(NormalizedStat(kWerewolf, EnemyStat::Melee, 1, false), 68);
 }
 
 TEST(EnemyNormalize, ALaterMonsterIsCappedAtTheHighestSoFar) {
     EXPECT_EQ(NormalizedStat(kWerewolf, EnemyStat::Hp, 0, false), 90);
     EXPECT_EQ(NormalizedStat(kWerewolf, EnemyStat::Abs, 0, false), 5);
-    EXPECT_EQ(NormalizedStat(kWerewolf, EnemyStat::Melee, 0, false), 45);
     expanded::EnemyStats stats = expanded::NormalizedStats(kWerewolf, 0, false);
     EXPECT_EQ(stats.hp, 90);
-    EXPECT_EQ(stats.melee, 45);
+    EXPECT_EQ(stats.abs, 5);
 }
 
 TEST(EnemyNormalize, AnEarlierMonsterIsLiftedToTheAverageAndKeepsItsOrder) {
     EXPECT_EQ(NormalizedStat(kSkeletonSoldier, EnemyStat::Hp, 4, false), 483);
     EXPECT_EQ(NormalizedStat(kMasterJacket, EnemyStat::Hp, 4, false), 483);
     EXPECT_EQ(NormalizedStat(kSkeletonSoldier, EnemyStat::Hp, 7, false), 2500);
-    // A stat the monster lacks is lifted too; a hit it lacks stays missing.
+    // A stat the monster lacks is lifted too; a shot it lacks stays missing.
     EXPECT_EQ(NormalizedStat(kSkeletonSoldier, EnemyStat::Defense, 5, false), 5);
     EXPECT_EQ(NormalizedStat(kSkeletonSoldier, EnemyStat::Hardness, 5, false), 10);
     EXPECT_EQ(NormalizedStat(kSkeletonSoldier, EnemyStat::Shot, 5, false), 0);
     // Cave Bat is lifted no higher than Evil Bat, a Moon Sea native.
     EXPECT_EQ(NormalizedStat(kCaveBat, EnemyStat::Hp, 4, false), 150);
     EXPECT_EQ(NormalizedStat(kEvilBat, EnemyStat::Hp, 4, false), 150);
-    EXPECT_EQ(NormalizedStat(kCaveBat, EnemyStat::Melee, 4, false), 86);
+    EXPECT_EQ(NormalizedStat(kCaveBat, EnemyStat::Abs, 4, false), 4);
 }
 
 TEST(EnemyNormalize, MimicsAndBossesKeepTheirStats) {
@@ -87,7 +85,7 @@ TEST(EnemyNormalize, AKindSetUpOnAFloorIsNormalizedForItsRegion) {
     expanded::EnemySpawned(*unit, 0);
     EXPECT_EQ(unit->monster[0].max_hp, 90);
     EXPECT_EQ(unit->monster[0].exp, 5);
-    EXPECT_EQ(expanded::EnemyMeleeDamage(0, 68), 45);
+    EXPECT_EQ(unit->monster[0].defense, 0);
 
     selectMapNo = 1;
     expanded::EnemyModelSetUp(*unit, 1, kWerewolf);
