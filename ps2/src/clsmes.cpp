@@ -23,6 +23,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/core/menu_text.hpp"
+#include "expanded/enemies/steve.hpp"
 #endif
 
 /* The external-character code of every letter of each registered name. */
@@ -1243,6 +1244,9 @@ int ClsMes::GetMesWidth_system(int mes_no) {
 short *ClsMes::GetTextLineDataTop(int line) {
 #ifdef CHRONICLE_EXPANDED
     if (short *text = expanded::MenuText(this->buff, line)) {
+        return text;
+    }
+    if (short *text = expanded::SteveLine(*this, line)) {
         return text;
     }
 #endif
