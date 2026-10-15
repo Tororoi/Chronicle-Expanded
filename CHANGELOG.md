@@ -102,6 +102,7 @@ Each section lists this repository's own changes first, then those that come fro
 - The Heal ability heals every 3 seconds instead of 4. [#3](https://github.com/Tororoi/Chronicle-Expanded/pull/3)
 - Ungaga's charge shots wear his weapon only when fired, not again for every hit. [#5](https://github.com/Tororoi/Chronicle-Expanded/pull/5)
 - New Confuse ability on Babel's Spear (and its SynthSphere): 5% of hits confuse a non-boss monster for 20 seconds, turning it on other monsters. [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6)
+- New buildup paths: Heaven's Cloud, Frozen Tuna and Skunk are final forms; Choora builds up only into Maneater, Hardshooter only into Double Impact, Double Impact only into Matador and Big Bucks Hammer only into Magical Hammer; Platinum Ring builds up into Crystal Ring or Thorn Armlet, Thorn Armlet only into Destruction Ring and Pocklekul into Fairy Ring, Goddess Ring or Satan's Ring; Jackal and Snail no longer build up into Blessing Gun. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
 
 ## Enemies
 
