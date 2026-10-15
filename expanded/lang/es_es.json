@@ -1,4 +1,10 @@
 {
     "meswin.system.69": "Confusión",
-    "meswin.system14.69": "Confusión"
+    "meswin.system14.69": "Confusión",
+    "options.page.expanded": "Expanded",
+    "options.page.expanded.help": "\"Expanded\"\nLos cambios de\nChronicle-Expanded.",
+    "options.expanded.harder_enemy_ai.label": "IA enemiga difícil",
+    "options.expanded.harder_enemy_ai.help": "\"IA enemiga difícil\"\nLos monstruos caídos\npueden levantarse.",
+    "options.expanded.harder_enemy_ai.choice.0": "Sí",
+    "options.expanded.harder_enemy_ai.choice.1": "No"
 }

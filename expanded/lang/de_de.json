@@ -1,4 +1,10 @@
 {
     "meswin.system.69": "Verwirrung",
-    "meswin.system14.69": "Verwirrung"
+    "meswin.system14.69": "Verwirrung",
+    "options.page.expanded": "Expanded",
+    "options.page.expanded.help": "\"Expanded\"\nDie Änderungen von\nChronicle-Expanded.",
+    "options.expanded.harder_enemy_ai.label": "Schwerere Gegner-KI",
+    "options.expanded.harder_enemy_ai.help": "\"Schwerere Gegner-KI\"\nBesiegte Monster\nstehen manchmal\nwieder auf.",
+    "options.expanded.harder_enemy_ai.choice.0": "An",
+    "options.expanded.harder_enemy_ai.choice.1": "Aus"
 }

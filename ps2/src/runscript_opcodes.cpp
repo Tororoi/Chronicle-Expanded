@@ -19,6 +19,7 @@
 #include "userstatus.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/revive.hpp"
 #include "expanded/status/confuse.hpp"
 #endif
 
@@ -623,6 +624,9 @@ int _GET_RAND(RS_STACKDATA *stack, int argc) {
     int bound = GetStackInt(stack++);
 
     int roll = (float) bound * rand() / 2147483648.0f;
+#ifdef CHRONICLE_EXPANDED
+    roll = expanded::ReviveRoll(bound, roll);
+#endif
 
     SetStack(stack, roll);
     return 1;

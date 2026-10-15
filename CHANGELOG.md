@@ -271,6 +271,7 @@ Blessing Gun → Skunk ★
 ## Enemies
 
 - Enemy poison lasts 30 seconds, and each tick's damage scales with the monster's resistance. [#7](https://github.com/Tororoi/Chronicle-Expanded/pull/7)
+- New Harder Enemy AI option (Options, Expanded page): a defeated monster that has a get-up animation, such as a Skeleton Soldier, the Days of the Week or the card soldiers, gets back up about 30% of the time with part of its life, and the undead that already could (Mummy, Master Jacket, Gacious, Horn Head, Silver Gear) do so about 45% of the time. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
 
 ## Towns
 
