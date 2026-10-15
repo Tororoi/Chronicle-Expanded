@@ -272,6 +272,99 @@ Blessing Gun → Skunk ★
 
 - Enemy poison lasts 30 seconds, and each tick's damage scales with the monster's resistance. [#7](https://github.com/Tororoi/Chronicle-Expanded/pull/7)
 - Minibosses: about one monster a floor, back floors included, is a miniboss, half again as big, with four times the life, ABS and money, half again the defense and damage (shots too), and a longer reach. It spots you and attacks from farther away, takes a tenth of the damage of thrown items, and always drops something. One you leave alive is still there when you come back from the back floor, or go back down to it; one you defeat stays gone. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
+- Miniboss loot: instead of money, a miniboss drops an item from its dungeon's tables below: its rare drop 5% of the time and its common drop 30%; otherwise the back floor's key (35%), one of the dungeon's weapons, a gem or attachment, or a powder, Stamina Drink or Dran's Feather. Some weapons come boosted: once picked up, they have the stats in the second table. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
+
+### Miniboss loot
+
+| Dungeon | Miniboss | Rare (5%) | Common (30%) |
+|---|---|---|---|
+| Divine Beast Cave | Master Jacket | Gladius (boosted) | Gladius |
+| | Yammich | Evilcise | Amethyst |
+| | Statue Dog | Steve | Turquoise |
+| | Skeleton Soldier |  | Bone Rapier or Bone Slingshot |
+| | Statue |  | Steel Slingshot |
+| | Dasher |  | Topaz |
+| | Opar |  | Opal |
+| | Rockanoff |  | Diamond |
+| | Dragon |  | Ruby or Garnet |
+| Wise Owl Forest | Sunday to Saturday | Bandit Slingshot (boosted) | Auto Repair Powder |
+| | Werewolf | Lamb's Sword (boosted) |  |
+| | Earth Digger | Trial Hammer | Plate Hammer |
+| | Halloween | Steve |  |
+| | Haley Holey |  | Sapphire or Flamingo |
+| | King Prickly |  | Steel Hammer |
+| Shipwreck | Auntie Medu | Serpent Sword | Turquoise or Garnet |
+| | Captain | Gold Bullion | Flamingo |
+| | Corcea | Dusack (boosted) | Chopper |
+| | Mask of Prajna | Small Sword (boosted) | Amethyst |
+| | Gyon |  | Frozen Tuna or Aquamarine |
+| | Gunny |  | Pearl |
+| | Cursed Rose |  | Thorn Armlet |
+| | Pirate's Chariot |  | Steel Hammer or Powerup Powder |
+| | Sam |  | Crystal Ring |
+| Sun and Moon Temple | Blue Dragon | Dragon's Y | Amethyst, Aquamarine or Turquoise |
+| | Dune | Cactus | Powerup Powder |
+| | Golem | Sun Sword or Tsukikage | Auto Repair Powder |
+| | Mummy | Claymore | Revival Powder or Peridot |
+| | Steel Giant | Platinum Ring (boosted) | Opal or Diamond |
+| | Bomber Head |  | Powerup Powder |
+| | Crabby Hermit |  | Opal |
+| | Mr. Blare |  | Blessing Gun |
+| Moon Sea | Space Gyon | Frozen Tuna (boosted) | Javelin |
+| | Crescent Baron | Tsukikage or Mirage | Pearl |
+| | Hell Pockle | Satan's Ring | Pocklekul (boosted) |
+| | Moon Digger | Trial Hammer | Magical Hammer |
+| | Titan | Gaia Hammer | Any gem |
+| | Vulcan | Blessing Gun (boosted) | Peridot, Garnet, Topaz or Diamond |
+| | White Fang | De Sanga (boosted) | Topaz |
+| | Arthur |  | Swallow or 5 Foot Nail |
+| | Moon Bug |  | Powerup Powder |
+| Gallery of Time | Diamond | Big Bang (boosted) | Diamond |
+| | Joker | Super Steve (boosted) | Super Steve |
+| | Spade | Dark Cloud (boosted) | Brave Ark |
+| | Heart | Angel Shooter (boosted) | Goddess Ring |
+| | Club | Cactus (boosted) | Steel Hammer |
+| | Dark Flower | Thorn Armlet (boosted) | Thorn Armlet or 7 Branch Sword |
+| | Black Dragon | Dragon's Y (boosted) | Peridot |
+| | Alexander |  | Drain Seeker |
+| | Blizzard |  | Aquamarine, Amethyst or Turquoise |
+| | Curse Dancer |  | Maneater or Cross Hinder |
+| | Billy |  | Trial Hammer (boosted) |
+| Demon Shaft | Fire Gemron | Satan's Ring | Sun or Ruby |
+| | Ice Gemron | Crystal Ring (boosted) | Sun or Aquamarine |
+| | Thunder Gemron | Trial Hammer (boosted) | Sun or Pearl |
+| | Wind Gemron | Heaven's Cloud (boosted) | Sun or Sapphire |
+| | Holy Gemron | Goddess Ring | Sun or Peridot |
+| | Nikapous | Macho Sword |  |
+| | Horn Head | Satan's Ax | Matador or Bone Rapier |
+| | Silver Gear | Destruction Ring | Bone Slingshot |
+| | Bishop Q |  | Flamingo (boosted) |
+| Every dungeon | King Mimic |  | Gold Bullion or any gem |
+| | Mimic |  | Any gem |
+
+| Boosted weapon | From | Picked up with |
+|---|---|---|
+| Gladius | Master Jacket | Attack 15, Holy 50, Anti-Undead 50 |
+| Bandit Slingshot | Sunday to Saturday | Attack 35, Wind 40, Anti-Mimic 40 |
+| Lamb's Sword | Werewolf | Attack 60, Magic 30, WHP 99 |
+| Dusack | Corcea | Steal |
+| Small Sword | Mask of Prajna | Attack 40, Thunder 40, Anti-Mage 40 |
+| Platinum Ring | Steel Giant | Attack 30, Holy 40, Anti-Stone 40, Durable |
+| Frozen Tuna | Space Gyon | WHP 99, Endurance 99, Ice 99, Anti-Sea 99, Big Bucks, Fragile |
+| Blessing Gun | Vulcan | Attack 50, Magic 30, Fire 40, Anti-Dino 40, Anti-Plant 20 |
+| De Sanga | White Fang | Drain |
+| Pocklekul | Hell Pockle | Steal |
+| Dragon's Y | Black Dragon | Thunder 40, Anti-Beast 40, Anti-Sky 40 |
+| Cactus | Club | WHP 99, Endurance 99, Wind 50, Anti-Plant 40, Anti-Sea 40, Critical |
+| Thorn Armlet | Dark Flower | Abs Up |
+| Big Bang | Diamond | WHP 99, Durable |
+| Angel Shooter | Heart | WHP 99, Fire 40, Thunder 40, Holy 40 |
+| Super Steve | Joker | WHP 99, Attack 80, Magic 50, Steal, Abs Up |
+| Dark Cloud | Spade | WHP 99, Fire 40, Holy 40, Anti-Mage 30, Stop, Drain |
+| Trial Hammer | Billy, Thunder Gemron | Thunder 50 |
+| Crystal Ring | Ice Gemron | Ice 50 |
+| Heaven's Cloud | Wind Gemron | Wind 50 |
+| Flamingo | Bishop Q | Abs Up |
 
 ## Towns
 
