@@ -48,6 +48,10 @@
 #include "vutext.hpp"
 #include "water.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/weapon_stats.hpp"
+#endif
+
 /**
  * Steps of the memory card check run before the title.
  */
@@ -430,6 +434,9 @@ void initialize_data() {
     LoadSystemMessage();
     BtMapJumpFloor = -1;
     LoadSndTxt();
+#ifdef CHRONICLE_EXPANDED
+    expanded::WeaponStatsApply();
+#endif
 }
 
 /* @ 0x1410B0 (0xC80 bytes) -- main */
