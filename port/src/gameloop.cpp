@@ -48,6 +48,10 @@
 #include "title/rushmovi.hpp"
 #include "title/title.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/save.hpp"
+#endif
+
 int  EditInit(void *param);
 int  EditLoop();
 void SndInit();
@@ -295,6 +299,9 @@ void StartNewGame() {
         std::memcpy(names[i], g_save_data.GetCharaName(i), sizeof(names[i]));
     }
     ResetSaveKeepingConfig(g_save_data);
+#ifdef CHRONICLE_EXPANDED
+    expanded::SaveClear();
+#endif
     GameOptionsApply(ConfigGet().options);
     for (int i = 0; i < 6; ++i) {
         std::memcpy(g_save_data.GetCharaName(i), names[i], sizeof(names[i]));

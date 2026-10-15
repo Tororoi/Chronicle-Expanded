@@ -40,6 +40,8 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/confuse.hpp"
+#include "expanded/weapon_abilities.hpp"
+#include "expanded/weapon_stats.hpp"
 #endif
 
 static int defWeapon[6] = {ITEM_WEAPON_DAGGER_BROKEN, ITEM_WEAPON_WOODENSLINGSHOT_BROKEN, ITEM_WEAPON_MALLET_BROKEN, ITEM_WEAPON_GOLD_RING_BROKEN, ITEM_WEAPON_FIGHTING_STICK_BROKEN, ITEM_WEAPON_MACHINE_GUN_BROKEN};
@@ -464,7 +466,11 @@ int ItemUseFunc(CUserStatus *status, int item_no, int chara, int target, WEAPON_
 float GetNowWeaponRate(WEAPON_HAVE *weapon) {
     float rate = 1.0f;
 
+#ifdef CHRONICLE_EXPANDED
+    if (weapon != NULL && weapon->item_no == ITEM_WEAPON_LAMB_S_SWORD && weapon->durability_f <= expanded::kLambSwordThreshold * weapon->durability) {
+#else
     if (weapon != NULL && weapon->item_no == ITEM_WEAPON_LAMB_S_SWORD && weapon->durability_f <= 0.2f * weapon->durability) {
+#endif
         rate = 1.5f;
     }
 
@@ -536,7 +542,11 @@ void MenuWeaponSpSet(CCharacter *chara, WEAPON_HAVE *weapon) {
     int show_broken;
     int show_whole;
 
+#ifdef CHRONICLE_EXPANDED
+    if (weapon->durability_f <= expanded::kLambSwordThreshold * weapon->durability) {
+#else
     if (weapon->durability_f <= 0.2 * weapon->durability) {
+#endif
         show_broken = 1;
         show_whole = 2;
     } else {
@@ -1663,7 +1673,11 @@ int DefaultWeaponOptionSet(int weapon_no) {
         return 1;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    return expanded::WeaponAbilities(weapon_no, data->flags);
+#else
     return data->flags;
+#endif
 }
 
 void WeaponOptionStatusDraw(WEAPON_HAVE *weapon, int x, int y, int alpha) {
