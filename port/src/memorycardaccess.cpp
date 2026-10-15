@@ -16,6 +16,10 @@
 #include "save_slots.hpp"
 #include "savedata.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/save.hpp"
+#endif
+
 // The port has no memory card: the operations read and write the files save_slots.hpp names.
 // Each finishes in the step that starts it and returns 1, or -1 where retail's card would have
 // failed, so the save screen's own flow and alerts still apply. The card the screens check is
@@ -274,6 +278,12 @@ PORT_OVERRIDE int CMemoryCardAccess::SaveToMc(int file_no) {
         return -1;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    if (!expanded::SaveWrite(SaveSlotDirectory(file_no))) {
+        return -1;
+    }
+#endif
+
     this->file_no = file_no;
     ConfigWord(kConfigLastFile) = file_no;
     this->card[this->port].dir_exists = 1;
@@ -290,6 +300,9 @@ PORT_OVERRIDE int CMemoryCardAccess::LoadFromMc(int file_no) {
     SaveState state = CurrentState();
     SaveStateRead(SaveStatePath(), state);
     memcpy(SaveData, g_image, sizeof(CSaveData));
+#ifdef CHRONICLE_EXPANDED
+    expanded::SaveRead(SaveSlotDirectory(file_no));
+#endif
 
     // The save screen keeps starting at the last numbered save.
     if (file_no == kSaveSlotAutosave) {
@@ -320,6 +333,9 @@ PORT_OVERRIDE int CMemoryCardAccess::DeleteFile(int file_no) {
         return -1;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::SaveRemove(SaveSlotDirectory(file_no));
+#endif
     fs::remove(SaveSlotDirectory(file_no), error);
     return 1;
 }
@@ -336,5 +352,10 @@ bool SaveSlotWriteAutosave() {
         return false;
     }
     BuildImage(g_image, kVersion);
+#ifdef CHRONICLE_EXPANDED
+    return FilesWrite(SaveSlotPath(kSaveSlotAutosave), g_image, kImageSize, true) == FilesResult::kWritten &&
+           expanded::SaveWrite(SaveSlotDirectory(kSaveSlotAutosave));
+#else
     return FilesWrite(SaveSlotPath(kSaveSlotAutosave), g_image, kImageSize, true) == FilesResult::kWritten;
+#endif
 }
