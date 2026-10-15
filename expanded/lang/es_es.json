@@ -1,4 +1,10 @@
 {
     "meswin.system.69": "Confusión",
-    "meswin.system14.69": "Confusión"
+    "meswin.system14.69": "Confusión",
+    "options.page.expanded": "Expanded",
+    "options.page.expanded.help": "\"Expanded\"\nLos cambios de\nChronicle-Expanded.",
+    "options.expanded.randomize_enemies.label": "Enemigos aleatorios",
+    "options.expanded.randomize_enemies.help": "\"Enemigos aleatorios\"\nLos monstruos de cada\npiso se sortean en\ncada visita.",
+    "options.expanded.randomize_enemies.choice.0": "Sí",
+    "options.expanded.randomize_enemies.choice.1": "No"
 }

@@ -16,7 +16,7 @@ constexpr int kGaciousEnhanced = 155;
 [[maybe_unused]] const bool kRegistered =
     AddToggle({.key = kRandomizeEnemies,
                .label = "Randomize Enemies",
-               .help = "\"Randomize Enemies\"\nEach floor's monsters are\nrolled from the whole game\non every dungeon visit."});
+               .help = "\"Randomize Enemies\"\nEach floor's monsters\nare drawn from the\nwhole game on every\ndungeon visit."});
 
 // Regular monsters, by MonstorTable index: every 'e' model but the mimics, Wine Keg and the boss-record Gacious.
 const std::vector<int> &Pool() {

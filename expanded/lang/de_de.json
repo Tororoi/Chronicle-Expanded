@@ -1,4 +1,10 @@
 {
     "meswin.system.69": "Verwirrung",
-    "meswin.system14.69": "Verwirrung"
+    "meswin.system14.69": "Verwirrung",
+    "options.page.expanded": "Expanded",
+    "options.page.expanded.help": "\"Expanded\"\nDie Änderungen von\nChronicle-Expanded.",
+    "options.expanded.randomize_enemies.label": "Zufällige Gegner",
+    "options.expanded.randomize_enemies.help": "\"Zufällige Gegner\"\nDie Monster jeder\nEtage werden bei jedem\nBesuch neu gelost.",
+    "options.expanded.randomize_enemies.choice.0": "An",
+    "options.expanded.randomize_enemies.choice.1": "Aus"
 }
