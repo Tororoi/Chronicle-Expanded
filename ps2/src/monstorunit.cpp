@@ -40,6 +40,7 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "expanded/status/confuse.hpp"
@@ -2060,7 +2061,12 @@ void CMonstorUnit::Step(int pause) {
                         monster[current_monster].invincible_timer--;
                     }
                 } else {
+#ifdef CHRONICLE_EXPANDED
+                    if (expanded::BossDeathStep(*this, current_monster)) {
+                    } else if (script_state[current_monster] == 0) {
+#else
                     if (script_state[current_monster] == 0) {
+#endif
                         if (monster[current_monster].revealed == 1) {
                             interpreter[current_monster].run(50);
                             monster[current_monster].revealed = -1;

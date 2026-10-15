@@ -19,6 +19,7 @@
 #include "userstatus.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/bosses.hpp"
 #include "expanded/status/confuse.hpp"
 #endif
 
@@ -486,6 +487,11 @@ int _SET_POSITION(RS_STACKDATA *stack, int argc) {
     float y = GetStackFloat(stack++);
     float z = GetStackFloat(stack);
 
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::BossKeepsPlace(*NowMonstorUnit, monster_no)) {
+        return 1;
+    }
+#endif
     NowMonstorUnit->chara[monster_no][0].SetPosition(x, y, z);
     return 1;
 }
@@ -556,11 +562,21 @@ int _STATUS_SET_DEAD(RS_STACKDATA *stack, int argc) {
 }
 
 int _STATUS_SET_EVENT(RS_STACKDATA *stack, int argc) {
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::BossEventHeld(NowMonstorUnit->current_monster)) {
+        return 1;
+    }
+#endif
     NowMonstorUnit->requested_event = GetStackInt(stack);
     return 1;
 }
 
 int _RUN_SCRIPT(RS_STACKDATA *stack, int argc) {
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::BossEventHeld(NowMonstorUnit->current_monster)) {
+        return 1;
+    }
+#endif
     NowMonstorUnit->requested_event = GetStackInt(stack);
     printf("run script !!\n");
     return 1;
@@ -1062,6 +1078,11 @@ int _SET_MONSTOR_POS(RS_STACKDATA *stack, int argc) {
     position[0] = GetStackFloat(stack++);
     position[1] = GetStackFloat(stack++);
     position[2] = GetStackFloat(stack);
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::BossKeepsPlace(*NowMonstorUnit, NowMonstorUnit->current_monster)) {
+        return 1;
+    }
+#endif
     NowMonstorUnit->chara[monster_no][0].SetPosition(position);
     return 1;
 }
