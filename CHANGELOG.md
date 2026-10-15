@@ -102,13 +102,27 @@ Each section lists this repository's own changes first, then those that come fro
 - The Heal ability heals every 3 seconds instead of 4. [#3](https://github.com/Tororoi/Chronicle-Expanded/pull/3)
 - Ungaga's charge shots wear his weapon only when fired, not again for every hit. [#5](https://github.com/Tororoi/Chronicle-Expanded/pull/5)
 - New Confuse ability on Babel's Spear (and its SynthSphere): 5% of hits confuse a non-boss monster for 20 seconds, turning it on other monsters. [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6)
-- A third attachment slot on Heaven's Cloud, Lamb's Sword, Brave Ark, Sand Breaker, Choora and Frozen Tuna, and a fourth on Babel's Spear. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
-- Lamb's Sword transforms and gains its power boost at half its WHP instead of a fifth. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
-- Heaven's Cloud's max Attack and Magic are 180, and Chronicle 2's max Attack is 999. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
-- 7 Branch Sword has 47 WHP, 47 Endurance and 37 Magic, and 7–10 against every monster type. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
-- Frozen Tuna has max Attack 100 and max Magic 678. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
-- Blessing Gun has max Attack 87 and max Magic 80, and Skunk max Attack 143 and max Magic 105. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
-- Ruby's weapons: Platinum Ring is Holy instead of Ice, and Crystal Ring Ice instead of Holy; Pocklekul has 28 Attack and 28 Magic (was 35 and 55) and no Holy; Thorn Armlet has 20 Stone Breaker, 20 Beast Buster, max Attack 70 and max Magic 65; Destruction Ring has 60 Attack, 40 Metal Breaker and max Magic 140. [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142)
+
+Weapon stat changes [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142):
+
+| Weapon | Change |
+|---|---|
+| Heaven's Cloud | Max Attack 102 → 180, max Magic 85 → 180, attachment slots 2 → 3 |
+| Lamb's Sword | Attachment slots 2 → 3; transforms and gains its power boost at 50% WHP instead of 20% |
+| Brave Ark | Attachment slots 2 → 3 |
+| Sand Breaker | Attachment slots 2 → 3 |
+| Choora | Attachment slots 2 → 3 |
+| 7 Branch Sword | WHP 30 → 47, Endurance 40 → 47, Magic 35 → 37; Dino Slayer, Undead Buster, Sea Killer, Stone Breaker, Plant Buster, Sky Hunter and Mimic Breaker 0 → 7, Beast Buster and Mage Slayer 0 → 8, Metal Breaker 0 → 10 |
+| Chronicle 2 | Max Attack 350 → 999 |
+| Frozen Tuna | Max Attack 56 → 100, max Magic 30 → 678, attachment slots 2 → 3 |
+| Platinum Ring | Ice 20 → 0, Holy 0 → 20 |
+| Crystal Ring | Holy 20 → 0, Ice 0 → 20 |
+| Pocklekul | Attack 35 → 28, Magic 55 → 28, Holy 20 → 0 |
+| Thorn Armlet | Stone Breaker 0 → 20, Beast Buster 0 → 20, max Attack 60 → 70, max Magic 46 → 65 |
+| Destruction Ring | Attack 50 → 60, Metal Breaker 30 → 40, max Magic 99 → 140 |
+| Babel's Spear | Attachment slots 3 → 4 |
+| Blessing Gun | Max Attack 56 → 87, max Magic 30 → 80 |
+| Skunk | Max Attack 72 → 143, max Magic 55 → 105 |
 
 ## Enemies
 
