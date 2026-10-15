@@ -13,6 +13,10 @@
 #include "menu_save.hpp"
 #include "shop.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/weapon_buildups.hpp"
+#endif
+
 static int BuildMenuCompVolume(char requirement, char value) {
     int passes;
 
@@ -131,7 +135,11 @@ int IsNotBuildUpWeapon(int weapon_no) {
 
     WEAPON_DATA *weapon = GetWeaponData(weapon_no);
 
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::BuildsUp(weapon_no, weapon)) {
+#else
     if (weapon->buildup_mask0 != 0 || weapon->buildup_mask1 != 0) {
+#endif
         return 0;
     }
 
@@ -209,7 +217,11 @@ int EnableBuildUpModel(WEP_BUILDUP_INFO *build_info, WEAPON_HAVE *weapon) {
     int count = 0;
 
     for (int position = 2; position <= weapon_max; position++) {
+#ifdef CHRONICLE_EXPANDED
+        if (expanded::BuildsUpInto(weapon_no, weapon_data, position)) {
+#else
         if ((position > 20 || (weapon_data->buildup_mask0 & (1 << position))) && (position <= 20 || (weapon_data->buildup_mask1 & (1 << (position - 20))))) {
+#endif
             build_info[count].weapon_no = default_weapon_no + position;
 
             WEAPON_HAVE destination_have;

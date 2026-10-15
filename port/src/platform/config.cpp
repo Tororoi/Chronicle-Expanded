@@ -285,6 +285,11 @@ bool ApplyGameOption(ConfigGameOptions &options, std::string_view name, const Js
 }
 
 bool Apply(Config &config, std::string_view name, const Json &value) {
+#ifdef CHRONICLE_EXPANDED
+    if (name.starts_with("expanded.")) {
+        return value.is_boolean() && expanded::SetOption(config.expanded_options, name.substr(9), value.get<bool>());
+    }
+#endif
     if (name == "audio.sound" && value == "surround") {
         config.options.stereo = true;
         config.surround = true;
@@ -682,6 +687,11 @@ std::string ConfigSerialize(const Config &config) {
     root["input"]["vibration"] = options.vibration;
     root["input"]["bindings"] = std::move(bindings);
     root["discord"]["rich_presence"] = config.discord_rich_presence;
+#ifdef CHRONICLE_EXPANDED
+    for (const expanded::Toggle &toggle : expanded::Toggles()) {
+        root["expanded"][toggle.key] = expanded::OptionOn(config.expanded_options, toggle.key);
+    }
+#endif
     return root.dump(4) + "\n";
 }
 

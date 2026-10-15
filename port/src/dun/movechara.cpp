@@ -1718,6 +1718,7 @@ PORT_OVERRIDE void DunMoveChara() {
                 NowMonstorUnit->CleanViewMonstor(BtUraDongeon);
 #ifdef CHRONICLE_EXPANDED
                 expanded::ConfuseFloorReset(false);
+                expanded::ShotEffectsReset();
 #endif
 
                 CMonstorUnit *unit = (CMonstorUnit *) NowMonstorUnit;
@@ -1773,6 +1774,7 @@ PORT_OVERRIDE void DunMoveChara() {
                 MainMonstorUnit.CleanViewMonstor(BtUraDongeon);
 #ifdef CHRONICLE_EXPANDED
                 expanded::ConfuseFloorReset(true);
+                expanded::ShotEffectsReset();
 #endif
                 MonstorModelBuffer.used = 0;
                 u8 *cash = MonstorModelBuffer.base;

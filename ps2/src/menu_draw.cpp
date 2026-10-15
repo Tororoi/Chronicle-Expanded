@@ -35,6 +35,10 @@
 #include "texture.hpp"
 #include "userstatus.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/weapon_abilities.hpp"
+#endif
+
 /** Player data used by personal-board item operations. */
 CUserStatus *PerBoardStatusPt;
 
@@ -2911,7 +2915,11 @@ void WepDataListToHaveCopy(int weapon_no, WEAPON_HAVE *weapon) {
             weapon->vs_monster[j] = data->vs_monster[j];
         }
 
+#ifdef CHRONICLE_EXPANDED
+        weapon->flags = expanded::WeaponAbilities(weapon_no, data->flags);
+#else
         weapon->flags = data->flags;
+#endif
 
         if (IsDefaultWeapon(weapon->item_no) < 0) {
             int chance = rand() % 1000;
