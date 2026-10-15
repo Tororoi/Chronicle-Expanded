@@ -128,6 +128,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/confuse.hpp"
 #include "expanded/heal.hpp"
+#include "expanded/weapon_stats.hpp"
 #endif
 
 /**
@@ -1534,6 +1535,9 @@ void GameInit() {
     for (int i = 0; i < 5; i++) {
         ShotEffect.effect[i].Initialize();
     }
+#ifdef CHRONICLE_EXPANDED
+    expanded::ShotEffectsClear();
+#endif
 
     NowShotEffect = &ShotEffect;
 
@@ -6310,6 +6314,9 @@ void motionDrive() {
     for (i = 0; i < 5; i++) {
         effects[i].Step();
     }
+#ifdef CHRONICLE_EXPANDED
+    expanded::ShotEffectsStep();
+#endif
 
     OzumondShot.Step();
     OzumondFire.Step();
@@ -6527,6 +6534,9 @@ void BtLoadMonstor(int ura) {
 
     TexManager.DeleteTextureBlock(0x2A);
     TexManager.DeleteTextureBlock(0x26);
+#ifdef CHRONICLE_EXPANDED
+    expanded::ShotEffectsClear();
+#endif
     TexManager.CleanUpBuffer();
     TexManager.CleanUpTextureList();
 
@@ -6560,6 +6570,7 @@ void BtLoadMonstor(int ura) {
 
 #ifdef CHRONICLE_EXPANDED
     expanded::ConfuseFloorLoaded();
+    expanded::ShotEffectsFloorLoaded();
 #endif
     MemoryMapDump();
 }
@@ -6685,7 +6696,11 @@ void SwordDmgCheck1(float amount, int kind) {
     s8           chara = status->cur_chara;
     WEAPON_HAVE *weapon = &status->chara_weapons[chara][status->equipped_weapon_slot[chara]];
     float        was = weapon->durability_f;
+#ifdef CHRONICLE_EXPANDED
+    float        warn = weapon->durability * expanded::kLambSwordThreshold;
+#else
     float        warn = (float) (weapon->durability * 0.2);
+#endif
 
     broke = BattleSubWeaponDmg(amount, kind);
 

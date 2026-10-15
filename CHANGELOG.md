@@ -101,8 +101,191 @@ Each section lists this repository's own changes first, then those that come fro
 
 - The Heal ability heals every 3 seconds instead of 4. [#3](https://github.com/Tororoi/Chronicle-Expanded/pull/3)
 - Ungaga's charge shots wear his weapon only when fired, not again for every hit. [#5](https://github.com/Tororoi/Chronicle-Expanded/pull/5)
-- New Confuse ability on Babel's Spear (and its SynthSphere): 5% of hits confuse a non-boss monster for 20 seconds, turning it on other monsters. [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6)
-- New buildup paths: Heaven's Cloud, Frozen Tuna and Skunk are final forms; Choora builds up only into Maneater, Hardshooter only into Double Impact, Double Impact only into Matador and Big Bucks Hammer only into Magical Hammer; Platinum Ring builds up into Crystal Ring or Thorn Armlet, Thorn Armlet only into Destruction Ring and Pocklekul into Fairy Ring, Goddess Ring or Satan's Ring; Jackal and Snail no longer build up into Blessing Gun. [#144](https://github.com/Tororoi/Chronicle-Expanded/pull/144)
+- New Confuse ability: 5% of hits confuse a non-boss monster for 20 seconds, turning it on other monsters. A weapon's SynthSphere passes it on. [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6)
+
+### Weapon stats and abilities
+
+| Weapon | Change | PR |
+|---|---|---|
+| Evilcise | Always has Poor | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Macho Sword | Always has Abs Up | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Heaven's Cloud | Max Attack 102 → 180, max Magic 85 → 180, attachment slots 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Lamb's Sword | Attachment slots 2 → 3; transforms and gains its power boost at 50% WHP instead of 20% | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Brave Ark | Attachment slots 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Sand Breaker | Attachment slots 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Choora | Attachment slots 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| 7 Branch Sword | WHP 30 → 47, Endurance 40 → 47, Magic 35 → 37; Dino Slayer, Undead Buster, Sea Killer, Stone Breaker, Plant Buster, Sky Hunter and Mimic Breaker 0 → 7, Beast Buster and Mage Slayer 0 → 8, Metal Breaker 0 → 10 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Chronicle 2 | Max Attack 350 → 999 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Bone Slingshot | 50% chance of Fragile | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Hardshooter | 50% chance of Fragile | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Matador | Always has Critical | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Frozen Tuna | Always has Stop; max Attack 56 → 100, max Magic 30 → 678, attachment slots 2 → 3 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142), [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Platinum Ring | Ice 20 → 0, Holy 0 → 20 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Crystal Ring | Holy 20 → 0, Ice 0 → 20 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Pocklekul | Attack 35 → 28, Magic 55 → 28, Holy 20 → 0 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Thorn Armlet | Stone Breaker 0 → 20, Beast Buster 0 → 20, max Attack 60 → 70, max Magic 46 → 65 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Destruction Ring | Attack 50 → 60, Metal Breaker 30 → 40, max Magic 99 → 140 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Goddess Ring | Always has Heal | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Athena's Armlet | Always has Abs Up | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| DeSanga | Always has Drain | [#143](https://github.com/Tororoi/Chronicle-Expanded/pull/143) |
+| Babel's Spear | Has Confuse; attachment slots 3 → 4 | [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6), [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Blessing Gun | Max Attack 56 → 87, max Magic 30 → 80 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+| Skunk | Max Attack 72 → 143, max Magic 55 → 105 | [#142](https://github.com/Tororoi/Chronicle-Expanded/pull/142) |
+
+### Buildup paths
+
+Changes to which weapons build up into which, [#144](https://github.com/Tororoi/Chronicle-Expanded/pull/144). ★ marks a final form.
+
+#### Toan
+
+> Heaven's Cloud is a final form (it built up into Dark Cloud). Choora builds up only into Maneater (no longer into Heaven's Cloud).
+
+```
+Baselard
+├─ Shamshir → Dusack
+│  ├─ Brave Ark → Dark Cloud → 7th Heaven ★
+│  └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
+└─ Sax → Dusack
+   ├─ Brave Ark → Dark Cloud → 7th Heaven ★
+   └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
+
+Gladius
+├─ Small Sword → Tsukikage → Heaven's Cloud ★
+└─ Chopper
+   ├─ Choora → Maneater → Atlamillia Sword → Chronicle Sword ★
+   └─ Dusack
+      ├─ Brave Ark → Dark Cloud → 7th Heaven ★
+      └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
+
+Wise Owl Sword → Lamb's Sword → Atlamillia Sword → Chronicle Sword ★
+
+Crysknife
+├─ Small Sword → Tsukikage → Heaven's Cloud ★
+└─ Sand Breaker → Antique Sword → Brave Ark → Dark Cloud → 7th Heaven ★
+
+Buster Sword → Claymore → Cross Hinder → Big Bang → Sword of Zeus ★
+
+Kitchen Knife
+├─ Chopper
+│  ├─ Choora → Maneater → Atlamillia Sword → Chronicle Sword ★
+│  └─ Dusack
+│     ├─ Brave Ark → Dark Cloud → 7th Heaven ★
+│     └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
+└─ Sax → Dusack
+   ├─ Brave Ark → Dark Cloud → 7th Heaven ★
+   └─ 7 Branch Sword → Atlamillia Sword → Chronicle Sword ★
+
+Sun Sword → Big Bang → Sword of Zeus ★
+
+Serpent Sword
+├─ Tsukikage → Heaven's Cloud ★
+└─ Evilcise → Drain Seeker → Dark Cloud → 7th Heaven ★
+
+Macho Sword
+├─ Aga's Sword → Atlamillia Sword → Chronicle Sword ★
+└─ Cross Hinder → Big Bang → Sword of Zeus ★
+
+Mardan Eins → Mardan Twei → Arise Mardan ★
+
+Bone Rapier → Evilcise → Drain Seeker → Dark Cloud → 7th Heaven ★
+```
+
+#### Xiao
+
+> Hardshooter builds up only into Double Impact (no longer into Matador). Double Impact builds up into Matador instead of Divine Beast Title.
+
+```
+Steel Slingshot → Hardshooter → Double Impact → Matador → Divine Beast Title → Angel Shooter → Angel Gear ★
+
+Bandit Slingshot
+├─ Hardshooter → Double Impact → Matador → Divine Beast Title → Angel Shooter → Angel Gear ★
+└─ Double Impact → Matador → Divine Beast Title → Angel Shooter → Angel Gear ★
+
+Steve → Super Steve ★
+
+Bone Slingshot → Flamingo → Dragon's Y → Divine Beast Title → Angel Shooter → Angel Gear ★
+```
+
+#### Goro
+
+> Big Bucks Hammer builds up only into Magical Hammer (no longer into Gaia Hammer). Frozen Tuna is a final form (it built up into Turtle Shell).
+
+```
+Steel Hammer → Plate Hammer → Magical Hammer
+├─ Gaia Hammer → Tall Hammer ★
+└─ Last Judgement → Tall Hammer ★
+
+Turtle Shell
+├─ Magical Hammer
+│  ├─ Gaia Hammer → Tall Hammer ★
+│  └─ Last Judgement → Tall Hammer ★
+└─ Battle Ax → Satan's Ax → Inferno ★
+
+Big Bucks Hammer → Magical Hammer
+├─ Gaia Hammer → Tall Hammer ★
+└─ Last Judgement → Tall Hammer ★
+
+Trial Hammer → Gaia Hammer → Tall Hammer ★
+
+Frozen Tuna ★
+```
+
+#### Ruby
+
+> Platinum Ring builds up into Crystal Ring or Thorn Armlet (was Crystal Ring or Fairy's Ring). Thorn Armlet builds up into Destruction Ring (was Platinum Ring). Pocklekul builds up into Fairy's Ring, Goddess Ring or Satan's Ring (was Fairy's Ring only).
+
+```
+Bandit's Ring
+├─ Crystal Ring
+│  ├─ Goddess Ring → Athena's Armlet → Secret Armlet ★
+│  └─ Satan's Ring → Mobius Ring ★
+└─ Pocklekul
+   ├─ Fairy's Ring → Destruction Ring → Mobius Ring ★
+   ├─ Goddess Ring → Athena's Armlet → Secret Armlet ★
+   └─ Satan's Ring → Mobius Ring ★
+
+Platinum Ring
+├─ Crystal Ring
+│  ├─ Goddess Ring → Athena's Armlet → Secret Armlet ★
+│  └─ Satan's Ring → Mobius Ring ★
+└─ Thorn Armlet → Destruction Ring → Mobius Ring ★
+```
+
+#### Ungaga
+
+> No changes.
+
+```
+Javelin
+├─ DeSanga → Cactus → Terra Sword → Babel's Spear ★
+└─ Partisan → Cactus → Terra Sword → Babel's Spear ★
+
+Halberd → Scorpion
+├─ Mirage
+│  ├─ Terra Sword → Babel's Spear ★
+│  └─ Hercules' Wrath ★
+└─ Cactus → Terra Sword → Babel's Spear ★
+
+5 Foot Nail
+├─ Scorpion
+│  ├─ Mirage
+│  │  ├─ Terra Sword → Babel's Spear ★
+│  │  └─ Hercules' Wrath ★
+│  └─ Cactus → Terra Sword → Babel's Spear ★
+└─ Partisan → Cactus → Terra Sword → Babel's Spear ★
+```
+
+#### Osmond
+
+> Jackal and Snail no longer build up into Blessing Gun. Skunk is a final form (it built up into Hexa Blaster).
+
+```
+Jackal → Swallow → G Crusher → Star Breaker ★
+
+Blessing Gun → Skunk ★
+
+Snail → Hexa Blaster → Supernova ★
+```
 
 ## Enemies
 

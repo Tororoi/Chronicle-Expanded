@@ -71,6 +71,7 @@ static int GetVisitInfo(int place, int menu_mode);
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/confuse.hpp"
+#include "expanded/shot_effects.hpp"
 #endif
 
 static void DrawStatusNumberNowAndMax(int *values, int x, int y, int color, int alpha);
@@ -5378,6 +5379,9 @@ static void WeaponMenuAttachWepKey() {
         WEAPON_HAVE total;
         WeaponAllValueSet(weapon, &total, 0);
         WeaponMenuCheckElemValue(weapon, &total);
+#ifdef CHRONICLE_EXPANDED
+        expanded::ShotEffectsWeaponsChanged();
+#endif
         return;
     }
 
