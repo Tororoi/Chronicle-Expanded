@@ -25,6 +25,10 @@
 #include "texture.hpp"
 #include "weapon_buildup.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/shot_effects.hpp"
+#endif
+
 CDataAlloc2<1> MenuEffectCashBuffer(-1);
 
 CWeaponLevelUp MenuWepLevelUp;
@@ -913,6 +917,9 @@ void CWeaponLevelUp::Step() {
                     weapon->flags = weapon->flags | option;
                 }
 
+#ifdef CHRONICLE_EXPANDED
+                expanded::ShotEffectsWeaponsChanged();
+#endif
                 MenuExTextureReadFlag = MENU_EX_TEX_UNREAD;
                 buildup_complete = 1;
                 effect.motion_no = effect_motion;

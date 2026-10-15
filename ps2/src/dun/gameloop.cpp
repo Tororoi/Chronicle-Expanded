@@ -1534,6 +1534,9 @@ void GameInit() {
     for (int i = 0; i < 5; i++) {
         ShotEffect.effect[i].Initialize();
     }
+#ifdef CHRONICLE_EXPANDED
+    expanded::ShotEffectsClear();
+#endif
 
     NowShotEffect = &ShotEffect;
 
@@ -6310,6 +6313,9 @@ void motionDrive() {
     for (i = 0; i < 5; i++) {
         effects[i].Step();
     }
+#ifdef CHRONICLE_EXPANDED
+    expanded::ShotEffectsStep();
+#endif
 
     OzumondShot.Step();
     OzumondFire.Step();
@@ -6527,6 +6533,9 @@ void BtLoadMonstor(int ura) {
 
     TexManager.DeleteTextureBlock(0x2A);
     TexManager.DeleteTextureBlock(0x26);
+#ifdef CHRONICLE_EXPANDED
+    expanded::ShotEffectsClear();
+#endif
     TexManager.CleanUpBuffer();
     TexManager.CleanUpTextureList();
 
@@ -6560,6 +6569,7 @@ void BtLoadMonstor(int ura) {
 
 #ifdef CHRONICLE_EXPANDED
     expanded::ConfuseFloorLoaded();
+    expanded::ShotEffectsFloorLoaded();
 #endif
     MemoryMapDump();
 }
