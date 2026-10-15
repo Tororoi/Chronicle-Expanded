@@ -60,7 +60,7 @@
 #include "visualvu1.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/town_ally.hpp"
+#include "expanded/town/ally.hpp"
 #endif
 
 /* Retail editloop3.cpp: editor event points, villagers, script opcodes and talk handling. */

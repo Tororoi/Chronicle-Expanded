@@ -17,7 +17,7 @@
 #include "savedata.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/save.hpp"
+#include "expanded/core/save.hpp"
 #endif
 
 // The port has no memory card: the operations read and write the files save_slots.hpp names.

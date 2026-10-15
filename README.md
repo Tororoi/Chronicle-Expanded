@@ -26,10 +26,21 @@ still matches retail.
   for the port build only. `-DCHRONICLE_EXPANDED=OFF` builds the vanilla port.
 - **The mod's code lives in `expanded/`:**
   - `expanded/src/`: compiled into the port. Functions are in namespace `expanded`.
-  - `expanded/include/expanded/`: headers, included as `"expanded/<name>.hpp"`.
-  - `expanded/src/data/`: what is built from the extracted disc data (see "Game data built at
-    extraction"); it includes no game header and is compiled into `dcdata` too.
-  - `expanded/tests/`: `*_test.cpp` cases, run with the port's tests.
+  - `expanded/include/expanded/`: headers, included as `"expanded/<folder>/<name>.hpp"`.
+  - `expanded/tests/`: `<name>_test.cpp` cases, run with the port's tests.
+  - All three use the same folders, and a file in a folder drops the folder's name (`weapons/stats.cpp`,
+    not `weapons/weapon_stats.cpp`):
+    - `core/`: shared plumbing: options, per-save state, menu text, languages.
+    - `data/`: what is built from the extracted disc data (see "Game data built at extraction"); it
+      includes no game header and is compiled into `dcdata` too.
+    - `dungeon/`: dungeon systems shared by several features, such as the shot effects.
+    - `status/`: status effects and new abilities' effects on monsters and the player (Confuse, poison,
+      freeze).
+    - `town/`: town features.
+    - `weapons/`: weapon tables (stats, abilities, buildups), ownership, Super Steve's sphere
+      inheritance, and helpers several weapons share (`kick_back`).
+    - `weapons/<character>/<weapon>`: one weapon's effect, with its Super Steve sphere form in the
+      same file.
 - **Edits to Chronicle's files (`ps2/`, `port/`, `tools/dcdata/`) are guarded hooks:**
   - Wrap each in `#ifdef CHRONICLE_EXPANDED`; one that replaces code keeps retail's in the `#else`.
   - Keep each to a call into `expanded::` or a constant; the logic lives in `expanded/src`.

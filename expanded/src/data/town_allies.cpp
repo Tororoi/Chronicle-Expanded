@@ -1,4 +1,4 @@
-#include "expanded/town_model.hpp"
+#include "expanded/data/town_model.hpp"
 
 // A slot names only the fields it sets.
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"

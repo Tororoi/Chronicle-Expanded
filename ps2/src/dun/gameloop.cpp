@@ -126,9 +126,9 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/confuse.hpp"
-#include "expanded/heal.hpp"
-#include "expanded/weapon_stats.hpp"
+#include "expanded/status/confuse.hpp"
+#include "expanded/weapons/heal.hpp"
+#include "expanded/weapons/stats.hpp"
 #endif
 
 /**

@@ -14,7 +14,7 @@
 #include "shop.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/weapon_buildups.hpp"
+#include "expanded/weapons/buildups.hpp"
 #endif
 
 static int BuildMenuCompVolume(char requirement, char value) {

@@ -84,9 +84,9 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/confuse.hpp"
-#include "expanded/freeze.hpp"
-#include "expanded/poison.hpp"
+#include "expanded/status/confuse.hpp"
+#include "expanded/status/freeze.hpp"
+#include "expanded/status/poison.hpp"
 #endif
 
 // Defined by ps2/src/dun/gameloop.cpp without a header declaration.

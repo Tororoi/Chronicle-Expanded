@@ -103,6 +103,7 @@ Each section lists this repository's own changes first, then those that come fro
 - Ungaga's charge shots wear his weapon only when fired, not again for every hit. [#5](https://github.com/Tororoi/Chronicle-Expanded/pull/5)
 - New Confuse ability: 5% of hits confuse a non-boss monster for 20 seconds, turning it on other monsters. A weapon's SynthSphere passes it on. [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6)
 - Super Steve shows the weapon icon of the SynthSphere attached to it on the dungeon screen, and a slingshot's sphere makes it fire that slingshot's pellets. [#145](https://github.com/Tororoi/Chronicle-Expanded/pull/145)
+- Baselard "Heavy Hand": every hit throws the monster back about 17 units, and so does every pellet of Super Steve carrying the Baselard's SynthSphere. [#146](https://github.com/Tororoi/Chronicle-Expanded/pull/146)
 
 ### Weapon stats and abilities
 

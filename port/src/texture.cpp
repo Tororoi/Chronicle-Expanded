@@ -15,7 +15,7 @@
 #include "tim2.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/confuse.hpp"
+#include "expanded/status/confuse.hpp"
 #endif
 
 namespace {

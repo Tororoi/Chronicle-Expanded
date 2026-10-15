@@ -19,7 +19,7 @@
 #include "texture.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/super_steve.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #endif
 
 int GetWeaponElementAttr(int element);

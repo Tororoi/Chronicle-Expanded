@@ -1,9 +1,9 @@
-#include "expanded/data.hpp"
+#include "expanded/data/data.hpp"
 
 #include <format>
 #include <stdexcept>
 
-#include "expanded/town_model.hpp"
+#include "expanded/data/town_model.hpp"
 
 namespace expanded {
 

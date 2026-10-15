@@ -22,7 +22,7 @@
 #include <vector>
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/data.hpp"
+#include "expanded/data/data.hpp"
 #endif
 
 namespace dcdata {
