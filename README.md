@@ -34,6 +34,7 @@ still matches retail.
     - `data/`: what is built from the extracted disc data (see "Game data built at extraction"); it
       includes no game header and is compiled into `dcdata` too.
     - `dungeon/`: dungeon systems shared by several features, such as the shot effects.
+    - `enemies/`: monster stats: the scaling every stat change goes through, and the features built on it.
     - `status/`: status effects and new abilities' effects on monsters and the player (Confuse, poison,
       freeze).
     - `town/`: town features.
@@ -78,6 +79,8 @@ port/build/pc/dcdata expanded data
 It writes only what changed and exits 1 if anything failed to build. What it builds:
 
 - `expanded/town/<ally>.chr`: each ally's town model (`expanded/docs/town-models.md`).
+- `expanded/enemies/script_damage.txt`: each monster script's strongest melee hit and shot, which the
+  enemy stat scaling starts from; without it monster damage is left as it is.
 
 ---
 

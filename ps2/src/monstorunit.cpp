@@ -40,6 +40,7 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/scaling.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/kick_back.hpp"
 #include "expanded/status/poison.hpp"
@@ -1079,7 +1080,11 @@ int CMonstorUnit::CheckDmg() {
                 float time = chara[current_monster][0].motion_type.state.time;
 
                 if (effect2[current_monster].motion_start[i] < time && !(effect2[current_monster].motion_end[i] <= time)) {
+#ifdef CHRONICLE_EXPANDED
+                    int damage = expanded::EnemyMeleeDamage(current_monster, effect2[current_monster].damage[i]);
+#else
                     int damage = effect2[current_monster].damage[i];
+#endif
 
                     if (monster[current_monster].anger_timer > 0) {
                         damage *= 2;
@@ -2198,6 +2203,9 @@ void CMonstorUnit::Step(int pause) {
                         if (event[current_monster].damage_override != -1) {
                             NowShotEffect->SetDmg(event[current_monster].damage_override);
                         }
+#ifdef CHRONICLE_EXPANDED
+                        expanded::EnemyShotFired(current_monster);
+#endif
 
                         event[current_monster].timer = 0;
                     }
@@ -2209,6 +2217,9 @@ void CMonstorUnit::Step(int pause) {
                         if (event2[current_monster].damage_override != -1) {
                             NowShotEffect->SetDmg(event2[current_monster].damage_override);
                         }
+#ifdef CHRONICLE_EXPANDED
+                        expanded::EnemyShotFired(current_monster);
+#endif
 
                         event2[current_monster].timer = 0;
                     }
@@ -2485,6 +2496,9 @@ int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDat
         }
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::EnemyModelSetUp(*this, slot, model_no);
+#endif
     model_count++;
     return 1;
 }
@@ -2579,6 +2593,9 @@ int CMonstorUnit::SetupViewMonstor(int model_no, float *position, int event_flag
         event_flags[current_monster][i] = 0;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::EnemySpawned(*this, current_monster);
+#endif
     if (interpreter[current_monster].check_program(1) != 0) {
         interpreter[current_monster].run(1);
     }
