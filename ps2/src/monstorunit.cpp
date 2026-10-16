@@ -42,6 +42,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/miniboss.hpp"
+#include "expanded/enemies/revive.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/kick_back.hpp"
@@ -2054,7 +2055,11 @@ void CMonstorUnit::Step(int pause) {
                     printf("err %d\n", monster[current_monster].collision_poly_count);
                 }
 
+#ifdef CHRONICLE_EXPANDED
+                switch (expanded::ReviveCheckDmg(*this, CheckDmg())) {
+#else
                 switch (CheckDmg()) {
+#endif
                     case MONSTER_DMG_NONE:
                         break;
                     case MONSTER_DMG_HIT:
@@ -2074,7 +2079,12 @@ void CMonstorUnit::Step(int pause) {
                         monster[current_monster].invincible_timer--;
                     }
                 } else {
+#ifdef CHRONICLE_EXPANDED
+                    if (expanded::ReviveStep(*this, current_monster)) {
+                    } else if (script_state[current_monster] == 0) {
+#else
                     if (script_state[current_monster] == 0) {
+#endif
                         if (monster[current_monster].revealed == 1) {
                             interpreter[current_monster].run(50);
                             monster[current_monster].revealed = -1;
@@ -2367,6 +2377,9 @@ void CMonstorUnit::Step(int pause) {
 }
 
 void CMonstorUnit::CleanViewMonstor(int back_floor) {
+#ifdef CHRONICLE_EXPANDED
+    expanded::ReviveClear();
+#endif
     for (int i = 0; i < 16; i++) {
         monster[i].state = -1;
         monster[i].stop_timer = 0;
