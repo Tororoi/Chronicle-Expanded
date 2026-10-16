@@ -1,5 +1,7 @@
 #pragma once
 
+#include "expanded/enemies/monsters.hpp"
+
 struct BT_ENEMY_FLOOR;
 class CMonstorUnit;
 
@@ -20,6 +22,13 @@ struct Roster {
     // Sets an entry's spawn-once flag; false for a kind not in the roster.
     bool SetOnce(int model_no, bool once);
 
+    // The same, for a named monster.
+    bool Contains(Monster monster) const { return Contains(No(monster)); }
+
+    bool Add(Monster monster, bool once) { return Add(No(monster), once); }
+
+    bool SetOnce(Monster monster, bool once) { return SetOnce(No(monster), once); }
+
     bool operator==(const Roster &) const = default;
 };
 
@@ -31,6 +40,10 @@ struct FloorRosters {
 
 // Whether a kind spawns once per floor by its own record: anything but an ordinary monster or a small mimic.
 bool SpawnsOnceNatively(int model_no);
+
+inline bool SpawnsOnceNatively(Monster monster) {
+    return SpawnsOnceNatively(No(monster));
+}
 
 // Stages a floor of the dungeon being visited; it keeps the rosters until the visit ends.
 void StageFloor(int floor, const FloorRosters &rosters);
