@@ -6,5 +6,9 @@
     "options.expanded.stronger_enemies.label": "Stärkere Gegner",
     "options.expanded.stronger_enemies.help": "\"Stärkere Gegner\"\nMonster sind so stark\nwie eine Region tiefer.",
     "options.expanded.stronger_enemies.choice.0": "An",
-    "options.expanded.stronger_enemies.choice.1": "Aus"
+    "options.expanded.stronger_enemies.choice.1": "Aus",
+    "options.expanded.faster_enemies.label": "Schnellere Gegner",
+    "options.expanded.faster_enemies.help": "\"Schnellere Gegner\"\nMonster bewegen sich\nund greifen doppelt\nso schnell an.",
+    "options.expanded.faster_enemies.choice.0": "An",
+    "options.expanded.faster_enemies.choice.1": "Aus"
 }

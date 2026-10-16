@@ -6,5 +6,9 @@
     "options.expanded.stronger_enemies.label": "Ennemis renforcés",
     "options.expanded.stronger_enemies.help": "\"Ennemis renforcés\"\nLes monstres sont aussi\nforts qu'une région\nplus loin.",
     "options.expanded.stronger_enemies.choice.0": "Activé",
-    "options.expanded.stronger_enemies.choice.1": "Désactivé"
+    "options.expanded.stronger_enemies.choice.1": "Désactivé",
+    "options.expanded.faster_enemies.label": "Ennemis rapides",
+    "options.expanded.faster_enemies.help": "\"Ennemis rapides\"\nLes monstres bougent\net attaquent deux\nfois plus vite.",
+    "options.expanded.faster_enemies.choice.0": "Activé",
+    "options.expanded.faster_enemies.choice.1": "Désactivé"
 }

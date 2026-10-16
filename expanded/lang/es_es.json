@@ -6,5 +6,9 @@
     "options.expanded.stronger_enemies.label": "Enemigos más fuertes",
     "options.expanded.stronger_enemies.help": "\"Enemigos más fuertes\"\nLos monstruos son tan\nfuertes como una\nregión más adelante.",
     "options.expanded.stronger_enemies.choice.0": "Sí",
-    "options.expanded.stronger_enemies.choice.1": "No"
+    "options.expanded.stronger_enemies.choice.1": "No",
+    "options.expanded.faster_enemies.label": "Enemigos rápidos",
+    "options.expanded.faster_enemies.help": "\"Enemigos rápidos\"\nLos monstruos se\nmueven y atacan el\ndoble de rápido.",
+    "options.expanded.faster_enemies.choice.0": "Sí",
+    "options.expanded.faster_enemies.choice.1": "No"
 }
