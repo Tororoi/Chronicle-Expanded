@@ -4,6 +4,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/debug/enemy_roster.hpp"
+#include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "mainselect.hpp"
 #include "monstorunit.hpp"
@@ -11,9 +12,8 @@
 
 namespace {
 
-constexpr int kGyon = 20;
-constexpr int kCursedRose = 60;
-constexpr int kMinotaurJoe = 83;
+using expanded::Monster;
+using expanded::No;
 
 // Debug mode on, a dungeon floor stood on, and the roster cleared after.
 class DebugRoster : public ::testing::Test {
@@ -54,12 +54,12 @@ TEST(DebugRosterSpec, ParsesKindsAndSpawnOnceMarks) {
     expanded::Roster roster;
     ASSERT_TRUE(expanded::ParseRosterSpec(" 20!, 60 ,83", roster));
     EXPECT_EQ(roster.Size(), 3);
-    EXPECT_EQ(roster.model_no[0], kGyon);
+    EXPECT_EQ(roster.model_no[0], No(Monster::GYON));
     EXPECT_TRUE(roster.once[0]);
-    EXPECT_EQ(roster.model_no[1], kCursedRose);
+    EXPECT_EQ(roster.model_no[1], No(Monster::CURSED_ROSE));
     EXPECT_FALSE(roster.once[1]);
     // A boss spawns once unmarked.
-    EXPECT_EQ(roster.model_no[2], kMinotaurJoe);
+    EXPECT_EQ(roster.model_no[2], No(Monster::MINOTAUR_JOE));
     EXPECT_TRUE(roster.once[2]);
 
     ASSERT_TRUE(expanded::ParseRosterSpec("20,", roster));
@@ -88,8 +88,8 @@ TEST_F(DebugRoster, LaysOutEveryFloorFromTheNextVisit) {
     expanded::RosterVisitBegun();
     for (int floor : {1, 14}) {
         BT_ENEMY_FLOOR *layout = Load(0, floor);
-        EXPECT_EQ(layout->monster[0].monster_no, kGyon);
-        EXPECT_EQ(layout->monster[1].monster_no, kCursedRose);
+        EXPECT_EQ(layout->monster[0].monster_no, No(Monster::GYON));
+        EXPECT_EQ(layout->monster[1].monster_no, No(Monster::CURSED_ROSE));
         EXPECT_EQ(layout->monster[2].monster_no, -1);
         ASSERT_NE(expanded::LoadedRoster(), nullptr);
         EXPECT_TRUE(expanded::LoadedRoster()->once[0]);
