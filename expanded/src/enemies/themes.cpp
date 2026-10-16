@@ -206,17 +206,19 @@ Roster ThemedRoster(int dungeon, int floor, std::mt19937 &random, ThemeOutcome *
             Place(roster, kind, single(kind));
         }
     } else {
-        // One of each, leaving room for a rolled number of fillers, the mimic first so the floor fills.
+        // One of each over a rolled number of repeatable fillers, the mimic placed first so the floor fills.
         std::vector<Monster> fillers = Fillers(dungeon, mimics, random, result.fill);
-        std::erase_if(fillers, [&](Monster kind) { return std::find(members.begin(), members.end(), kind) != members.end(); });
-        for (Monster kind : members) {
-            if (roster.Size() < kRosterSize - 1) {
-                Place(roster, kind, true);
-            }
-        }
-        int room = std::min(kRosterSize - roster.Size(), static_cast<int>(fillers.size()));
+        std::erase_if(fillers, [&](Monster kind) {
+            return kind != mimics.mimic && std::find(members.begin(), members.end(), kind) != members.end();
+        });
+        int placed = std::min(static_cast<int>(members.size()), kRosterSize - 1);
+        int room = std::min(kRosterSize - placed, static_cast<int>(fillers.size()));
         result.fillers = RollKindCount(room, random);
-        for (int i = 0; i < result.fillers; i++) {
+        roster.Add(fillers.front(), false);
+        for (int i = 0; i < placed; i++) {
+            Place(roster, members[i], true);
+        }
+        for (int i = 1; i < result.fillers; i++) {
             roster.Add(fillers[i], false);
         }
     }

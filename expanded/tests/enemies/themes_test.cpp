@@ -209,7 +209,7 @@ TEST(EnemyThemes, ARosterFillsTheFloorWithItsGroup) {
     EXPECT_GT(seen["Mimics@0"], 0);
 }
 
-TEST(EnemyThemes, OneOfEachFillersKeepToTheirCaps) {
+TEST(EnemyThemes, ACappedFloorsFillersKeepToTheirCaps) {
     using Fill = expanded::ThemeOutcome::Fill;
     std::map<Fill, int> sources;
     int                 mimics_only_one = 0, mimics_only_roomy = 0;
@@ -228,15 +228,15 @@ TEST(EnemyThemes, OneOfEachFillersKeepToTheirCaps) {
             int                    members = roster.Size() - outcome.fillers;
             ASSERT_GE(outcome.fillers, 1) << outcome.name;
             ASSERT_GE(members, 1) << outcome.name;
-            // The members once each, then the fillers: the mimic first, repeatable.
-            for (int i = 0; i < members; i++) {
+            // The mimic first and repeatable, the members once each, then the other fillers, repeatable but the king.
+            EXPECT_EQ(roster.model_no[0], No(mimics.mimic));
+            EXPECT_FALSE(roster.once[0]);
+            for (int i = 1; i <= members; i++) {
                 EXPECT_TRUE(Contains(theme.members, static_cast<Monster>(roster.model_no[i]))) << outcome.name;
                 EXPECT_TRUE(roster.once[i]) << outcome.name;
             }
-            EXPECT_EQ(roster.model_no[members], No(mimics.mimic));
-            EXPECT_FALSE(roster.once[members]);
-            if (int king = Find(roster, mimics.king); king >= 0) {
-                EXPECT_TRUE(roster.once[king]);
+            for (int i = members + 1; i < roster.Size(); i++) {
+                EXPECT_EQ(roster.once[i], roster.model_no[i] == No(mimics.king)) << outcome.name;
             }
             if (outcome.fill == Fill::Mimics) {
                 EXPECT_LE(outcome.fillers, 2);
@@ -245,7 +245,7 @@ TEST(EnemyThemes, OneOfEachFillersKeepToTheirCaps) {
                     mimics_only_one += outcome.fillers == 1;
                 }
             } else {
-                for (int i = members + 2; i < roster.Size(); i++) {
+                for (int i = members + 2; i < roster.Size(); i++) { // past the mimic and the king
                     EXPECT_TRUE(Contains(expanded::DungeonNatives(dungeon), static_cast<Monster>(roster.model_no[i])));
                 }
             }
