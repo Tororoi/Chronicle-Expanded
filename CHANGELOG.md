@@ -275,6 +275,7 @@ Blessing Gun → Skunk ★
 - New Randomize Enemies option (Options, Expanded page): each time you enter a dungeon, every floor but the boss and event floors gets nine kinds of monster drawn from the whole game, front and back floor alike, often with the dungeon's own mimic and king mimic among them. A floor keeps its monsters until you leave the dungeon. [#155](https://github.com/Tororoi/Chronicle-Expanded/pull/155)
 - Monsters met outside their home dungeon on a randomized floor cry, attack and die with their own sounds instead of in silence. [#159](https://github.com/Tororoi/Chronicle-Expanded/pull/159)
 - Enemy poison lasts 30 seconds, and each tick's damage scales with the monster's resistance. [#7](https://github.com/Tororoi/Chronicle-Expanded/pull/7)
+- New Faster Enemies option (Options, Expanded page): monsters move and act twice as fast. Each attack still slows to its normal speed for the moment it can hit, so its blows land as before. [#151](https://github.com/Tororoi/Chronicle-Expanded/pull/151)
 
 ## Towns
 
