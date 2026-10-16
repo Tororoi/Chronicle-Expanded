@@ -1,6 +1,10 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
+#include <deque>
 #include <memory>
+#include <set>
+#include <vector>
 
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/miniboss.hpp"
@@ -14,24 +18,48 @@ namespace {
 using expanded::Monster;
 using expanded::No;
 
-int g_rolls = 0;
-int g_last_eligible = 0;
-int g_promote = -1;
+std::vector<float> g_chances;
+std::vector<int>   g_counts;
+std::deque<int>    g_picks;
+int                g_promote = -1;
 
-// 0 for the g_promote-th roll since the last reset, or for every one when g_promote is -1; else the last.
-int ScriptedRoll(int eligible) {
-    g_last_eligible = eligible;
-    int roll = g_rolls++;
-    return g_promote == -1 || roll == g_promote ? 0 : eligible - 1;
+// The chances asked since the last reset; the g_promote-th passes, or every one when g_promote is -1.
+bool ScriptedChance(float chance) {
+    int roll = static_cast<int>(g_chances.size());
+    g_chances.push_back(chance);
+    return g_promote == -1 || roll == g_promote;
+}
+
+// The next of g_picks, else 0: the species in the order they first appear, and the first of each.
+int ScriptedPick(int count) {
+    g_counts.push_back(count);
+    if (g_picks.empty()) {
+        return 0;
+    }
+    int pick = g_picks.front();
+    g_picks.pop_front();
+    return pick;
+}
+
+// A species of n monsters' chance at this rate.
+float ChanceOf(float rate, int n) {
+    return 1.0f - std::pow(1.0f - rate, static_cast<float>(n));
+}
+
+// Forgets the draws asked; the scripted picks stay.
+void ResetRolls() {
+    g_chances.clear();
+    g_counts.clear();
 }
 
 class Miniboss : public ::testing::Test {
 protected:
     void SetUp() override {
         selectMapNo = 0;
-        g_rolls = 0;
+        ResetRolls();
+        g_picks.clear();
         g_promote = -1;
-        expanded::SetMinibossRoll(&ScriptedRoll);
+        expanded::SetMinibossRoll(&ScriptedChance, &ScriptedPick);
         expanded::MinibossFloorEntered();
         unit = std::make_unique<CMonstorUnit>();
         for (MONSTOR &monster : unit->monster) {
@@ -41,10 +69,15 @@ protected:
         SetUpModel(1, Monster::WEREWOLF);
         SetUpModel(2, Monster::CANNIBAL_PLANT);
         SetUpModel(3, Monster::CAVE_BAT);
+        SetUpModel(4, Monster::DASHER);
+        SetUpModel(5, Monster::FLI_FLI);
+        SetUpModel(6, Monster::HORNET);
+        SetUpModel(7, Monster::HALLOWEEN);
+        SetUpModel(8, Monster::EARTH_DIGGER);
     }
 
     void TearDown() override {
-        expanded::SetMinibossRoll(nullptr);
+        expanded::SetMinibossRoll(nullptr, nullptr);
         selectMapNo = -1;
     }
 
@@ -90,7 +123,7 @@ protected:
         for (int model_slot : model_slots) {
             Spawn(monster++, model_slot);
         }
-        g_rolls = 0;
+        ResetRolls();
         expanded::MinibossesArranged(*unit);
     }
 
@@ -99,6 +132,18 @@ protected:
         unit->monster[monster].hp = 0;
         unit->monster[monster].state = -1;
         expanded::MinibossDefeated(*unit, monster);
+    }
+
+    // Whether each species has at most one miniboss.
+    bool OnePerSpecies() {
+        std::set<int> slots;
+        for (int monster = 0; monster < 16; monster++) {
+            if (unit->monster[monster].state != -1 && expanded::IsMiniboss(monster) &&
+                !slots.insert(unit->monster[monster].base_model).second) {
+                return false;
+            }
+        }
+        return true;
     }
 
     int Minibosses() {
@@ -114,7 +159,7 @@ protected:
 
 } // namespace
 
-TEST_F(Miniboss, EachEligibleMonsterRollsAgainstTheirNumber) {
+TEST_F(Miniboss, EachSpeciesRollsOnceForItsEligibleMonsters) {
     for (MONSTOR &monster : unit->monster) {
         monster.state = -1;
     }
@@ -125,17 +170,101 @@ TEST_F(Miniboss, EachEligibleMonsterRollsAgainstTheirNumber) {
     unit->monster[5].kind = MONSTER_KIND_NO_LOCK_ON;
     expanded::MinibossesArranged(*unit);
 
-    EXPECT_EQ(g_rolls, 13);
-    EXPECT_EQ(g_last_eligible, 13);
-    EXPECT_EQ(Minibosses(), 13);
+    ASSERT_EQ(g_chances.size(), 2u);
+    EXPECT_FLOAT_EQ(g_chances[0], ChanceOf(expanded::kMinibossFirstRate, 8));
+    EXPECT_FLOAT_EQ(g_chances[1], ChanceOf(expanded::kMinibossLaterRate, 5));
+    EXPECT_EQ(Minibosses(), 2);
+    EXPECT_TRUE(OnePerSpecies());
+    EXPECT_TRUE(expanded::IsMiniboss(0));
+    EXPECT_TRUE(expanded::IsMiniboss(1));
     EXPECT_FALSE(expanded::IsMiniboss(3));
     EXPECT_FALSE(expanded::IsMiniboss(5));
+}
+
+TEST_F(Miniboss, TheLaterRateFollowsTheFirstPass) {
+    g_promote = 1;
+    Arrange(0, {0, 0, 1, 1, 1, 2, 3, 3});
+    ASSERT_EQ(g_chances.size(), 4u);
+    EXPECT_FLOAT_EQ(g_chances[0], ChanceOf(expanded::kMinibossFirstRate, 2));
+    EXPECT_FLOAT_EQ(g_chances[1], ChanceOf(expanded::kMinibossFirstRate, 3));
+    EXPECT_FLOAT_EQ(g_chances[2], ChanceOf(expanded::kMinibossLaterRate, 1));
+    EXPECT_FLOAT_EQ(g_chances[3], ChanceOf(expanded::kMinibossLaterRate, 2));
+    EXPECT_EQ(Minibosses(), 1);
+}
+
+TEST_F(Miniboss, TheMinibossComesFromTheRollingSpecies) {
+    g_promote = 0;
+    g_picks = {2, 1};
+    Arrange(0, {0, 1, 0, 2, 2, 2, 1});
+    EXPECT_EQ(g_counts, (std::vector<int>{3, 3, 2, 1}));
+    EXPECT_EQ(Minibosses(), 1);
+    EXPECT_TRUE(expanded::IsMiniboss(4));
+}
+
+TEST_F(Miniboss, NoSpeciesGetsTwo) {
+    Arrange(0, {0, 0, 0, 1, 1, 2});
+    EXPECT_EQ(g_chances.size(), 3u);
+    EXPECT_EQ(Minibosses(), 3);
+    EXPECT_TRUE(OnePerSpecies());
+}
+
+TEST_F(Miniboss, TheBackFloorRollsTheSameWay) {
+    g_promote = 99;
+    Arrange(0, {0, 1});
+    g_promote = 1;
+    Arrange(1, {2, 2, 0, 0, 0});
+    ASSERT_EQ(g_chances.size(), 2u);
+    EXPECT_FLOAT_EQ(g_chances[0], ChanceOf(expanded::kMinibossFirstRate, 2));
+    EXPECT_FLOAT_EQ(g_chances[1], ChanceOf(expanded::kMinibossFirstRate, 3));
+    EXPECT_EQ(Minibosses(), 1);
+    EXPECT_TRUE(expanded::IsMiniboss(2));
+}
+
+// The real dice over many floors of these species sizes, against the exact none / one / two-or-more rates.
+TEST_F(Miniboss, FloorsGetAboutOneMiniboss) {
+    expanded::SetMinibossRoll(nullptr, nullptr);
+
+    struct Floor {
+        std::vector<int> sizes;
+        double           none, one, more;
+    };
+
+    const Floor floors[] = {
+        {{7, 7},                      0.167, 0.785, 0.048},
+        {{5, 4, 3, 2},                0.167, 0.767, 0.066},
+        {{3, 3, 3, 3, 2},             0.167, 0.762, 0.071},
+        {{2, 2, 2, 2, 2, 2, 2},       0.167, 0.758, 0.075},
+        {{2, 2, 2, 2, 2, 1, 1, 1, 1}, 0.167, 0.756, 0.077},
+    };
+    constexpr int kFloors = 20000;
+    for (const Floor &floor : floors) {
+        int counts[3] = {};
+        for (int i = 0; i < kFloors; i++) {
+            expanded::MinibossFloorEntered();
+            for (MONSTOR &monster : unit->monster) {
+                monster.state = -1;
+            }
+            unit->back_dungeon = i % 2;
+            int monster = 0;
+            for (int slot = 0; slot < static_cast<int>(floor.sizes.size()); slot++) {
+                for (int n = 0; n < floor.sizes[slot]; n++) {
+                    Spawn(monster++, slot);
+                }
+            }
+            expanded::MinibossesArranged(*unit);
+            ASSERT_TRUE(OnePerSpecies());
+            counts[std::min(Minibosses(), 2)]++;
+        }
+        EXPECT_NEAR(counts[0] / double(kFloors), floor.none, 0.015);
+        EXPECT_NEAR(counts[1] / double(kFloors), floor.one, 0.015);
+        EXPECT_NEAR(counts[2] / double(kFloors), floor.more, 0.01);
+    }
 }
 
 TEST_F(Miniboss, NoRollOffTheDungeons) {
     selectMapNo = -1;
     Arrange(0, {0, 1});
-    EXPECT_EQ(g_rolls, 0);
+    EXPECT_TRUE(g_chances.empty());
     EXPECT_EQ(Minibosses(), 0);
 }
 
@@ -209,17 +338,18 @@ TEST_F(Miniboss, WalksSlowerToKeepPace) {
 }
 
 TEST_F(Miniboss, BackFloorRollsItsOwnAndALivingOneComesBack) {
-    g_promote = 2;
+    g_promote = 1;
     Arrange(0, {0, 0, 1, 0});
     ASSERT_TRUE(expanded::IsMiniboss(2));
 
     g_promote = 99;
     Arrange(1, {0, 1, 0});
-    EXPECT_EQ(g_rolls, 3);
+    EXPECT_EQ(g_chances.size(), 2u);
     EXPECT_EQ(Minibosses(), 0);
 
     Arrange(0, {0, 0, 0, 0, 0, 1});
-    EXPECT_EQ(g_rolls, 1);
+    EXPECT_TRUE(g_chances.empty());
+    EXPECT_EQ(g_counts, std::vector<int>{1});
     EXPECT_EQ(Minibosses(), 1);
     EXPECT_TRUE(expanded::IsMiniboss(5));
 
@@ -268,6 +398,8 @@ TEST_F(Miniboss, ANewFloorRollsAgain) {
     Defeat(0);
     expanded::MinibossFloorEntered();
     Arrange(0, {1});
+    ASSERT_EQ(g_chances.size(), 1u);
+    EXPECT_FLOAT_EQ(g_chances[0], ChanceOf(expanded::kMinibossFirstRate, 1));
     EXPECT_TRUE(expanded::IsMiniboss(0));
 }
 

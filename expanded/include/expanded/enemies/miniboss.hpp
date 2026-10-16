@@ -6,6 +6,10 @@ class CMonstorUnit;
 
 namespace expanded {
 
+// Each species on a new floor rolls once, with 1 - (1 - rate)^n for its n eligible monsters.
+inline constexpr float kMinibossFirstRate = 0.12f;  // the rate until the floor has a miniboss
+inline constexpr float kMinibossLaterRate = 0.012f; // the rate once it has one
+
 // A miniboss's multipliers on its stats; the money it drops is multiplied by kMinibossMoney.
 inline constexpr EnemyScale kMinibossScale = {.hp = 3.0f, .abs = 3.0f, .defense = 1.5f, .hardness = 1.5f, .melee = 1.5f, .shot = 1.5f};
 inline constexpr int        kMinibossMoney = 4;
@@ -42,9 +46,10 @@ void  MinibossDefeated(CMonstorUnit &unit, int monster);
 float MinibossScriptDistance(int monster, int argument_count, float distance);
 void  MinibossMotion(CMonstorUnit &unit, int monster);
 
-// The roll each eligible monster makes on a new floor, 0 to eligible - 1; 0 makes it a miniboss. Null restores
-// the random one (for tests).
-using MinibossRoll = int (*)(int eligible);
-void SetMinibossRoll(MinibossRoll roll);
+// The new floor's draws: whether a species passes its chance, and a pick from 0 to count - 1 (the next species
+// to roll, then its miniboss). Null restores the random ones (for tests).
+using MinibossChance = bool (*)(float chance);
+using MinibossPick = int (*)(int count);
+void SetMinibossRoll(MinibossChance chance, MinibossPick pick);
 
 } // namespace expanded
