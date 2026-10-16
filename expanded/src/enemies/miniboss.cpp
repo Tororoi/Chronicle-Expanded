@@ -1,6 +1,7 @@
 #include "expanded/enemies/miniboss.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <random>
 #include <vector>
 
@@ -38,14 +39,26 @@ struct Side {
 
 Side sides[2];
 
-MinibossRoll roll_override = nullptr;
+MinibossChance chance_override = nullptr;
+MinibossPick   pick_override = nullptr;
 
-int Roll(int eligible) {
-    if (roll_override != nullptr) {
-        return roll_override(eligible);
-    }
+std::minstd_rand &Rng() {
     static std::minstd_rand rng{std::random_device{}()};
-    return std::uniform_int_distribution<int>(0, eligible - 1)(rng);
+    return rng;
+}
+
+bool Chance(float chance) {
+    if (chance_override != nullptr) {
+        return chance_override(chance);
+    }
+    return std::uniform_real_distribution<float>(0.0f, 1.0f)(Rng()) < chance;
+}
+
+int Pick(int count) {
+    if (pick_override != nullptr) {
+        return pick_override(count);
+    }
+    return std::uniform_int_distribution<int>(0, count - 1)(Rng());
 }
 
 template <size_t N>
@@ -72,25 +85,9 @@ bool Eligible(const CMonstorUnit &unit, int monster) {
     return Plain(unit, monster) && unit.monster[monster].drop_item == -1;
 }
 
-// Each eligible monster has one chance in their number: about one miniboss a floor.
-void RollMinibosses(CMonstorUnit &unit) {
-    std::vector<int> eligible;
-    for (int monster = 0; monster < kMonsters; monster++) {
-        if (Eligible(unit, monster)) {
-            eligible.push_back(monster);
-        }
-    }
-    int count = static_cast<int>(eligible.size());
-    for (int monster : eligible) {
-        if (Roll(count) == 0) {
-            MakeMiniboss(unit, monster);
-        }
-    }
-}
-
 // The monsters for which pick is true.
-template <class Pick>
-std::vector<int> Monsters(const CMonstorUnit &unit, Pick pick) {
+template <class Filter>
+std::vector<int> Monsters(const CMonstorUnit &unit, Filter pick) {
     std::vector<int> found;
     for (int monster = 0; monster < kMonsters; monster++) {
         if (pick(monster)) {
@@ -100,11 +97,37 @@ std::vector<int> Monsters(const CMonstorUnit &unit, Pick pick) {
     return found;
 }
 
+// Each species rolls once, in a random order, at kMinibossFirstRate per eligible monster until one passes and
+// kMinibossLaterRate after; a pass makes one of its monsters a miniboss.
+void RollMinibosses(CMonstorUnit &unit) {
+    std::vector<std::vector<int>> species;
+    for (int monster : Monsters(unit, [&](int m) { return Eligible(unit, m); })) {
+        auto same = std::find_if(species.begin(), species.end(),
+                                 [&](const std::vector<int> &s) { return Kind(unit, s[0]) == Kind(unit, monster); });
+        if (same == species.end()) {
+            species.push_back({monster});
+        } else {
+            same->push_back(monster);
+        }
+    }
+    bool found = false;
+    while (!species.empty()) {
+        auto             next = species.begin() + Pick(static_cast<int>(species.size()));
+        std::vector<int> monsters = std::move(*next);
+        species.erase(next);
+        float rate = found ? kMinibossLaterRate : kMinibossFirstRate;
+        if (Chance(1.0f - std::pow(1.0f - rate, static_cast<float>(monsters.size())))) {
+            MakeMiniboss(unit, monsters[Pick(static_cast<int>(monsters.size()))]);
+            found = true;
+        }
+    }
+}
+
 // Makes a monster of the kind a miniboss again, taking the key off it when every one of the kind carries it.
 void RestoreMiniboss(CMonstorUnit &unit, int kind) {
     auto of_kind = Monsters(unit, [&](int m) { return Eligible(unit, m) && Kind(unit, m) == kind; });
     if (!of_kind.empty()) {
-        MakeMiniboss(unit, of_kind[Roll(static_cast<int>(of_kind.size()))]);
+        MakeMiniboss(unit, of_kind[Pick(static_cast<int>(of_kind.size()))]);
         return;
     }
     auto holders = Monsters(unit, [&](int m) { return Plain(unit, m) && Kind(unit, m) == kind; });
@@ -116,7 +139,7 @@ void RestoreMiniboss(CMonstorUnit &unit, int kind) {
     if (takers.empty()) {
         return;
     }
-    int taker = takers[Roll(static_cast<int>(takers.size()))];
+    int taker = takers[Pick(static_cast<int>(takers.size()))];
     unit.monster[taker].drop_item = unit.monster[holder].drop_item;
     unit.monster[holder].drop_item = -1;
     MakeMiniboss(unit, holder);
@@ -251,8 +274,9 @@ void MinibossMotion(CMonstorUnit &unit, int monster) {
     }
 }
 
-void SetMinibossRoll(MinibossRoll roll) {
-    roll_override = roll;
+void SetMinibossRoll(MinibossChance chance, MinibossPick pick) {
+    chance_override = chance;
+    pick_override = pick;
 }
 
 } // namespace expanded
