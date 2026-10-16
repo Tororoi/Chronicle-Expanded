@@ -84,6 +84,7 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/miniboss_loot.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/freeze.hpp"
 #include "expanded/status/poison.hpp"
@@ -710,7 +711,11 @@ PORT_OVERRIDE void DunMoveChara() {
 
                                     DngMessMan.hide_timer = 0x78;
                                 } else {
+#ifdef CHRONICLE_EXPANDED
+                                    event = expanded::MinibossItemEvent(*RandomItem);
+#else
                                     event = RandomItem->checkEvent();
+#endif
 
                                     if (event != -1) {
                                         switch (event) {
@@ -728,7 +733,11 @@ PORT_OVERRIDE void DunMoveChara() {
                                                 gameTask = GAME_TASK_GATE_KEY_LOOP;
                                                 break;
                                             default:
+#ifdef CHRONICLE_EXPANDED
+                                                expanded::MinibossDropPickUp(selectMapNo, event);
+#else
                                                 BtGetAttach_Init(selectMapNo, event);
+#endif
                                                 DngMessMan.hide_timer = 0x78;
                                                 SndSePlay(SE_ITEM_GET, -1, 0);
                                                 autoCamTrial();
