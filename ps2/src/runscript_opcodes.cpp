@@ -20,6 +20,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/bosses.hpp"
+#include "expanded/enemies/faster.hpp"
 #include "expanded/status/confuse.hpp"
 #endif
 
@@ -438,7 +439,11 @@ int _SET_MOVE(RS_STACKDATA *stack, int argc) {
     direction[2] -= position[2];
     direction[3] = 1.0f;
     sceVu0Normalize(NowMonstorUnit->monster[monster_no].movement, direction);
+#ifdef CHRONICLE_EXPANDED
+    speed = expanded::FasterMoveSpeed(GetStackFloat(stack));
+#else
     speed = GetStackFloat(stack);
+#endif
 
     if (NowMonstorUnit->monster[monster_no].slow_timer > 0) {
         speed *= 0.5f;

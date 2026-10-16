@@ -41,6 +41,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/bosses.hpp"
+#include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "expanded/status/confuse.hpp"
@@ -774,12 +775,20 @@ void CMonstorUnit::DrawMonstor() {
                 }
             }
 
+#ifdef CHRONICLE_EXPANDED
+            expanded::FasterMotionStep(*this, i, chara[i][0]);
+#else
             chara[i][0].Step();
+#endif
             character->Draw();
 
             for (int j = 0; j < monster[i].attachment_count; j++) {
                 if (chara[i][j + 1].frame != NULL) {
+#ifdef CHRONICLE_EXPANDED
+                    expanded::FasterMotionStep(*this, i, chara[i][j + 1]);
+#else
                     chara[i][j + 1].Step();
+#endif
                 }
             }
 
