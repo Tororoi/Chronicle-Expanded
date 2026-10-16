@@ -41,6 +41,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/faster.hpp"
+#include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "expanded/status/confuse.hpp"
@@ -616,6 +617,9 @@ void CMonstorUnit::ArrangementPos(CDungeonMap *map, int count, int model_no, int
 
                         if (model_no == -1) {
                             selected = (int) ((float) model_count * (float) rand() / 2147483648.0f);
+#ifdef CHRONICLE_EXPANDED
+                            selected = expanded::MinibossPlacedModel(*this, n, selected);
+#endif
 
                             if (model[selected].kind != MONSTER_KIND_NORMAL && model[selected].kind != MONSTER_KIND_MIMIC_SMALL) {
                                 if (used[selected] != 0) {
@@ -635,6 +639,9 @@ void CMonstorUnit::ArrangementPos(CDungeonMap *map, int count, int model_no, int
     }
 
     SetKey();
+#ifdef CHRONICLE_EXPANDED
+    expanded::MinibossesArranged(*this);
+#endif
 }
 
 void CMonstorUnit::AllBin2() {
@@ -759,6 +766,9 @@ void CMonstorUnit::DrawMonstor() {
             character = &chara[i][0];
             character->TextureAnime(42);
             PalletSet();
+#ifdef CHRONICLE_EXPANDED
+            expanded::MinibossMotion(*this, i);
+#endif
 
             if (paused != 0 || monster[i].stop_timer > 0) {
                 chara[i][0].SetMotion(chara[i][0].motion_no, 1);
@@ -2247,6 +2257,9 @@ void CMonstorUnit::Step(int pause) {
                     SoundCheck();
 
                     if (monster[current_monster].state == -1) {
+#ifdef CHRONICLE_EXPANDED
+                        expanded::MinibossDefeated(*this, current_monster);
+#endif
                         CDngStatusData *status = (CDngStatusData *) UserStatus;
                         int             current_chara = UserStatus->cur_chara;
                         int             no_exp;
