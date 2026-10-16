@@ -92,6 +92,7 @@ Each section lists this repository's own changes first, then those that come fro
 ## Game mechanics
 
 - A hit on a frozen player breaks the freeze. [#4](https://github.com/Tororoi/Chronicle-Expanded/pull/4)
+- Fruit of Eden can be sold and thrown away. [#PR](https://github.com/Tororoi/Chronicle-Expanded/pull/PR)
 
 ### From Chronicle
 
