@@ -14,5 +14,9 @@
     "options.expanded.harder_enemy_ai.label": "IA enemiga difícil",
     "options.expanded.harder_enemy_ai.help": "\"IA enemiga difícil\"\nLos monstruos caídos\npueden levantarse.",
     "options.expanded.harder_enemy_ai.choice.0": "Sí",
-    "options.expanded.harder_enemy_ai.choice.1": "No"
+    "options.expanded.harder_enemy_ai.choice.1": "No",
+    "options.expanded.randomize_enemies.label": "Enemigos aleatorios",
+    "options.expanded.randomize_enemies.help": "\"Enemigos aleatorios\"\nLos monstruos de cada\npiso se sortean en\ncada visita.",
+    "options.expanded.randomize_enemies.choice.0": "Sí",
+    "options.expanded.randomize_enemies.choice.1": "No"
 }

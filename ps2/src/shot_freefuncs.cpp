@@ -1349,7 +1349,12 @@ int BtMapJumpLoad(char *map_name) {
     // The monsters get whatever the map left of its buffer.
     int     map_used = MapModelBuffer.used;
     u_char *monster_base = MapModelBuffer.base + map_used * 16;
+#ifdef CHRONICLE_EXPANDED
+    // All the map buffer's headroom: any nine kinds fit.
+    long monster_size = MapModelBuffer.limit - map_used;
+#else
     long    monster_size = 0xA7F80 - map_used;
+#endif
     MonstorModelBuffer.base = monster_base;
     MonstorModelBuffer.limit = monster_size;
     MonstorModelBuffer.used = 0;
