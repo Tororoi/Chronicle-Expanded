@@ -35,7 +35,8 @@ still matches retail.
       includes no game header and is compiled into `dcdata` too.
     - `debug/`: developer tools that only debug mode shows, such as the enemy roster.
     - `dungeon/`: dungeon systems shared by several features, such as the shot effects.
-    - `enemies/`: monster stats: the scaling every stat change goes through, and the features built on it.
+    - `enemies/`: monsters: the stat scaling every stat change goes through, the features built on it, and how
+      monsters move, act and revive.
     - `status/`: status effects and new abilities' effects on monsters and the player (Confuse, poison,
       freeze).
     - `town/`: town features.
