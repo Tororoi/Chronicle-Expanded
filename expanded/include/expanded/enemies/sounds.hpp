@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "expanded/enemies/monsters.hpp"
+
 class CMonstorUnit;
 
 namespace expanded {
@@ -9,6 +11,10 @@ namespace expanded {
 // The dungeon sound sets that carry a kind's sounds: snd100 + the dungeon of each floor laying it out,
 // Demon Shaft's five 20-floor bands snd106 to snd110.
 std::vector<int> HomeSoundSets(int model_no);
+
+inline std::vector<int> HomeSoundSets(Monster monster) {
+    return HomeSoundSets(No(monster));
+}
 
 // Hooks: BtLoadMonstor loaded a staged floor's kinds, which brings in the monster banks of their home sets;
 // CSound::SE_Play picks the bank a monster port effect plays from (CC 0), or -1 to leave the port alone.

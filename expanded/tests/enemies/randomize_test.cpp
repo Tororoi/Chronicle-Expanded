@@ -4,9 +4,11 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "dun/gameloop.hpp"
 #include "expanded/core/options.hpp"
+#include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/randomize.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "monstorunit.hpp"
@@ -17,14 +19,14 @@
 
 namespace {
 
+using expanded::Monster;
+using expanded::No;
+
 constexpr int kDivineBeastCave = 0;
 constexpr int kDemonShaft = 6;
-constexpr int kMimicDbc = 30;
-constexpr int kKingMimicDbc = 29;
-constexpr int kGaciousEnhanced = 155;
 
-bool InPool(int kind) {
-    std::span<const int> pool = expanded::RandomizerPool();
+bool InPool(Monster kind) {
+    std::span<const Monster> pool = expanded::RandomizerPool();
     return std::find(pool.begin(), pool.end(), kind) != pool.end();
 }
 
@@ -82,16 +84,40 @@ TEST(EnemyRandomize, IsAnExpandedToggleOffByDefault) {
 }
 
 TEST(EnemyRandomize, ThePoolIsEveryRegularMonster) {
-    std::span<const int> pool = expanded::RandomizerPool();
+    std::span<const Monster> pool = expanded::RandomizerPool();
     EXPECT_EQ(pool.size(), 119u);
-    for (int kind : pool) {
+    for (Monster monster : pool) {
+        int kind = No(monster);
         EXPECT_EQ(MonstorTable[kind].kind, MONSTER_KIND_NORMAL) << kind;
         EXPECT_EQ(MonstorTable[kind].model_name[0][0], 'e') << kind;
         EXPECT_NE(MonstorTable[kind].attachment_kind, MONSTER_FAMILY_MIMIC) << kind;
     }
-    EXPECT_EQ(std::count(pool.begin(), pool.end(), kGaciousEnhanced), 2);
-    EXPECT_FALSE(InPool(105)); // Gacious, a boss record
-    EXPECT_FALSE(InPool(91));  // Wine Keg
+    EXPECT_EQ(std::count(pool.begin(), pool.end(), Monster::GACIOUS_ENHANCED), 2);
+    EXPECT_FALSE(InPool(Monster::GACIOUS)); // a boss record
+    EXPECT_FALSE(InPool(Monster::WINE_KEG));
+}
+
+TEST(EnemyRandomize, ThePoolKeepsItsIndexes) {
+    std::vector<int> indexes;
+    auto             range = [&](int first, int last) {
+        for (int kind = first; kind <= last; kind++) {
+            indexes.push_back(kind);
+        }
+    };
+    range(0, 28);
+    range(35, 69);
+    range(77, 77);
+    range(94, 100);
+    range(111, 129);
+    range(132, 140);
+    range(143, 151);
+    range(154, 162);
+    range(155, 155);
+    std::span<const Monster> pool = expanded::RandomizerPool();
+    ASSERT_EQ(pool.size(), indexes.size());
+    for (size_t i = 0; i < pool.size(); i++) {
+        EXPECT_EQ(No(pool[i]), indexes[i]) << i;
+    }
 }
 
 TEST(EnemyRandomize, BossAndEventFloorsKeepTheirMonsters) {
@@ -104,11 +130,24 @@ TEST(EnemyRandomize, BossAndEventFloorsKeepTheirMonsters) {
 }
 
 TEST(EnemyRandomize, DemonShaftsMimicsFollowItsBands) {
-    EXPECT_EQ(expanded::MimicsOf(kDivineBeastCave, 5).mimic, kMimicDbc);
-    EXPECT_EQ(expanded::MimicsOf(kDivineBeastCave, 5).king, kKingMimicDbc);
-    EXPECT_EQ(expanded::MimicsOf(kDemonShaft, 39).mimic, 130);
-    EXPECT_EQ(expanded::MimicsOf(kDemonShaft, 40).king, 142);
-    EXPECT_EQ(expanded::MimicsOf(kDemonShaft, 98).mimic, 163);
+    EXPECT_EQ(expanded::MimicsOf(kDivineBeastCave, 5)->mimic, Monster::MIMIC_DBC);
+    EXPECT_EQ(expanded::MimicsOf(kDivineBeastCave, 5)->king, Monster::KING_MIMIC_DBC);
+    EXPECT_EQ(expanded::MimicsOf(kDemonShaft, 39)->mimic, Monster::MIMIC_DS);
+    EXPECT_EQ(expanded::MimicsOf(kDemonShaft, 40)->king, Monster::KING_MIMIC_DS_ENHANCED);
+    EXPECT_EQ(expanded::MimicsOf(kDemonShaft, 98)->mimic, Monster::MIMIC_DS_ENHANCED_THRICE);
+    EXPECT_FALSE(expanded::MimicsOf(7, 0).has_value());
+}
+
+TEST(EnemyRandomize, TheMimicsKeepTheirIndexes) {
+    // The six dungeons' and Demon Shaft's, then its bands' from floor 40, 60 and 80.
+    const int mimics[] = {30, 71, 73, 32, 34, 75, 130, 141, 152, 163};
+    const int kings[] = {29, 70, 72, 31, 33, 74, 131, 142, 153, 164};
+    for (int i = 0; i < 10; i++) {
+        int dungeon = std::min(i, kDemonShaft);
+        int floor = i <= kDemonShaft ? 0 : 40 + (i - kDemonShaft - 1) * 20;
+        EXPECT_EQ(No(expanded::MimicsOf(dungeon, floor)->mimic), mimics[i]) << i;
+        EXPECT_EQ(No(expanded::MimicsOf(dungeon, floor)->king), kings[i]) << i;
+    }
 }
 
 TEST(EnemyRandomize, AMixIsNineKindsWithTheDungeonsMimicsByChance) {
@@ -121,14 +160,14 @@ TEST(EnemyRandomize, AMixIsNineKindsWithTheDungeonsMimicsByChance) {
         for (int i = 0; i < roster.Size(); i++) {
             int kind = roster.model_no[i];
             ASSERT_EQ(std::count(roster.model_no, roster.model_no + expanded::kRosterSize, kind), 1);
-            if (kind == kMimicDbc) {
+            if (kind == No(Monster::MIMIC_DBC)) {
                 mimics++;
                 EXPECT_FALSE(roster.once[i]);
-            } else if (kind == kKingMimicDbc) {
+            } else if (kind == No(Monster::KING_MIMIC_DBC)) {
                 kings++;
                 EXPECT_TRUE(roster.once[i]);
             } else {
-                EXPECT_TRUE(InPool(kind)) << kind;
+                EXPECT_TRUE(InPool(static_cast<Monster>(kind))) << kind;
                 EXPECT_FALSE(roster.once[i]);
             }
         }
@@ -177,14 +216,14 @@ TEST_F(RandomizeFloors, BossFloorsAndTheToggleOffLoadTheirOwn) {
 
 TEST_F(RandomizeFloors, ArrangementSpawnsOnceWhatTheRosterSays) {
     expanded::FloorRosters rosters;
-    rosters.front.Add(1, false);
-    rosters.front.Add(kKingMimicDbc, false);
-    rosters.front.Add(3, true);
+    rosters.front.Add(Monster::SKELETON_SOLDIER, false);
+    rosters.front.Add(Monster::KING_MIMIC_DBC, false);
+    rosters.front.Add(Monster::DASHER, true);
     expanded::StageFloor(5, rosters);
     Load(kDivineBeastCave, 5, 0);
 
     auto unit = std::make_unique<CMonstorUnit>();
-    unit->model[1] = MonstorTable[kKingMimicDbc];
+    unit->model[1] = MonstorTable[No(Monster::KING_MIMIC_DBC)];
     EXPECT_FALSE(expanded::RosterSpawnsOnce(*unit, 0));
     EXPECT_FALSE(expanded::RosterSpawnsOnce(*unit, 1));
     EXPECT_TRUE(expanded::RosterSpawnsOnce(*unit, 2));
