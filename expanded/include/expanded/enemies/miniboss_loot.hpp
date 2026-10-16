@@ -4,6 +4,7 @@
 
 #include "expanded/enemies/monsters.hpp"
 
+class CRandomItem;
 struct WEAPON_HAVE;
 
 namespace expanded {
@@ -37,18 +38,20 @@ enum class MinibossTier { RARE, COMMON };
 std::vector<MinibossDrop> MinibossLoot(Monster species, int dungeon, MinibossTier tier);
 
 // Rolls the drop of a species' miniboss on a dungeon's floor (UserStatus->cur_floor): a rare drop 5% of the
-// time, else a common drop 30%, picked among the tier's drops in the dungeon; when none is there, or neither
-// tier rolled, the back floor's key 35%, else a weapon of the dungeon 15%, else an attachment 80%, else an
-// item.
+// time where the tier has one in the dungeon, else a common drop 30%, picked among the tier's drops there;
+// when the common roll fails or finds none, the back floor's key 35%, else a weapon of the dungeon 15%, else
+// an attachment 80%, else an item.
 MinibossDrop RollMinibossDrop(int dungeon, int floor, Monster species);
 
 // Writes the boost into a weapon record.
 void BoostWeapon(WEAPON_HAVE &weapon, const WeaponBoost &boost);
 
-// A defeated miniboss's drop, a new floor, and picking up a dropped item (DunMoveChara: in place of
-// BtGetAttach_Init), which boosts the weapon if one of the floor's minibosses dropped it boosted.
-void MinibossDropDropped(const MinibossDrop &drop);
+// Hooks: a defeated miniboss's drop about to be put on the floor at position (before CRandomItem::Set), a
+// new floor, an item's pickup event (in place of CRandomItem::checkEvent in DunMoveChara), and picking up
+// the item (in place of BtGetAttach_Init), which boosts the weapon only if that item was a boosted drop.
+void MinibossDropLanding(const MinibossDrop &drop, CRandomItem &items, const float *position);
 void MinibossDropsCleared();
+int  MinibossItemEvent(CRandomItem &items);
 void MinibossDropPickUp(int dungeon, int item_no);
 
 // The percentage roll the drop makes, 0-99, and the index into a list of n; null restores the random ones

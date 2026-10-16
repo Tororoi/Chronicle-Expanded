@@ -711,7 +711,11 @@ PORT_OVERRIDE void DunMoveChara() {
 
                                     DngMessMan.hide_timer = 0x78;
                                 } else {
+#ifdef CHRONICLE_EXPANDED
+                                    event = expanded::MinibossItemEvent(*RandomItem);
+#else
                                     event = RandomItem->checkEvent();
+#endif
 
                                     if (event != -1) {
                                         switch (event) {

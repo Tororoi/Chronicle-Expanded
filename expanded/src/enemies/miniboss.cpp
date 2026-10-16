@@ -30,6 +30,7 @@ bool         miniboss[kMonsters];
 float        range[kMonsters];
 bool         walk_synced[kMonsters];
 MinibossDrop drops[kMonsters];
+MinibossDrop landing[kMonsters]; // a defeated miniboss's drop, until it is put on the floor
 
 // The MonstorTable kinds of the living minibosses on the floor (0) and its back floor (1), once populated.
 struct Side {
@@ -235,18 +236,24 @@ void MinibossesArranged(CMonstorUnit &unit) {
 }
 
 void MinibossDefeated(CMonstorUnit &unit, int monster) {
+    landing[monster] = {};
     if (!IsMiniboss(monster)) {
         return;
     }
     miniboss[monster] = false;
     if (unit.monster[monster].drop_item == drops[monster].item) {
-        MinibossDropDropped(drops[monster]);
+        landing[monster] = drops[monster];
     }
     std::vector<int> &kinds = CurrentSide(unit).kinds;
     auto              found = std::find(kinds.begin(), kinds.end(), Kind(unit, monster));
     if (found != kinds.end()) {
         kinds.erase(found);
     }
+}
+
+void MinibossDropSet(int monster, CRandomItem &items, const float *position) {
+    MinibossDropLanding(landing[monster], items, position);
+    landing[monster] = {};
 }
 
 float MinibossScriptDistance(int monster, int argument_count, float distance) {

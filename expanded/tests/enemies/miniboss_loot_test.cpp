@@ -11,6 +11,9 @@
 #include "expanded/enemies/monsters.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
+#include "randomitem.hpp"
+#include "savedata.hpp"
+#include "userstatus.hpp"
 
 namespace {
 
@@ -149,14 +152,16 @@ TEST_F(MinibossLoot, ALaterDungeonReplacesAnItem) {
 }
 
 TEST_F(MinibossLoot, TheSameWeaponPlainOrBoosted) {
-    expanded::MinibossDrop common = Roll(DUNGEON_GALLERY_OF_TIME, 0, Monster::BISHOP_Q, {5, 0, 0});
-    EXPECT_EQ(common.item, ITEM_WEAPON_FLAMINGO);
-    EXPECT_EQ(common.boost, nullptr);
+    std::vector<expanded::MinibossDrop> rare = expanded::MinibossLoot(Monster::BISHOP_Q, DUNGEON_MOON_SEA, MinibossTier::RARE);
+    ASSERT_EQ(rare.size(), 1u);
+    EXPECT_EQ(rare[0].item, ITEM_WEAPON_FLAMINGO);
+    EXPECT_EQ(rare[0].boost, nullptr);
 
-    expanded::MinibossDrop rare = Roll(DUNGEON_GALLERY_OF_TIME, 0, Monster::BISHOP_Q, {0, 0});
-    EXPECT_EQ(rare.item, ITEM_WEAPON_FLAMINGO);
-    ASSERT_NE(rare.boost, nullptr);
-    EXPECT_EQ(rare.boost->abilities_high, 0x20);
+    expanded::MinibossDrop drop = Roll(DUNGEON_GALLERY_OF_TIME, 0, Monster::BISHOP_Q, {0, 0});
+    EXPECT_EQ(drop.item, ITEM_WEAPON_FLAMINGO);
+    ASSERT_NE(drop.boost, nullptr);
+    EXPECT_EQ(drop.boost->abilities_high, 0x20);
+    EXPECT_TRUE(Items(Monster::BISHOP_Q, DUNGEON_GALLERY_OF_TIME, MinibossTier::COMMON).empty());
 
     ASSERT_EQ(expanded::MinibossLoot(Monster::STEEL_GIANT, DUNGEON_WISE_OWL_FOREST, MinibossTier::RARE).size(), 1u);
     EXPECT_EQ(expanded::MinibossLoot(Monster::STEEL_GIANT, DUNGEON_WISE_OWL_FOREST, MinibossTier::RARE)[0].boost->abilities_high, 0x02);
@@ -193,23 +198,29 @@ TEST_F(MinibossLoot, EveryLootedSpeciesHasLoot) {
     }
 }
 
-TEST_F(MinibossLoot, AnEmptyTierFallsThrough) {
-    EXPECT_EQ(Roll(DUNGEON_DIVINE_BEAST_CAVE, 0, Monster::STEEL_GIANT, {4, 34}).item, ITEM_TRAM_OIL);
+TEST_F(MinibossLoot, NoRareHereLeavesTheFullCommonChance) {
+    EXPECT_EQ(Roll(DUNGEON_DIVINE_BEAST_CAVE, 0, Monster::STEEL_GIANT, {29, 1}).item, ITEM_ATTACH_DIAMOND);
+    EXPECT_EQ(Roll(DUNGEON_DIVINE_BEAST_CAVE, 0, Monster::STEEL_GIANT, {30, 34}).item, ITEM_TRAM_OIL);
     EXPECT_EQ(Roll(DUNGEON_WISE_OWL_FOREST, 0, Monster::STEEL_GIANT, {4, 0}).item, ITEM_WEAPON_STEEL_SLINGSHOT);
-    EXPECT_EQ(Roll(DUNGEON_SHIPWRECK, 0, Monster::OPAR, {4, 34}).item, ITEM_FLAPPING_FISH);
+    EXPECT_EQ(Roll(DUNGEON_SHIPWRECK, 0, Monster::OPAR, {4, 0}).item, ITEM_ATTACH_OPAL);
+}
+
+TEST_F(MinibossLoot, AnEmptyCommonTierFallsThrough) {
     EXPECT_EQ(Roll(DUNGEON_SHIPWRECK, 0, Monster::STATUE_DOG, {5, 29, 34}).item, ITEM_FLAPPING_FISH);
+    EXPECT_EQ(Roll(DUNGEON_SHIPWRECK, 0, Monster::STATUE_DOG, {4, 0}).item, ITEM_WEAPON_STEVE);
+    EXPECT_EQ(Roll(DUNGEON_DIVINE_BEAST_CAVE, 0, Monster::GHOST, {0, 34}).item, ITEM_TRAM_OIL);
 }
 
 TEST_F(MinibossLoot, OtherwiseKeyWeaponAttachmentOrItem) {
     EXPECT_EQ(Roll(DUNGEON_DIVINE_BEAST_CAVE, 0, Monster::MASTER_JACKET, {5, 30, 34}).item, ITEM_TRAM_OIL);
     EXPECT_EQ(Roll(DUNGEON_DEMON_SHAFT, 0, Monster::DRAN, {0, 34}).item, ITEM_CRYSTAL_EYEBALL);
-    EXPECT_EQ(Roll(DUNGEON_DIVINE_BEAST_CAVE, 8, Monster::DRAN, {5, 30, 35, 14, 3}).item, ITEM_WEAPON_BONE_RAPIER);
-    EXPECT_EQ(Roll(DUNGEON_DIVINE_BEAST_CAVE, 9, Monster::DRAN, {5, 30, 35, 14, 6}).item, ITEM_WEAPON_BONE_SLINGSHOT);
-    EXPECT_EQ(Roll(DUNGEON_GALLERY_OF_TIME, 20, Monster::DRAN, {5, 30, 35, 14, 13}).item, ITEM_WEAPON_SWALLOW);
-    EXPECT_EQ(Roll(DUNGEON_SHIPWRECK, 0, Monster::DRAN, {5, 30, 35, 15, 79, 59, 11}).item, ITEM_ATTACH_TURQUOISE);
-    EXPECT_EQ(Roll(DUNGEON_SHIPWRECK, 0, Monster::DRAN, {5, 30, 35, 15, 79, 60, 18}).item, ITEM_ATTACH_MAGE_SLAYER);
-    EXPECT_EQ(Roll(DUNGEON_SHIPWRECK, 0, Monster::DRAN, {5, 30, 35, 15, 80, 59, 1}).item, ITEM_AUTO_REPAIR_POWDER);
-    EXPECT_EQ(Roll(DUNGEON_SHIPWRECK, 0, Monster::DRAN, {5, 30, 35, 15, 80, 60, 1}).item, ITEM_DRAN_S_FEATHER);
+    EXPECT_EQ(Roll(DUNGEON_DIVINE_BEAST_CAVE, 8, Monster::DRAN, {30, 35, 14, 3}).item, ITEM_WEAPON_BONE_RAPIER);
+    EXPECT_EQ(Roll(DUNGEON_DIVINE_BEAST_CAVE, 9, Monster::DRAN, {30, 35, 14, 6}).item, ITEM_WEAPON_BONE_SLINGSHOT);
+    EXPECT_EQ(Roll(DUNGEON_GALLERY_OF_TIME, 20, Monster::DRAN, {30, 35, 14, 13}).item, ITEM_WEAPON_SWALLOW);
+    EXPECT_EQ(Roll(DUNGEON_SHIPWRECK, 0, Monster::DRAN, {30, 35, 15, 79, 59, 11}).item, ITEM_ATTACH_TURQUOISE);
+    EXPECT_EQ(Roll(DUNGEON_SHIPWRECK, 0, Monster::DRAN, {30, 35, 15, 79, 60, 18}).item, ITEM_ATTACH_MAGE_SLAYER);
+    EXPECT_EQ(Roll(DUNGEON_SHIPWRECK, 0, Monster::DRAN, {30, 35, 15, 80, 59, 1}).item, ITEM_AUTO_REPAIR_POWDER);
+    EXPECT_EQ(Roll(DUNGEON_SHIPWRECK, 0, Monster::DRAN, {30, 35, 15, 80, 60, 1}).item, ITEM_DRAN_S_FEATHER);
     EXPECT_EQ(Roll(-1, 0, Monster::MASTER_JACKET, {}).item, -1);
 }
 
@@ -254,4 +265,104 @@ TEST_F(MinibossLoot, AMinibossCarriesItsSpeciesDrop) {
     expanded::MakeMiniboss(*unit, 0);
     EXPECT_EQ(jacket.drop_item, ITEM_WEAPON_GLADIUS);
     selectMapNo = -1;
+}
+
+namespace {
+
+alignas(64) CSaveData save;
+
+// A boosted Flamingo, as Bishop Q drops it in Gallery of Time.
+expanded::MinibossDrop BoostedFlamingo() {
+    return expanded::MinibossLoot(Monster::BISHOP_Q, DUNGEON_GALLERY_OF_TIME, MinibossTier::RARE)[0];
+}
+
+// Picks up the item lying in a slot, as CRandomItem::CheckPosition and DunMoveChara do, and returns the
+// abilities' high byte of the new Flamingo record, or -1 for none.
+int PickUp(CRandomItem &items, int slot) {
+    items.pickup_event[slot] = items.item_no[slot];
+    items.id[slot] = -1;
+    int event = expanded::MinibossItemEvent(items);
+    EXPECT_EQ(event, items.item_no[slot]);
+    WEAPON_HAVE(&weapons)[11] = UserStatus->chara_weapons[1];
+    bool had[11];
+    for (int i = 0; i < 11; i++) {
+        had[i] = weapons[i].item_no == ITEM_WEAPON_FLAMINGO;
+    }
+    expanded::MinibossDropPickUp(DUNGEON_GALLERY_OF_TIME, event);
+    for (int i = 0; i < 11; i++) {
+        if (weapons[i].item_no == ITEM_WEAPON_FLAMINGO && !had[i]) {
+            return (weapons[i].flags >> 8) & 0xFF;
+        }
+    }
+    return -1;
+}
+
+class MinibossDropPickUp : public ::testing::Test {
+protected:
+    void SetUp() override {
+        saved = UserStatus;
+        save = {};
+        UserStatus = save.GetDngStatus();
+        for (int i = 0; i < 32; i++) {
+            items.id[i] = -1;
+            items.pickup_event[i] = -1;
+        }
+        expanded::MinibossDropsCleared();
+    }
+
+    void TearDown() override {
+        expanded::MinibossDropsCleared();
+        UserStatus = saved;
+    }
+
+    CUserStatus *saved = nullptr;
+    CRandomItem  items = {};
+};
+
+} // namespace
+
+TEST_F(MinibossDropPickUp, OnlyTheBoostedItemTakesTheBoost) {
+    float plain_at[4] = {10.0f, 0.0f, 10.0f, 1.0f};
+    float boosted_at[4] = {20.0f, 0.0f, 20.0f, 1.0f};
+    items.Set(plain_at, 1, -1, ITEM_WEAPON_FLAMINGO);
+    expanded::MinibossDropLanding(BoostedFlamingo(), items, boosted_at);
+    items.Set(boosted_at, 1, -1, ITEM_WEAPON_FLAMINGO);
+
+    EXPECT_EQ(PickUp(items, 0), 0x00);
+    EXPECT_EQ(PickUp(items, 1), 0x20);
+}
+
+TEST_F(MinibossDropPickUp, ABoostIsTakenOnce) {
+    float at[4] = {10.0f, 0.0f, 10.0f, 1.0f};
+    expanded::MinibossDropLanding(BoostedFlamingo(), items, at);
+    items.Set(at, 1, -1, ITEM_WEAPON_FLAMINGO);
+    EXPECT_EQ(PickUp(items, 0), 0x20);
+
+    items.Set(at, 1, -1, ITEM_WEAPON_FLAMINGO);
+    EXPECT_EQ(PickUp(items, 0), 0x00);
+}
+
+TEST_F(MinibossDropPickUp, AnotherItemInTheSlotTakesNoBoost) {
+    float boosted_at[4] = {10.0f, 0.0f, 10.0f, 1.0f};
+    float plain_at[4] = {30.0f, 0.0f, 30.0f, 1.0f};
+    expanded::MinibossDropLanding(BoostedFlamingo(), items, boosted_at);
+    items.Set(boosted_at, 1, -1, ITEM_WEAPON_FLAMINGO);
+    items.id[0] = -1;
+    items.Set(plain_at, 1, -1, ITEM_WEAPON_FLAMINGO);
+    EXPECT_EQ(PickUp(items, 0), 0x00);
+}
+
+TEST_F(MinibossDropPickUp, ANewFloorClearsTheBoosts) {
+    float at[4] = {10.0f, 0.0f, 10.0f, 1.0f};
+    expanded::MinibossDropLanding(BoostedFlamingo(), items, at);
+    items.Set(at, 1, -1, ITEM_WEAPON_FLAMINGO);
+    expanded::MinibossDropsCleared();
+    EXPECT_EQ(PickUp(items, 0), 0x00);
+}
+
+TEST_F(MinibossDropPickUp, APlainDropLeavesNoBoost) {
+    float at[4] = {10.0f, 0.0f, 10.0f, 1.0f};
+    expanded::MinibossDropLanding(expanded::MinibossLoot(Monster::BISHOP_Q, DUNGEON_MOON_SEA, MinibossTier::RARE)[0], items, at);
+    items.Set(at, 1, -1, ITEM_WEAPON_FLAMINGO);
+    EXPECT_EQ(PickUp(items, 0), 0x00);
 }

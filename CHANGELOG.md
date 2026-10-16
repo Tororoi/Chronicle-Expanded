@@ -288,7 +288,7 @@ Blessing Gun → Skunk ★
 | Auntie Medu | Serpent Sword (Shipwreck+) | Turquoise, Garnet or Emerald |
 | Auntie Medu (Enhanced) | Takes Auntie Medu's loot | |
 | Billy |  | ★Trial Hammer (Gallery of Time+) |
-| Bishop Q | ★Flamingo (Gallery of Time+) | Flamingo (Wise Owl Forest+) |
+| Bishop Q | Flamingo (Wise Owl Forest+) → ★Flamingo (Gallery of Time+) |  |
 | Black Dragon | Dragon's Y (Sun and Moon Temple+) → ★Dragon's Y (Gallery of Time+) | Peridot |
 | Blizzard | Crystal Ring (Shipwreck+) | Aquamarine or Turquoise |
 | Blue Dragon | Dragon's Y (Sun and Moon Temple+) → ★Dragon's Y (Gallery of Time+) | Amethyst, Aquamarine or Turquoise |

@@ -7,6 +7,7 @@
 #include "btitem.hpp"
 #include "dun/gameloop.hpp"
 #include "itemdata.hpp"
+#include "randomitem.hpp"
 #include "userstatus.hpp"
 
 namespace expanded {
@@ -189,7 +190,7 @@ const SpeciesLoot kLoot[] = {
     {{Monster::RASH_DASHER}, {{ITEM_WEAPON_BATTLE_AX, DUNGEON_WISE_OWL_FOREST}}, {}},
     {{Monster::SPADE}, {Boosted(ITEM_WEAPON_DARK_CLOUD, DUNGEON_GALLERY_OF_TIME)}, {{ITEM_WEAPON_BRAVE_ARK, DUNGEON_GALLERY_OF_TIME}}},
     // Demon Shaft
-    {{Monster::BISHOP_Q}, {Boosted(ITEM_WEAPON_FLAMINGO, DUNGEON_GALLERY_OF_TIME)}, {{ITEM_WEAPON_FLAMINGO, DUNGEON_WISE_OWL_FOREST}}},
+    {{Monster::BISHOP_Q}, {{ITEM_WEAPON_FLAMINGO, DUNGEON_WISE_OWL_FOREST, DUNGEON_GALLERY_OF_TIME}, Boosted(ITEM_WEAPON_FLAMINGO, DUNGEON_GALLERY_OF_TIME)}, {}},
     {{Monster::GACIOUS_ENHANCED}, {{ITEM_WEAPON_SATAN_S_AX, DUNGEON_GALLERY_OF_TIME}}, {{ITEM_WEAPON_BONE_RAPIER}}},
     {{Monster::GEMRON_FIRE}, {{ITEM_WEAPON_SATAN_S_RING, DUNGEON_DEMON_SHAFT}}, {{ITEM_ATTACH_RUBY}, {ITEM_ATTACH_SUN, DUNGEON_MOON_SEA}}},
     {{Monster::GEMRON_HOLY}, {{ITEM_WEAPON_GODDESS_RING, DUNGEON_DEMON_SHAFT}}, {{ITEM_ATTACH_PERIDOT}, {ITEM_ATTACH_SUN, DUNGEON_MOON_SEA}}},
@@ -265,8 +266,19 @@ const DungeonWeapons kWeapons[DUNGEON_COUNT] = {
     {0, {{ITEM_WEAPON_ATLAMILLIA_SWORD, ITEM_WEAPON_DARK_CLOUD, ITEM_WEAPON_BIG_BANG, ITEM_WEAPON_AGA_S_SWORD, ITEM_WEAPON_DRAIN_SEEKER, ITEM_WEAPON_ANGEL_SHOOTER, ITEM_WEAPON_MATADOR, ITEM_WEAPON_LAST_JUDGEMENT, ITEM_WEAPON_SATAN_S_AX, ITEM_WEAPON_ATHENA_S_ARMLET, ITEM_WEAPON_DESTRUCTION_RING, ITEM_WEAPON_TERRA_SWORD, ITEM_WEAPON_5_FOOT_NAIL, ITEM_WEAPON_G_CRUSHER, ITEM_WEAPON_HEXA_BLASTER}}},
 };
 
-// Boosted weapons lying on the floor, dropped by its minibosses.
-std::vector<const WeaponBoost *> lying;
+// A boosted drop lying on the floor: its slot among the items, and the item and spot that tell it from a later one there.
+struct Lying {
+    const CRandomItem *items;
+    int                slot;
+    int                item;
+    float              position[3];
+    const WeaponBoost *boost;
+};
+
+std::vector<Lying> lying;
+
+// The boost of the item being picked up, if it is a boosted drop.
+const WeaponBoost *picked = nullptr;
 
 MinibossLootRoll roll_override = nullptr;
 
@@ -326,10 +338,11 @@ MinibossDrop RollMinibossDrop(int dungeon, int floor, Monster species) {
     if (dungeon < 0 || dungeon >= DUNGEON_COUNT) {
         return drop;
     }
-    std::vector<MinibossDrop> tier;
-    if (Roll(100) < kRarePercent) {
-        tier = MinibossLoot(species, dungeon, MinibossTier::RARE);
-    } else if (Roll(100) < kCommonPercent) {
+    std::vector<MinibossDrop> tier = MinibossLoot(species, dungeon, MinibossTier::RARE);
+    if (tier.empty() || !(Roll(100) < kRarePercent)) {
+        tier.clear();
+    }
+    if (tier.empty() && Roll(100) < kCommonPercent) {
         tier = MinibossLoot(species, dungeon, MinibossTier::COMMON);
     }
     if (!tier.empty()) {
@@ -381,19 +394,42 @@ void BoostWeapon(WEAPON_HAVE &weapon, const WeaponBoost &boost) {
     }
 }
 
-void MinibossDropDropped(const MinibossDrop &drop) {
-    if (drop.boost != nullptr) {
-        lying.push_back(drop.boost);
+void MinibossDropLanding(const MinibossDrop &drop, CRandomItem &items, const float *position) {
+    int slot = items.CheckID();
+    if (drop.boost == nullptr || slot == -1) {
+        return;
     }
+    std::erase_if(lying, [&](const Lying &l) { return l.items == &items && l.slot == slot; });
+    lying.push_back({&items, slot, drop.item, {position[0], position[1] + 1.75f, position[2]}, drop.boost});
+}
+
+int MinibossItemEvent(CRandomItem &items) {
+    picked = nullptr;
+    for (int slot = 0; slot < 32; slot++) {
+        if (items.pickup_event[slot] == -1) {
+            continue;
+        }
+        auto found = std::find_if(lying.begin(), lying.end(), [&](const Lying &l) { return l.items == &items && l.slot == slot; });
+        if (found != lying.end()) {
+            bool same = found->item == items.item_no[slot] && found->position[0] == items.position[slot][0] &&
+                        found->position[1] == items.position[slot][1] && found->position[2] == items.position[slot][2];
+            picked = same ? found->boost : nullptr;
+            lying.erase(found);
+        }
+        break;
+    }
+    return items.checkEvent();
 }
 
 void MinibossDropsCleared() {
     lying.clear();
+    picked = nullptr;
 }
 
 void MinibossDropPickUp(int dungeon, int item_no) {
-    auto boost = std::find_if(lying.begin(), lying.end(), [&](const WeaponBoost *b) { return b->weapon == item_no; });
-    if (boost == lying.end()) {
+    const WeaponBoost *boost = picked != nullptr && picked->weapon == item_no ? picked : nullptr;
+    picked = nullptr;
+    if (boost == nullptr) {
         BtGetAttach_Init(dungeon, item_no);
         return;
     }
@@ -408,8 +444,7 @@ void MinibossDropPickUp(int dungeon, int item_no) {
         for (int slot = 0; slot < 11; slot++) {
             WEAPON_HAVE &weapon = UserStatus->chara_weapons[chara][slot];
             if (weapon.item_no == item_no && !had[chara][slot]) {
-                BoostWeapon(weapon, **boost);
-                lying.erase(boost);
+                BoostWeapon(weapon, *boost);
                 return;
             }
         }
