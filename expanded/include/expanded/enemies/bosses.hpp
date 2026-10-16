@@ -1,5 +1,7 @@
 #pragma once
 
+#include "expanded/enemies/monsters.hpp"
+
 class CMonstorUnit;
 
 namespace expanded {
@@ -10,6 +12,10 @@ bool BossOutOfPlace(int monster);
 
 // The motion a boss collapses with once beaten, or -1 to fade as it stands.
 int BossCollapseMotion(int model_no);
+
+inline int BossCollapseMotion(Monster monster) {
+    return BossCollapseMotion(No(monster));
+}
 
 // Steps a beaten boss's death script runs for before its collapse takes over, and steps it fades over.
 inline constexpr int kBossScriptFrames = 240;

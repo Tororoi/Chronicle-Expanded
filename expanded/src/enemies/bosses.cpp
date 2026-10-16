@@ -57,15 +57,15 @@ bool BossOutOfPlace(int monster) {
 
 int BossCollapseMotion(int model_no) {
     switch (model_no) {
-        case 78: // Dran
+        case No(Monster::DRAN):
             return 6;
-        case 79: // Master Utan
+        case No(Monster::MASTER_UTAN):
             return 13;
-        case 80: // Ice Queen
+        case No(Monster::ICE_QUEEN):
             return 11;
-        case 81: // King's Curse Coffin
+        case No(Monster::KINGS_CURSE_COFFIN):
             return 5;
-        case 83: // Minotaur Joe
+        case No(Monster::MINOTAUR_JOE):
             return 9;
         default:
             return -1;

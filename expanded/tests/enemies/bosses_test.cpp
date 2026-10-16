@@ -4,6 +4,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/bosses.hpp"
+#include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "monstorunit.hpp"
@@ -11,9 +12,8 @@
 
 namespace {
 
-constexpr int kSkeletonSoldier = 1;
-constexpr int kMinotaurJoe = 83;
-constexpr int kDarkGenie = 84;
+using expanded::Monster;
+using expanded::No;
 
 // A Divine Beast Cave floor laid out by a staged roster, or by its own.
 class OutOfPlaceBoss : public ::testing::Test {
@@ -35,9 +35,9 @@ protected:
     }
 
     // BtLoadMonstor's read of floor 2's front, then SetupBaseModel's part for each kind.
-    void LoadFloor(bool staged, std::initializer_list<int> kinds) {
+    void LoadFloor(bool staged, std::initializer_list<Monster> kinds) {
         expanded::FloorRosters rosters;
-        for (int kind : kinds) {
+        for (Monster kind : kinds) {
             rosters.front.Add(kind, expanded::SpawnsOnceNatively(kind));
         }
         if (staged) {
@@ -71,7 +71,7 @@ protected:
 } // namespace
 
 TEST_F(OutOfPlaceBoss, KeepsItsFloorPositionAndRaisesNoEvent) {
-    LoadFloor(true, {kMinotaurJoe, kSkeletonSoldier});
+    LoadFloor(true, {Monster::MINOTAUR_JOE, Monster::SKELETON_SOLDIER});
     Spawn(0, 0);
     Spawn(1, 1);
     EXPECT_TRUE(expanded::BossOutOfPlace(0));
@@ -89,8 +89,8 @@ TEST_F(OutOfPlaceBoss, KeepsItsFloorPositionAndRaisesNoEvent) {
 
 TEST_F(OutOfPlaceBoss, ABossOnItsOwnFloorIsLeftAlone) {
     LoadFloor(false, {});
-    unit_->model[0] = MonstorTable[kMinotaurJoe];
-    expanded::EnemyModelSetUp(*unit_, 0, kMinotaurJoe);
+    unit_->model[0] = MonstorTable[No(Monster::MINOTAUR_JOE)];
+    expanded::EnemyModelSetUp(*unit_, 0, No(Monster::MINOTAUR_JOE));
     Spawn(0, 0);
     EXPECT_FALSE(expanded::BossOutOfPlace(0));
     EXPECT_FALSE(expanded::BossEventHeld(0));
@@ -99,7 +99,7 @@ TEST_F(OutOfPlaceBoss, ABossOnItsOwnFloorIsLeftAlone) {
 }
 
 TEST_F(OutOfPlaceBoss, ABeatenBossFadesOutAndDies) {
-    LoadFloor(true, {kDarkGenie, kSkeletonSoldier});
+    LoadFloor(true, {Monster::DARK_GENIE, Monster::SKELETON_SOLDIER});
     Spawn(0, 0);
     unit_->alive_count = 2;
     MONSTOR &boss = unit_->monster[0];
@@ -122,7 +122,16 @@ TEST_F(OutOfPlaceBoss, ABeatenBossFadesOutAndDies) {
 }
 
 TEST(BossCollapse, MotionsOfTheBossesThatHaveOne) {
-    EXPECT_EQ(expanded::BossCollapseMotion(kMinotaurJoe), 9);
+    EXPECT_EQ(expanded::BossCollapseMotion(Monster::MINOTAUR_JOE), 9);
+    EXPECT_EQ(expanded::BossCollapseMotion(Monster::MASTER_UTAN), 13);
+    EXPECT_EQ(expanded::BossCollapseMotion(Monster::DARK_GENIE), -1);
+}
+
+TEST(BossCollapse, KeepsItsIndexes) {
+    EXPECT_EQ(expanded::BossCollapseMotion(78), 6);
     EXPECT_EQ(expanded::BossCollapseMotion(79), 13);
-    EXPECT_EQ(expanded::BossCollapseMotion(kDarkGenie), -1);
+    EXPECT_EQ(expanded::BossCollapseMotion(80), 11);
+    EXPECT_EQ(expanded::BossCollapseMotion(81), 5);
+    EXPECT_EQ(expanded::BossCollapseMotion(83), 9);
+    EXPECT_EQ(expanded::BossCollapseMotion(82), -1);
 }
