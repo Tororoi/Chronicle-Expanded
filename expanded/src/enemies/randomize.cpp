@@ -130,11 +130,21 @@ Roster RandomMix(int dungeon, int floor, std::mt19937 &random) {
     }
     const std::vector<Monster>           &pool = Pool();
     std::uniform_int_distribution<size_t> pick(0, pool.size() - 1);
-    while (roster.Size() < kRosterSize) {
+    int                                   size = roster.Size() + RollKindCount(kRosterSize - roster.Size(), random);
+    while (roster.Size() < size) {
         Monster kind = pool[pick(random)];
         roster.Add(kind, SpawnsOnceNatively(kind));
     }
     return roster;
+}
+
+int RollKindCount(int most, std::mt19937 &random) {
+    most = std::min(most, kRosterSize);
+    if (most < 1) {
+        return 0;
+    }
+    std::discrete_distribution<int> count(kKindCountWeights.begin(), kKindCountWeights.begin() + most);
+    return count(random) + 1;
 }
 
 } // namespace expanded
