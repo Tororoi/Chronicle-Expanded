@@ -148,7 +148,7 @@ TEST_F(Miniboss, GrowsItsStatsBodyAndReach) {
     const MONSTOR_MODEL &model = MonstorTable[No(Monster::WEREWOLF)];
     EXPECT_EQ(werewolf.max_hp, model.max_hp * 3);
     EXPECT_EQ(werewolf.hp, model.max_hp * 3);
-    EXPECT_EQ(werewolf.exp, model.exp * 4);
+    EXPECT_EQ(werewolf.exp, model.exp * 3);
     EXPECT_EQ(werewolf.defense, expanded::ScaleStat(model.defense, 1.5f));
     EXPECT_EQ(werewolf.money, model.money * 4);
     EXPECT_EQ(werewolf.money_chance, 100);
