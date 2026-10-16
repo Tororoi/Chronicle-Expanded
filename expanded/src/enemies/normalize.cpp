@@ -24,66 +24,66 @@ constexpr int kBandFloors = 20;
 constexpr int kBeyond = kEnemyRegions; // past Demon Shaft's last band, for Stronger enemies
 
 // Look-alikes (one rig and its reskins), weakest to strongest: none outstrips the next on a floor.
-const std::vector<std::vector<int>> kLookAlikes = {
-    {MONSTER_CAVE_BAT, MONSTER_EVIL_BAT, MONSTER_CAVE_BAT_ENHANCED, MONSTER_EVIL_BAT_ENHANCED},
-    {MONSTER_CRESCENT_BARON, MONSTER_CRESCENT_BARON_ENHANCED},
-    {MONSTER_SKELETON_SOLDIER, MONSTER_MASTER_JACKET, MONSTER_MASTER_JACKET_ENHANCED, MONSTER_HORN_HEAD, MONSTER_SILVER_GEAR, MONSTER_GACIOUS_ENHANCED},
-    {MONSTER_DASHER, MONSTER_RASH_DASHER, MONSTER_RASH_DASHER_ENHANCED},
-    {MONSTER_HORNET, MONSTER_PHANTOM},
-    {MONSTER_HALLOWEEN, MONSTER_HALLOWEEN_ENHANCED},
-    {MONSTER_CANNIBAL_PLANT, MONSTER_CURSED_ROSE, MONSTER_DARK_FLOWER, MONSTER_CURSED_ROSE_ENHANCED},
-    {MONSTER_EARTH_DIGGER, MONSTER_MOON_DIGGER},
-    {MONSTER_SUNDAY, MONSTER_MONDAY, MONSTER_TUESDAY, MONSTER_WEDNESDAY, MONSTER_THURSDAY, MONSTER_FRIDAY, MONSTER_SATURDAY, MONSTER_HELL_POCKLE},
-    {MONSTER_WITCH_ILLZA, MONSTER_WITCH_HELLZA, MONSTER_WITCH_HELLZA_ENHANCED},
-    {MONSTER_GYON, MONSTER_SPACE_GYON, MONSTER_GYON_ENHANCED, MONSTER_SPACE_GYON_ENHANCED},
-    {MONSTER_PIRATES_CHARIOT, MONSTER_PIRATES_CHARIOT_ENHANCED},
-    {MONSTER_AUNTIE_MEDU, MONSTER_AUNTIE_MEDU_ENHANCED},
-    {MONSTER_CAPTAIN, MONSTER_CAPTAIN_ENHANCED},
-    {MONSTER_CORCEA, MONSTER_CORCEA_ENHANCED},
-    {MONSTER_GOLEM, MONSTER_SIL, MONSTER_GOL, MONSTER_STEEL_GIANT, MONSTER_TITAN, MONSTER_BLIZZARD, MONSTER_SIL_ENHANCED, MONSTER_STEEL_GIANT_ENHANCED, MONSTER_GOL_ENHANCED, MONSTER_TITAN_ENHANCED},
-    {MONSTER_DUNE, MONSTER_VULCAN, MONSTER_VULCAN_ENHANCED},
-    {MONSTER_ARTHUR, MONSTER_ARTHUR_ENHANCED},
-    {MONSTER_GHOST, MONSTER_LICH, MONSTER_LICH_ENHANCED},
-    {MONSTER_ALEXANDER, MONSTER_ALEXANDER_ENHANCED},
-    {MONSTER_HEART, MONSTER_CLUB, MONSTER_DIAMOND, MONSTER_SPADE, MONSTER_JOKER, MONSTER_DIAMOND_ENHANCED, MONSTER_CLUB_ENHANCED, MONSTER_SPADE_ENHANCED, MONSTER_HEART_ENHANCED, MONSTER_JOKER_ENHANCED},
-    {MONSTER_BOMBER_HEAD, MONSTER_BOMBER_HEAD_ENHANCED},
-    {MONSTER_MUMMY, MONSTER_MUMMY_ENHANCED},
-    {MONSTER_STATUE, MONSTER_LIVING_ARMOR, MONSTER_LIVING_ARMOR_ENHANCED},
-    {MONSTER_WEREWOLF, MONSTER_WHITE_FANG, MONSTER_WHITE_FANG_ENHANCED},
-    {MONSTER_SAM, MONSTER_MR_BLARE, MONSTER_BILLY},
-    {MONSTER_CRABBY_HERMIT, MONSTER_CRABBY_HERMIT_ENHANCED},
-    {MONSTER_DRAGON, MONSTER_BLUE_DRAGON, MONSTER_BLACK_DRAGON},
-    {MONSTER_GEMRON_FIRE, MONSTER_GEMRON_ICE, MONSTER_GEMRON_THUNDER, MONSTER_GEMRON_WIND, MONSTER_GEMRON_HOLY},
-    {MONSTER_MASK_OF_PRAJNA, MONSTER_MASK_OF_PRAJNA_ENHANCED},
-    {MONSTER_ROCKANOFF, MONSTER_ROCKANOFF_ENHANCED},
-    {MONSTER_YAMMICH, MONSTER_YAMMICH_ENHANCED},
-    {MONSTER_STATUE_DOG, MONSTER_STATUE_DOG_ENHANCED},
+const std::vector<std::vector<Monster>> kLookAlikes = {
+    {Monster::CAVE_BAT, Monster::EVIL_BAT, Monster::CAVE_BAT_ENHANCED, Monster::EVIL_BAT_ENHANCED},
+    {Monster::CRESCENT_BARON, Monster::CRESCENT_BARON_ENHANCED},
+    {Monster::SKELETON_SOLDIER, Monster::MASTER_JACKET, Monster::MASTER_JACKET_ENHANCED, Monster::HORN_HEAD, Monster::SILVER_GEAR, Monster::GACIOUS_ENHANCED},
+    {Monster::DASHER, Monster::RASH_DASHER, Monster::RASH_DASHER_ENHANCED},
+    {Monster::HORNET, Monster::PHANTOM},
+    {Monster::HALLOWEEN, Monster::HALLOWEEN_ENHANCED},
+    {Monster::CANNIBAL_PLANT, Monster::CURSED_ROSE, Monster::DARK_FLOWER, Monster::CURSED_ROSE_ENHANCED},
+    {Monster::EARTH_DIGGER, Monster::MOON_DIGGER},
+    {Monster::SUNDAY, Monster::MONDAY, Monster::TUESDAY, Monster::WEDNESDAY, Monster::THURSDAY, Monster::FRIDAY, Monster::SATURDAY, Monster::HELL_POCKLE},
+    {Monster::WITCH_ILLZA, Monster::WITCH_HELLZA, Monster::WITCH_HELLZA_ENHANCED},
+    {Monster::GYON, Monster::SPACE_GYON, Monster::GYON_ENHANCED, Monster::SPACE_GYON_ENHANCED},
+    {Monster::PIRATES_CHARIOT, Monster::PIRATES_CHARIOT_ENHANCED},
+    {Monster::AUNTIE_MEDU, Monster::AUNTIE_MEDU_ENHANCED},
+    {Monster::CAPTAIN, Monster::CAPTAIN_ENHANCED},
+    {Monster::CORCEA, Monster::CORCEA_ENHANCED},
+    {Monster::GOLEM, Monster::SIL, Monster::GOL, Monster::STEEL_GIANT, Monster::TITAN, Monster::BLIZZARD, Monster::SIL_ENHANCED, Monster::STEEL_GIANT_ENHANCED, Monster::GOL_ENHANCED, Monster::TITAN_ENHANCED},
+    {Monster::DUNE, Monster::VULCAN, Monster::VULCAN_ENHANCED},
+    {Monster::ARTHUR, Monster::ARTHUR_ENHANCED},
+    {Monster::GHOST, Monster::LICH, Monster::LICH_ENHANCED},
+    {Monster::ALEXANDER, Monster::ALEXANDER_ENHANCED},
+    {Monster::HEART, Monster::CLUB, Monster::DIAMOND, Monster::SPADE, Monster::JOKER, Monster::DIAMOND_ENHANCED, Monster::CLUB_ENHANCED, Monster::SPADE_ENHANCED, Monster::HEART_ENHANCED, Monster::JOKER_ENHANCED},
+    {Monster::BOMBER_HEAD, Monster::BOMBER_HEAD_ENHANCED},
+    {Monster::MUMMY, Monster::MUMMY_ENHANCED},
+    {Monster::STATUE, Monster::LIVING_ARMOR, Monster::LIVING_ARMOR_ENHANCED},
+    {Monster::WEREWOLF, Monster::WHITE_FANG, Monster::WHITE_FANG_ENHANCED},
+    {Monster::SAM, Monster::MR_BLARE, Monster::BILLY},
+    {Monster::CRABBY_HERMIT, Monster::CRABBY_HERMIT_ENHANCED},
+    {Monster::DRAGON, Monster::BLUE_DRAGON, Monster::BLACK_DRAGON},
+    {Monster::GEMRON_FIRE, Monster::GEMRON_ICE, Monster::GEMRON_THUNDER, Monster::GEMRON_WIND, Monster::GEMRON_HOLY},
+    {Monster::MASK_OF_PRAJNA, Monster::MASK_OF_PRAJNA_ENHANCED},
+    {Monster::ROCKANOFF, Monster::ROCKANOFF_ENHANCED},
+    {Monster::YAMMICH, Monster::YAMMICH_ENHANCED},
+    {Monster::STATUE_DOG, Monster::STATUE_DOG_ENHANCED},
 };
 
 // The Mimic and the King Mimic, dungeon by dungeon then Demon Shaft's Enhanced, and their stats past the last.
-constexpr int kMimics[] = {
-    MONSTER_MIMIC_DBC,
-    MONSTER_MIMIC_WOF,
-    MONSTER_MIMIC_SW,
-    MONSTER_MIMIC_SMT,
-    MONSTER_MIMIC_MS,
-    MONSTER_MIMIC_GOT,
-    MONSTER_MIMIC_DS,
-    MONSTER_MIMIC_DS_ENHANCED,
-    MONSTER_MIMIC_DS_ENHANCED_TWICE,
-    MONSTER_MIMIC_DS_ENHANCED_THRICE,
+constexpr Monster kMimics[] = {
+    Monster::MIMIC_DBC,
+    Monster::MIMIC_WOF,
+    Monster::MIMIC_SW,
+    Monster::MIMIC_SMT,
+    Monster::MIMIC_MS,
+    Monster::MIMIC_GOT,
+    Monster::MIMIC_DS,
+    Monster::MIMIC_DS_ENHANCED,
+    Monster::MIMIC_DS_ENHANCED_TWICE,
+    Monster::MIMIC_DS_ENHANCED_THRICE,
 };
-constexpr int kKingMimics[] = {
-    MONSTER_KING_MIMIC_DBC,
-    MONSTER_KING_MIMIC_WOF,
-    MONSTER_KING_MIMIC_SW,
-    MONSTER_KING_MIMIC_SMT,
-    MONSTER_KING_MIMIC_MS,
-    MONSTER_KING_MIMIC_GOT,
-    MONSTER_KING_MIMIC_DS,
-    MONSTER_KING_MIMIC_DS_ENHANCED,
-    MONSTER_KING_MIMIC_DS_ENHANCED_TWICE,
-    MONSTER_KING_MIMIC_DS_ENHANCED_THRICE,
+constexpr Monster kKingMimics[] = {
+    Monster::KING_MIMIC_DBC,
+    Monster::KING_MIMIC_WOF,
+    Monster::KING_MIMIC_SW,
+    Monster::KING_MIMIC_SMT,
+    Monster::KING_MIMIC_MS,
+    Monster::KING_MIMIC_GOT,
+    Monster::KING_MIMIC_DS,
+    Monster::KING_MIMIC_DS_ENHANCED,
+    Monster::KING_MIMIC_DS_ENHANCED_TWICE,
+    Monster::KING_MIMIC_DS_ENHANCED_THRICE,
 };
 constexpr EnemyStats kMimicBeyond = {.hp = 12000, .defense = 40, .hardness = 15, .melee = 140};
 constexpr EnemyStats kKingMimicBeyond = {.hp = 30000, .defense = 40, .hardness = 60, .melee = 180};
@@ -121,8 +121,8 @@ struct Pools {
     int                              home[kKinds];      // lowest region laying the kind out, or -1
     float                            average[kEnemyRegions + 1][kStats] = {};
     float                            cap[kEnemyRegions][kStats] = {}; // highest of this region and the earlier ones
-    const std::vector<int>          *look_alikes[kKinds] = {};
-    const int                       *mimic_line[kKinds] = {};
+    const std::vector<Monster>      *look_alikes[kKinds] = {};
+    const Monster                   *mimic_line[kKinds] = {};
     int                              mimic_index[kKinds] = {};
 };
 
@@ -167,16 +167,16 @@ Pools Build() {
         float last = pools.average[kEnemyRegions - 1][s], before = pools.average[kEnemyRegions - 2][s];
         pools.average[kBeyond][s] = std::max(last, 2 * last - before);
     }
-    for (const std::vector<int> &chain : kLookAlikes) {
-        for (int kind : chain) {
-            pools.look_alikes[kind] = &chain;
+    for (const std::vector<Monster> &chain : kLookAlikes) {
+        for (Monster kind : chain) {
+            pools.look_alikes[No(kind)] = &chain;
         }
     }
     for (int i = 0; i < 10; i++) {
-        pools.mimic_line[kMimics[i]] = kMimics;
-        pools.mimic_index[kMimics[i]] = i;
-        pools.mimic_line[kKingMimics[i]] = kKingMimics;
-        pools.mimic_index[kKingMimics[i]] = i;
+        pools.mimic_line[No(kMimics[i])] = kMimics;
+        pools.mimic_index[No(kMimics[i])] = i;
+        pools.mimic_line[No(kKingMimics[i])] = kKingMimics;
+        pools.mimic_index[No(kKingMimics[i])] = i;
     }
     return pools;
 }
@@ -197,9 +197,9 @@ int StrongerRatio(EnemyStat stat, int region) {
 }
 
 // The next mimic's stat, or the stats past the last one.
-std::optional<int> NextMimicStat(const int *line, int index, EnemyStat stat) {
+std::optional<int> NextMimicStat(const Monster *line, int index, EnemyStat stat) {
     if (index + 1 < 10) {
-        return Native(line[index + 1], stat);
+        return Native(No(line[index + 1]), stat);
     }
     const EnemyStats &beyond = line == kKingMimics ? kKingMimicBeyond : kMimicBeyond;
     switch (stat) {
@@ -277,19 +277,19 @@ int NormalizedStat(int model_no, EnemyStat stat, int region, bool stronger) {
     if (model_no < 0 || model_no >= kKinds || region < 0 || region >= kEnemyRegions) {
         return Native(model_no, stat);
     }
-    const std::vector<int> *chain = State().look_alikes[model_no];
+    const std::vector<Monster> *chain = State().look_alikes[model_no];
     if (chain == nullptr) {
         return PoolValue(model_no, stat, region, stronger);
     }
     // Down from the strongest look-alike, each capped at the one above it.
     int cap = INT_MAX;
     for (auto member = chain->rbegin(); member != chain->rend(); ++member) {
-        int value = PoolValue(*member, stat, region, stronger);
+        int value = PoolValue(No(*member), stat, region, stronger);
         if (!IsAttack(stat) || value > 0) {
             value = std::min(value, cap);
             cap = value;
         }
-        if (*member == model_no) {
+        if (No(*member) == model_no) {
             return value;
         }
     }
