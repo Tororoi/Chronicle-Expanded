@@ -42,6 +42,8 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/faster.hpp"
+#include "expanded/enemies/miniboss.hpp"
+#include "expanded/enemies/revive.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "expanded/status/confuse.hpp"
@@ -617,6 +619,9 @@ void CMonstorUnit::ArrangementPos(CDungeonMap *map, int count, int model_no, int
 
                         if (model_no == -1) {
                             selected = (int) ((float) model_count * (float) rand() / 2147483648.0f);
+#ifdef CHRONICLE_EXPANDED
+                            selected = expanded::MinibossPlacedModel(*this, n, selected);
+#endif
 
 #ifdef CHRONICLE_EXPANDED
                             if (expanded::RosterSpawnsOnce(*this, selected)) {
@@ -640,6 +645,9 @@ void CMonstorUnit::ArrangementPos(CDungeonMap *map, int count, int model_no, int
     }
 
     SetKey();
+#ifdef CHRONICLE_EXPANDED
+    expanded::MinibossesArranged(*this);
+#endif
 }
 
 void CMonstorUnit::AllBin2() {
@@ -764,6 +772,9 @@ void CMonstorUnit::DrawMonstor() {
             character = &chara[i][0];
             character->TextureAnime(42);
             PalletSet();
+#ifdef CHRONICLE_EXPANDED
+            expanded::MinibossMotion(*this, i);
+#endif
 
             if (paused != 0 || monster[i].stop_timer > 0) {
                 chara[i][0].SetMotion(chara[i][0].motion_no, 1);
@@ -2050,7 +2061,11 @@ void CMonstorUnit::Step(int pause) {
                     printf("err %d\n", monster[current_monster].collision_poly_count);
                 }
 
+#ifdef CHRONICLE_EXPANDED
+                switch (expanded::ReviveCheckDmg(*this, CheckDmg())) {
+#else
                 switch (CheckDmg()) {
+#endif
                     case MONSTER_DMG_NONE:
                         break;
                     case MONSTER_DMG_HIT:
@@ -2072,6 +2087,7 @@ void CMonstorUnit::Step(int pause) {
                 } else {
 #ifdef CHRONICLE_EXPANDED
                     if (expanded::BossDeathStep(*this, current_monster)) {
+                    } else if (expanded::ReviveStep(*this, current_monster)) {
                     } else if (script_state[current_monster] == 0) {
 #else
                     if (script_state[current_monster] == 0) {
@@ -2248,6 +2264,9 @@ void CMonstorUnit::Step(int pause) {
                     SoundCheck();
 
                     if (monster[current_monster].state == -1) {
+#ifdef CHRONICLE_EXPANDED
+                        expanded::MinibossDefeated(*this, current_monster);
+#endif
                         CDngStatusData *status = (CDngStatusData *) UserStatus;
                         int             current_chara = UserStatus->cur_chara;
                         int             no_exp;
@@ -2321,6 +2340,9 @@ void CMonstorUnit::Step(int pause) {
                                 if (SetGateKeyStack(monster[current_monster].drop_item) != 0) {
                                     chara[current_monster][0].GetPosition(key_position);
                                     key_position[1] -= monster[current_monster].ground_distance;
+#ifdef CHRONICLE_EXPANDED
+                                    expanded::MinibossDropSet(current_monster, *RandomItem, key_position);
+#endif
                                     RandomItem->Set(key_position, 1, -1, monster[current_monster].drop_item);
                                 }
                             } else {
@@ -2365,6 +2387,9 @@ void CMonstorUnit::Step(int pause) {
 }
 
 void CMonstorUnit::CleanViewMonstor(int back_floor) {
+#ifdef CHRONICLE_EXPANDED
+    expanded::ReviveClear();
+#endif
     for (int i = 0; i < 16; i++) {
         monster[i].state = -1;
         monster[i].stop_timer = 0;

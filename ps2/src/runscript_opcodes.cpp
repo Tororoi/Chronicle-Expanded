@@ -21,6 +21,8 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/faster.hpp"
+#include "expanded/enemies/miniboss.hpp"
+#include "expanded/enemies/revive.hpp"
 #include "expanded/status/confuse.hpp"
 #endif
 
@@ -217,7 +219,11 @@ int _GET_DISTANCE(RS_STACKDATA *stack, int argc) {
         target_position[2] = GetStackFloat(stack++);
     }
 
+#ifdef CHRONICLE_EXPANDED
+    SetStack(stack, expanded::MinibossScriptDistance(monster_no, argc, DistVector(monster_position, target_position)));
+#else
     SetStack(stack, DistVector(monster_position, target_position));
+#endif
     return 1;
 }
 
@@ -644,6 +650,9 @@ int _GET_RAND(RS_STACKDATA *stack, int argc) {
     int bound = GetStackInt(stack++);
 
     int roll = (float) bound * rand() / 2147483648.0f;
+#ifdef CHRONICLE_EXPANDED
+    roll = expanded::ReviveRoll(bound, roll);
+#endif
 
     SetStack(stack, roll);
     return 1;
