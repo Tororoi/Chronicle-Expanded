@@ -1,4 +1,14 @@
 {
     "meswin.system.69": "Confusione",
-    "meswin.system14.69": "Confusione"
+    "meswin.system14.69": "Confusione",
+    "options.page.expanded": "Expanded",
+    "options.page.expanded.help": "\"Expanded\"\nLe modifiche di\nChronicle-Expanded.",
+    "options.expanded.stronger_enemies.label": "Nemici più forti",
+    "options.expanded.stronger_enemies.help": "\"Nemici più forti\"\nI mostri sono forti\ncome una regione\npiù avanti.",
+    "options.expanded.stronger_enemies.choice.0": "Sì",
+    "options.expanded.stronger_enemies.choice.1": "No",
+    "options.expanded.faster_enemies.label": "Nemici più veloci",
+    "options.expanded.faster_enemies.help": "\"Nemici più veloci\"\nI mostri si muovono\ne attaccano al doppio\ndella velocità.",
+    "options.expanded.faster_enemies.choice.0": "Sì",
+    "options.expanded.faster_enemies.choice.1": "No"
 }
