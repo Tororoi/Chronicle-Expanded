@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <memory>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -150,13 +152,14 @@ TEST(EnemyRandomize, TheMimicsKeepTheirIndexes) {
     }
 }
 
-TEST(EnemyRandomize, AMixIsNineKindsWithTheDungeonsMimicsByChance) {
-    std::mt19937  random(7);
+TEST(EnemyRandomize, AMixIsDistinctKindsWithTheDungeonsMimicsByChance) {
+    std::mt19937 &random = expanded::RosterRandom();
     int           mimics = 0, kings = 0;
     constexpr int kRolls = 4000;
     for (int roll = 0; roll < kRolls; roll++) {
         expanded::Roster roster = expanded::RandomMix(kDivineBeastCave, 0, random);
-        ASSERT_EQ(roster.Size(), expanded::kRosterSize);
+        ASSERT_GE(roster.Size(), 1);
+        ASSERT_LE(roster.Size(), expanded::kRosterSize);
         for (int i = 0; i < roster.Size(); i++) {
             int kind = roster.model_no[i];
             ASSERT_EQ(std::count(roster.model_no, roster.model_no + expanded::kRosterSize, kind), 1);
@@ -174,6 +177,69 @@ TEST(EnemyRandomize, AMixIsNineKindsWithTheDungeonsMimicsByChance) {
     }
     EXPECT_NEAR(mimics / static_cast<double>(kRolls), expanded::kMimicChance, 0.03);
     EXPECT_NEAR(kings / static_cast<double>(kRolls), expanded::kKingMimicChance, 0.03);
+}
+
+TEST(EnemyRandomize, TheKindCountWeightsAreTheTable) {
+    // The table as published, in rounded percents; the weights are its exact form.
+    const std::array<double, 9> table = {1.00, 0.14, 0.31, 0.55, 9.61, 13.84, 18.82, 24.59, 31.14};
+    double                      sum = 0.0;
+    for (int i = 0; i < expanded::kRosterSize; i++) {
+        EXPECT_NEAR(expanded::kKindCountWeights[i] * 100.0, table[i], 0.015) << i + 1;
+        sum += expanded::kKindCountWeights[i];
+    }
+    EXPECT_NEAR(sum, 1.0, 1e-12);
+    EXPECT_DOUBLE_EQ(expanded::kKindCountWeights[0], 0.01);
+    EXPECT_DOUBLE_EQ(expanded::kKindCountWeights[1] + expanded::kKindCountWeights[2] + expanded::kKindCountWeights[3], 0.01);
+}
+
+TEST(EnemyRandomize, TheKindCountFollowsTheTable) {
+    constexpr int       kRolls = 200000;
+    std::array<int, 10> seen = {};
+    for (int roll = 0; roll < kRolls; roll++) {
+        seen[expanded::RollKindCount(expanded::kRosterSize, expanded::RosterRandom())]++;
+    }
+    EXPECT_EQ(seen[0], 0);
+    for (int n = 1; n <= expanded::kRosterSize; n++) {
+        EXPECT_NEAR(seen[n] / static_cast<double>(kRolls), expanded::kKindCountWeights[n - 1], 0.004) << n;
+    }
+}
+
+TEST(EnemyRandomize, BothMimicsRescaleTheCountOverOneToSeven) {
+    // Two mimics leave room for seven regular kinds, the weights of one to seven rescaled.
+    double kept = 0.0;
+    for (int n = 1; n <= 7; n++) {
+        kept += expanded::kKindCountWeights[n - 1];
+    }
+    constexpr int       kRolls = 400000;
+    std::array<int, 10> seen = {};
+    int                 both = 0;
+    for (int roll = 0; roll < kRolls; roll++) {
+        expanded::Roster roster = expanded::RandomMix(kDivineBeastCave, 0, expanded::RosterRandom());
+        if (roster.Contains(No(Monster::MIMIC_DBC)) && roster.Contains(No(Monster::KING_MIMIC_DBC))) {
+            both++;
+            seen[roster.Size() - 2]++;
+        }
+    }
+    ASSERT_GT(both, 30000);
+    EXPECT_EQ(seen[8] + seen[9], 0);
+    for (int n = 1; n <= 7; n++) {
+        EXPECT_NEAR(seen[n] / static_cast<double>(both), expanded::kKindCountWeights[n - 1] / kept, 0.008) << n;
+    }
+    EXPECT_EQ(expanded::RollKindCount(0, expanded::RosterRandom()), 0);
+}
+
+TEST(EnemyRandomize, MimicsAreNeverCrowdedOut) {
+    for (unsigned seed = 0; seed < 2000; seed++) {
+        std::mt19937                           random(seed);
+        std::mt19937                           replay(seed);
+        std::uniform_real_distribution<double> chance(0.0, 1.0);
+        bool                                   mimic = chance(replay) < expanded::kMimicChance;
+        bool                                   king = chance(replay) < expanded::kKingMimicChance;
+        expanded::Roster                       roster = expanded::RandomMix(kDivineBeastCave, 0, random);
+        EXPECT_EQ(roster.Contains(No(Monster::MIMIC_DBC)), mimic) << seed;
+        EXPECT_EQ(roster.Contains(No(Monster::KING_MIMIC_DBC)), king) << seed;
+        EXPECT_GE(roster.Size(), 1 + mimic + king) << seed;
+    }
 }
 
 TEST_F(RandomizeFloors, AFloorIsRolledOnceAVisit) {
