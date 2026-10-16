@@ -51,9 +51,13 @@ void StageFloor(int floor, const FloorRosters &rosters);
 // The floor's staged rosters this visit, or null.
 const FloorRosters *StagedFloor(int floor);
 
-// Asked, in the order added, before a floor's monsters first load in a visit, until one stages it.
+// Asked, in the order added (first: ahead of the others), before a floor's monsters first load in a visit,
+// until one stages it.
 using FloorStager = void (*)(int dungeon, int floor);
-void AddFloorStager(FloorStager stager);
+void AddFloorStager(FloorStager stager, bool first = false);
+
+// Dungeon visits begun so far.
+int RosterVisits();
 
 // The roster the floor side loaded last uses, or null for its own layout.
 const Roster *LoadedRoster();
