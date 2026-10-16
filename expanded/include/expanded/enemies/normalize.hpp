@@ -1,5 +1,6 @@
 #pragma once
 
+#include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/scaling.hpp"
 
 namespace expanded {
@@ -20,5 +21,13 @@ int NormalizedStat(int model_no, EnemyStat stat, int region, bool stronger);
 
 // A kind's stats on a floor of region: its native ones for the region's own monsters (unless stronger).
 EnemyStats NormalizedStats(int model_no, int region, bool stronger);
+
+// The same, for a named monster.
+inline int NormalizedStat(Monster monster, EnemyStat stat, int region, bool stronger) {
+    return NormalizedStat(No(monster), stat, region, stronger);
+}
+inline EnemyStats NormalizedStats(Monster monster, int region, bool stronger) {
+    return NormalizedStats(No(monster), region, stronger);
+}
 
 } // namespace expanded
