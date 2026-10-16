@@ -7,7 +7,7 @@ class CMonstorUnit;
 namespace expanded {
 
 // A miniboss's multipliers on its stats; the money it drops is multiplied by kMinibossMoney.
-inline constexpr EnemyScale kMinibossScale = {.hp = 3.0f, .abs = 4.0f, .defense = 1.5f, .hardness = 1.5f, .melee = 1.5f, .shot = 1.5f};
+inline constexpr EnemyScale kMinibossScale = {.hp = 3.0f, .abs = 3.0f, .defense = 1.5f, .hardness = 1.5f, .melee = 1.5f, .shot = 1.5f};
 inline constexpr int        kMinibossMoney = 4;
 
 // Its model and body spheres grow by kMinibossSize, its attack spheres by kMinibossReach (the bigger model lifts
