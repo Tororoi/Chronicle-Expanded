@@ -6,6 +6,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/core/options.hpp"
+#include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/normalize.hpp"
 #include "expanded/enemies/stronger.hpp"
 #include "monstorunit.hpp"
@@ -17,13 +18,9 @@
 namespace {
 
 using expanded::EnemyStat;
+using expanded::Monster;
+using expanded::No;
 using expanded::NormalizedStat;
-
-constexpr int kWerewolf = 4;
-constexpr int kWhiteFangEnhanced = 113;
-constexpr int kMimicDbc = 30;
-constexpr int kMimicDsLast = 163;
-constexpr int kKingMimicDsLast = 164;
 
 } // namespace
 
@@ -37,18 +34,18 @@ TEST(StrongerEnemies, IsAnExpandedToggleOffByDefault) {
 }
 
 TEST(StrongerEnemies, ARegionsOwnMonstersTakeTheNextRegionsStrengthButKeepTheirAbs) {
-    expanded::EnemyStats werewolf = expanded::NormalizedStats(kWerewolf, 1, true);
+    expanded::EnemyStats werewolf = expanded::NormalizedStats(Monster::WEREWOLF, 1, true);
     EXPECT_EQ(werewolf.hp, 493);
     EXPECT_EQ(werewolf.abs, 12);
     // Past Demon Shaft's last band the trend carries on.
-    EXPECT_EQ(NormalizedStat(kWhiteFangEnhanced, EnemyStat::Hp, 10, true), 17313);
+    EXPECT_EQ(NormalizedStat(Monster::WHITE_FANG_ENHANCED, EnemyStat::Hp, 10, true), 17313);
 }
 
 TEST(StrongerEnemies, AMimicIsAtLeastTheNextOne) {
-    EXPECT_EQ(NormalizedStat(kMimicDbc, EnemyStat::Hp, 0, true), 150);
-    EXPECT_EQ(NormalizedStat(kMimicDbc, EnemyStat::Defense, 0, true), 2);
-    EXPECT_EQ(NormalizedStat(kMimicDsLast, EnemyStat::Hp, 10, true), 12000);
-    EXPECT_EQ(NormalizedStat(kKingMimicDsLast, EnemyStat::Hardness, 10, true), 60);
+    EXPECT_EQ(NormalizedStat(Monster::MIMIC_DBC, EnemyStat::Hp, 0, true), 150);
+    EXPECT_EQ(NormalizedStat(Monster::MIMIC_DBC, EnemyStat::Defense, 0, true), 2);
+    EXPECT_EQ(NormalizedStat(Monster::MIMIC_DS_ENHANCED_THRICE, EnemyStat::Hp, 10, true), 12000);
+    EXPECT_EQ(NormalizedStat(Monster::KING_MIMIC_DS_ENHANCED_THRICE, EnemyStat::Hardness, 10, true), 60);
 }
 
 TEST(StrongerEnemies, TheToggleScalesTheFloorsOwnMonsters) {
@@ -67,8 +64,8 @@ TEST(StrongerEnemies, TheToggleScalesTheFloorsOwnMonsters) {
     UserStatus = status.get();
     UserStatus->cur_floor = 4;
     selectMapNo = 1;
-    unit->model[0] = MonstorTable[kWerewolf];
-    expanded::EnemyModelSetUp(*unit, 0, kWerewolf);
+    unit->model[0] = MonstorTable[No(Monster::WEREWOLF)];
+    expanded::EnemyModelSetUp(*unit, 0, No(Monster::WEREWOLF));
     EXPECT_EQ(expanded::SpeciesStats(0).hp, 493);
     EXPECT_EQ(expanded::SpeciesStats(0).abs, 12);
 
