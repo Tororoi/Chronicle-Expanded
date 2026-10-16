@@ -271,7 +271,7 @@ Blessing Gun → Skunk ★
 ## Enemies
 
 - Enemy poison lasts 30 seconds, and each tick's damage scales with the monster's resistance. [#7](https://github.com/Tororoi/Chronicle-Expanded/pull/7)
-- Minibosses: about one monster a floor, back floors included, is a miniboss, half again as big, with four times the life, ABS and money, half again the defense and damage (shots too), and a longer reach. It spots you and attacks from farther away, takes a tenth of the damage of thrown items, and always drops something. One you leave alive is still there when you come back from the back floor, or go back down to it; one you defeat stays gone. [#153](https://github.com/Tororoi/Chronicle-Expanded/pull/153)
+- Minibosses: about one monster a floor, back floors included, is a miniboss, half again as big, with three times the life and four times the ABS and money, half again the defense and damage (shots too), and a longer reach. It spots you and attacks from farther away, takes a tenth of the damage of thrown items, and always drops something. One you leave alive is still there when you come back from the back floor, or go back down to it; one you defeat stays gone. [#153](https://github.com/Tororoi/Chronicle-Expanded/pull/153)
 
 ## Towns
 
