@@ -126,6 +126,7 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/heal.hpp"
@@ -6503,6 +6504,9 @@ void BtCleatFreeMap() {
 }
 
 void BtArrengeMonstor() {
+#ifdef CHRONICLE_EXPANDED
+    expanded::MinibossFloorEntered();
+#endif
     NowMonstorUnit->CleanViewMonstor(BtUraDongeon);
     NowMonstorUnit->ArrangementPos(&MainDungeonMap, 15, -1, 0);
 }
