@@ -207,8 +207,13 @@ TEST(MenuOption, PagesInOrder) {
     for (const options::Page &page : pages) {
         names.push_back(page.name);
     }
+#ifdef CHRONICLE_EXPANDED
+    ASSERT_TRUE((names == std::vector<std::string_view>{"Game", "Display", "Audio", "Controls", "Text", "Accessibility",
+                                                        "Bindings", "Expanded"}));
+#else
     ASSERT_TRUE((names == std::vector<std::string_view>{"Game", "Display", "Audio", "Controls", "Text", "Accessibility",
                                                         "Bindings"}));
+#endif
     ASSERT_TRUE(std::string_view(pages[5].rows[0].key) == "game.qte_always_win");
 }
 
