@@ -1,4 +1,5 @@
 #include "expanded/enemies/normalize.hpp"
+#include "expanded/enemies/monsters.hpp"
 
 #include <algorithm>
 #include <climits>
@@ -24,44 +25,66 @@ constexpr int kBeyond = kEnemyRegions; // past Demon Shaft's last band, for Stro
 
 // Look-alikes (one rig and its reskins), weakest to strongest: none outstrips the next on a floor.
 const std::vector<std::vector<int>> kLookAlikes = {
-    {52, 53, 134, 156},                         // Cave Bat, Evil Bat and their Enhanced
-    {68, 157},                                  // Crescent Baron
-    {1, 0, 117, 122, 144, 155},                 // Skeleton Soldier, Master Jacket(+E), Horn Head, Silver Gear, Gacious (E)
-    {3, 55, 139},                               // Dasher, Rash Dasher(+E)
-    {6, 50},                                    // Hornet, Phantom
-    {7, 116},                                   // Halloween
-    {8, 60, 59, 149},                           // Cannibal Plant, Cursed Rose, Dark Flower, Cursed Rose (E)
-    {9, 58},                                    // Earth Digger, Moon Digger
-    {10, 11, 12, 13, 14, 15, 16, 54},           // Sunday to Saturday, Hell Pockle
-    {18, 17, 126},                              // Witch Illza, Witch Hellza(+E)
-    {20, 64, 137, 151},                         // Gyon, Space Gyon and their Enhanced
-    {21, 150},                                  // Pirate's Chariot
-    {22, 123},                                  // Auntie Medu
-    {23, 140},                                  // Captain
-    {24, 129},                                  // Corcea
-    {25, 95, 94, 56, 28, 57, 115, 127, 135, 161}, // Golem, Sil, Gol, Steel Giant, Titan, Blizzard and Enhanced
-    {27, 62, 118},                              // Dune, Vulcan(+E)
-    {35, 114},                                  // Arthur
-    {36, 45, 160},                              // Ghost, Lich(+E)
-    {37, 145},                                  // Alexander
-    {38, 39, 40, 41, 42, 120, 128, 138, 146, 159}, // Heart, Club, Diamond, Spade, Joker and Enhanced
-    {43, 147},                                  // Bomber Head
-    {44, 119},                                  // Mummy
-    {2, 47, 162},                               // Statue, Living Armor(+E)
-    {4, 48, 113},                               // Werewolf, White Fang(+E)
-    {77, 26, 61},                               // Sam, Mr. Blare, Billy
-    {63, 148},                                  // Crabby Hermit
-    {51, 65, 66},                               // Dragon, Blue Dragon, Black Dragon
-    {111, 121, 132, 143, 154},                  // Gemron Fire, Ice, Thunder, Wind, Holy
-    {67, 136},                                  // Mask of Prajna
-    {69, 124},                                  // Rockanoff
-    {96, 125},                                  // Yammich
-    {97, 158},                                  // Statue Dog
+    {MONSTER_CAVE_BAT, MONSTER_EVIL_BAT, MONSTER_CAVE_BAT_ENHANCED, MONSTER_EVIL_BAT_ENHANCED},
+    {MONSTER_CRESCENT_BARON, MONSTER_CRESCENT_BARON_ENHANCED},
+    {MONSTER_SKELETON_SOLDIER, MONSTER_MASTER_JACKET, MONSTER_MASTER_JACKET_ENHANCED, MONSTER_HORN_HEAD, MONSTER_SILVER_GEAR, MONSTER_GACIOUS_ENHANCED},
+    {MONSTER_DASHER, MONSTER_RASH_DASHER, MONSTER_RASH_DASHER_ENHANCED},
+    {MONSTER_HORNET, MONSTER_PHANTOM},
+    {MONSTER_HALLOWEEN, MONSTER_HALLOWEEN_ENHANCED},
+    {MONSTER_CANNIBAL_PLANT, MONSTER_CURSED_ROSE, MONSTER_DARK_FLOWER, MONSTER_CURSED_ROSE_ENHANCED},
+    {MONSTER_EARTH_DIGGER, MONSTER_MOON_DIGGER},
+    {MONSTER_SUNDAY, MONSTER_MONDAY, MONSTER_TUESDAY, MONSTER_WEDNESDAY, MONSTER_THURSDAY, MONSTER_FRIDAY, MONSTER_SATURDAY, MONSTER_HELL_POCKLE},
+    {MONSTER_WITCH_ILLZA, MONSTER_WITCH_HELLZA, MONSTER_WITCH_HELLZA_ENHANCED},
+    {MONSTER_GYON, MONSTER_SPACE_GYON, MONSTER_GYON_ENHANCED, MONSTER_SPACE_GYON_ENHANCED},
+    {MONSTER_PIRATES_CHARIOT, MONSTER_PIRATES_CHARIOT_ENHANCED},
+    {MONSTER_AUNTIE_MEDU, MONSTER_AUNTIE_MEDU_ENHANCED},
+    {MONSTER_CAPTAIN, MONSTER_CAPTAIN_ENHANCED},
+    {MONSTER_CORCEA, MONSTER_CORCEA_ENHANCED},
+    {MONSTER_GOLEM, MONSTER_SIL, MONSTER_GOL, MONSTER_STEEL_GIANT, MONSTER_TITAN, MONSTER_BLIZZARD, MONSTER_SIL_ENHANCED, MONSTER_STEEL_GIANT_ENHANCED, MONSTER_GOL_ENHANCED, MONSTER_TITAN_ENHANCED},
+    {MONSTER_DUNE, MONSTER_VULCAN, MONSTER_VULCAN_ENHANCED},
+    {MONSTER_ARTHUR, MONSTER_ARTHUR_ENHANCED},
+    {MONSTER_GHOST, MONSTER_LICH, MONSTER_LICH_ENHANCED},
+    {MONSTER_ALEXANDER, MONSTER_ALEXANDER_ENHANCED},
+    {MONSTER_HEART, MONSTER_CLUB, MONSTER_DIAMOND, MONSTER_SPADE, MONSTER_JOKER, MONSTER_DIAMOND_ENHANCED, MONSTER_CLUB_ENHANCED, MONSTER_SPADE_ENHANCED, MONSTER_HEART_ENHANCED, MONSTER_JOKER_ENHANCED},
+    {MONSTER_BOMBER_HEAD, MONSTER_BOMBER_HEAD_ENHANCED},
+    {MONSTER_MUMMY, MONSTER_MUMMY_ENHANCED},
+    {MONSTER_STATUE, MONSTER_LIVING_ARMOR, MONSTER_LIVING_ARMOR_ENHANCED},
+    {MONSTER_WEREWOLF, MONSTER_WHITE_FANG, MONSTER_WHITE_FANG_ENHANCED},
+    {MONSTER_SAM, MONSTER_MR_BLARE, MONSTER_BILLY},
+    {MONSTER_CRABBY_HERMIT, MONSTER_CRABBY_HERMIT_ENHANCED},
+    {MONSTER_DRAGON, MONSTER_BLUE_DRAGON, MONSTER_BLACK_DRAGON},
+    {MONSTER_GEMRON_FIRE, MONSTER_GEMRON_ICE, MONSTER_GEMRON_THUNDER, MONSTER_GEMRON_WIND, MONSTER_GEMRON_HOLY},
+    {MONSTER_MASK_OF_PRAJNA, MONSTER_MASK_OF_PRAJNA_ENHANCED},
+    {MONSTER_ROCKANOFF, MONSTER_ROCKANOFF_ENHANCED},
+    {MONSTER_YAMMICH, MONSTER_YAMMICH_ENHANCED},
+    {MONSTER_STATUE_DOG, MONSTER_STATUE_DOG_ENHANCED},
 };
 
 // The Mimic and the King Mimic, dungeon by dungeon then Demon Shaft's Enhanced, and their stats past the last.
-constexpr int kMimics[] = {30, 71, 73, 32, 34, 75, 130, 141, 152, 163};
-constexpr int kKingMimics[] = {29, 70, 72, 31, 33, 74, 131, 142, 153, 164};
+constexpr int kMimics[] = {
+    MONSTER_MIMIC_DIVINE_BEAST_CAVE,
+    MONSTER_MIMIC_WISE_OWL_FOREST,
+    MONSTER_MIMIC_SHIPWRECK,
+    MONSTER_MIMIC_SUN_AND_MOON_TEMPLE,
+    MONSTER_MIMIC_MOON_SEA,
+    MONSTER_MIMIC_GALLERY_OF_TIME,
+    MONSTER_MIMIC_DEMON_SHAFT,
+    MONSTER_MIMIC_DEMON_SHAFT_ENHANCED,
+    MONSTER_MIMIC_DEMON_SHAFT_ENHANCED_X2,
+    MONSTER_MIMIC_DEMON_SHAFT_ENHANCED_X3,
+};
+constexpr int kKingMimics[] = {
+    MONSTER_KING_MIMIC_DIVINE_BEAST_CAVE,
+    MONSTER_KING_MIMIC_WISE_OWL_FOREST,
+    MONSTER_KING_MIMIC_SHIPWRECK,
+    MONSTER_KING_MIMIC_SUN_AND_MOON_TEMPLE,
+    MONSTER_KING_MIMIC_MOON_SEA,
+    MONSTER_KING_MIMIC_GALLERY_OF_TIME,
+    MONSTER_KING_MIMIC_DEMON_SHAFT,
+    MONSTER_KING_MIMIC_DEMON_SHAFT_ENHANCED,
+    MONSTER_KING_MIMIC_DEMON_SHAFT_ENHANCED_X2,
+    MONSTER_KING_MIMIC_DEMON_SHAFT_ENHANCED_X3,
+};
 constexpr EnemyStats kMimicBeyond = {.hp = 12000, .defense = 40, .hardness = 15, .melee = 140};
 constexpr EnemyStats kKingMimicBeyond = {.hp = 30000, .defense = 40, .hardness = 60, .melee = 180};
 
