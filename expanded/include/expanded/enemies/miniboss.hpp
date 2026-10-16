@@ -31,7 +31,7 @@ inline constexpr float kMinibossWalkSlowdown = 1.3f;
 // Whether the floor's monster is a miniboss.
 bool IsMiniboss(int monster);
 
-// Makes the floor's monster a miniboss, carrying a drop rolled from its dungeon's tables.
+// Makes the floor's monster a miniboss, carrying a drop rolled from its species' loot.
 void MakeMiniboss(CMonstorUnit &unit, int monster);
 
 // Hooks: a new floor's monsters are about to be placed (BtArrengeMonstor), the model slot ArrangementPos picked

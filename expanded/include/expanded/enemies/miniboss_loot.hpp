@@ -1,5 +1,9 @@
 #pragma once
 
+#include <vector>
+
+#include "expanded/enemies/monsters.hpp"
+
 struct WEAPON_HAVE;
 
 namespace expanded {
@@ -20,22 +24,29 @@ struct WeaponBoost {
     int abilities_high = -1;
 };
 
-// A miniboss's drop: an item, and the boost its record takes if it is a boosted weapon.
+// A miniboss's drop: an item, and the boost its record takes if it is a boosted drop.
 struct MinibossDrop {
     int                item = -1;
     const WeaponBoost *boost = nullptr;
 };
 
-// Rolls the drop of a miniboss of a dungeon's floor (UserStatus->cur_floor) by its name (MONSTOR::name_no):
-// its dungeon's rare drop 5% of the time and common drop 30% of the time where it has them, otherwise the
-// back floor's key 35%, else a weapon of the dungeon 15%, else an attachment 80%, else an item.
-MinibossDrop RollMinibossDrop(int dungeon, int floor, int name_no);
+enum class MinibossTier { RARE, COMMON };
+
+// The drops of a species' tier in a dungeon (0-6): those whose gate it has reached. Enhanced species take
+// their base's.
+std::vector<MinibossDrop> MinibossLoot(Monster species, int dungeon, MinibossTier tier);
+
+// Rolls the drop of a species' miniboss on a dungeon's floor (UserStatus->cur_floor): a rare drop 5% of the
+// time, else a common drop 30%, picked among the tier's drops in the dungeon; when none is there, or neither
+// tier rolled, the back floor's key 35%, else a weapon of the dungeon 15%, else an attachment 80%, else an
+// item.
+MinibossDrop RollMinibossDrop(int dungeon, int floor, Monster species);
 
 // Writes the boost into a weapon record.
 void BoostWeapon(WEAPON_HAVE &weapon, const WeaponBoost &boost);
 
 // A defeated miniboss's drop, a new floor, and picking up a dropped item (DunMoveChara: in place of
-// BtGetAttach_Init), which boosts the weapon if one of the floor's minibosses dropped it.
+// BtGetAttach_Init), which boosts the weapon if one of the floor's minibosses dropped it boosted.
 void MinibossDropDropped(const MinibossDrop &drop);
 void MinibossDropsCleared();
 void MinibossDropPickUp(int dungeon, int item_no);

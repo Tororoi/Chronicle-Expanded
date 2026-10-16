@@ -169,7 +169,7 @@ void MakeMiniboss(CMonstorUnit &unit, int monster) {
 
     MONSTOR &live = unit.monster[monster];
     live.money *= kMinibossMoney;
-    drops[monster] = RollMinibossDrop(selectMapNo, UserStatus != nullptr ? UserStatus->cur_floor : 0, live.name_no);
+    drops[monster] = RollMinibossDrop(selectMapNo, UserStatus != nullptr ? UserStatus->cur_floor : 0, static_cast<Monster>(Kind(unit, monster)));
     live.drop_item = drops[monster].item;
     live.money_chance = 100;
     live.drops_items = 1;
