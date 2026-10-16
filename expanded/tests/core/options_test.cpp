@@ -25,12 +25,9 @@ const options::Page *ExpandedPage() {
 
 } // namespace
 
-TEST(ExpandedOptions, NoToggleNoPageNoSection) {
-    ASSERT_TRUE(expanded::Toggles().empty());
-    EXPECT_EQ(ExpandedPage(), nullptr);
-    EXPECT_EQ(ConfigSerialize(Config{}).find("\"expanded\""), std::string::npos);
-    EXPECT_FALSE(expanded::OptionOn("faster_enemies"));
-    EXPECT_EQ(ConfigParse(R"({"expanded": {"faster_enemies": true}})"), Config{});
+TEST(ExpandedOptions, AnUnknownToggleIsOffAndNotKept) {
+    EXPECT_FALSE(expanded::OptionOn("test_missing"));
+    EXPECT_EQ(ConfigParse(R"({"expanded": {"test_missing": true}})"), Config{});
 }
 
 TEST(ExpandedOptions, ToggleRoundTripsThroughConfig) {
@@ -78,8 +75,8 @@ TEST(ExpandedOptions, PageShowsAToggleAsARow) {
     const options::Page *page = ExpandedPage();
     ASSERT_NE(page, nullptr);
     EXPECT_EQ(&options::Pages().back(), page);
-    ASSERT_EQ(page->rows.size(), 1u);
-    const options::Row &row = page->rows[0];
+    ASSERT_EQ(page->rows.size(), expanded::Toggles().size());
+    const options::Row &row = page->rows.back();
     EXPECT_STREQ(row.key, "expanded.test_toggle");
 
     Config config;

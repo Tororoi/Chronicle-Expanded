@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "dun/gameloop.hpp"
+#include "expanded/enemies/stronger.hpp"
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
 
@@ -249,13 +250,13 @@ int PoolValue(int model_no, EnemyStat stat, int region, bool stronger) {
     return value;
 }
 
-// Model slot listener: a kind set up on a floor is normalized for the floor's region.
+// Model slot listener: a kind set up on a floor is normalized for the floor's region, with Stronger Enemies.
 void Normalize(CMonstorUnit &unit, int model_slot, int model_no) {
     int region = UserStatus != nullptr ? EnemyRegion(selectMapNo, UserStatus->cur_floor) : -1;
     if (region < 0) {
         return;
     }
-    EnemyStats stats = NormalizedStats(model_no, region, false);
+    EnemyStats stats = NormalizedStats(model_no, region, StrongerEnemies());
     if (!(stats == NativeStats(model_no))) {
         SetSpeciesStats(unit, model_slot, stats);
     }
