@@ -1,8 +1,10 @@
 #pragma once
 
+#include <optional>
 #include <random>
 #include <span>
 
+#include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/roster.hpp"
 
 namespace expanded {
@@ -17,15 +19,16 @@ inline constexpr double kKingMimicChance = 0.28;
 
 // The kinds a random mix draws from: every regular monster but the mimics. A kind standing in for another
 // (Gacious (Enhanced) for the boss-record Gacious) is listed twice, so it keeps both chances.
-std::span<const int> RandomizerPool();
+std::span<const Monster> RandomizerPool();
 
-// The mimic and king mimic of a dungeon's floor: the dungeon's own, in Demon Shaft its band's.
+// The mimic and king mimic of a dungeon's floor: the dungeon's own, in Demon Shaft its band's; none off the
+// dungeons.
 struct DungeonMimics {
-    int mimic;
-    int king;
+    Monster mimic;
+    Monster king;
 };
 
-DungeonMimics MimicsOf(int dungeon, int floor);
+std::optional<DungeonMimics> MimicsOf(int dungeon, int floor);
 
 // Whether the randomizer stages a floor: any but the boss and event floors.
 bool RandomizedFloor(int dungeon, int floor);
