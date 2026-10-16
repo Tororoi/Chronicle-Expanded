@@ -6,6 +6,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/miniboss_loot.hpp"
+#include "expanded/enemies/monsters.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 
@@ -106,8 +107,8 @@ TEST_F(MinibossLoot, BoostWritesItsStatsAndAbilityBytes) {
 TEST_F(MinibossLoot, AMinibossCarriesItsDrop) {
     selectMapNo = DUNGEON_DIVINE_BEAST_CAVE;
     auto unit = std::make_unique<CMonstorUnit>();
-    unit->model[0] = MonstorTable[0];
-    expanded::EnemyModelSetUp(*unit, 0, 0);
+    unit->model[0] = MonstorTable[expanded::No(expanded::Monster::MASTER_JACKET)];
+    expanded::EnemyModelSetUp(*unit, 0, expanded::No(expanded::Monster::MASTER_JACKET));
     MONSTOR &jacket = unit->monster[0];
     jacket.state = 2;
     jacket.base_model = 0;
