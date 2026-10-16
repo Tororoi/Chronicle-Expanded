@@ -276,6 +276,7 @@ Blessing Gun → Skunk ★
 - Monsters met outside their home dungeon on a randomized floor cry, attack and die with their own sounds instead of in silence. [#159](https://github.com/Tororoi/Chronicle-Expanded/pull/159)
 - Steve comments on every monster of a randomized floor, including ones from other dungeons, with his own lines about them. [#160](https://github.com/Tororoi/Chronicle-Expanded/pull/160)
 - Enemy poison lasts 30 seconds, and each tick's damage scales with the monster's resistance. [#7](https://github.com/Tororoi/Chronicle-Expanded/pull/7)
+- New Faster Enemies option (Options, Expanded page): monsters move and act twice as fast. Each attack still slows to its normal speed for the moment it can hit, so its blows land as before. [#151](https://github.com/Tororoi/Chronicle-Expanded/pull/151)
 
 ## Towns
 
