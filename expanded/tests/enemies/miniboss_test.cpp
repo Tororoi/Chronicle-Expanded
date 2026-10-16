@@ -4,16 +4,15 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/miniboss.hpp"
+#include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 
 namespace {
 
-constexpr int kSkeletonSoldier = 1;
-constexpr int kWerewolf = 4;
-constexpr int kCannibalPlant = 8;
-constexpr int kCaveBat = 52;
+using expanded::Monster;
+using expanded::No;
 
 int g_rolls = 0;
 int g_last_eligible = 0;
@@ -38,10 +37,10 @@ protected:
         for (MONSTOR &monster : unit->monster) {
             monster.state = -1;
         }
-        SetUpModel(0, kSkeletonSoldier);
-        SetUpModel(1, kWerewolf);
-        SetUpModel(2, kCannibalPlant);
-        SetUpModel(3, kCaveBat);
+        SetUpModel(0, Monster::SKELETON_SOLDIER);
+        SetUpModel(1, Monster::WEREWOLF);
+        SetUpModel(2, Monster::CANNIBAL_PLANT);
+        SetUpModel(3, Monster::CAVE_BAT);
     }
 
     void TearDown() override {
@@ -50,9 +49,9 @@ protected:
     }
 
     // SetupBaseModel's part: the kind's record in the model slot.
-    void SetUpModel(int model_slot, int model_no) {
-        unit->model[model_slot] = MonstorTable[model_no];
-        expanded::EnemyModelSetUp(*unit, model_slot, model_no);
+    void SetUpModel(int model_slot, Monster monster) {
+        unit->model[model_slot] = MonstorTable[No(monster)];
+        expanded::EnemyModelSetUp(*unit, model_slot, No(monster));
     }
 
     // SetupViewMonstor's part: the record on the monster.
@@ -146,7 +145,7 @@ TEST_F(Miniboss, GrowsItsStatsBodyAndReach) {
     ASSERT_TRUE(expanded::IsMiniboss(1));
 
     const MONSTOR       &werewolf = unit->monster[1];
-    const MONSTOR_MODEL &model = MonstorTable[kWerewolf];
+    const MONSTOR_MODEL &model = MonstorTable[No(Monster::WEREWOLF)];
     EXPECT_EQ(werewolf.max_hp, model.max_hp * 3);
     EXPECT_EQ(werewolf.hp, model.max_hp * 3);
     EXPECT_EQ(werewolf.exp, model.exp * 4);
@@ -159,7 +158,7 @@ TEST_F(Miniboss, GrowsItsStatsBodyAndReach) {
     EXPECT_FLOAT_EQ(unit->chara[1][0].scale[1], 1.5f);
     EXPECT_EQ(expanded::EnemyMeleeDamage(1, 100), 150);
 
-    EXPECT_EQ(unit->monster[0].max_hp, MonstorTable[kSkeletonSoldier].max_hp);
+    EXPECT_EQ(unit->monster[0].max_hp, MonstorTable[No(Monster::SKELETON_SOLDIER)].max_hp);
     EXPECT_FLOAT_EQ(unit->chara[0][0].scale[1], 1.0f);
 }
 
