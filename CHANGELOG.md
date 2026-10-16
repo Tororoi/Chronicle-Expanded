@@ -275,6 +275,7 @@ Blessing Gun → Skunk ★
 - New Randomize Enemies option (Options, Expanded page): each time you enter a dungeon, every floor but the boss and event floors gets nine kinds of monster drawn from the whole game, front and back floor alike, often with the dungeon's own mimic and king mimic among them. A floor keeps its monsters until you leave the dungeon. [#155](https://github.com/Tororoi/Chronicle-Expanded/pull/155)
 - With Randomize Enemies on, half the floors are a themed group instead of a random mix: cards, days of the week, dragons, pirates, undead, an element, a Demon Shaft band and more (a band most often in Demon Shaft itself). The group either fills the floor, or each of its monsters appears once among the dungeon's mimics or its own monsters. [#158](https://github.com/Tororoi/Chronicle-Expanded/pull/158)
 - Enemy poison lasts 30 seconds, and each tick's damage scales with the monster's resistance. [#7](https://github.com/Tororoi/Chronicle-Expanded/pull/7)
+- New Faster Enemies option (Options, Expanded page): monsters move and act twice as fast. Each attack still slows to its normal speed for the moment it can hit, so its blows land as before. [#151](https://github.com/Tororoi/Chronicle-Expanded/pull/151)
 
 ## Towns
 
