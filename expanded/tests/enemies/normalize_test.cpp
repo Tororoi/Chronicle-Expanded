@@ -52,8 +52,8 @@ TEST(EnemyNormalize, AnEarlierMonsterIsLiftedToTheAverageAndKeepsItsOrder) {
 }
 
 TEST(EnemyNormalize, MimicsAndBossesKeepTheirStats) {
-    EXPECT_EQ(expanded::NormalizedStats(MONSTER_MIMIC_DIVINE_BEAST_CAVE, 5, false), expanded::NativeStats(MONSTER_MIMIC_DIVINE_BEAST_CAVE));
-    EXPECT_EQ(NormalizedStat(MONSTER_MIMIC_DIVINE_BEAST_CAVE, EnemyStat::Hp, 5, false), 68);
+    EXPECT_EQ(expanded::NormalizedStats(MONSTER_MIMIC_DBC, 5, false), expanded::NativeStats(MONSTER_MIMIC_DBC));
+    EXPECT_EQ(NormalizedStat(MONSTER_MIMIC_DBC, EnemyStat::Hp, 5, false), 68);
     EXPECT_EQ(expanded::NormalizedStats(MONSTER_DRAN, 0, false), expanded::NativeStats(MONSTER_DRAN));
 }
 
