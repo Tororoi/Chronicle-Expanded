@@ -10,5 +10,9 @@
     "options.expanded.faster_enemies.label": "Enemigos rápidos",
     "options.expanded.faster_enemies.help": "\"Enemigos rápidos\"\nLos monstruos se\nmueven y atacan el\ndoble de rápido.",
     "options.expanded.faster_enemies.choice.0": "Sí",
-    "options.expanded.faster_enemies.choice.1": "No"
+    "options.expanded.faster_enemies.choice.1": "No",
+    "options.expanded.harder_enemy_ai.label": "IA enemiga difícil",
+    "options.expanded.harder_enemy_ai.help": "\"IA enemiga difícil\"\nLos monstruos caídos\npueden levantarse.",
+    "options.expanded.harder_enemy_ai.choice.0": "Sí",
+    "options.expanded.harder_enemy_ai.choice.1": "No"
 }
