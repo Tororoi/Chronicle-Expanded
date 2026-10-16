@@ -107,14 +107,19 @@ bool Chance(std::mt19937 &random, double chance) {
     return std::uniform_real_distribution<double>(0.0, 1.0)(random) < chance;
 }
 
-// The repeatable monsters that backfill a theme's one-of-each: the mimics or the natives, by chance.
-std::vector<Monster> Fillers(int dungeon, const DungeonMimics &mimics, std::mt19937 &random) {
+// The repeatable monsters that may backfill a theme's one-of-each: the mimics alone, or the mimics then the
+// dungeon's natives shuffled, by chance.
+std::vector<Monster> Fillers(int dungeon, const DungeonMimics &mimics, std::mt19937 &random, ThemeOutcome::Fill &fill) {
+    std::vector<Monster> fillers = {mimics.mimic, mimics.king};
     if (Chance(random, kThemeMimicFillChance)) {
-        return {mimics.mimic, mimics.king};
+        fill = ThemeOutcome::Fill::Mimics;
+        return fillers;
     }
+    fill = ThemeOutcome::Fill::MimicsAndNatives;
     std::vector<Monster> natives = DungeonNatives(dungeon);
     std::shuffle(natives.begin(), natives.end(), random);
-    return natives;
+    fillers.insert(fillers.end(), natives.begin(), natives.end());
+    return fillers;
 }
 
 // Adds a kind, or finds it there already; false once the roster is full.
@@ -142,7 +147,7 @@ double ThemeWeight(const Theme &theme, int dungeon) {
     return theme.weight * (dungeon == theme.home ? pull * kHomeBoost : pull);
 }
 
-Roster ThemedRoster(int dungeon, int floor, std::mt19937 &random, std::string_view *name) {
+Roster ThemedRoster(int dungeon, int floor, std::mt19937 &random, ThemeOutcome *outcome) {
     std::optional<DungeonMimics> dungeon_mimics = MimicsOf(dungeon, floor);
     if (!dungeon_mimics) {
         return {};
@@ -166,9 +171,8 @@ Roster ThemedRoster(int dungeon, int floor, std::mt19937 &random, std::string_vi
 
     std::vector<Monster> members = theme != nullptr ? theme->members : std::vector<Monster>{mimics.mimic, mimics.king};
     std::shuffle(members.begin(), members.end(), random);
-    if (name != nullptr) {
-        *name = theme != nullptr ? theme->name : "Mimics";
-    }
+    ThemeOutcome result;
+    result.name = theme != nullptr ? theme->name : "Mimics";
     auto single = [&](Monster kind) {
         return theme != nullptr && std::find(theme->single.begin(), theme->single.end(), kind) != theme->single.end();
     };
@@ -184,7 +188,8 @@ Roster ThemedRoster(int dungeon, int floor, std::mt19937 &random, std::string_vi
             Place(roster, mimics.mimic, false);
             Place(roster, mimics.king, false);
         } else if (theme != nullptr && Chance(random, kThemeCapOneChance)) {
-            for (Monster kind : Fillers(dungeon, mimics, random)) {
+            ThemeOutcome::Fill fill;
+            for (Monster kind : Fillers(dungeon, mimics, random, fill)) {
                 if (!roster.Contains(kind) && roster.Add(kind, false)) {
                     capped = true;
                 }
@@ -201,19 +206,26 @@ Roster ThemedRoster(int dungeon, int floor, std::mt19937 &random, std::string_vi
             Place(roster, kind, single(kind));
         }
     } else {
-        // One of each, over a repeatable filler placed first so the floor fills.
-        std::vector<Monster> fillers = Fillers(dungeon, mimics, random);
-        roster.Add(fillers.front(), false);
+        // One of each, leaving room for a rolled number of fillers, the mimic first so the floor fills.
+        std::vector<Monster> fillers = Fillers(dungeon, mimics, random, result.fill);
+        std::erase_if(fillers, [&](Monster kind) { return std::find(members.begin(), members.end(), kind) != members.end(); });
         for (Monster kind : members) {
-            Place(roster, kind, true);
+            if (roster.Size() < kRosterSize - 1) {
+                Place(roster, kind, true);
+            }
         }
-        for (Monster kind : fillers) {
-            Place(roster, kind, false);
+        int room = std::min(kRosterSize - roster.Size(), static_cast<int>(fillers.size()));
+        result.fillers = RollKindCount(room, random);
+        for (int i = 0; i < result.fillers; i++) {
+            roster.Add(fillers[i], false);
         }
     }
     // A king mimic spawns once, but for the dungeon's Mimics.
     if (theme != nullptr) {
         roster.SetOnce(mimics.king, true);
+    }
+    if (outcome != nullptr) {
+        *outcome = result;
     }
     return roster;
 }

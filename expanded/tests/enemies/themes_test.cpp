@@ -171,8 +171,9 @@ TEST(EnemyThemes, ARosterFillsTheFloorWithItsGroup) {
     for (int dungeon : {kDivineBeastCave, 3, kDemonShaft}) {
         for (int roll = 0; roll < 3000; roll++) {
             int                     floor = dungeon == kDemonShaft ? 85 : 5;
-            std::string_view        name;
-            expanded::Roster        roster = expanded::ThemedRoster(dungeon, floor, random, &name);
+            expanded::ThemeOutcome  outcome;
+            expanded::Roster        roster = expanded::ThemedRoster(dungeon, floor, random, &outcome);
+            std::string_view        name = outcome.name;
             expanded::DungeonMimics mimics = *expanded::MimicsOf(dungeon, floor);
             const expanded::Theme  &theme = Named(name);
             seen[std::string(name) + "@" + std::to_string(dungeon)]++;
@@ -206,4 +207,55 @@ TEST(EnemyThemes, ARosterFillsTheFloorWithItsGroup) {
     // Demon Shaft's own bands turn up most there.
     EXPECT_GT(seen["Demon Shaft: Holy@6"], 4 * seen["Demon Shaft: Holy@0"]);
     EXPECT_GT(seen["Mimics@0"], 0);
+}
+
+TEST(EnemyThemes, OneOfEachFillersKeepToTheirCaps) {
+    using Fill = expanded::ThemeOutcome::Fill;
+    std::map<Fill, int> sources;
+    int                 mimics_only_one = 0, mimics_only_roomy = 0;
+    for (int dungeon : {kDivineBeastCave, 3, kDemonShaft}) {
+        int                     floor = dungeon == kDemonShaft ? 85 : 5;
+        expanded::DungeonMimics mimics = *expanded::MimicsOf(dungeon, floor);
+        for (int roll = 0; roll < 20000; roll++) {
+            expanded::ThemeOutcome outcome;
+            expanded::Roster       roster = expanded::ThemedRoster(dungeon, floor, expanded::RosterRandom(), &outcome);
+            if (outcome.fill == Fill::None) {
+                EXPECT_EQ(outcome.fillers, 0);
+                continue;
+            }
+            sources[outcome.fill]++;
+            const expanded::Theme &theme = Named(outcome.name);
+            int                    members = roster.Size() - outcome.fillers;
+            ASSERT_GE(outcome.fillers, 1) << outcome.name;
+            ASSERT_GE(members, 1) << outcome.name;
+            // The members once each, then the fillers: the mimic first, repeatable.
+            for (int i = 0; i < members; i++) {
+                EXPECT_TRUE(Contains(theme.members, static_cast<Monster>(roster.model_no[i]))) << outcome.name;
+                EXPECT_TRUE(roster.once[i]) << outcome.name;
+            }
+            EXPECT_EQ(roster.model_no[members], No(mimics.mimic));
+            EXPECT_FALSE(roster.once[members]);
+            if (int king = Find(roster, mimics.king); king >= 0) {
+                EXPECT_TRUE(roster.once[king]);
+            }
+            if (outcome.fill == Fill::Mimics) {
+                EXPECT_LE(outcome.fillers, 2);
+                if (members <= expanded::kRosterSize - 2) {
+                    mimics_only_roomy++;
+                    mimics_only_one += outcome.fillers == 1;
+                }
+            } else {
+                for (int i = members + 2; i < roster.Size(); i++) {
+                    EXPECT_TRUE(Contains(expanded::DungeonNatives(dungeon), static_cast<Monster>(roster.model_no[i])));
+                }
+            }
+        }
+    }
+    // Half the backfills are the mimics alone.
+    int filled = sources[Fill::Mimics] + sources[Fill::MimicsAndNatives];
+    ASSERT_GT(filled, 2000);
+    EXPECT_NEAR(sources[Fill::Mimics] / static_cast<double>(filled), expanded::kThemeMimicFillChance, 0.03);
+    // The mimics alone are one or two kinds, by the first two weights rescaled.
+    double one = expanded::kKindCountWeights[0] / (expanded::kKindCountWeights[0] + expanded::kKindCountWeights[1]);
+    EXPECT_NEAR(mimics_only_one / static_cast<double>(mimics_only_roomy), one, 0.03);
 }

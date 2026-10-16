@@ -11,7 +11,8 @@
 namespace expanded {
 
 // The chance a randomized floor is a themed group, and within a theme the chances its members spawn once
-// each (backfilled with repeatable monsters) and that the backfill is the mimics rather than the natives.
+// each (backfilled with repeatable monsters) and that the backfill is the mimics alone rather than the mimics
+// and the dungeon's natives.
 inline constexpr double kThemeChance = 0.50;
 inline constexpr double kThemeCapOneChance = 0.50;
 inline constexpr double kThemeMimicFillChance = 0.50;
@@ -37,9 +38,23 @@ const std::vector<Monster> &DungeonNatives(int dungeon);
 // times 4 there.
 double ThemeWeight(const Theme &theme, int dungeon);
 
-// A themed roster for a dungeon's floor, both its sides, and the theme's name ("Mimics" for the dungeon's
-// own pair). Its members fill the floor, or spawn once each over repeatable mimics or natives. Empty off the
-// dungeons.
-Roster ThemedRoster(int dungeon, int floor, std::mt19937 &random, std::string_view *name = nullptr);
+// How a themed roster came out: the theme ("Mimics" for the dungeon's own pair) and, on a one-of-each floor,
+// the fillers' source and how many joined.
+struct ThemeOutcome {
+    enum class Fill {
+        None,
+        Mimics,
+        MimicsAndNatives
+    };
+
+    std::string_view name;
+    Fill             fill = Fill::None;
+    int              fillers = 0;
+};
+
+// A themed roster for a dungeon's floor, both its sides. Its members fill the floor, or spawn once each over a
+// rolled number (kKindCountWeights) of fillers: the mimic and king mimic, or those then the dungeon's natives.
+// Empty off the dungeons.
+Roster ThemedRoster(int dungeon, int floor, std::mt19937 &random, ThemeOutcome *outcome = nullptr);
 
 } // namespace expanded
