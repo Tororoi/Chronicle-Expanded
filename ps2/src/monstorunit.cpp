@@ -2333,6 +2333,9 @@ void CMonstorUnit::Step(int pause) {
                                 if (SetGateKeyStack(monster[current_monster].drop_item) != 0) {
                                     chara[current_monster][0].GetPosition(key_position);
                                     key_position[1] -= monster[current_monster].ground_distance;
+#ifdef CHRONICLE_EXPANDED
+                                    expanded::MinibossDropSet(current_monster, *RandomItem, key_position);
+#endif
                                     RandomItem->Set(key_position, 1, -1, monster[current_monster].drop_item);
                                 }
                             } else {
