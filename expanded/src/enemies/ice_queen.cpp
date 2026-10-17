@@ -5,10 +5,10 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
-#include "itemdata.hpp"
 #include "mathutil.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -97,16 +97,15 @@ constexpr int kMeteorHitSound = 1774;
 constexpr int kTornadoSounds[] = {1767, 1766};
 
 struct Fight {
-    int queen = -1;
-    int barrier = -1;
-    int mailbox[kIceQueenMailbox] = {};
-    int effect[kEffects] = {-1, -1, -1, -1, -1};
-    int arrow = -1;
-    int arrow_landed = 0;
-    int prison = -1;
-    int meteor = -1;
-    int aura = -1;
-    int tornado[kTornadoes] = {-1, -1, -1};
+    int  queen = -1;
+    int *mailbox = nullptr;
+    int  effect[kEffects] = {-1, -1, -1, -1, -1};
+    int  arrow = -1;
+    int  arrow_landed = 0;
+    int  prison = -1;
+    int  meteor = -1;
+    int  aura = -1;
+    int  tornado[kTornadoes] = {-1, -1, -1};
 };
 
 Fight fight;
@@ -421,8 +420,11 @@ void StepTornadoes() {
     }
 }
 
-bool Valid(const CMonstorUnit &unit) {
-    return Here(unit, fight.queen, Monster::ICE_QUEEN) && BossOutOfPlace(fight.queen);
+// Her monster and her cast's mailbox this step, or false when she is not fighting off her floor.
+bool Fighting(const CMonstorUnit &unit) {
+    fight.queen = BossCastMonster(Monster::ICE_QUEEN);
+    fight.mailbox = BossCastMailbox(Monster::ICE_QUEEN);
+    return Here(unit, fight.queen, Monster::ICE_QUEEN) && BossOutOfPlace(fight.queen) && unit.monster[fight.queen].hp > 0;
 }
 
 void OnModel(CMonstorUnit &, int model_slot, int model_no) {
@@ -437,66 +439,13 @@ void OnModel(CMonstorUnit &, int model_slot, int model_no) {
     }
 }
 
-void OnSpawn(CMonstorUnit &unit, int monster) {
-    int           kind = ModelKind(unit.monster[monster].base_model);
-    const Roster *roster = LoadedRoster();
-    if (roster == nullptr || !roster->Contains(Monster::ICE_QUEEN)) {
-        return;
-    }
-    if (kind == No(Monster::ICE_QUEEN)) {
-        fight.queen = monster;
-        for (int &mail : fight.mailbox) {
-            mail = 0;
-        }
-    } else if (kind == No(Monster::ICE_BARRIER)) {
-        fight.barrier = monster;
-    }
-}
-
-[[maybe_unused]] const bool kListening = (AddEnemyModelListener(OnModel), AddEnemySpawnListener(OnSpawn), true);
+[[maybe_unused]] const bool kListening = (AddEnemyModelListener(OnModel), true);
 
 } // namespace
 
-void IceQueenRoster(Roster &roster) {
-    if (!roster.Contains(Monster::ICE_QUEEN)) {
-        return;
-    }
-    bool ruby = UserStatus != nullptr && UserStatus->party_size > CHARA_RUBY;
-    if (!ruby || !(roster.Contains(Monster::ICE_BARRIER) || roster.Add(Monster::ICE_BARRIER, true))) {
-        roster.Remove(Monster::ICE_QUEEN);
-        return;
-    }
-    roster.SetOnce(Monster::ICE_BARRIER, true);
-}
-
-int IceQueenMonster() {
-    return fight.queen;
-}
-
-int *IceQueenGlobals(int monster, int *globals) {
-    if (fight.queen < 0 || (monster != fight.queen && monster != fight.barrier)) {
-        return globals;
-    }
-    return fight.mailbox;
-}
-
-int IceQueenMonsterRef(int monster, int target) {
-    return monster == fight.barrier && fight.barrier >= 0 && target == 0 && fight.queen >= 0 ? fight.queen : target;
-}
-
-bool IceQueenCountsKill(int monster) {
-    return monster != fight.barrier || fight.barrier < 0;
-}
-
 void IceQueenStep(CMonstorUnit &unit) {
-    if (!Valid(unit) || unit.monster[fight.queen].hp <= 0) {
+    if (!Fighting(unit)) {
         return;
-    }
-    // A dormant barrier waits at her side, to wake with her; awake, it keeps itself there.
-    if (Here(unit, fight.barrier, Monster::ICE_BARRIER) && unit.monster[fight.barrier].state == 1) {
-        float queen[4];
-        unit.chara[fight.queen][0].GetPosition(queen);
-        unit.chara[fight.barrier][0].SetPosition(queen[0], queen[1] + kChest, queen[2]);
     }
     StepArrow(unit);
     StepPrison();
@@ -506,19 +455,13 @@ void IceQueenStep(CMonstorUnit &unit) {
     PaceMotions();
 }
 
-void IceQueenDefeated(CMonstorUnit &unit) {
+void IceQueenDefeated() {
     for (int which = 0; which < kEffects; which++) {
         if (CSHOT_EFFECT *effect = EffectOf(static_cast<Effect>(which))) {
             effect->OffEffect(-1);
         }
     }
-    if (Here(unit, fight.barrier, Monster::ICE_BARRIER)) {
-        unit.monster[fight.barrier].state = -1;
-        unit.alive_count--;
-    }
-    int   queen = fight.queen;
     Fight cleared;
-    cleared.queen = queen;
     for (int which = 0; which < kEffects; which++) {
         cleared.effect[which] = fight.effect[which];
     }

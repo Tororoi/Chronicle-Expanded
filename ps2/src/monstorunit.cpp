@@ -40,9 +40,9 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/faster.hpp"
-#include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -804,7 +804,11 @@ void CMonstorUnit::DrawMonstor() {
                 }
             }
 
+#ifdef CHRONICLE_EXPANDED
+            if (expanded::BossSmokes(i, monster[i].base_model)) {
+#else
             if (UserStatus->cur_georama == 3 && UserStatus->cur_floor == 17 && i == 1) {
+#endif
                 DrawBee(chara[i][0].frame, 15);
             }
 
@@ -1230,7 +1234,7 @@ int CMonstorUnit::CheckDmg() {
                 monster[current_monster].hp = 0;
                 result = MONSTER_DMG_KILLED;
 #ifdef CHRONICLE_EXPANDED
-                if (expanded::IceQueenCountsKill(current_monster)) {
+                if (expanded::BossCastCountsKill(current_monster)) {
                     alive_count--;
                     ((CDngStatusData *) UserStatus)->AddKills();
                 }
@@ -1668,7 +1672,7 @@ int CMonstorUnit::CheckDmg() {
                         monster[current_monster].hp = 0;
                         result = MONSTER_DMG_KILLED;
 #ifdef CHRONICLE_EXPANDED
-                        if (expanded::IceQueenCountsKill(current_monster)) {
+                        if (expanded::BossCastCountsKill(current_monster)) {
                             alive_count--;
                             ((CDngStatusData *) UserStatus)->AddKills();
                         }
@@ -2587,9 +2591,15 @@ int CMonstorUnit::SetupViewMonstor(int model_no, float *position, int event_flag
     chara[current_monster][0].SetPosition(position);
     chara[current_monster][0].SetRotation(0.0f, 0.0f, 0.0f);
 
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::BossSmokes(current_monster, model_no)) {
+        InitBee(chara[current_monster][0].frame, 15);
+    }
+#else
     if (UserStatus->cur_georama == 3 && UserStatus->cur_floor == 17 && current_monster == 1) {
         InitBee(chara[1][0].frame, 15);
     }
+#endif
 
     monster[current_monster].attachment_count = 0;
 

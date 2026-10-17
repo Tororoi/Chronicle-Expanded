@@ -5,8 +5,8 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/bosses.hpp"
-#include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
@@ -28,14 +28,14 @@ bool FakeLoad(CSHOT_EFFECT &effect, CDataAlloc2<1> &, BT_SHOT_EFFECT *descriptio
     return true;
 }
 
-// A Divine Beast Cave floor laid out by a staged roster, or by its own, with Ruby in the party or not.
-class IceQueen : public ::testing::Test {
+// A Divine Beast Cave floor laid out by a staged roster, or by its own, with Ruby and Ungaga in the party or not.
+class BossCasts : public ::testing::Test {
 protected:
     void SetUp() override {
         saved_status_ = UserStatus;
         saved_map_ = selectMapNo;
         UserStatus = status_.get();
-        UserStatus->party_size = CHARA_RUBY + 1;
+        UserStatus->party_size = CHARA_UNGAGA + 1;
         expanded::SetShotEffectLoader(FakeLoad);
         expanded::ShotEffectsClear();
         expanded::RosterVisitBegun();
@@ -90,7 +90,7 @@ protected:
 
 } // namespace
 
-TEST_F(IceQueen, ComesOnlyWithRubyInThePartyAndBringsHerBarrier) {
+TEST_F(BossCasts, ComesOnlyWithRubyInThePartyAndBringsHerBarrier) {
     UserStatus->party_size = CHARA_RUBY;
     const expanded::Roster &without = LoadFloor(true, {Monster::ICE_QUEEN, Monster::CAVE_BAT});
     EXPECT_FALSE(without.Contains(Monster::ICE_QUEEN));
@@ -106,51 +106,52 @@ TEST_F(IceQueen, ComesOnlyWithRubyInThePartyAndBringsHerBarrier) {
     EXPECT_TRUE(with.once[2]);
 }
 
-TEST_F(IceQueen, StaysAwayWhenTheRosterHasNoRoomForHerBarrier) {
+TEST_F(BossCasts, StaysAwayWhenTheRosterHasNoRoomForHerBarrier) {
     expanded::Roster full;
     for (Monster kind : {Monster::ICE_QUEEN, Monster::CAVE_BAT, Monster::WEREWOLF, Monster::HORNET, Monster::MASTER_JACKET,
                          Monster::DRAGON, Monster::GHOST, Monster::SKELETON_SOLDIER, Monster::STATUE}) {
         full.Add(kind, false);
     }
-    expanded::IceQueenRoster(full);
+    expanded::BossCastRoster(full);
     EXPECT_FALSE(full.Contains(Monster::ICE_QUEEN));
     EXPECT_EQ(full.Size(), expanded::kRosterSize - 1);
     EXPECT_EQ(full.model_no[0], No(Monster::CAVE_BAT));
 }
 
-TEST_F(IceQueen, HerScriptAndHerBarriersTalkThroughTheirOwnMailbox) {
+TEST_F(BossCasts, HerScriptAndHerBarriersTalkThroughTheirOwnMailbox) {
     LoadFloor(true, {Monster::CAVE_BAT, Monster::ICE_QUEEN});
     Spawn(0, 0);
     Spawn(4, 1);
     Spawn(7, 2);
-    EXPECT_EQ(expanded::IceQueenMonster(), 4);
-    int *mailbox = expanded::IceQueenGlobals(4, GL_INT);
+    EXPECT_EQ(expanded::BossCastMonster(Monster::ICE_QUEEN), 4);
+    EXPECT_EQ(expanded::BossCastMonster(Monster::ICE_BARRIER), 7);
+    int *mailbox = expanded::BossCastGlobals(4, GL_INT);
     EXPECT_NE(mailbox, GL_INT);
-    EXPECT_EQ(expanded::IceQueenGlobals(7, GL_INT), mailbox);
-    EXPECT_EQ(expanded::IceQueenGlobals(0, GL_INT), GL_INT);
+    EXPECT_EQ(expanded::BossCastGlobals(7, GL_INT), mailbox);
+    EXPECT_EQ(expanded::BossCastGlobals(0, GL_INT), GL_INT);
 
-    // Her barrier's monster 0 is her; anyone else's is monster 0.
-    EXPECT_EQ(expanded::IceQueenMonsterRef(7, 0), 4);
-    EXPECT_EQ(expanded::IceQueenMonsterRef(7, 3), 3);
-    EXPECT_EQ(expanded::IceQueenMonsterRef(4, 0), 0);
-    EXPECT_EQ(expanded::IceQueenMonsterRef(0, 0), 0);
+    // In her cast's scripts monster 0 is her and 1 her barrier; anyone else's are the floor's.
+    EXPECT_EQ(expanded::BossCastMonsterRef(7, 0), 4);
+    EXPECT_EQ(expanded::BossCastMonsterRef(4, 1), 7);
+    EXPECT_EQ(expanded::BossCastMonsterRef(7, 3), 3);
+    EXPECT_EQ(expanded::BossCastMonsterRef(0, 0), 0);
 
     // Breaking her barrier is not a kill.
-    EXPECT_FALSE(expanded::IceQueenCountsKill(7));
-    EXPECT_TRUE(expanded::IceQueenCountsKill(4));
-    EXPECT_TRUE(expanded::IceQueenCountsKill(0));
+    EXPECT_FALSE(expanded::BossCastCountsKill(7));
+    EXPECT_TRUE(expanded::BossCastCountsKill(4));
+    EXPECT_TRUE(expanded::BossCastCountsKill(0));
 }
 
-TEST_F(IceQueen, OnHerOwnFloorHerScriptUsesTheGlobals) {
+TEST_F(BossCasts, OnHerOwnFloorHerScriptUsesTheGlobals) {
     LoadFloor(false, {});
     unit_->model[0] = MonstorTable[No(Monster::ICE_QUEEN)];
     expanded::EnemyModelSetUp(*unit_, 0, No(Monster::ICE_QUEEN));
     Spawn(0, 0);
-    EXPECT_EQ(expanded::IceQueenGlobals(0, GL_INT), GL_INT);
-    EXPECT_TRUE(expanded::IceQueenCountsKill(0));
+    EXPECT_EQ(expanded::BossCastGlobals(0, GL_INT), GL_INT);
+    EXPECT_TRUE(expanded::BossCastCountsKill(0));
 }
 
-TEST_F(IceQueen, HerDefeatTakesHerBarrierAwayWithoutAKill) {
+TEST_F(BossCasts, HerDefeatTakesHerBarrierAwayWithoutAKill) {
     LoadFloor(true, {Monster::ICE_QUEEN, Monster::CAVE_BAT});
     Spawn(0, 0);
     Spawn(1, 1);
@@ -166,4 +167,66 @@ TEST_F(IceQueen, HerDefeatTakesHerBarrierAwayWithoutAKill) {
     EXPECT_EQ(unit_->monster[1].state, 1);
     EXPECT_EQ(unit_->alive_count, 2);
     EXPECT_EQ(unit_->monster[0].requested_motion, 11);
+}
+
+TEST_F(BossCasts, KingsCurseComesWholeOnlyWithUngagaInTheParty) {
+    UserStatus->party_size = CHARA_UNGAGA;
+    const expanded::Roster &without = LoadFloor(true, {Monster::KINGS_CURSE, Monster::CAVE_BAT});
+    EXPECT_FALSE(without.Contains(Monster::KINGS_CURSE));
+    EXPECT_FALSE(without.Contains(Monster::KINGS_CURSE_COFFIN));
+
+    expanded::RosterVisitBegun();
+    UserStatus->party_size = CHARA_UNGAGA + 1;
+    const expanded::Roster &with = LoadFloor(true, {Monster::KINGS_CURSE, Monster::CAVE_BAT});
+    EXPECT_EQ(with.model_no[2], No(Monster::KINGS_CURSE_COFFIN));
+    EXPECT_TRUE(with.once[0]);
+    EXPECT_TRUE(with.once[2]);
+}
+
+TEST_F(BossCasts, TheCoffinAndTheKingFindEachOtherAndTheCoffinHidesUnderHim) {
+    LoadFloor(true, {Monster::CAVE_BAT, Monster::KINGS_CURSE_COFFIN});
+    Spawn(0, 0);
+    Spawn(5, 1); // the coffin, its scripts' monster 0
+    Spawn(9, 2); // the king, monster 1
+    EXPECT_EQ(expanded::BossCastMonsterRef(5, 1), 9);
+    EXPECT_EQ(expanded::BossCastMonsterRef(9, 0), 5);
+    EXPECT_EQ(expanded::BossCastMonsterRef(0, 1), 1);
+    EXPECT_EQ(expanded::BossCastGlobals(5, GL_INT), expanded::BossCastGlobals(9, GL_INT));
+    EXPECT_FALSE(expanded::BossCastCountsKill(9));
+    EXPECT_TRUE(expanded::BossCastCountsKill(5));
+
+    unit_->chara[9][0].SetPosition(300.0f, 4.0f, 700.0f);
+    float hide[3] = {0.0f, 0.0f, -500.0f};
+    EXPECT_FALSE(expanded::BossPlace(*unit_, 5, hide));
+    EXPECT_FLOAT_EQ(hide[0], 300.0f);
+    EXPECT_FLOAT_EQ(hide[1], -496.0f);
+    EXPECT_FLOAT_EQ(hide[2], 700.0f);
+
+    // Setting up, the king keeps the floor's spot; awake, he goes where his script says.
+    float spot[3] = {0.0f, 0.0f, -237.0f};
+    EXPECT_TRUE(expanded::BossPlace(*unit_, 9, spot));
+    unit_->monster[9].state = 2;
+    EXPECT_FALSE(expanded::BossPlace(*unit_, 9, spot));
+    EXPECT_FLOAT_EQ(spot[2], -237.0f);
+
+    // Dormant, the coffin waits under the king, to wake with him.
+    expanded::BossCastStep(*unit_);
+    float coffin[4];
+    unit_->chara[5][0].GetPosition(coffin);
+    EXPECT_FLOAT_EQ(coffin[1], -496.0f);
+}
+
+TEST_F(BossCasts, TheCoffinsDefeatTakesTheKingAway) {
+    LoadFloor(true, {Monster::KINGS_CURSE_COFFIN});
+    Spawn(0, 0);
+    Spawn(1, 1);
+    std::vector<MOTION_INFO> motions(8, MOTION_INFO{.start = 10, .end = 20, .speed = 0.2f});
+    motions[7] = {.start = -1, .end = -1, .speed = -1.0f};
+    unit_->chara[0][0].motion_type.motion_info = motions.data();
+    unit_->monster[0].state = 2;
+    unit_->monster[0].hp = 0;
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(unit_->monster[1].state, -1);
+    EXPECT_EQ(unit_->alive_count, 1);
+    EXPECT_EQ(unit_->monster[0].requested_motion, 5);
 }
