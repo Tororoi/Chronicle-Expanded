@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "dun/gameloop.hpp"
+#include "expanded/enemies/ice_queen.hpp"
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
 
@@ -64,6 +65,23 @@ bool Roster::SetOnce(int kind, bool spawn_once) {
     return false;
 }
 
+bool Roster::Remove(int kind) {
+    int size = Size();
+    for (int i = 0; i < size; i++) {
+        if (model_no[i] != kind) {
+            continue;
+        }
+        for (int j = i; j < size - 1; j++) {
+            model_no[j] = model_no[j + 1];
+            once[j] = once[j + 1];
+        }
+        model_no[size - 1] = -1;
+        once[size - 1] = false;
+        return true;
+    }
+    return false;
+}
+
 bool SpawnsOnceNatively(int model_no) {
     if (model_no < 0 || model_no >= kKinds) {
         return false;
@@ -73,7 +91,9 @@ bool SpawnsOnceNatively(int model_no) {
 }
 
 void StageFloor(int floor, const FloorRosters &rosters) {
-    staged[floor] = rosters;
+    FloorRosters &staging = staged[floor] = rosters;
+    IceQueenRoster(staging.front);
+    IceQueenRoster(staging.back);
 }
 
 const FloorRosters *StagedFloor(int floor) {

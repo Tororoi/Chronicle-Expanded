@@ -80,6 +80,7 @@ void UnbindAll() {
 constexpr std::pair<Monster, int> kArenaSets[] = {
     {Monster::MINOTAUR_JOE, 204},
     {Monster::MASTER_UTAN,  201},
+    {Monster::ICE_QUEEN,    202},
 };
 
 bool Resolves(const audio::Bank *bank, int program, int note) {

@@ -21,6 +21,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/faster.hpp"
+#include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
 #include "expanded/status/confuse.hpp"
@@ -1074,7 +1075,11 @@ int _GET_SCRIPT_ID(RS_STACKDATA *stack, int argc) {
 int _GET_MONSTOR_POS(RS_STACKDATA *stack, int argc) {
     float position[4];
 
+#ifdef CHRONICLE_EXPANDED
+    NowMonstorUnit->chara[expanded::IceQueenMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack++))][0].GetPosition(position);
+#else
     NowMonstorUnit->chara[GetStackInt(stack++)][0].GetPosition(position);
+#endif
     SetStack(stack++, position[0]);
     SetStack(stack++, position[1]);
     SetStack(stack, position[2]);
@@ -1208,14 +1213,22 @@ int _SET_MONSTOR_MOTION(RS_STACKDATA *stack, int argc) {
 int _SET_GLOBAL_INT(RS_STACKDATA *stack, int argc) {
     int slot = GetStackInt(stack++);
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::IceQueenGlobals(NowMonstorUnit->current_monster, GL_INT)[slot] = GetStackInt(stack);
+#else
     GL_INT[slot] = GetStackInt(stack);
+#endif
     return 1;
 }
 
 int _GET_GLOBAL_INT(RS_STACKDATA *stack, int argc) {
     int slot = GetStackInt(stack++);
 
+#ifdef CHRONICLE_EXPANDED
+    SetStack(stack++, expanded::IceQueenGlobals(NowMonstorUnit->current_monster, GL_INT)[slot]);
+#else
     SetStack(stack++, GL_INT[slot]);
+#endif
     return 1;
 }
 
@@ -1321,7 +1334,11 @@ int _SET_MOTION_CHANGE_STEP(RS_STACKDATA *stack, int argc) {
 }
 
 int _GET_MONSTOR_VECTOR(RS_STACKDATA *stack, int argc) {
-    int   monster_no = GetStackInt(stack++);
+#ifdef CHRONICLE_EXPANDED
+    int monster_no = expanded::IceQueenMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack++));
+#else
+    int monster_no = GetStackInt(stack++);
+#endif
     float angle = 0.0f;
     float direction[4];
     float position[4];
