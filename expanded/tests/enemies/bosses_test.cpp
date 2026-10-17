@@ -126,10 +126,10 @@ TEST_F(OutOfPlaceBoss, ABossOnItsOwnFloorIsLeftAlone) {
     EXPECT_FALSE(expanded::BossDeathStep(*unit_, 0));
 }
 
-TEST_F(OutOfPlaceBoss, OnlyJoeIsSupported) {
+TEST_F(OutOfPlaceBoss, OnlyJoeAndUtanAreSupported) {
     EXPECT_TRUE(expanded::BossSupported(Monster::MINOTAUR_JOE));
-    for (Monster boss : {Monster::DRAN, Monster::MASTER_UTAN, Monster::ICE_QUEEN, Monster::KINGS_CURSE_COFFIN,
-                         Monster::DARK_GENIE}) {
+    EXPECT_TRUE(expanded::BossSupported(Monster::MASTER_UTAN));
+    for (Monster boss : {Monster::DRAN, Monster::ICE_QUEEN, Monster::KINGS_CURSE_COFFIN, Monster::DARK_GENIE}) {
         EXPECT_FALSE(expanded::BossSupported(boss)) << No(boss);
     }
 
@@ -217,6 +217,33 @@ TEST_F(OutOfPlaceBoss, WithoutTheBuiltModelJoeFallsWithHisDiscDeath) {
     EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
     EXPECT_EQ(joe.state, -1);
     EXPECT_EQ(unit_->alive_count, 0);
+}
+
+TEST_F(OutOfPlaceBoss, BeatenUtanFallsWithHisDeathAndFadesOnItsLastFrame) {
+    LoadFloor(true, {Monster::MASTER_UTAN, Monster::WEREWOLF});
+    Spawn(0, 0);
+    GiveMotions(0, 15);
+    unit_->alive_count = 2;
+    MONSTOR &utan = unit_->monster[0];
+    EXPECT_TRUE(expanded::BossOutOfPlace(0));
+    EXPECT_TRUE(expanded::BossKeepsPlace(*unit_, 0));
+    utan.state = 2;
+    utan.hp = 0;
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(utan.invincible_timer, 100);
+    EXPECT_EQ(utan.requested_motion, 13);
+    EXPECT_EQ(utan.requested_motion_flags, 2);
+
+    // No death loop: he stays on the fall's last frame while fading.
+    FinishMotion(0);
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(utan.requested_motion, 13);
+    EXPECT_FLOAT_EQ(utan.palette_alpha_step, 128.0f / expanded::kBossFadeFrames);
+
+    utan.palette_alpha = 0.0f;
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(utan.state, -1);
+    EXPECT_EQ(unit_->alive_count, 1);
 }
 
 TEST(BossPack, JoeLoadsHisBuiltModelWhenTheDataHasIt) {
