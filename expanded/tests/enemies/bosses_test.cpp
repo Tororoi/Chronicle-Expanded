@@ -1,13 +1,17 @@
 #include <gtest/gtest.h>
 
+#include <filesystem>
 #include <memory>
+#include <vector>
 
 #include "dun/gameloop.hpp"
+#include "expanded/data/boss_model.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "monstorunit.hpp"
+#include "platform/paths.hpp"
 #include "userstatus.hpp"
 
 namespace {
@@ -62,6 +66,25 @@ protected:
         expanded::EnemySpawned(*unit_, monster);
     }
 
+    // A pack's KEY table of count motions: Joe's disc death, and his built fall and loop when it has them.
+    void GiveMotions(int monster, int count) {
+        motions_.assign(count + 1, MOTION_INFO{.start = 10, .end = 20, .speed = 0.2f});
+        motions_[expanded::kJoeDiscDeath] = {.start = 300, .end = 330, .speed = 0.15f};
+        if (count > expanded::kJoeDeathLoopKey) {
+            motions_[expanded::kJoeFallKey] = {.start = 370, .end = 420, .speed = 0.2f};
+            motions_[expanded::kJoeDeathLoopKey] = {.start = 420, .end = 420, .speed = 0.0f};
+        }
+        motions_[count] = {.start = -1, .end = -1, .speed = -1.0f};
+        unit_->chara[monster][0].motion_type.motion_info = motions_.data();
+    }
+
+    // The fall played to its last frame.
+    void FinishMotion(int monster) {
+        CCharacter &body = unit_->chara[monster][0];
+        body.motion_type.state.time = static_cast<float>(body.motion_type.motion_info[body.motion_no].end);
+    }
+
+    std::vector<MOTION_INFO>      motions_;
     std::unique_ptr<CMonstorUnit> unit_ = std::make_unique<CMonstorUnit>();
     std::unique_ptr<CUserStatus>  status_ = std::make_unique<CUserStatus>();
     CUserStatus                  *saved_status_ = nullptr;
@@ -98,40 +121,105 @@ TEST_F(OutOfPlaceBoss, ABossOnItsOwnFloorIsLeftAlone) {
     EXPECT_FALSE(expanded::BossDeathStep(*unit_, 0));
 }
 
-TEST_F(OutOfPlaceBoss, ABeatenBossFadesOutAndDies) {
-    LoadFloor(true, {Monster::DARK_GENIE, Monster::SKELETON_SOLDIER});
+TEST_F(OutOfPlaceBoss, OnlyJoeIsSupported) {
+    EXPECT_TRUE(expanded::BossSupported(Monster::MINOTAUR_JOE));
+    for (Monster boss : {Monster::DRAN, Monster::MASTER_UTAN, Monster::ICE_QUEEN, Monster::KINGS_CURSE_COFFIN,
+                         Monster::DARK_GENIE}) {
+        EXPECT_FALSE(expanded::BossSupported(boss)) << No(boss);
+    }
+
+    // Another boss a staged roster places plays as on its arena.
+    LoadFloor(true, {Monster::DRAN, Monster::SKELETON_SOLDIER});
     Spawn(0, 0);
+    EXPECT_FALSE(expanded::BossOutOfPlace(0));
+    EXPECT_FALSE(expanded::BossEventHeld(0));
+    unit_->monster[0].hp = 0;
+    EXPECT_FALSE(expanded::BossDeathStep(*unit_, 0));
+}
+
+TEST_F(OutOfPlaceBoss, CountsAPacksMotions) {
+    GiveMotions(0, 13);
+    EXPECT_EQ(expanded::MotionCount(unit_->chara[0][0]), 13);
+    GiveMotions(0, 11);
+    EXPECT_EQ(expanded::MotionCount(unit_->chara[0][0]), 11);
+    unit_->chara[0][0].motion_type.motion_info = nullptr;
+    EXPECT_EQ(expanded::MotionCount(unit_->chara[0][0]), 0);
+}
+
+TEST_F(OutOfPlaceBoss, BeatenJoeFallsLiesAndFadesOut) {
+    LoadFloor(true, {Monster::MINOTAUR_JOE, Monster::SKELETON_SOLDIER});
+    Spawn(0, 0);
+    GiveMotions(0, 13);
     unit_->alive_count = 2;
-    MONSTOR &boss = unit_->monster[0];
-    boss.state = 2;
+    MONSTOR &joe = unit_->monster[0];
+    joe.state = 2;
+    joe.movement_speed = 1.5f;
+    joe.turn_speed = 0.1f;
     EXPECT_FALSE(expanded::BossDeathStep(*unit_, 0));
 
-    // Its death script runs first.
-    boss.hp = 0;
+    // Beaten, he stops, takes no hits and falls once, his death script held.
+    joe.hp = 0;
     unit_->script_state[0] = 1;
-    EXPECT_FALSE(expanded::BossDeathStep(*unit_, 0));
-    unit_->script_state[0] = 0;
     EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
-    EXPECT_FLOAT_EQ(boss.palette_alpha_step, 128.0f / expanded::kBossFadeFrames);
-    EXPECT_EQ(boss.state, 2);
+    EXPECT_EQ(joe.movement_speed, 0.0f);
+    EXPECT_EQ(joe.turn_speed, 0.0f);
+    EXPECT_EQ(joe.invincible_timer, 100);
+    EXPECT_EQ(joe.requested_motion, expanded::kJoeFallKey);
+    EXPECT_EQ(joe.requested_motion_flags, 2);
+    EXPECT_EQ(unit_->chara[0][0].motion_no, expanded::kJoeFallKey);
+    EXPECT_TRUE(expanded::BossKeepsPlace(*unit_, 0));
 
-    boss.palette_alpha = 0.0f;
+    // Still falling: no fade yet.
+    unit_->chara[0][0].motion_type.state.time = 400.0f;
     EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
-    EXPECT_EQ(boss.state, -1);
+    EXPECT_EQ(joe.palette_alpha_step, 0.0f);
+
+    // On the fall's last frame he lies in the loop and fades.
+    FinishMotion(0);
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(joe.requested_motion, expanded::kJoeDeathLoopKey);
+    EXPECT_EQ(joe.requested_motion_flags, 0);
+    EXPECT_FLOAT_EQ(joe.palette_alpha_step, 128.0f / expanded::kBossFadeFrames);
+    EXPECT_EQ(joe.state, 2);
+
+    // Faded out, he dies as _STATUS_SET_DEAD has a monster die.
+    joe.palette_alpha = 0.0f;
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(joe.state, -1);
+    EXPECT_EQ(unit_->alive_count, 1);
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
     EXPECT_EQ(unit_->alive_count, 1);
 }
 
-TEST(BossCollapse, MotionsOfTheBossesThatHaveOne) {
-    EXPECT_EQ(expanded::BossCollapseMotion(Monster::MINOTAUR_JOE), 9);
-    EXPECT_EQ(expanded::BossCollapseMotion(Monster::MASTER_UTAN), 13);
-    EXPECT_EQ(expanded::BossCollapseMotion(Monster::DARK_GENIE), -1);
+TEST_F(OutOfPlaceBoss, WithoutTheBuiltModelJoeFallsWithHisDiscDeath) {
+    LoadFloor(true, {Monster::MINOTAUR_JOE});
+    Spawn(0, 0);
+    GiveMotions(0, 11);
+    unit_->alive_count = 1;
+    MONSTOR &joe = unit_->monster[0];
+    joe.state = 2;
+    joe.hp = 0;
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(joe.requested_motion, expanded::kJoeDiscDeath);
+    EXPECT_EQ(joe.requested_motion_flags, 2);
+
+    FinishMotion(0);
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(joe.requested_motion, expanded::kJoeDiscDeath);
+    EXPECT_FLOAT_EQ(joe.palette_alpha_step, 128.0f / expanded::kBossFadeFrames);
+
+    joe.palette_alpha = 0.0f;
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(joe.state, -1);
+    EXPECT_EQ(unit_->alive_count, 0);
 }
 
-TEST(BossCollapse, KeepsItsIndexes) {
-    EXPECT_EQ(expanded::BossCollapseMotion(78), 6);
-    EXPECT_EQ(expanded::BossCollapseMotion(79), 13);
-    EXPECT_EQ(expanded::BossCollapseMotion(80), 11);
-    EXPECT_EQ(expanded::BossCollapseMotion(81), 5);
-    EXPECT_EQ(expanded::BossCollapseMotion(83), 9);
-    EXPECT_EQ(expanded::BossCollapseMotion(82), -1);
+TEST(BossPack, JoeLoadsHisBuiltModelWhenTheDataHasIt) {
+    char filename[64] = "dun/monstor/c16a.chr";
+    expanded::BossPackFile(filename, No(Monster::DRAN));
+    EXPECT_STREQ(filename, "dun/monstor/c16a.chr");
+    std::error_code error;
+    bool            built = std::filesystem::is_regular_file(PathsDataRoot() / expanded::kJoeModelFile, error);
+    expanded::BossPackFile(filename, No(Monster::MINOTAUR_JOE));
+    EXPECT_STREQ(filename, built ? expanded::kJoeModelFile : "dun/monstor/c16a.chr");
 }

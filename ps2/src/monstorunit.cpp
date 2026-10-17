@@ -2489,6 +2489,9 @@ int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDat
     int            file_size;
     attr.fog_enable = true;
     sprintf(filename, "dun/monstor/%s.chr", description->model_name[0]);
+#ifdef CHRONICLE_EXPANDED
+    expanded::BossPackFile(filename, model_no);
+#endif
     LoadFile(filename, read_buffer, NULL);
     wait_now_loading_vsync();
     CCharacter *character = &base_chara[slot][0];
