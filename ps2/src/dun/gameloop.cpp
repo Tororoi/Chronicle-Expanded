@@ -129,6 +129,7 @@
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/sounds.hpp"
+#include "expanded/enemies/steve.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/stats.hpp"
@@ -6582,6 +6583,7 @@ void BtLoadMonstor(int ura) {
     expanded::ConfuseFloorLoaded();
     expanded::ShotEffectsFloorLoaded();
     expanded::MonsterSoundsFloorLoaded(*NowMonstorUnit);
+    expanded::SteveLinesFloorLoaded(*NowMonstorUnit);
 #endif
     MemoryMapDump();
 }
