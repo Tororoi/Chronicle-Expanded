@@ -14,5 +14,9 @@
     "options.expanded.harder_enemy_ai.label": "Schwerere Gegner-KI",
     "options.expanded.harder_enemy_ai.help": "\"Schwerere Gegner-KI\"\nBesiegte Monster\nstehen manchmal\nwieder auf.",
     "options.expanded.harder_enemy_ai.choice.0": "An",
-    "options.expanded.harder_enemy_ai.choice.1": "Aus"
+    "options.expanded.harder_enemy_ai.choice.1": "Aus",
+    "options.expanded.randomize_enemies.label": "Zufällige Gegner",
+    "options.expanded.randomize_enemies.help": "\"Zufällige Gegner\"\nDie Monster jeder\nEtage werden bei jedem\nBesuch neu gelost.",
+    "options.expanded.randomize_enemies.choice.0": "An",
+    "options.expanded.randomize_enemies.choice.1": "Aus"
 }

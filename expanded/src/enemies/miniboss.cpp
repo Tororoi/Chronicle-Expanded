@@ -6,7 +6,9 @@
 #include <vector>
 
 #include "dun/gameloop.hpp"
+#include "expanded/enemies/miniboss_loot.hpp"
 #include "monstorunit.hpp"
+#include "userstatus.hpp"
 
 namespace expanded {
 
@@ -24,9 +26,11 @@ constexpr int kLongReach[] = {11, 25, 67, 68, 77, 304, 306};
 // The bats, whose motion 1 is a flying loop with no feet to keep pace.
 constexpr int kFlyers[] = {60, 61};
 
-bool  miniboss[kMonsters];
-float range[kMonsters];
-bool  walk_synced[kMonsters];
+bool         miniboss[kMonsters];
+float        range[kMonsters];
+bool         walk_synced[kMonsters];
+MinibossDrop drops[kMonsters];
+MinibossDrop landing[kMonsters]; // a defeated miniboss's drop, until it is put on the floor
 
 // The MonstorTable kinds of the living minibosses on the floor (0) and its back floor (1), once populated.
 struct Side {
@@ -166,6 +170,8 @@ void MakeMiniboss(CMonstorUnit &unit, int monster) {
 
     MONSTOR &live = unit.monster[monster];
     live.money *= kMinibossMoney;
+    drops[monster] = RollMinibossDrop(selectMapNo, UserStatus != nullptr ? UserStatus->cur_floor : 0, static_cast<Monster>(Kind(unit, monster)));
+    live.drop_item = drops[monster].item;
     live.money_chance = 100;
     live.drops_items = 1;
     live.item_damage_rate = 10;
@@ -192,6 +198,7 @@ void MakeMiniboss(CMonstorUnit &unit, int monster) {
 void MinibossFloorEntered() {
     sides[0] = {};
     sides[1] = {};
+    MinibossDropsCleared();
 }
 
 int MinibossPlacedModel(const CMonstorUnit &unit, int placement, int model_slot) {
@@ -229,15 +236,24 @@ void MinibossesArranged(CMonstorUnit &unit) {
 }
 
 void MinibossDefeated(CMonstorUnit &unit, int monster) {
+    landing[monster] = {};
     if (!IsMiniboss(monster)) {
         return;
     }
     miniboss[monster] = false;
+    if (unit.monster[monster].drop_item == drops[monster].item) {
+        landing[monster] = drops[monster];
+    }
     std::vector<int> &kinds = CurrentSide(unit).kinds;
     auto              found = std::find(kinds.begin(), kinds.end(), Kind(unit, monster));
     if (found != kinds.end()) {
         kinds.erase(found);
     }
+}
+
+void MinibossDropSet(int monster, CRandomItem &items, const float *position) {
+    MinibossDropLanding(landing[monster], items, position);
+    landing[monster] = {};
 }
 
 float MinibossScriptDistance(int monster, int argument_count, float distance) {

@@ -40,9 +40,11 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
+#include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/kick_back.hpp"
@@ -621,7 +623,11 @@ void CMonstorUnit::ArrangementPos(CDungeonMap *map, int count, int model_no, int
                             selected = expanded::MinibossPlacedModel(*this, n, selected);
 #endif
 
+#ifdef CHRONICLE_EXPANDED
+                            if (expanded::RosterSpawnsOnce(*this, selected)) {
+#else
                             if (model[selected].kind != MONSTER_KIND_NORMAL && model[selected].kind != MONSTER_KIND_MIMIC_SMALL) {
+#endif
                                 if (used[selected] != 0) {
                                     continue;
                                 }
@@ -2080,7 +2086,8 @@ void CMonstorUnit::Step(int pause) {
                     }
                 } else {
 #ifdef CHRONICLE_EXPANDED
-                    if (expanded::ReviveStep(*this, current_monster)) {
+                    if (expanded::BossDeathStep(*this, current_monster)) {
+                    } else if (expanded::ReviveStep(*this, current_monster)) {
                     } else if (script_state[current_monster] == 0) {
 #else
                     if (script_state[current_monster] == 0) {
@@ -2333,6 +2340,9 @@ void CMonstorUnit::Step(int pause) {
                                 if (SetGateKeyStack(monster[current_monster].drop_item) != 0) {
                                     chara[current_monster][0].GetPosition(key_position);
                                     key_position[1] -= monster[current_monster].ground_distance;
+#ifdef CHRONICLE_EXPANDED
+                                    expanded::MinibossDropSet(current_monster, *RandomItem, key_position);
+#endif
                                     RandomItem->Set(key_position, 1, -1, monster[current_monster].drop_item);
                                 }
                             } else {
@@ -2479,6 +2489,9 @@ int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDat
     int            file_size;
     attr.fog_enable = true;
     sprintf(filename, "dun/monstor/%s.chr", description->model_name[0]);
+#ifdef CHRONICLE_EXPANDED
+    expanded::BossPackFile(filename, model_no);
+#endif
     LoadFile(filename, read_buffer, NULL);
     wait_now_loading_vsync();
     CCharacter *character = &base_chara[slot][0];

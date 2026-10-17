@@ -33,6 +33,7 @@ still matches retail.
     - `core/`: shared plumbing: options, per-save state, menu text, languages.
     - `data/`: what is built from the extracted disc data (see "Game data built at extraction"); it
       includes no game header and is compiled into `dcdata` too.
+    - `debug/`: developer tools that only debug mode shows, such as the enemy roster.
     - `dungeon/`: dungeon systems shared by several features, such as the shot effects.
     - `enemies/`: monsters: the stat scaling every stat change goes through, the features built on it, and how
       monsters move, act and revive.
@@ -81,6 +82,8 @@ port/build/pc/dcdata expanded data
 It writes only what changed and exits 1 if anything failed to build. What it builds:
 
 - `expanded/town/<ally>.chr`: each ally's town model (`expanded/docs/town-models.md`).
+- `expanded/monstor/c16a.chr`: Minotaur Joe with his defeat scene's stagger and fall, for his death on a
+  regular floor (`expanded/docs/bosses.md`).
 - `expanded/enemies/script_damage.txt`: each monster script's strongest melee hit and shot, which the
   enemy stat scaling starts from; without it monster damage is left as it is.
 

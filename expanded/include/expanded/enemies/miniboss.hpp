@@ -3,6 +3,7 @@
 #include "expanded/enemies/scaling.hpp"
 
 class CMonstorUnit;
+class CRandomItem;
 
 namespace expanded {
 
@@ -31,18 +32,20 @@ inline constexpr float kMinibossWalkSlowdown = 1.3f;
 // Whether the floor's monster is a miniboss.
 bool IsMiniboss(int monster);
 
-// Makes the floor's monster a miniboss.
+// Makes the floor's monster a miniboss, carrying a drop rolled from its species' loot.
 void MakeMiniboss(CMonstorUnit &unit, int monster);
 
 // Hooks: a new floor's monsters are about to be placed (BtArrengeMonstor), the model slot ArrangementPos picked
 // for its placement n (the first placements on a return take the living minibosses' kinds), the floor or its
-// back floor was populated (end of ArrangementPos), a monster was defeated (Step), the distance a monster's
-// script measures (_GET_DISTANCE; argument_count 1 for the player's), and a drawn monster about to step its
-// motions (DrawMonstor).
+// back floor was populated (end of ArrangementPos), a monster was defeated (Step), its drop about to be put on
+// the floor at position (Step, before CRandomItem::Set), the distance a monster's script measures
+// (_GET_DISTANCE; argument_count 1 for the player's), and a drawn monster about to step its motions
+// (DrawMonstor).
 void  MinibossFloorEntered();
 int   MinibossPlacedModel(const CMonstorUnit &unit, int placement, int model_slot);
 void  MinibossesArranged(CMonstorUnit &unit);
 void  MinibossDefeated(CMonstorUnit &unit, int monster);
+void  MinibossDropSet(int monster, CRandomItem &items, const float *position);
 float MinibossScriptDistance(int monster, int argument_count, float distance);
 void  MinibossMotion(CMonstorUnit &unit, int monster);
 

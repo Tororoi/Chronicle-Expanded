@@ -127,6 +127,8 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/miniboss.hpp"
+#include "expanded/enemies/roster.hpp"
+#include "expanded/enemies/sounds.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/stats.hpp"
@@ -1538,6 +1540,7 @@ void GameInit() {
     }
 #ifdef CHRONICLE_EXPANDED
     expanded::ShotEffectsClear();
+    expanded::RosterVisitBegun();
 #endif
 
     NowShotEffect = &ShotEffect;
@@ -6563,6 +6566,9 @@ void BtLoadMonstor(int ura) {
     }
 
     layout += UserStatus->cur_floor;
+#ifdef CHRONICLE_EXPANDED
+    layout = expanded::RosterFloorLayout(layout, ura);
+#endif
 
     for (monster = 0; monster < 9; monster++) {
         if (layout->monster[monster].monster_no == -1) {
@@ -6575,6 +6581,7 @@ void BtLoadMonstor(int ura) {
 #ifdef CHRONICLE_EXPANDED
     expanded::ConfuseFloorLoaded();
     expanded::ShotEffectsFloorLoaded();
+    expanded::MonsterSoundsFloorLoaded(*NowMonstorUnit);
 #endif
     MemoryMapDump();
 }

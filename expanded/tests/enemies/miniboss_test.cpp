@@ -388,7 +388,7 @@ TEST_F(Miniboss, AReturningOneTakesNoKey) {
     expanded::MinibossesArranged(*unit);
 
     EXPECT_TRUE(expanded::IsMiniboss(1));
-    EXPECT_EQ(unit->monster[1].drop_item, -1);
+    EXPECT_NE(unit->monster[1].drop_item, ITEM_DRAN_S_CREST);
     EXPECT_EQ(unit->monster[0].drop_item, ITEM_DRAN_S_CREST);
 }
 
