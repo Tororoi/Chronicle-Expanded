@@ -93,6 +93,10 @@ Bytes BuildTownModel(const TownAlly &ally, const DiscReader &read);
 // The KEY_START block's KEYs replaced with one per slot, in idx order.
 Bytes RewriteTownKeys(std::span<const unsigned char> cfg, const std::vector<TownSlot> &slots);
 
+// Grafts src's frames [slo, shi] into base's body and shadow motions at [dlo, dhi] by joint name, keying every
+// grafted track at the window's edges; src_cfg names src's cfg where its pack bundles two characters.
+void GraftMotionWindow(ChrPack &base, const ChrPack &src, std::string_view src_cfg, int slo, int shi, int dlo, int dhi);
+
 // Builds every ally's model into data, skipping one whose base is missing. Returns the failures.
 int BuildTownModels(const std::filesystem::path &data, std::FILE *log);
 

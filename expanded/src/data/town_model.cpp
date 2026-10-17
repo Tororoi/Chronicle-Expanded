@@ -967,7 +967,26 @@ void InjectShadow(ChrPack &base, const ChrPack &donor, const TownShadowInject &i
     cfg.ReplacePayload(ToBytes(text));
 }
 
+// Grafts src's frames [slo, shi] into the body motion at [dlo, dhi], then the shadow's when both have one.
+void GraftWindow(ChrPack &base, const CfgMotions &cfg, const ChrPack &src, const CfgMotions &scfg, int slo, int shi,
+                 int dlo, int dhi, bool root_motion, const std::vector<Span> &rm_spans) {
+    Model body{cfg.body_mot, cfg.body_mds};
+    Model sbody{scfg.body_mot, scfg.body_mds};
+    Graft(base, body, src, sbody, slo, shi, dlo, dhi, root_motion, rm_spans);
+    SealGraft(base, body, src, sbody, slo, shi, dlo, dhi, root_motion);
+    if (cfg.shadow_mot && scfg.shadow_mot) {
+        Model shadow{*cfg.shadow_mot, cfg.shadow_mds.value_or("")};
+        Model sshadow{*scfg.shadow_mot, scfg.shadow_mds.value_or("")};
+        Graft(base, shadow, src, sshadow, slo, shi, dlo, dhi, root_motion, rm_spans);
+        SealGraft(base, shadow, src, sshadow, slo, shi, dlo, dhi, root_motion);
+    }
+}
+
 } // namespace
+
+void GraftMotionWindow(ChrPack &base, const ChrPack &src, std::string_view src_cfg, int slo, int shi, int dlo, int dhi) {
+    GraftWindow(base, CfgMotionsOf(base), src, CfgMotionsOf(src, src_cfg), slo, shi, dlo, dhi, false, {});
+}
 
 Bytes RewriteTownKeys(std::span<const unsigned char> cfg, const std::vector<TownSlot> &slots) {
     std::vector<const TownSlot *> ordered;
@@ -1040,15 +1059,7 @@ Bytes BuildTownModel(const TownAlly &ally, const DiscReader &read) {
                 }
             }
             auto [wlo, whi] = slot.win;
-            Model sbody{scfg.body_mot, scfg.body_mds};
-            Graft(base, body, sp, sbody, wlo, whi, dlo, dhi, rm, rm_spans);
-            SealGraft(base, body, sp, sbody, wlo, whi, dlo, dhi, rm);
-            if (cfg.shadow_mot && scfg.shadow_mot) {
-                Model shadow{*cfg.shadow_mot, cfg.shadow_mds.value_or("")};
-                Model sshadow{*scfg.shadow_mot, scfg.shadow_mds.value_or("")};
-                Graft(base, shadow, sp, sshadow, wlo, whi, dlo, dhi, rm, rm_spans);
-                SealGraft(base, shadow, sp, sshadow, wlo, whi, dlo, dhi, rm);
-            }
+            GraftWindow(base, cfg, sp, scfg, wlo, whi, dlo, dhi, rm, rm_spans);
         }
         // Each post-op runs on the body, then the shadow; pins on the body alone.
         auto both = [&](const std::function<void(std::string_view)> &op) {
