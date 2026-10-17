@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "expanded/data/boss_model.hpp"
+#include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "monstorunit.hpp"
@@ -22,6 +23,10 @@ constexpr int kDeathInvincible = 100;
 
 // Utan's death (死亡), which his label 120 holds on its last frame.
 constexpr int kUtanDeath = 13;
+
+// The Ice Queen's death and its loop.
+constexpr int kIceQueenDeath = 11;
+constexpr int kIceQueenDeathLoop = 12;
 
 // The arena crowd's cheer, which Joe's script plays when he is hit.
 constexpr int kCrowdCheer = 1798;
@@ -42,6 +47,9 @@ struct Death {
 std::pair<int, int> DeathMotions(int kind, const CCharacter &character) {
     if (kind == No(Monster::MASTER_UTAN)) {
         return {kUtanDeath, -1};
+    }
+    if (kind == No(Monster::ICE_QUEEN)) {
+        return {kIceQueenDeath, kIceQueenDeathLoop};
     }
     // Joe: the built fall when the pack has it, else the disc's death.
     if (MotionCount(character) > kJoeDeathLoopKey) {
@@ -87,7 +95,8 @@ bool OnLastFrame(const CCharacter &character) {
 } // namespace
 
 bool BossSupported(int model_no) {
-    return model_no == No(Monster::MINOTAUR_JOE) || model_no == No(Monster::MASTER_UTAN);
+    return model_no == No(Monster::MINOTAUR_JOE) || model_no == No(Monster::MASTER_UTAN) ||
+           model_no == No(Monster::ICE_QUEEN);
 }
 
 bool BossOutOfPlace(int monster) {
@@ -142,7 +151,11 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
             live.movement_speed = 0.0f;
             live.turn_speed = 0.0f;
             live.invincible_timer = kDeathInvincible;
-            auto [fall, loop] = DeathMotions(ModelKind(live.base_model), unit.chara[monster][0]);
+            int kind = ModelKind(live.base_model);
+            if (kind == No(Monster::ICE_QUEEN)) {
+                IceQueenDefeated(unit);
+            }
+            auto [fall, loop] = DeathMotions(kind, unit.chara[monster][0]);
             state.loop = loop;
             PlayMotion(unit, monster, fall, kStopOnLastFrame);
             state.phase = Phase::Falling;

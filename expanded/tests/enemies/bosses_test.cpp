@@ -126,10 +126,11 @@ TEST_F(OutOfPlaceBoss, ABossOnItsOwnFloorIsLeftAlone) {
     EXPECT_FALSE(expanded::BossDeathStep(*unit_, 0));
 }
 
-TEST_F(OutOfPlaceBoss, OnlyJoeAndUtanAreSupported) {
+TEST_F(OutOfPlaceBoss, OnlyJoeUtanAndTheIceQueenAreSupported) {
     EXPECT_TRUE(expanded::BossSupported(Monster::MINOTAUR_JOE));
     EXPECT_TRUE(expanded::BossSupported(Monster::MASTER_UTAN));
-    for (Monster boss : {Monster::DRAN, Monster::ICE_QUEEN, Monster::KINGS_CURSE_COFFIN, Monster::DARK_GENIE}) {
+    EXPECT_TRUE(expanded::BossSupported(Monster::ICE_QUEEN));
+    for (Monster boss : {Monster::DRAN, Monster::KINGS_CURSE_COFFIN, Monster::DARK_GENIE}) {
         EXPECT_FALSE(expanded::BossSupported(boss)) << No(boss);
     }
 

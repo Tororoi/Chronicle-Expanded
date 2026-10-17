@@ -21,6 +21,8 @@ struct Roster {
     bool Add(int model_no, bool once);
     // Sets an entry's spawn-once flag; false for a kind not in the roster.
     bool SetOnce(int model_no, bool once);
+    // Takes a kind out, closing the gap; false for a kind not in the roster.
+    bool Remove(int model_no);
 
     // The same, for a named monster.
     bool Contains(Monster monster) const { return Contains(No(monster)); }
@@ -28,6 +30,8 @@ struct Roster {
     bool Add(Monster monster, bool once) { return Add(No(monster), once); }
 
     bool SetOnce(Monster monster, bool once) { return SetOnce(No(monster), once); }
+
+    bool Remove(Monster monster) { return Remove(No(monster)); }
 
     bool operator==(const Roster &) const = default;
 };
@@ -45,7 +49,8 @@ inline bool SpawnsOnceNatively(Monster monster) {
     return SpawnsOnceNatively(No(monster));
 }
 
-// Stages a floor of the dungeon being visited; it keeps the rosters until the visit ends.
+// Stages a floor of the dungeon being visited; it keeps the rosters until the visit ends, with the bosses'
+// rules applied (IceQueenRoster).
 void StageFloor(int floor, const FloorRosters &rosters);
 
 // The floor's staged rosters this visit, or null.

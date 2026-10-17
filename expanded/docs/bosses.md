@@ -1,8 +1,8 @@
 # Bosses on regular floors
 
 A boss a staged roster (such as the debug `--roster`) places on a regular floor plays there
-only when it is supported (`BossSupported`, `expanded/src/enemies/bosses.cpp`): Minotaur Joe and Master
-Utan for now. Any other boss plays as on its arena.
+only when it is supported (`BossSupported`, `expanded/src/enemies/bosses.cpp`): Minotaur Joe, Master Utan
+and the Ice Queen for now. Any other boss plays as on its arena.
 
 A supported boss on a regular floor:
 
@@ -45,6 +45,34 @@ out on its last frame (he has no death loop) and lets him die as Joe does.
 
 His ids 1741-1759 are program 113, only in `sound/set/snd201.snd`, the set his arena's event loads
 (`_LOAD_SOUND_SET(201)`); it is bound like Joe's.
+
+## The Ice Queen
+
+On her floor (Shipwreck's boss floor) the Queen (`c13a`) fights with eight companions, each a monster with its
+own script: her barrier (`c13_baria`), the ice arrow (`c13_korinoya`), the prison (`c13_kori`), the meteor
+(`c13_i_meteo`), the aura (`c13_reiki`) and three tornadoes (`c13_i_tatumaki`). They talk through globals
+0-8, and the companions find her as monster 0. Off her floor (`expanded/src/enemies/ice_queen.cpp`):
+
+- a roster keeps her only while Ruby is in the party (her body takes damage from Ruby alone) and adds her
+  barrier, spawned once; with no room for it she is left out;
+- her script and her barrier's use a mailbox of their own instead of the globals (`_SET_GLOBAL_INT`,
+  `_GET_GLOBAL_INT`), and the barrier's monster 0 is her (`_GET_MONSTOR_POS`, `_GET_MONSTOR_VECTOR`); while
+  dormant it waits at her side, to wake with her;
+- breaking the barrier is no kill (no kill count, the live count kept): it stays down until she raises it;
+- the other companions are shot effects of their own packs, loaded with her, fired by `IceQueenStep` for her
+  script's requests and answering in the mailbox as their scripts did:
+
+| Companion | Shot | As the script did |
+|---|---|---|
+| Ice arrow (`korinoya.chr`) | 15 ahead of her toward the player; 69, freeze 0x100 (65%, the Anti-Freeze Amulet blocks it), 360 steps | turns toward the player's chest within 60 degrees ahead, 0.12 a step at 1.2 (the Crystal Gemron's tuning; retail 1.6 and always freezing) |
+| Prison (`kori.chr`) | at the frozen player's feet, no hit | forms, holds its last frame while the player is afflicted, shatters at 0.5 |
+| Meteor (`i_meteo.chr`) | forms 50 above the player (0.1), falls 1.6; 69, radius 30 | lands on the ground or the player |
+| Aura (`b3_reiki.chr`) | at her feet (0.2); 74, radius 60, throws | one blast |
+| Tornadoes (`i_tatumaki.chr`, three) | 30-110 from the player (0.2); 74, radius 20, throws | gone once they hit, or when the player is more than 100 away |
+
+The arrow's freeze is checked two steps after it lands, once its hit has reached the player. She dies with
+her death (motion 11) and its loop (12) like Joe; her shots end and her barrier leaves with her. Her sounds
+(program 114) are in `sound/set/snd202.snd`, bound like Joe's.
 
 ## The built model
 

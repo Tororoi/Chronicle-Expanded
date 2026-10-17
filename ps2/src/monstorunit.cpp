@@ -42,6 +42,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/faster.hpp"
+#include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -1227,9 +1228,16 @@ int CMonstorUnit::CheckDmg() {
 
             if (monster[current_monster].hp <= 0) {
                 monster[current_monster].hp = 0;
-                alive_count--;
                 result = MONSTER_DMG_KILLED;
+#ifdef CHRONICLE_EXPANDED
+                if (expanded::IceQueenCountsKill(current_monster)) {
+                    alive_count--;
+                    ((CDngStatusData *) UserStatus)->AddKills();
+                }
+#else
+                alive_count--;
                 ((CDngStatusData *) UserStatus)->AddKills();
+#endif
             }
 
             chara[current_monster][0].GetPosition(poison_position);
@@ -1658,9 +1666,16 @@ int CMonstorUnit::CheckDmg() {
                     if (monster[current_monster].hp <= 0) {
                         monster[current_monster].last_attacker = owner;
                         monster[current_monster].hp = 0;
-                        alive_count--;
                         result = MONSTER_DMG_KILLED;
+#ifdef CHRONICLE_EXPANDED
+                        if (expanded::IceQueenCountsKill(current_monster)) {
+                            alive_count--;
+                            ((CDngStatusData *) UserStatus)->AddKills();
+                        }
+#else
+                        alive_count--;
                         ((CDngStatusData *) UserStatus)->AddKills();
+#endif
 
                         if (monster[current_monster].event_flag2 != -1) {
                             monster[current_monster].event_flag2_pending = 1;
