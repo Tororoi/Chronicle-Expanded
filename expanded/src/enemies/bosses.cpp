@@ -9,7 +9,6 @@
 #include "expanded/enemies/scaling.hpp"
 #include "monstorunit.hpp"
 #include "platform/paths.hpp"
-#include "snd.hpp"
 
 namespace expanded {
 
@@ -17,9 +16,11 @@ namespace {
 
 constexpr int kMonsters = 16;
 
-// Joe's death label (120): invincible a while, his barrel-swing sound cut.
+// Joe's death label (120): invincible a while.
 constexpr int kDeathInvincible = 100;
-constexpr int kDeathSound = 1798;
+
+// The arena crowd's cheer, which Joe's script plays when he is hit.
+constexpr int kCrowdCheer = 1798;
 
 enum class Phase {
     Fighting,
@@ -109,6 +110,10 @@ bool BossEventHeld(int monster) {
     return BossOutOfPlace(monster);
 }
 
+bool BossSoundHeld(int monster, int sound) {
+    return BossOutOfPlace(monster) && sound == kCrowdCheer;
+}
+
 bool BossDeathStep(CMonstorUnit &unit, int monster) {
     MONSTOR &live = unit.monster[monster];
     if (!BossOutOfPlace(monster) || live.hp > 0) {
@@ -121,7 +126,6 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
             live.movement_speed = 0.0f;
             live.turn_speed = 0.0f;
             live.invincible_timer = kDeathInvincible;
-            SndSeStop(kDeathSound, 0);
             bool built = MotionCount(unit.chara[monster][0]) > kJoeDeathLoopKey;
             state.loop = built ? kJoeDeathLoopKey : -1;
             PlayMotion(unit, monster, built ? kJoeFallKey : kJoeDiscDeath, kStopOnLastFrame);

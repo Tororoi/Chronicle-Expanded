@@ -1,9 +1,11 @@
 #include "expanded/data/boss_model.hpp"
 
 #include <algorithm>
+#include <cstdio>
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -35,6 +37,16 @@ std::uint32_t LastFrame(const ChrPack &pack) {
     return last;
 }
 
+// Where the MOTION_END after the cfg's KEY_START begins.
+std::size_t MotionEnd(const std::string &text) {
+    std::size_t start = text.find("KEY_START");
+    std::size_t end = start == std::string::npos ? start : text.find("MOTION_END", start);
+    if (end == std::string::npos) {
+        throw std::runtime_error("the cfg has no KEY_START ... MOTION_END block");
+    }
+    return end;
+}
+
 Bytes ReadFile(const fs::path &file) {
     std::ifstream stream(file, std::ios::binary);
     if (!stream) {
@@ -47,13 +59,30 @@ Bytes ReadFile(const fs::path &file) {
 
 Bytes AppendKeys(std::span<const unsigned char> cfg, std::string_view lines) {
     std::string text(cfg.begin(), cfg.end());
-    std::size_t start = text.find("KEY_START");
-    std::size_t end = start == std::string::npos ? start : text.find("MOTION_END", start);
-    if (end == std::string::npos) {
-        throw std::runtime_error("the cfg has no KEY_START ... MOTION_END block");
-    }
-    text.insert(end, lines);
+    text.insert(MotionEnd(text), lines);
     return Bytes(text.begin(), text.end());
+}
+
+Bytes AppendEvents(std::span<const unsigned char> cfg, std::string_view lines) {
+    std::string text(cfg.begin(), cfg.end());
+    std::size_t at = text.find('\n', MotionEnd(text));
+    text.insert(at == std::string::npos ? text.size() : at + 1, lines);
+    return Bytes(text.begin(), text.end());
+}
+
+std::vector<std::pair<double, int>> SoundEvents(std::span<const unsigned char> cfg) {
+    std::vector<std::pair<double, int>> events;
+    std::istringstream                  text(std::string(cfg.begin(), cfg.end()));
+    std::string                         line;
+    while (std::getline(text, line)) {
+        double frame = 0;
+        int    kind = 0;
+        int    sound = 0;
+        if (std::sscanf(line.c_str(), " EVENT %lf , %d , %d", &frame, &kind, &sound) == 3 && kind == 1) {
+            events.emplace_back(frame, sound);
+        }
+    }
+    return events;
 }
 
 Bytes BuildJoeModel(std::span<const unsigned char> battle, std::span<const unsigned char> cutscene) {
@@ -67,7 +96,21 @@ Bytes BuildJoeModel(std::span<const unsigned char> battle, std::span<const unsig
     std::string lines = std::format("KEY\t{},\t{},\t{:.1f},\t//stagger and fall {}\r\n"
                                     "KEY\t{},\t{},\t0.0,\t//death loop {}\r\n",
                                     first, last, kJoeFallSpeed, kJoeFallKey, last, last, kJoeDeathLoopKey);
-    cfg.ReplacePayload(AppendKeys(cfg.Payload(), lines));
+
+    // The fall's stomps, and the roar the defeat scene plays over it.
+    std::vector<std::pair<double, int>> sounds;
+    for (auto [frame, sound] : SoundEvents(source.Require(kJoeCutsceneCfg).Payload())) {
+        if (frame >= kJoeFallFirst && frame <= kJoeFallLast) {
+            sounds.emplace_back(frame, sound);
+        }
+    }
+    sounds.emplace_back(kJoeRoarFrame, kJoeRoarSound);
+    std::stable_sort(sounds.begin(), sounds.end(), [](auto &a, auto &b) { return a.first < b.first; });
+    std::string events;
+    for (auto [frame, sound] : sounds) {
+        events += std::format("EVENT {:g},1,{}\r\n", frame - kJoeFallFirst + first, sound);
+    }
+    cfg.ReplacePayload(AppendEvents(AppendKeys(cfg.Payload(), lines), events));
     return base.Rebuild();
 }
 

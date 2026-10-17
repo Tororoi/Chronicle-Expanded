@@ -6,6 +6,7 @@
 #include <cstring>
 #include <map>
 #include <memory>
+#include <utility>
 
 #include "audio/hdbank.hpp"
 #include "audio/mixer.hpp"
@@ -75,6 +76,11 @@ void UnbindAll() {
     bound_for = -1;
 }
 
+// Kinds whose sounds only their arena's event loads (_LOAD_SOUND_SET).
+constexpr std::pair<Monster, int> kArenaSets[] = {
+    {Monster::MINOTAUR_JOE, 204}
+};
+
 bool Resolves(const audio::Bank *bank, int program, int note) {
     std::array<audio::Layer, 8> layers;
     return bank != nullptr && bank->Resolve(program, note, 127, layers) > 0;
@@ -97,6 +103,11 @@ std::vector<int> HomeSoundSets(int model_no) {
                     }
                 }
             }
+        }
+    }
+    for (auto [monster, set] : kArenaSets) {
+        if (No(monster) == model_no) {
+            sets.push_back(set);
         }
     }
     return sets;

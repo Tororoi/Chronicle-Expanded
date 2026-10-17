@@ -1042,6 +1042,11 @@ int _DEL_LOOP_SND(RS_STACKDATA *stack, int argc) {
 }
 
 int _SET_SND_NOW(RS_STACKDATA *stack, int argc) {
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::BossSoundHeld(NowMonstorUnit->current_monster, GetStackInt(stack))) {
+        return 1;
+    }
+#endif
     SndSePlay(GetStackInt(stack), -1, 0);
     return 1;
 }

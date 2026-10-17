@@ -30,10 +30,11 @@ int MotionCount(const CCharacter &character);
 
 // Hooks: SetupBaseModel's pack (Joe's built model when the data has it), _SET_POSITION and _SET_MONSTOR_POS
 // from a boss setting up or beaten (true keeps the monsters where they are), _RUN_SCRIPT and _STATUS_SET_EVENT
-// (true drops the event), and Step before a monster's script runs (true steps the death instead).
+// (true drops the event), _SET_SND_NOW (true drops the arena's crowd), and Step before a monster's script runs (true steps the death instead).
 void BossPackFile(char *filename, int model_no);
 bool BossKeepsPlace(const CMonstorUnit &unit, int monster);
 bool BossEventHeld(int monster);
+bool BossSoundHeld(int monster, int sound);
 bool BossDeathStep(CMonstorUnit &unit, int monster);
 
 } // namespace expanded

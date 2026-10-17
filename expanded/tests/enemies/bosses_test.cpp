@@ -100,6 +100,10 @@ TEST_F(OutOfPlaceBoss, KeepsItsFloorPositionAndRaisesNoEvent) {
     EXPECT_TRUE(expanded::BossOutOfPlace(0));
     EXPECT_TRUE(expanded::BossKeepsPlace(*unit_, 0));
     EXPECT_TRUE(expanded::BossEventHeld(0));
+    // No crowd cheers him off his arena; his own cries still sound.
+    EXPECT_TRUE(expanded::BossSoundHeld(0, 1798));
+    EXPECT_FALSE(expanded::BossSoundHeld(0, 1811));
+    EXPECT_FALSE(expanded::BossSoundHeld(1, 1798));
     EXPECT_FALSE(expanded::BossOutOfPlace(1));
     EXPECT_FALSE(expanded::BossKeepsPlace(*unit_, 1));
 
@@ -117,6 +121,7 @@ TEST_F(OutOfPlaceBoss, ABossOnItsOwnFloorIsLeftAlone) {
     Spawn(0, 0);
     EXPECT_FALSE(expanded::BossOutOfPlace(0));
     EXPECT_FALSE(expanded::BossEventHeld(0));
+    EXPECT_FALSE(expanded::BossSoundHeld(0, 1798));
     unit_->monster[0].hp = 0;
     EXPECT_FALSE(expanded::BossDeathStep(*unit_, 0));
 }
