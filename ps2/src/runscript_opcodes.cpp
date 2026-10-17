@@ -1091,7 +1091,11 @@ int _GET_MONSTOR_POS(RS_STACKDATA *stack, int argc) {
 }
 
 int _GET_MONSTOR_FRM(RS_STACKDATA *stack, int argc) {
+#ifdef CHRONICLE_EXPANDED
+    int monster_no = expanded::BossCastMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack++));
+#else
     int monster_no = GetStackInt(stack++);
+#endif
 
     float frame = NowMonstorUnit->chara[monster_no][0].motion_type.state.time;
 
@@ -1120,7 +1124,11 @@ int _SET_MONSTOR_POS(RS_STACKDATA *stack, int argc) {
 }
 
 int _SET_MONSTOR_MOVE(RS_STACKDATA *stack, int argc) {
-    int   monster_no = GetStackInt(stack++);
+#ifdef CHRONICLE_EXPANDED
+    int monster_no = expanded::BossCastMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack++));
+#else
+    int monster_no = GetStackInt(stack++);
+#endif
     float direction[4];
     float position[4];
 
@@ -1138,8 +1146,13 @@ int _SET_MONSTOR_MOVE(RS_STACKDATA *stack, int argc) {
 }
 
 int _SET_MONSTOR_LINK_MOVE(RS_STACKDATA *stack, int argc) {
+#ifdef CHRONICLE_EXPANDED
+    int monster_no = expanded::BossCastMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack++));
+    int leader_no = expanded::BossCastMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack));
+#else
     int monster_no = GetStackInt(stack++);
     int leader_no = GetStackInt(stack);
+#endif
 
     sceVu0CopyVector(NowMonstorUnit->monster[monster_no].movement, NowMonstorUnit->monster[leader_no].movement);
     NowMonstorUnit->monster[monster_no].movement_speed = NowMonstorUnit->monster[leader_no].movement_speed;
@@ -1147,7 +1160,11 @@ int _SET_MONSTOR_LINK_MOVE(RS_STACKDATA *stack, int argc) {
 }
 
 int _SET_MONSTOR_MOVE_CANSEL(RS_STACKDATA *stack, int argc) {
+#ifdef CHRONICLE_EXPANDED
+    int monster_no = expanded::BossCastMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack));
+#else
     int monster_no = GetStackInt(stack);
+#endif
 
     NowMonstorUnit->monster[monster_no].movement_speed = 0.0f;
     return 1;
@@ -1168,7 +1185,11 @@ int _SET_LOCKON_SW(RS_STACKDATA *stack, int argc) {
 }
 
 int _SET_MONSTOR_MOTION(RS_STACKDATA *stack, int argc) {
+#ifdef CHRONICLE_EXPANDED
+    int monster_no = expanded::BossCastMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack++));
+#else
     int monster_no = GetStackInt(stack++);
+#endif
     int motion_id = GetStackInt(stack++);
 
     NowMonstorUnit->monster[monster_no].last_hit_damage = -1;
@@ -1617,8 +1638,13 @@ int _GET_USER_STATUS(RS_STACKDATA *stack, int argc) {
 }
 
 int _SET_REFERENCE(RS_STACKDATA *stack, int argc) {
-    int     monster_no = NowMonstorUnit->current_monster;
-    int     target_no = GetStackInt(stack++);
+    int monster_no = NowMonstorUnit->current_monster;
+#ifdef CHRONICLE_EXPANDED
+    int script_target = GetStackInt(stack++);
+    int target_no = expanded::BossCastMonsterRef(monster_no, script_target);
+#else
+    int target_no = GetStackInt(stack++);
+#endif
     char   *name = GetStackString(stack);
     CFrame *frame;
     CFrame *anchor;
@@ -1626,6 +1652,13 @@ int _SET_REFERENCE(RS_STACKDATA *stack, int argc) {
     if (name == NULL) {
         return 1;
     }
+#ifdef CHRONICLE_EXPANDED
+    // A cast member whose partner is still to come rides it once it does; one that will not come has nothing to ride.
+    if (target_no == monster_no) {
+        expanded::BossCastReferLater(monster_no, script_target, name);
+        return 1;
+    }
+#endif
 
     frame = NowMonstorUnit->chara[monster_no][0].frame;
     anchor = NowMonstorUnit->chara[target_no][0].frame->SearchFrame(name);
@@ -1635,11 +1668,18 @@ int _SET_REFERENCE(RS_STACKDATA *stack, int argc) {
     }
 
     frame->SetReference(anchor);
+#ifdef CHRONICLE_EXPANDED
+    expanded::BossCastAttached(*NowMonstorUnit, monster_no, target_no);
+#endif
     return 1;
 }
 
 int _DEL_REFERENCE(RS_STACKDATA *stack, int argc) {
-    int     monster_no = GetStackInt(stack);
+#ifdef CHRONICLE_EXPANDED
+    int monster_no = expanded::BossCastMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack));
+#else
+    int monster_no = GetStackInt(stack);
+#endif
     CFrame *frame = NowMonstorUnit->chara[monster_no][0].frame;
 
     if (frame == NULL) {
@@ -1647,6 +1687,9 @@ int _DEL_REFERENCE(RS_STACKDATA *stack, int argc) {
     }
 
     frame->DeleteReference();
+#ifdef CHRONICLE_EXPANDED
+    expanded::BossCastAttached(*NowMonstorUnit, monster_no, -1);
+#endif
     return 1;
 }
 

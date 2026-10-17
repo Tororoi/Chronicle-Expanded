@@ -230,3 +230,45 @@ TEST_F(BossCasts, TheCoffinsDefeatTakesTheKingAway) {
     EXPECT_EQ(unit_->alive_count, 1);
     EXPECT_EQ(unit_->monster[0].requested_motion, 5);
 }
+
+TEST_F(BossCasts, TheMountBringsTheBlackKnightWhoMayAlsoComeAlone) {
+    const expanded::Roster &mounted = LoadFloor(true, {Monster::BLACK_KNIGHT_MOUNT, Monster::CAVE_BAT});
+    EXPECT_EQ(mounted.model_no[2], No(Monster::BLACK_KNIGHT));
+
+    expanded::RosterVisitBegun();
+    const expanded::Roster &alone = LoadFloor(true, {Monster::BLACK_KNIGHT, Monster::CAVE_BAT});
+    EXPECT_FALSE(alone.Contains(Monster::BLACK_KNIGHT_MOUNT));
+    EXPECT_TRUE(alone.once[0]);
+
+    // Alone, he starts as the mount leaves him: dismounted, and his monster 0 is himself.
+    Spawn(3, 0);
+    EXPECT_EQ(expanded::BossCastMailbox(Monster::BLACK_KNIGHT)[0], 1);
+    EXPECT_EQ(expanded::BossCastMonsterRef(3, 0), 3);
+    EXPECT_EQ(expanded::BossCastMonsterRef(3, 1), 3);
+}
+
+TEST_F(BossCasts, TheRidingKnightSitsOnTheMountAndWakesByIt) {
+    LoadFloor(true, {Monster::BLACK_KNIGHT_MOUNT});
+    Spawn(2, 0);
+    Spawn(6, 1);
+    EXPECT_EQ(expanded::BossCastMailbox(Monster::BLACK_KNIGHT)[0], 0);
+    EXPECT_EQ(expanded::BossCastMonsterRef(6, 0), 2);
+    unit_->chara[2][0].SetPosition(500.0f, 0.0f, 900.0f);
+    unit_->chara[6][0].SetPosition(40.0f, 0.0f, 80.0f);
+
+    expanded::BossCastAttached(*unit_, 6, 2);
+    float seat[4];
+    unit_->chara[6][0].GetPosition(seat);
+    EXPECT_FLOAT_EQ(seat[0], 0.0f);
+    float wake[4] = {};
+    expanded::BossCastWakePosition(*unit_, 6, wake);
+    EXPECT_FLOAT_EQ(wake[0], 500.0f);
+    EXPECT_FLOAT_EQ(wake[2], 900.0f);
+
+    // Let go, he wakes by where he stands.
+    expanded::BossCastAttached(*unit_, 6, -1);
+    float own[4] = {7.0f, 0.0f, 7.0f, 1.0f};
+    expanded::BossCastWakePosition(*unit_, 6, own);
+    EXPECT_FLOAT_EQ(own[0], 7.0f);
+    EXPECT_FALSE(expanded::BossCastCountsKill(2));
+}

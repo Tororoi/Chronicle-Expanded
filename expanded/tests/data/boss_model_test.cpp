@@ -170,6 +170,35 @@ TEST(JoeModel, AppendsTheFallAndItsLoopAfterHisOwnKeys) {
     }));
 }
 
+TEST(BlackKnightModel, AppendsTheDefeatsBowAndThroesWithTheScream) {
+    std::string keys;
+    for (int i = 0; i < 27; i++) {
+        keys += std::format("KEY\t{},\t{},\t0.2,\t//{}\r\n", 10 + 20 * i, 25 + 20 * i, i);
+    }
+    Bytes   battle = Pack({
+        {"info.cfg", Cfg("c21a", keys)},
+        {"c21a.mds", Mds({"dummyRoot", "kosi", "spine"})},
+        {"c21a.mot", Mot({{1, 0, {{1, 1.0f}, {655, 1.0f}}}, {2, 2, {{1, 2.0f}, {655, 2.0f}}}})},
+        {"c21a.wgt", "weights"},
+    });
+    Bytes   cutscene = Pack({
+        {"e508c21a.cfg", Cfg("e508c21a", "KEY\t15,\t25,\t0.3//00\r\n")},
+        {"e508c21a.mds", Mds({"dummyRoot", "spine", "kosi"})},
+        {"e508c21a.mot", Mot({{1, 2, {{1, 0.0f}, {15, 1.0f}, {62, 3.0f}}}, {2, 0, {{1, 0.5f}, {62, 0.75f}}}})},
+    });
+    ChrPack after = ChrPack::Parse(BuildBlackKnightModel(battle, cutscene));
+
+    // KEYs 27-30 play the cutscene's 15-62 past his last frame (655, so from 660), the scream at the throes' start.
+    std::string cfg = Str(after.Require("info.cfg").Payload());
+    EXPECT_EQ(cfg, Cfg("c21a", keys + "KEY\t660,\t670,\t0.30,\t//head bowed 27\r\n"
+                                      "KEY\t671,\t680,\t0.15,\t//head bowed loop 28\r\n"
+                                      "KEY\t681,\t690,\t0.40,\t//death throes 29\r\n"
+                                      "KEY\t691,\t707,\t0.15,\t//death throes loop 30\r\n") +
+                       "EVENT 681,1,2591\r\n");
+    MotFile mot = MotFile::FromRecord(after.Require("c21a.mot"));
+    EXPECT_EQ(mot.TrackBy(1, 0)->keys.back().Frame(), 707u);
+}
+
 TEST(JoeModel, AppendsKeysBeforeTheMotionEnd) {
     std::string cfg = Cfg("a", "KEY\t1,\t2,\t0.1,\t//a\r\n") + "EVENT 1,1,1\r\n";
     EXPECT_EQ(Str(AppendKeys(Bytes(cfg.begin(), cfg.end()), "KEY\t3,\t4,\t0.1,\t//b\r\n")),

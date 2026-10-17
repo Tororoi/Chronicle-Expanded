@@ -7,6 +7,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/data/boss_model.hpp"
+#include "expanded/enemies/black_knight.hpp"
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -35,12 +36,20 @@ constexpr int kIceQueenDeathLoop = 12;
 constexpr int kCoffinDeath = 5;
 constexpr int kCoffinDeathLoop = 6;
 
+// The Black Knight's dismount and its loop: his death when the data lacks his built model.
+constexpr int kKnightDismount = 7;
+constexpr int kKnightDismountLoop = 8;
+
+// Steps from the start of his death throes to the light coming down on him, as event 508 times it.
+constexpr int kKnightLightAfterThroes = 195;
+
 // The arena crowd's cheer, which Joe's script plays when he is hit.
 constexpr int kCrowdCheer = 1798;
 
 enum class Phase {
     Fighting,
     Falling,
+    Throes, // the Black Knight's built death: head bowed, its loop, the death throes, their loop till the light
     Fading,
     Dead,
 };
@@ -48,6 +57,20 @@ enum class Phase {
 struct Death {
     Phase phase = Phase::Fighting;
     int   loop = -1;
+    int   key = -1;    // Throes: the KEY playing
+    int   throes = -1; // Throes: steps since the death throes began, or -1
+};
+
+// A model's built boss pack, and the boss it is for.
+struct BuiltPack {
+    Monster     boss;
+    const char *file;
+    const char *death; // what the boss falls with without it
+};
+
+const BuiltPack kBuiltPacks[] = {
+    {Monster::MINOTAUR_JOE, kJoeModelFile,         "his disc death"},
+    {Monster::BLACK_KNIGHT, kBlackKnightModelFile, "his dismount"  },
 };
 
 // The motion a beaten boss falls with, and the one it loops while fading (-1 holds the fall's last frame).
@@ -60,6 +83,9 @@ std::pair<int, int> DeathMotions(int kind, const CCharacter &character) {
     }
     if (kind == No(Monster::KINGS_CURSE_COFFIN)) {
         return {kCoffinDeath, kCoffinDeathLoop};
+    }
+    if (kind == No(Monster::BLACK_KNIGHT)) {
+        return {kKnightDismount, kKnightDismountLoop};
     }
     // Joe: the built fall when the pack has it, else the disc's death.
     if (MotionCount(character) > kJoeDeathLoopKey) {
@@ -106,7 +132,8 @@ bool OnLastFrame(const CCharacter &character) {
 
 bool BossSupported(int model_no) {
     return model_no == No(Monster::MINOTAUR_JOE) || model_no == No(Monster::MASTER_UTAN) ||
-           model_no == No(Monster::ICE_QUEEN) || model_no == No(Monster::KINGS_CURSE_COFFIN);
+           model_no == No(Monster::ICE_QUEEN) || model_no == No(Monster::KINGS_CURSE_COFFIN) ||
+           model_no == No(Monster::BLACK_KNIGHT);
 }
 
 bool BossOutOfPlace(int monster) {
@@ -123,17 +150,18 @@ int MotionCount(const CCharacter &character) {
 }
 
 void BossPackFile(char *filename, int model_no) {
-    if (model_no != No(Monster::MINOTAUR_JOE)) {
-        return;
-    }
-    std::error_code error;
-    if (std::filesystem::is_regular_file(PathsDataRoot() / kJoeModelFile, error)) {
-        std::strcpy(filename, kJoeModelFile);
-    } else if (!logged_missing) {
-        logged_missing = true;
-        std::printf("bosses: the data lacks %s; Minotaur Joe falls with his disc death (dcdata expanded <data> adds "
-                    "the new one)\n",
-                    kJoeModelFile);
+    for (const BuiltPack &pack : kBuiltPacks) {
+        if (model_no != No(pack.boss)) {
+            continue;
+        }
+        std::error_code error;
+        if (std::filesystem::is_regular_file(PathsDataRoot() / pack.file, error)) {
+            std::strcpy(filename, pack.file);
+        } else if (!logged_missing) {
+            logged_missing = true;
+            std::printf("bosses: the data lacks %s; the boss falls with %s (dcdata expanded <data> adds the new one)\n",
+                        pack.file, pack.death);
+        }
     }
 }
 
@@ -180,10 +208,42 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
             if (kind == No(Monster::ICE_QUEEN)) {
                 IceQueenDefeated();
             }
+            if (kind == No(Monster::BLACK_KNIGHT) &&
+                MotionCount(unit.chara[monster][0]) >= kBlackKnightBowKey + kBlackKnightDeathKeys) {
+                state.key = kBlackKnightBowKey;
+                PlayMotion(unit, monster, state.key, kStopOnLastFrame);
+                state.phase = Phase::Throes;
+                break;
+            }
             auto [fall, loop] = DeathMotions(kind, unit.chara[monster][0]);
             state.loop = loop;
             PlayMotion(unit, monster, fall, kStopOnLastFrame);
             state.phase = Phase::Falling;
+            break;
+        }
+        case Phase::Throes: {
+            // Each KEY in turn, the throes' loop until the light comes down and hits him; he fades from its hit.
+            int last = kBlackKnightBowKey + kBlackKnightDeathKeys - 1;
+            if (state.key < last && OnLastFrame(unit.chara[monster][0])) {
+                state.key++;
+                PlayMotion(unit, monster, state.key, state.key == last ? kLoop : kStopOnLastFrame);
+                if (state.key == last - 1) {
+                    state.throes = 0;
+                }
+            }
+            if (state.throes < 0) {
+                break;
+            }
+            bool lit = false;
+            if (state.throes == kKnightLightAfterThroes) {
+                lit = !BlackKnightLight(unit, monster); // without the light, he fades now
+            }
+            state.throes++;
+            if (lit || (state.throes > kKnightLightAfterThroes && BlackKnightLit())) {
+                live.palette_alpha_step = 128.0f / kBossFadeFrames;
+                live.palette_delay = 0;
+                state.phase = Phase::Fading;
+            }
             break;
         }
         case Phase::Falling:

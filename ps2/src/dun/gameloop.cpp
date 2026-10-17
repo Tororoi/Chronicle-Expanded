@@ -126,6 +126,7 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/black_knight.hpp"
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/miniboss.hpp"
@@ -6325,6 +6326,7 @@ void motionDrive() {
     expanded::ShotEffectsStep();
     expanded::BossCastStep(*NowMonstorUnit);
     expanded::IceQueenStep(*NowMonstorUnit);
+    expanded::BlackKnightStep();
 #endif
 
     OzumondShot.Step();

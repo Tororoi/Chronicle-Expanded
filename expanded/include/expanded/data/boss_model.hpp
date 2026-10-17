@@ -1,7 +1,8 @@
 #pragma once
 
-// Minotaur Joe's battle model with a death of his own: his defeat cutscene's stagger and fall appended to his
-// motions (expanded/docs/bosses.md). Includes no game header, so dcdata can build with it.
+// Bosses' battle models with deaths of their own (expanded/docs/bosses.md): Minotaur Joe's defeat cutscene's
+// stagger and fall, the Black Knight's head bow and death throes, appended to their motions. Includes no game
+// header, so dcdata can build with it.
 
 #include <cstdio>
 #include <filesystem>
@@ -37,6 +38,38 @@ inline constexpr int    kJoeRoarSound = 1809;
 // fall's last frame, as other monsters' death loops do. The fall's sounds come along as EVENT lines: the
 // cutscene cfg's stomps and the roar.
 Bytes BuildJoeModel(std::span<const unsigned char> battle, std::span<const unsigned char> cutscene);
+
+// The Black Knight's built model and its sources.
+inline constexpr const char *kBlackKnightModelFile = "expanded/monstor/c21a.chr";
+inline constexpr const char *kBlackKnightBattleFile = "dun/monstor/c21a.chr";
+inline constexpr const char *kBlackKnightCutsceneFile = "gedit/s78/chara/e508c21a.chr";
+inline constexpr const char *kBlackKnightCutsceneCfg = "e508c21a.cfg";
+
+// The appended KEYs, after his 27: the head bow, its loop, the death throes and their loop, the defeat cutscene's
+// KEYs 0-3 at their speeds.
+inline constexpr int kBlackKnightBowKey = 27;
+inline constexpr int kBlackKnightDeathKeys = 4;
+
+struct DeathWindow {
+    int         first;
+    int         last;
+    double      speed;
+    const char *name;
+};
+
+inline constexpr DeathWindow kBlackKnightDeath[kBlackKnightDeathKeys] = {
+    {15, 25, 0.3,  "head bowed"       },
+    {26, 35, 0.15, "head bowed loop"  },
+    {36, 45, 0.4,  "death throes"     },
+    {46, 62, 0.15, "death throes loop"},
+};
+
+// The scream that event 508 plays as the throes begin.
+inline constexpr int kBlackKnightScreamSound = 2591;
+
+// The battle pack with the cutscene's frames 15-62 grafted by joint name past its last frame as KEYs 27-30, the
+// scream an EVENT line at the throes' first frame.
+Bytes BuildBlackKnightModel(std::span<const unsigned char> battle, std::span<const unsigned char> cutscene);
 
 // The cfg with lines inserted before the MOTION_END after its KEY_START.
 Bytes AppendKeys(std::span<const unsigned char> cfg, std::string_view lines);
