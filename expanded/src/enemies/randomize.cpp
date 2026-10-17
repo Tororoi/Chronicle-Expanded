@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "expanded/core/options.hpp"
+#include "expanded/enemies/themes.hpp"
 
 namespace expanded {
 
@@ -71,6 +72,12 @@ const std::vector<int> kEventFloors[kDungeons] = {
 
 void StageRandomMix(int dungeon, int floor) {
     if (!RandomizeEnemies() || !RandomizedFloor(dungeon, floor)) {
+        return;
+    }
+    // A themed floor shares one roster between its sides.
+    if (std::uniform_real_distribution<double>(0.0, 1.0)(RosterRandom()) < kThemeChance) {
+        Roster themed = ThemedRoster(dungeon, floor, RosterRandom());
+        StageFloor(floor, {themed, themed});
         return;
     }
     StageFloor(floor, {RandomMix(dungeon, floor, RosterRandom()), RandomMix(dungeon, floor, RosterRandom())});

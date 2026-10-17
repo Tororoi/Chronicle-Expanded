@@ -16,6 +16,7 @@ constexpr int kKinds = 167;
 
 // This visit's staged floors, and the roster of the floor side loaded last.
 std::map<int, FloorRosters> staged;
+int                         visits = 0;
 const Roster               *loaded = nullptr;
 BT_ENEMY_FLOOR              loaded_layout;
 
@@ -80,8 +81,12 @@ const FloorRosters *StagedFloor(int floor) {
     return it != staged.end() ? &it->second : nullptr;
 }
 
-void AddFloorStager(FloorStager stager) {
-    Stagers().push_back(stager);
+void AddFloorStager(FloorStager stager, bool first) {
+    Stagers().insert(first ? Stagers().begin() : Stagers().end(), stager);
+}
+
+int RosterVisits() {
+    return visits;
 }
 
 const Roster *LoadedRoster() {
@@ -89,6 +94,7 @@ const Roster *LoadedRoster() {
 }
 
 void RosterVisitBegun() {
+    visits++;
     staged.clear();
     loaded = nullptr;
 }
