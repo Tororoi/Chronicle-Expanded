@@ -115,7 +115,14 @@ on foot. His armour (`dcol00`, `dcol01`) guards; his body is hurt by anyone, so 
 Off his floor the mount is his cast's partner: its raised spot (`_SET_POSITION(0, 60, 100)`) is dropped, its
 fall still hands the fight to him (no kill), and it leaves when he falls. A roster with the mount brings him;
 one with him alone keeps him alone, starting dismounted (g0 1) and standing (motion 15), his monster 0 himself.
-He dies with his death (motion 7) and its loop (8). Their sounds (program 121) are in `sound/set/snd207.snd`.
+His death is his defeat scene's (`gedit/s78`, event 508), built into his model (below) as KEYs 27-30: he bows his
+head, holds it, screams (sound 2591) and writhes (the throes' loop) until the scene's light (`e508_ex`, KEY 1 only,
+at his feet: `expanded/src/enemies/black_knight.cpp`) comes down 195 steps into the throes, with its sound (2588,
+stopped 112 steps on: the rest leads into the scene's white-out). It plays at the scene's 0.25 until its frame 36
+hits him; he fades from then over 96 steps. From the hit it plays as Hercules' Wrath's sparkle in the PS2 mod, him
+in the Mirage clone's place: at 0.2, its colour-lit frames' colour faded across its frames 60-68, ended there.
+Without his built model he falls with his dismount (motion 7, held by 8). Their sounds (program 121) are in
+`sound/set/snd207.snd`.
 
 ## The built model
 
@@ -134,6 +141,17 @@ He dies with his death (motion 7) and its loop (8). Their sounds (program 121) a
 | 11 | 370-420 | 0.2 | stagger and fall |
 | 12 | 420-420 | 0.0 | death loop, the fall's last frame |
 
-`SetupBaseModel` loads it for Joe wherever he appears, his arena included: the extra KEYs are played only
-by the regular-floor death. Without it (data extracted before), Joe loads his disc pack, falls with his
-disc death (KEY 9) and fades, and the game logs once that `dcdata expanded <data>` adds the new one.
+They build `expanded/monstor/c21a.chr` too, from `dun/monstor/c21a.chr` and `gedit/s78/chara/e508c21a.chr`: the
+defeat scene's KEYs 0-3 (frames 15-62) past the Knight's last frame, the scream an EVENT line at the throes' start.
+
+| KEY | Frames | Speed | Motion |
+|---|---|---|---|
+| 27 | 660-670 | 0.3 | head bowed |
+| 28 | 671-680 | 0.15 | head bowed loop |
+| 29 | 681-690 | 0.4 | death throes (2591 at 681) |
+| 30 | 691-707 | 0.15 | death throes loop |
+
+`SetupBaseModel` loads each for its boss wherever he appears, his arena included: the extra KEYs are played
+only by the regular-floor death. Without it (data extracted before), the boss loads his disc pack and falls
+with his disc death (Joe's KEY 9, the Knight's dismount, KEY 7), and the game logs once that `dcdata expanded
+<data>` adds the new one.

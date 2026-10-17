@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <sstream>
 #include <stdexcept>
@@ -114,22 +115,51 @@ Bytes BuildJoeModel(std::span<const unsigned char> battle, std::span<const unsig
     return base.Rebuild();
 }
 
-int BuildBossModels(const std::filesystem::path &data, std::FILE *log) {
-    auto say = [&](const std::string &line) {
-        if (log) {
-            std::fputs(line.c_str(), log);
-        }
-    };
+Bytes BuildBlackKnightModel(std::span<const unsigned char> battle, std::span<const unsigned char> cutscene) {
+    ChrPack base = ChrPack::Parse(battle);
+    ChrPack source = ChrPack::Parse(cutscene);
+    int     from = kBlackKnightDeath[0].first;
+    int     first = static_cast<int>(LastFrame(base) / 10 + 1) * 10;
+    GraftMotionWindow(base, source, kBlackKnightCutsceneCfg, from, kBlackKnightDeath[kBlackKnightDeathKeys - 1].last, first,
+                      first + kBlackKnightDeath[kBlackKnightDeathKeys - 1].last - from);
+    std::string lines;
+    for (int i = 0; i < kBlackKnightDeathKeys; i++) {
+        const DeathWindow &window = kBlackKnightDeath[i];
+        lines += std::format("KEY\t{},\t{},\t{:.2f},\t//{} {}\r\n", window.first - from + first, window.last - from + first,
+                             window.speed, window.name, kBlackKnightBowKey + i);
+    }
+    std::string events = std::format("EVENT {},1,{}\r\n", kBlackKnightDeath[2].first - from + first, kBlackKnightScreamSound);
+    ChrRecord  &cfg = base.Require("info.cfg");
+    cfg.ReplacePayload(AppendEvents(AppendKeys(cfg.Payload(), lines), events));
+    return base.Rebuild();
+}
+
+namespace {
+
+struct BossBuild {
+    const char *name;
+    const char *battle;
+    const char *cutscene;
+    const char *target;
+    Bytes (*build)(std::span<const unsigned char>, std::span<const unsigned char>);
+};
+
+const BossBuild kBossBuilds[] = {
+    {"Minotaur Joe", kJoeBattleFile,         kJoeCutsceneFile,         kJoeModelFile,         BuildJoeModel        },
+    {"Black Knight", kBlackKnightBattleFile, kBlackKnightCutsceneFile, kBlackKnightModelFile, BuildBlackKnightModel},
+};
+
+int BuildBossModel(const fs::path &data, const BossBuild &boss, const std::function<void(const std::string &)> &say) {
     std::error_code error;
-    for (const char *source : {kJoeBattleFile, kJoeCutsceneFile}) {
+    for (const char *source : {boss.battle, boss.cutscene}) {
         if (!fs::is_regular_file(data / source, error)) {
-            say(std::format("boss model Minotaur Joe: skipped, the data has no {}\n", source));
+            say(std::format("boss model {}: skipped, the data has no {}\n", boss.name, source));
             return 0;
         }
     }
     try {
-        Bytes    model = BuildJoeModel(ReadFile(data / kJoeBattleFile), ReadFile(data / kJoeCutsceneFile));
-        fs::path target = data / kJoeModelFile;
+        Bytes    model = boss.build(ReadFile(data / boss.battle), ReadFile(data / boss.cutscene));
+        fs::path target = data / boss.target;
         bool     current = fs::is_regular_file(target, error) && fs::file_size(target, error) == model.size() &&
                            ReadFile(target) == model;
         if (!current) {
@@ -141,13 +171,27 @@ int BuildBossModels(const std::filesystem::path &data, std::FILE *log) {
                 throw std::runtime_error(std::format("cannot write {}", target.string()));
             }
         }
-        say(std::format("boss model Minotaur Joe: {} ({} bytes{})\n", kJoeModelFile, model.size(),
-                        current ? ", unchanged" : ""));
+        say(std::format("boss model {}: {} ({} bytes{})\n", boss.name, boss.target, model.size(), current ? ", unchanged" : ""));
         return 0;
     } catch (const std::exception &failure) {
-        say(std::format("boss model Minotaur Joe: not built: {}\n", failure.what()));
+        say(std::format("boss model {}: not built: {}\n", boss.name, failure.what()));
         return 1;
     }
+}
+
+} // namespace
+
+int BuildBossModels(const std::filesystem::path &data, std::FILE *log) {
+    auto say = [&](const std::string &line) {
+        if (log) {
+            std::fputs(line.c_str(), log);
+        }
+    };
+    int failures = 0;
+    for (const BossBuild &boss : kBossBuilds) {
+        failures += BuildBossModel(data, boss, say);
+    }
+    return failures;
 }
 
 } // namespace expanded

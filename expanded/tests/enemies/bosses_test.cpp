@@ -6,6 +6,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/data/boss_model.hpp"
+#include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -247,6 +248,44 @@ TEST_F(OutOfPlaceBoss, BeatenUtanFallsWithHisDeathAndFadesOnItsLastFrame) {
     EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
     EXPECT_EQ(utan.state, -1);
     EXPECT_EQ(unit_->alive_count, 1);
+}
+
+TEST_F(OutOfPlaceBoss, BeatenBlackKnightBowsWrithesAndFadesWhenTheLightComes) {
+    // The light's pack, not on the test's disc, never loads.
+    expanded::SetShotEffectLoader([](CSHOT_EFFECT &, CDataAlloc2<1> &, BT_SHOT_EFFECT *, int, const char *) { return false; });
+    expanded::ShotEffectsClear();
+    LoadFloor(true, {Monster::BLACK_KNIGHT});
+    Spawn(0, 0);
+    GiveMotions(0, expanded::kBlackKnightBowKey + expanded::kBlackKnightDeathKeys);
+    unit_->alive_count = 1;
+    MONSTOR &knight = unit_->monster[0];
+    knight.state = 2;
+    knight.hp = 0;
+
+    // Head bowed, its loop once, the throes, then their loop.
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(knight.requested_motion, expanded::kBlackKnightBowKey);
+    for (int key = 1; key < expanded::kBlackKnightDeathKeys; key++) {
+        FinishMotion(0);
+        EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+        EXPECT_EQ(knight.requested_motion, expanded::kBlackKnightBowKey + key);
+        EXPECT_EQ(knight.requested_motion_flags, key == expanded::kBlackKnightDeathKeys - 1 ? 0 : 2);
+    }
+    EXPECT_EQ(knight.palette_alpha_step, 0.0f);
+
+    // The light (not loaded here) is due 195 steps into the throes, counted from the step they began (two steps
+    // have passed with the loop's start): without it, he fades then.
+    for (int step = 2; step < 195; step++) {
+        EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    }
+    EXPECT_EQ(knight.palette_alpha_step, 0.0f);
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_FLOAT_EQ(knight.palette_alpha_step, 128.0f / expanded::kBossFadeFrames);
+    knight.palette_alpha = 0.0f;
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(knight.state, -1);
+    EXPECT_EQ(unit_->alive_count, 0);
+    expanded::SetShotEffectLoader(nullptr);
 }
 
 TEST(BossPack, JoeLoadsHisBuiltModelWhenTheDataHasIt) {
