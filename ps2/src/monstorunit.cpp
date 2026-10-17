@@ -41,6 +41,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/boss_casts.hpp"
+#include "expanded/enemies/boss_moves.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/miniboss.hpp"
@@ -2143,6 +2144,9 @@ void CMonstorUnit::Step(int pause) {
                         }
                     }
 
+#ifdef CHRONICLE_EXPANDED
+                    expanded::BossSteer(*this, current_monster);
+#endif
                     if (monster[current_monster].collision_off_timer <= 0) {
                         MoveCheck2();
                     }

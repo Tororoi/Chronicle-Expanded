@@ -7,8 +7,8 @@ class CMonstorUnit;
 
 namespace expanded {
 
-// Whether a boss can fight on a regular floor: Minotaur Joe, Master Utan, the Ice Queen, King's Curse (his
-// coffin) and the Black Knight for now. Others a staged roster places there play as on their arenas.
+// Whether a boss can fight on a regular floor: Dran, Master Utan, the Ice Queen, King's Curse (his coffin), Minotaur
+// Joe and the Black Knight for now. Others a staged roster places there play as on their arenas.
 bool BossSupported(int model_no);
 
 inline bool BossSupported(Monster monster) {

@@ -126,6 +126,7 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/navigation.hpp"
 #include "expanded/enemies/black_knight.hpp"
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/ice_queen.hpp"
@@ -6588,6 +6589,7 @@ void BtLoadMonstor(int ura) {
 #ifdef CHRONICLE_EXPANDED
     expanded::ConfuseFloorLoaded();
     expanded::ShotEffectsFloorLoaded();
+    expanded::NavigationFloorLoaded();
     expanded::MonsterSoundsFloorLoaded(*NowMonstorUnit);
     expanded::SteveLinesFloorLoaded(*NowMonstorUnit);
 #endif

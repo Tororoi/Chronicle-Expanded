@@ -2,16 +2,33 @@
 
 A boss a staged roster (such as the debug `--roster`) places on a regular floor plays there
 only when it is supported (`BossSupported`, `expanded/src/enemies/bosses.cpp`): Minotaur Joe, Master Utan,
-the Ice Queen, King's Curse and the Black Knight for now. Any other boss plays as on its arena.
+the Ice Queen, King's Curse, the Black Knight and Dran for now. Any other boss plays as on its arena.
 
 A supported boss on a regular floor:
 
 - keeps the spot the floor gives it: `_SET_POSITION` and `_SET_MONSTOR_POS` are ignored while it sets up
-  (state 1) and once beaten;
+  (state 1) and once beaten (Dran's arena places are kept: below);
+- heads round walls (below);
 - raises no event: `_RUN_SCRIPT` and `_STATUS_SET_EVENT` are dropped, so no arena intro or victory scene
   starts;
 - has its sounds: the floor binds the sound set its arena's event loads (`expanded/src/enemies/sounds.cpp`);
 - dies natively instead of through its death label.
+
+## Paths
+
+A boss's script moves it with `_SET_MOVE` (a direction and a speed towards a point), and the engine stops it
+dead on a wall in the way (`CMonstorUnit::Step`'s ray), so a boss making for something behind a wall walks into
+it. Off its arena a supported boss is steered round instead (`expanded/src/enemies/boss_moves.cpp`, just before
+`MoveCheck2`): towards the furthest point of an A* path to where it moves that it can see, planned again every 8
+steps or when that point moves 8, and let go within a step of it (on as the script set, as in retail).
+
+The paths are over a grid of 16-unit cells on the floor's parts (`expanded/src/dungeon/navigation.cpp`): a
+cell is walkable for a body when there is floor under it within 30 of the body's ground, and no wall (a polygon
+under 60° from upright) within its clearance, the larger of its body and collision radii and 10 more, along 8
+rays at the engine's wall height. Cells are tested as paths reach them and kept for the floor (per clearance
+and 10-unit ground band); a search stops at 6000 cells, its path then to the cell it reached nearest the goal.
+`_CHK_MOVE_INFO` (whether the way to a point is clear) also asks the grid, past the cells a body starts in
+(pressed nearer a wall than its clearance, it can still step away).
 
 ## Minotaur Joe's death
 
@@ -123,6 +140,21 @@ hits him; he fades from then over 96 steps. From the hit it plays as Hercules' W
 in the Mirage clone's place: at 0.2, its colour-lit frames' colour faded across its frames 60-68, ended there.
 Without his built model he falls with his dismount (motion 7, held by 8). Their sounds (program 121) are in
 `sound/set/snd207.snd`.
+
+## Dran
+
+Dran (`c12a`, Wise Owl Forest's last floor) flies his arena by its own coordinates: perches 200 from its middle,
+40 up, his fire breath from its middle 50 up, circles round it, landings at five places 30 up, the ground under
+15 and the air over 1. Off his floor his arena is the floor's largest room: he is put in its middle (the nearest
+spot he fits), the anchor his script's points are measured from (`BossPointIn`, `BossPointOut` on the opcodes
+naming points). Where he goes or looks to (`_SET_MOVE`, `_SET_POSITION`, `_SET_ROTATION`, `_GET_VECTOR`,
+`_GET_DISTANCE` to a point) is pulled to the nearest spot he can reach from the anchor: the cells flood-filled
+from it, 25 cells' neighbourhoods a step up to 4000. He steers for what he is looking to when his script named
+it within 2 steps (his circling), else for where he moves.
+
+His death label runs the defeat scene (510). Off his floor he falls with his death (motion 6, 100-120 at 0.15)
+held on its last frame, lowered from where he was to his arena's floor by its crash (frame 115), and fades.
+Their sounds (program 112) are in `sound/set/snd200.snd`.
 
 ## The built model
 

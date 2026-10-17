@@ -78,6 +78,7 @@ void UnbindAll() {
 
 // Kinds whose sounds only their arena's event loads (_LOAD_SOUND_SET).
 constexpr std::pair<Monster, int> kArenaSets[] = {
+    {Monster::DRAN,               200},
     {Monster::MINOTAUR_JOE,       204},
     {Monster::MASTER_UTAN,        201},
     {Monster::ICE_QUEEN,          202},
