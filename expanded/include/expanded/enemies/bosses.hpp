@@ -7,8 +7,8 @@ class CMonstorUnit;
 
 namespace expanded {
 
-// Whether a boss can fight on a regular floor: Minotaur Joe alone for now. Others a staged roster places
-// there play as on their arenas.
+// Whether a boss can fight on a regular floor: Minotaur Joe and Master Utan for now. Others a staged roster
+// places there play as on their arenas.
 bool BossSupported(int model_no);
 
 inline bool BossSupported(Monster monster) {

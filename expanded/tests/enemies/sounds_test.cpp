@@ -19,7 +19,7 @@ TEST(MonsterSounds, AKindsSoundsAreInTheSetsOfTheDungeonsLayingItOut) {
     EXPECT_EQ(expanded::HomeSoundSets(Monster::MIMIC_DBC), (std::vector<int>{100}));
     // Demon Shaft's bands each have their set.
     EXPECT_EQ(expanded::HomeSoundSets(Monster::GEMRON_HOLY), (std::vector<int>{110}));
-    EXPECT_EQ(expanded::HomeSoundSets(Monster::MASTER_UTAN), (std::vector<int>{101}));
+    EXPECT_EQ(expanded::HomeSoundSets(Monster::MASTER_UTAN), (std::vector<int>{101, 201}));
     // Joe's sounds are only in the set his arena's event loads.
     EXPECT_EQ(expanded::HomeSoundSets(Monster::MINOTAUR_JOE).back(), 204);
 }

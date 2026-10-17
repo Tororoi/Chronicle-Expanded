@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <utility>
 
 #include "expanded/data/boss_model.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -16,8 +17,11 @@ namespace {
 
 constexpr int kMonsters = 16;
 
-// Joe's death label (120): invincible a while.
+// The bosses' death labels (120): invincible a while.
 constexpr int kDeathInvincible = 100;
+
+// Utan's death (死亡), which his label 120 holds on its last frame.
+constexpr int kUtanDeath = 13;
 
 // The arena crowd's cheer, which Joe's script plays when he is hit.
 constexpr int kCrowdCheer = 1798;
@@ -33,6 +37,18 @@ struct Death {
     Phase phase = Phase::Fighting;
     int   loop = -1;
 };
+
+// The motion a beaten boss falls with, and the one it loops while fading (-1 holds the fall's last frame).
+std::pair<int, int> DeathMotions(int kind, const CCharacter &character) {
+    if (kind == No(Monster::MASTER_UTAN)) {
+        return {kUtanDeath, -1};
+    }
+    // Joe: the built fall when the pack has it, else the disc's death.
+    if (MotionCount(character) > kJoeDeathLoopKey) {
+        return {kJoeFallKey, kJoeDeathLoopKey};
+    }
+    return {kJoeDiscDeath, -1};
+}
 
 bool  out_of_place[kMonsters] = {};
 Death death[kMonsters];
@@ -71,7 +87,7 @@ bool OnLastFrame(const CCharacter &character) {
 } // namespace
 
 bool BossSupported(int model_no) {
-    return model_no == No(Monster::MINOTAUR_JOE);
+    return model_no == No(Monster::MINOTAUR_JOE) || model_no == No(Monster::MASTER_UTAN);
 }
 
 bool BossOutOfPlace(int monster) {
@@ -122,13 +138,13 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
     Death &state = death[monster];
     switch (state.phase) {
         case Phase::Fighting: {
-            // Label 120's start, then the fall: the built one when the pack has it, else the disc's death.
+            // Label 120's start, then the fall.
             live.movement_speed = 0.0f;
             live.turn_speed = 0.0f;
             live.invincible_timer = kDeathInvincible;
-            bool built = MotionCount(unit.chara[monster][0]) > kJoeDeathLoopKey;
-            state.loop = built ? kJoeDeathLoopKey : -1;
-            PlayMotion(unit, monster, built ? kJoeFallKey : kJoeDiscDeath, kStopOnLastFrame);
+            auto [fall, loop] = DeathMotions(ModelKind(live.base_model), unit.chara[monster][0]);
+            state.loop = loop;
+            PlayMotion(unit, monster, fall, kStopOnLastFrame);
             state.phase = Phase::Falling;
             break;
         }

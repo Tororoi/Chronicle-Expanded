@@ -1,8 +1,8 @@
 # Bosses on regular floors
 
 A boss a staged roster (such as the debug `--roster`) places on a regular floor plays there
-only when it is supported (`BossSupported`, `expanded/src/enemies/bosses.cpp`): Minotaur Joe for now. Any
-other boss plays as on its arena.
+only when it is supported (`BossSupported`, `expanded/src/enemies/bosses.cpp`): Minotaur Joe and Master
+Utan for now. Any other boss plays as on its arena.
 
 A supported boss on a regular floor:
 
@@ -30,6 +30,21 @@ regular floor the set is bound as an extra monster bank, so he sounds as on his 
 crowd cheering that his script plays when he is hit, which `_SET_SND_NOW` drops there.
 
 Joe is a no-lock-on kind, so like on his arena he drops no item and never carries the floor's key.
+
+## Master Utan
+
+His setup label (1 in `dun/monstor/c14a.stb`) puts him at `_SET_POSITION(0, 60, 100)`: his arena (the `gedit/s96`
+scene) stands him on raised ground 60 up near its origin, which on a regular floor is the map's corner, in the
+air. Kept where the floor places him, he stands on its ground; the rest of his AI moves relative to the player,
+and the floor's other monsters keep their own spots. The boulder he throws on his arena is the arena scene's
+(`iwa.chr`), not his, so he fights with his swipes, charge and seed spray.
+
+His death label (120) stops him, makes him invincible for 100 steps, holds motion 13 (死亡, frames 360-385) on
+its last frame and runs the defeat scene. On a regular floor `BossDeathStep` plays motion 13 once, fades him
+out on its last frame (he has no death loop) and lets him die as Joe does.
+
+His ids 1741-1759 are program 113, only in `sound/set/snd201.snd`, the set his arena's event loads
+(`_LOAD_SOUND_SET(201)`); it is bound like Joe's.
 
 ## The built model
 
