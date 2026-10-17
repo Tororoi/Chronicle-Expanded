@@ -17,6 +17,10 @@
 #include "platform/audio.hpp"
 #include "platform/config.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/sounds.hpp"
+#endif
+
 // The IOP's MIDI player is the port's audio::Mixer. Banks and sequences are copied into it rather
 // than into IOP and SPU memory, so the SPU address bookkeeping below survives only to keep
 // GetMidiState() reading as it did; nothing addresses sound memory by it.
@@ -534,6 +538,11 @@ PORT_OVERRIDE void CSound::SQ_RePlay(int port) {
 PORT_OVERRIDE void CSound::SE_Play(int port, int bank, int program, int pan, int velocity, int volume, int voice) {
     audio::Trace("SE_Play port %d bank %d program %d pan %d velocity %d volume %d voice %d", port, bank,
                  program, pan, velocity, volume, voice);
+#ifdef CHRONICLE_EXPANDED
+    if (int select = expanded::MonsterSoundBank(EffectPort(port), bank, program); select >= 0) {
+        g_effect_queue.push_back({EffectPort(port), false, static_cast<std::uint32_t>(0xB0 | (select << 16)), {}});
+    }
+#endif
     QueueProgram(port, bank);
     QueueExtended(port, {0xF9, 0, 0, static_cast<std::uint8_t>(volume), 0});
     QueueExtended(port, {0xF9, 1, 0, static_cast<std::uint8_t>(pan), 0});
