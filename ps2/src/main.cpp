@@ -49,6 +49,7 @@
 #include "water.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/debug/enemy_roster.hpp"
 #include "expanded/weapons/stats.hpp"
 #endif
 
@@ -1113,6 +1114,9 @@ int MenuLoop() {
     while (menu[i][0] != 0) {
         i++;
     }
+#ifdef CHRONICLE_EXPANDED
+    i += expanded::DevMenuRosterRows();
+#endif
 
     char *cursor[2] = {" ", ">"};
 
@@ -1256,9 +1260,17 @@ int MenuLoop() {
     DebugFont.length += sprintf(&DebugFont.text[DebugFont.length], menu[i], cursor[i == select], mc_mode);
     i++;
     DebugFont.length += sprintf(&DebugFont.text[DebugFont.length], menu[i], cursor[i == select], LanguageCode);
+#ifdef CHRONICLE_EXPANDED
+    DebugFont.length += expanded::DevMenuRosterDraw(&DebugFont.text[DebugFont.length], i + 1 == select);
+#endif
 
     TexManager.ReloadTexture(GetVif1Packet(), 0);
     DebugFont.Draw();
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::DevMenuRosterStep(i + 1 == select)) {
+        return 0;
+    }
+#endif
 
     if (GamePad.Down(PAD_CIRCLE) || GamePad.Down(PAD_TRIANGLE)) {
         static int map[3] = {23, 41, 19};

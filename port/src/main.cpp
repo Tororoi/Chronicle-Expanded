@@ -40,6 +40,10 @@
 #include "title/rushmovi.hpp"
 #include "title/title.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/debug/enemy_roster.hpp"
+#endif
+
 int  EditInit(void *param);
 int  EditLoop();
 void SndInit();
@@ -64,6 +68,9 @@ struct Options {
     bool         screenshot_fps = false;
     const char  *export_text = nullptr;
     const char  *font = nullptr;
+#ifdef CHRONICLE_EXPANDED
+    const char  *roster = nullptr;
+#endif
 };
 
 Options g_options;
@@ -97,7 +104,12 @@ Options g_options;
                  "                     skipping the warm-up (DC_JUMP); see docs/PC.md\n"
                  "  --fast-load        loading-screen holds and fades of a few ticks (DC_FAST_LOAD=1)\n"
                  "  --give ITEM,...    give the party these item and weapon numbers when a town or dungeon\n"
-                 "                     starts, unless it holds them (DC_GIVE); see docs/PC.md\n",
+                 "                     starts, unless it holds them (DC_GIVE); see docs/PC.md\n"
+#ifdef CHRONICLE_EXPANDED
+                 "  --roster KIND,...  debug mode: every dungeon floor lays out these MonstorTable kinds,\n"
+                 "                     a trailing ! spawning one at most once (20!,60)\n"
+#endif
+                 ,
                  program);
     std::exit(kExitUsage);
 }
@@ -139,6 +151,10 @@ Options ParseOptions(int argc, const char **argv) {
             options.jump = value();
         } else if (arg == "--give") {
             options.give = value();
+#ifdef CHRONICLE_EXPANDED
+        } else if (arg == "--roster") {
+            options.roster = value();
+#endif
         } else if (arg == "--fast-load") {
             options.fast_load = true;
         } else if (arg == "--export-text") {
@@ -380,6 +396,12 @@ int Run(int argc, const char **argv) {
         std::fprintf(stderr, "bad --give: %s\n", options.give);
         std::exit(kExitUsage);
     }
+#ifdef CHRONICLE_EXPANDED
+    if (options.roster != nullptr && !expanded::SetDebugRoster(options.roster)) {
+        std::fprintf(stderr, "bad --roster: %s\n", options.roster);
+        std::exit(kExitUsage);
+    }
+#endif
     if (options.jump != nullptr && *options.jump != '\0' && !GameSetJump(options.jump)) {
         std::fprintf(stderr, "bad --jump: %s\n", options.jump);
         std::exit(kExitUsage);
