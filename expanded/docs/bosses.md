@@ -1,8 +1,8 @@
 # Bosses on regular floors
 
 A boss a staged roster (such as the debug `--roster`) places on a regular floor plays there
-only when it is supported (`BossSupported`, `expanded/src/enemies/bosses.cpp`): Minotaur Joe, Master Utan
-and the Ice Queen for now. Any other boss plays as on its arena.
+only when it is supported (`BossSupported`, `expanded/src/enemies/bosses.cpp`): Minotaur Joe, Master Utan,
+the Ice Queen and King's Curse for now. Any other boss plays as on its arena.
 
 A supported boss on a regular floor:
 
@@ -46,21 +46,31 @@ out on its last frame (he has no death loop) and lets him die as Joe does.
 His ids 1741-1759 are program 113, only in `sound/set/snd201.snd`, the set his arena's event loads
 (`_LOAD_SOUND_SET(201)`); it is bound like Joe's.
 
+## Casts
+
+A boss fought as several monsters whose scripts talk to each other is a cast (`expanded/src/enemies/boss_casts.cpp`):
+the Ice Queen and her barrier, King's Curse's coffin and king. On their floors they talk through globals 0-9
+and find each other by monster number (the cast's first is monster 0, its second monster 1). Off them:
+
+- a roster with any of a cast keeps all of it, spawned once, while the party member the fight needs is in
+  the party (the one who can hurt the boss: Ruby for the Queen, Ungaga for the king); otherwise, or with no
+  room for the rest, none of it;
+- the cast's scripts use a mailbox of their own instead of the globals (`_SET_GLOBAL_INT`, `_GET_GLOBAL_INT`),
+  and a script's monster 0 or 1 is the cast's (`_GET_MONSTOR_POS`, `_GET_MONSTOR_VECTOR`, `_SET_MONSTOR_POS`);
+- setting up, its members keep the floor's spots (`_SET_POSITION`);
+- one member follows the other: while dormant it waits by it, to wake with it, and its script's hiding place
+  is taken by it too;
+- the boss's partner is no kill (no kill count, the live count kept), and leaves with the boss when it falls.
+
 ## The Ice Queen
 
 On her floor (Shipwreck's boss floor) the Queen (`c13a`) fights with eight companions, each a monster with its
 own script: her barrier (`c13_baria`), the ice arrow (`c13_korinoya`), the prison (`c13_kori`), the meteor
-(`c13_i_meteo`), the aura (`c13_reiki`) and three tornadoes (`c13_i_tatumaki`). They talk through globals
-0-8, and the companions find her as monster 0. Off her floor (`expanded/src/enemies/ice_queen.cpp`):
-
-- a roster keeps her only while Ruby is in the party (her body takes damage from Ruby alone) and adds her
-  barrier, spawned once; with no room for it she is left out;
-- her script and her barrier's use a mailbox of their own instead of the globals (`_SET_GLOBAL_INT`,
-  `_GET_GLOBAL_INT`), and the barrier's monster 0 is her (`_GET_MONSTOR_POS`, `_GET_MONSTOR_VECTOR`); while
-  dormant it waits at her side, to wake with her;
-- breaking the barrier is no kill (no kill count, the live count kept): it stays down until she raises it;
-- the other companions are shot effects of their own packs, loaded with her, fired by `IceQueenStep` for her
-  script's requests and answering in the mailbox as their scripts did:
+(`c13_i_meteo`), the aura (`c13_reiki`) and three tornadoes (`c13_i_tatumaki`), the companions finding her as
+monster 0. Off her floor her barrier is her cast's other member, following her at chest height; breaking it
+keeps it down until she raises it. The other companions are shot effects of their own packs
+(`expanded/src/enemies/ice_queen.cpp`), loaded with her, fired by `IceQueenStep` for her script's requests and
+answering in the mailbox as their scripts did:
 
 | Companion | Shot | As the script did |
 |---|---|---|
@@ -73,6 +83,20 @@ own script: her barrier (`c13_baria`), the ice arrow (`c13_korinoya`), the priso
 The arrow's freeze is checked two steps after it lands, once its hit has reached the player. She dies with
 her death (motion 11) and its loop (12) like Joe; her shots end and her barrier leaves with her. Her sounds
 (program 114) are in `sound/set/snd202.snd`, bound like Joe's.
+
+## King's Curse
+
+On his floor (the Sun and Moon Temple's last) King's Curse is two monsters: the coffin (`c15a`, 2000 life,
+monster 0) and the king (`c15b`, monster 1), who fights. The king takes no damage; Ungaga's hit (damage id 42)
+blows him away, and the coffin comes onto him and opens to be hit until it closes 360 steps later and he
+forms again. The coffin's defeat is his. Off his floor, as a cast with the coffin following the king:
+
+- the coffin's hiding place (`_SET_POSITION(0, 0, -500)`, out of his arena) is taken 500 under the king, and a
+  dormant coffin waits there, to wake with him;
+- the coffin falls with its death (motion 5) and its loop (6) and fades; the king leaves with it;
+- the king is drawn as his smoke (`InitBee`, `DrawBee`: `c15a03` cells along his frames, which are hidden),
+  which retail ties to his floor and monster 1 (`BossSmokes`);
+- their sounds (program 115) are in `sound/set/snd203.snd`, bound like Joe's.
 
 ## The built model
 

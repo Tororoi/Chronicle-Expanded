@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "dun/gameloop.hpp"
-#include "expanded/enemies/ice_queen.hpp"
+#include "expanded/enemies/boss_casts.hpp"
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
 
@@ -92,8 +92,8 @@ bool SpawnsOnceNatively(int model_no) {
 
 void StageFloor(int floor, const FloorRosters &rosters) {
     FloorRosters &staging = staged[floor] = rosters;
-    IceQueenRoster(staging.front);
-    IceQueenRoster(staging.back);
+    BossCastRoster(staging.front);
+    BossCastRoster(staging.back);
 }
 
 const FloorRosters *StagedFloor(int floor) {

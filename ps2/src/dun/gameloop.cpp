@@ -126,6 +126,7 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -6322,6 +6323,7 @@ void motionDrive() {
     }
 #ifdef CHRONICLE_EXPANDED
     expanded::ShotEffectsStep();
+    expanded::BossCastStep(*NowMonstorUnit);
     expanded::IceQueenStep(*NowMonstorUnit);
 #endif
 

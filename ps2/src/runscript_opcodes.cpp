@@ -19,9 +19,9 @@
 #include "userstatus.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/faster.hpp"
-#include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
 #include "expanded/status/confuse.hpp"
@@ -500,9 +500,13 @@ int _SET_POSITION(RS_STACKDATA *stack, int argc) {
     float z = GetStackFloat(stack);
 
 #ifdef CHRONICLE_EXPANDED
-    if (expanded::BossKeepsPlace(*NowMonstorUnit, monster_no)) {
+    float position[3] = {x, y, z};
+    if (expanded::BossPlace(*NowMonstorUnit, monster_no, position)) {
         return 1;
     }
+    x = position[0];
+    y = position[1];
+    z = position[2];
 #endif
     NowMonstorUnit->chara[monster_no][0].SetPosition(x, y, z);
     return 1;
@@ -1076,7 +1080,7 @@ int _GET_MONSTOR_POS(RS_STACKDATA *stack, int argc) {
     float position[4];
 
 #ifdef CHRONICLE_EXPANDED
-    NowMonstorUnit->chara[expanded::IceQueenMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack++))][0].GetPosition(position);
+    NowMonstorUnit->chara[expanded::BossCastMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack++))][0].GetPosition(position);
 #else
     NowMonstorUnit->chara[GetStackInt(stack++)][0].GetPosition(position);
 #endif
@@ -1096,7 +1100,11 @@ int _GET_MONSTOR_FRM(RS_STACKDATA *stack, int argc) {
 }
 
 int _SET_MONSTOR_POS(RS_STACKDATA *stack, int argc) {
-    int   monster_no = GetStackInt(stack++);
+#ifdef CHRONICLE_EXPANDED
+    int monster_no = expanded::BossCastMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack++));
+#else
+    int monster_no = GetStackInt(stack++);
+#endif
     float position[4];
 
     position[0] = GetStackFloat(stack++);
@@ -1214,7 +1222,7 @@ int _SET_GLOBAL_INT(RS_STACKDATA *stack, int argc) {
     int slot = GetStackInt(stack++);
 
 #ifdef CHRONICLE_EXPANDED
-    expanded::IceQueenGlobals(NowMonstorUnit->current_monster, GL_INT)[slot] = GetStackInt(stack);
+    expanded::BossCastGlobals(NowMonstorUnit->current_monster, GL_INT)[slot] = GetStackInt(stack);
 #else
     GL_INT[slot] = GetStackInt(stack);
 #endif
@@ -1225,7 +1233,7 @@ int _GET_GLOBAL_INT(RS_STACKDATA *stack, int argc) {
     int slot = GetStackInt(stack++);
 
 #ifdef CHRONICLE_EXPANDED
-    SetStack(stack++, expanded::IceQueenGlobals(NowMonstorUnit->current_monster, GL_INT)[slot]);
+    SetStack(stack++, expanded::BossCastGlobals(NowMonstorUnit->current_monster, GL_INT)[slot]);
 #else
     SetStack(stack++, GL_INT[slot]);
 #endif
@@ -1335,7 +1343,7 @@ int _SET_MOTION_CHANGE_STEP(RS_STACKDATA *stack, int argc) {
 
 int _GET_MONSTOR_VECTOR(RS_STACKDATA *stack, int argc) {
 #ifdef CHRONICLE_EXPANDED
-    int monster_no = expanded::IceQueenMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack++));
+    int monster_no = expanded::BossCastMonsterRef(NowMonstorUnit->current_monster, GetStackInt(stack++));
 #else
     int monster_no = GetStackInt(stack++);
 #endif

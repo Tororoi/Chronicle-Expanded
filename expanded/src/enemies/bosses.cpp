@@ -5,12 +5,15 @@
 #include <filesystem>
 #include <utility>
 
+#include "dun/gameloop.hpp"
 #include "expanded/data/boss_model.hpp"
+#include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "monstorunit.hpp"
 #include "platform/paths.hpp"
+#include "userstatus.hpp"
 
 namespace expanded {
 
@@ -27,6 +30,10 @@ constexpr int kUtanDeath = 13;
 // The Ice Queen's death and its loop.
 constexpr int kIceQueenDeath = 11;
 constexpr int kIceQueenDeathLoop = 12;
+
+// King's Curse's coffin's death and its loop.
+constexpr int kCoffinDeath = 5;
+constexpr int kCoffinDeathLoop = 6;
 
 // The arena crowd's cheer, which Joe's script plays when he is hit.
 constexpr int kCrowdCheer = 1798;
@@ -50,6 +57,9 @@ std::pair<int, int> DeathMotions(int kind, const CCharacter &character) {
     }
     if (kind == No(Monster::ICE_QUEEN)) {
         return {kIceQueenDeath, kIceQueenDeathLoop};
+    }
+    if (kind == No(Monster::KINGS_CURSE_COFFIN)) {
+        return {kCoffinDeath, kCoffinDeathLoop};
     }
     // Joe: the built fall when the pack has it, else the disc's death.
     if (MotionCount(character) > kJoeDeathLoopKey) {
@@ -96,7 +106,7 @@ bool OnLastFrame(const CCharacter &character) {
 
 bool BossSupported(int model_no) {
     return model_no == No(Monster::MINOTAUR_JOE) || model_no == No(Monster::MASTER_UTAN) ||
-           model_no == No(Monster::ICE_QUEEN);
+           model_no == No(Monster::ICE_QUEEN) || model_no == No(Monster::KINGS_CURSE_COFFIN);
 }
 
 bool BossOutOfPlace(int monster) {
@@ -131,6 +141,20 @@ bool BossKeepsPlace(const CMonstorUnit &unit, int monster) {
     return BossOutOfPlace(monster) && (unit.monster[monster].state == 1 || unit.monster[monster].hp <= 0);
 }
 
+bool BossPlace(CMonstorUnit &unit, int monster, float *position) {
+    if (BossCastMember(monster)) {
+        return BossCastPlace(unit, monster, position) || (BossOutOfPlace(monster) && unit.monster[monster].hp <= 0);
+    }
+    return BossKeepsPlace(unit, monster);
+}
+
+bool BossSmokes(int monster, int model_slot) {
+    if (UserStatus->cur_georama == 3 && UserStatus->cur_floor == 17 && monster == 1) {
+        return true;
+    }
+    return LoadedRoster() != nullptr && ModelKind(model_slot) == No(Monster::KINGS_CURSE);
+}
+
 bool BossEventHeld(int monster) {
     return BossOutOfPlace(monster);
 }
@@ -152,8 +176,9 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
             live.turn_speed = 0.0f;
             live.invincible_timer = kDeathInvincible;
             int kind = ModelKind(live.base_model);
+            BossCastDefeated(unit, monster);
             if (kind == No(Monster::ICE_QUEEN)) {
-                IceQueenDefeated(unit);
+                IceQueenDefeated();
             }
             auto [fall, loop] = DeathMotions(kind, unit.chara[monster][0]);
             state.loop = loop;
