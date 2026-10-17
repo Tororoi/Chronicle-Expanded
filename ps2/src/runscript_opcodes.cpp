@@ -20,6 +20,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/boss_casts.hpp"
+#include "expanded/enemies/boss_moves.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/miniboss.hpp"
@@ -218,6 +219,9 @@ int _GET_DISTANCE(RS_STACKDATA *stack, int argc) {
         target_position[0] = GetStackFloat(stack++);
         target_position[1] = GetStackFloat(stack++);
         target_position[2] = GetStackFloat(stack++);
+#ifdef CHRONICLE_EXPANDED
+        expanded::BossPointIn(*NowMonstorUnit, monster_no, target_position, expanded::BossPoint::Aim);
+#endif
     }
 
 #ifdef CHRONICLE_EXPANDED
@@ -245,6 +249,9 @@ int _GET_POSITION(RS_STACKDATA *stack, int argc) {
 #endif
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::BossPointOut(monster_no, position);
+#endif
     SetStack(stack++, position[0]);
     SetStack(stack++, position[1]);
     SetStack(stack, position[2]);
@@ -258,6 +265,9 @@ int _SET_ROTATION(RS_STACKDATA *stack, int argc) {
     NowMonstorUnit->monster[monster_no].turn_target[1] = GetStackFloat(stack++);
     NowMonstorUnit->monster[monster_no].turn_target[2] = GetStackFloat(stack++);
     NowMonstorUnit->monster[monster_no].turn_speed = GetStackFloat(stack);
+#ifdef CHRONICLE_EXPANDED
+    expanded::BossPointIn(*NowMonstorUnit, monster_no, NowMonstorUnit->monster[monster_no].turn_target, expanded::BossPoint::Aim);
+#endif
 
     if (NowMonstorUnit->monster[monster_no].turn_speed < 0.0f) {
         float position[4];
@@ -362,6 +372,9 @@ int _GET_VECTOR(RS_STACKDATA *stack, int argc) {
     direction[1] = GetStackFloat(stack++);
     direction[2] = GetStackFloat(stack++);
     direction[3] = 1.0f;
+#ifdef CHRONICLE_EXPANDED
+    expanded::BossPointIn(*NowMonstorUnit, monster_no, direction, expanded::BossPoint::Aim);
+#endif
 
     if (argc == 7) {
         angle = GetStackFloat(stack++);
@@ -441,6 +454,10 @@ int _SET_MOVE(RS_STACKDATA *stack, int argc) {
     direction[0] = GetStackFloat(stack++);
     direction[1] = GetStackFloat(stack++);
     direction[2] = GetStackFloat(stack++);
+#ifdef CHRONICLE_EXPANDED
+    expanded::BossPointIn(*NowMonstorUnit, monster_no, direction, expanded::BossPoint::Place);
+    expanded::BossMoveGoal(monster_no, direction);
+#endif
     direction[0] -= position[0];
     direction[1] -= position[1];
     direction[2] -= position[2];
@@ -472,6 +489,10 @@ int _CHK_MOVE_INFO(RS_STACKDATA *stack, int argc) {
     to[0] = GetStackFloat(stack++);
     to[1] = GetStackFloat(stack++);
     to[2] = GetStackFloat(stack++);
+#ifdef CHRONICLE_EXPANDED
+    expanded::BossPointIn(*NowMonstorUnit, monster_no, to, expanded::BossPoint::Target);
+    clear = expanded::BossLineClear(*NowMonstorUnit, monster_no, to) ? 1 : 0;
+#endif
     from[1] += 5.0f;
     to[1] += 5.0f;
 
@@ -501,6 +522,7 @@ int _SET_POSITION(RS_STACKDATA *stack, int argc) {
 
 #ifdef CHRONICLE_EXPANDED
     float position[3] = {x, y, z};
+    expanded::BossPointIn(*NowMonstorUnit, monster_no, position, expanded::BossPoint::Place);
     if (expanded::BossPlace(*NowMonstorUnit, monster_no, position)) {
         return 1;
     }
@@ -930,6 +952,9 @@ int _SET_SHOT(RS_STACKDATA *stack, int argc) {
     NowMonstorUnit->event[monster_no].local_position[1] = GetStackFloat(stack++);
     NowMonstorUnit->event[monster_no].local_position[2] = GetStackFloat(stack++);
     NowMonstorUnit->event[monster_no].local_position[3] = 1.0f;
+#ifdef CHRONICLE_EXPANDED
+    expanded::BossPointIn(*NowMonstorUnit, monster_no, NowMonstorUnit->event[monster_no].local_position, expanded::BossPoint::Target);
+#endif
 
     if (NowMonstorUnit->event[monster_no].timer == 0) {
         CFrame *frame = NowMonstorUnit->chara[monster_no][0].frame->SearchFrame(name);
@@ -966,6 +991,9 @@ int _SET_SHOT2(RS_STACKDATA *stack, int argc) {
     NowMonstorUnit->event2[monster_no].local_position[1] = GetStackFloat(stack++);
     NowMonstorUnit->event2[monster_no].local_position[2] = GetStackFloat(stack++);
     NowMonstorUnit->event2[monster_no].local_position[3] = 1.0f;
+#ifdef CHRONICLE_EXPANDED
+    expanded::BossPointIn(*NowMonstorUnit, monster_no, NowMonstorUnit->event2[monster_no].local_position, expanded::BossPoint::Target);
+#endif
 
     if (NowMonstorUnit->event2[monster_no].timer == 0) {
         CFrame *frame = NowMonstorUnit->chara[monster_no][0].frame->SearchFrame(name);

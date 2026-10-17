@@ -1,5 +1,6 @@
 #include "expanded/enemies/bosses.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -9,6 +10,7 @@
 #include "expanded/data/boss_model.hpp"
 #include "expanded/enemies/black_knight.hpp"
 #include "expanded/enemies/boss_casts.hpp"
+#include "expanded/enemies/boss_moves.hpp"
 #include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
@@ -36,6 +38,10 @@ constexpr int kIceQueenDeathLoop = 12;
 constexpr int kCoffinDeath = 5;
 constexpr int kCoffinDeathLoop = 6;
 
+// Dran's death (死亡), held on its last frame; he falls from the air to his arena's floor by its crash (frame 115).
+constexpr int   kDranDeath = 6;
+constexpr float kDranDeathCrash = 115.0f;
+
 // The Black Knight's dismount and its loop: his death when the data lacks his built model.
 constexpr int kKnightDismount = 7;
 constexpr int kKnightDismountLoop = 8;
@@ -57,8 +63,9 @@ enum class Phase {
 struct Death {
     Phase phase = Phase::Fighting;
     int   loop = -1;
-    int   key = -1;    // Throes: the KEY playing
-    int   throes = -1; // Throes: steps since the death throes began, or -1
+    int   key = -1;         // Throes: the KEY playing
+    int   throes = -1;      // Throes: steps since the death throes began, or -1
+    float fell_from = 0.0f; // Falling: the height an airborne boss fell from
 };
 
 // A model's built boss pack, and the boss it is for.
@@ -77,6 +84,9 @@ const BuiltPack kBuiltPacks[] = {
 std::pair<int, int> DeathMotions(int kind, const CCharacter &character) {
     if (kind == No(Monster::MASTER_UTAN)) {
         return {kUtanDeath, -1};
+    }
+    if (kind == No(Monster::DRAN)) {
+        return {kDranDeath, -1};
     }
     if (kind == No(Monster::ICE_QUEEN)) {
         return {kIceQueenDeath, kIceQueenDeathLoop};
@@ -121,6 +131,23 @@ void PlayMotion(CMonstorUnit &unit, int monster, int motion, int flags) {
     }
 }
 
+// Lowers a boss falling in its arena's coordinates from fell_from to the arena's floor, landing at frame crash.
+void FallToFloor(CMonstorUnit &unit, int monster, float fell_from, float crash) {
+    if (!BossInArenaFrame(monster)) {
+        return;
+    }
+    float floor[3] = {0.0f, 0.0f, 0.0f};
+    BossPointIn(unit, monster, floor, BossPoint::Target);
+    const CCharacter  &character = unit.chara[monster][0];
+    const MOTION_INFO &info = character.motion_type.motion_info[character.motion_no];
+    float              k = std::clamp((character.motion_type.state.time - static_cast<float>(info.start)) /
+                                          (crash - static_cast<float>(info.start)),
+                                      0.0f, 1.0f);
+    float              at[4];
+    unit.chara[monster][0].GetPosition(at);
+    unit.chara[monster][0].SetPosition(at[0], fell_from + (floor[1] - fell_from) * k, at[2]);
+}
+
 // Whether the motion stands on its last frame (not still on the one before it).
 bool OnLastFrame(const CCharacter &character) {
     const MOTION_INFO &info = character.motion_type.motion_info[character.motion_no];
@@ -133,7 +160,7 @@ bool OnLastFrame(const CCharacter &character) {
 bool BossSupported(int model_no) {
     return model_no == No(Monster::MINOTAUR_JOE) || model_no == No(Monster::MASTER_UTAN) ||
            model_no == No(Monster::ICE_QUEEN) || model_no == No(Monster::KINGS_CURSE_COFFIN) ||
-           model_no == No(Monster::BLACK_KNIGHT);
+           model_no == No(Monster::BLACK_KNIGHT) || model_no == No(Monster::DRAN);
 }
 
 bool BossOutOfPlace(int monster) {
@@ -170,6 +197,9 @@ bool BossKeepsPlace(const CMonstorUnit &unit, int monster) {
 }
 
 bool BossPlace(CMonstorUnit &unit, int monster, float *position) {
+    if (BossInArenaFrame(monster)) {
+        return unit.monster[monster].hp <= 0;
+    }
     if (BossCastMember(monster)) {
         return BossCastPlace(unit, monster, position) || (BossOutOfPlace(monster) && unit.monster[monster].hp <= 0);
     }
@@ -217,6 +247,9 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
             }
             auto [fall, loop] = DeathMotions(kind, unit.chara[monster][0]);
             state.loop = loop;
+            float at[4];
+            unit.chara[monster][0].GetPosition(at);
+            state.fell_from = at[1];
             PlayMotion(unit, monster, fall, kStopOnLastFrame);
             state.phase = Phase::Falling;
             break;
@@ -247,6 +280,9 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
             break;
         }
         case Phase::Falling:
+            if (ModelKind(live.base_model) == No(Monster::DRAN)) {
+                FallToFloor(unit, monster, state.fell_from, kDranDeathCrash);
+            }
             if (OnLastFrame(unit.chara[monster][0])) {
                 if (state.loop >= 0) {
                     PlayMotion(unit, monster, state.loop, kLoop);

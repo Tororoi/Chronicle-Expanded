@@ -7,6 +7,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/data/boss_model.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/boss_moves.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -127,18 +128,17 @@ TEST_F(OutOfPlaceBoss, ABossOnItsOwnFloorIsLeftAlone) {
     EXPECT_FALSE(expanded::BossDeathStep(*unit_, 0));
 }
 
-TEST_F(OutOfPlaceBoss, OnlyJoeUtanTheIceQueenKingsCurseAndTheBlackKnightAreSupported) {
+TEST_F(OutOfPlaceBoss, OnlyTheDungeonBossesButTheDarkGenieAreSupported) {
+    EXPECT_TRUE(expanded::BossSupported(Monster::DRAN));
     EXPECT_TRUE(expanded::BossSupported(Monster::MINOTAUR_JOE));
     EXPECT_TRUE(expanded::BossSupported(Monster::MASTER_UTAN));
     EXPECT_TRUE(expanded::BossSupported(Monster::ICE_QUEEN));
     EXPECT_TRUE(expanded::BossSupported(Monster::KINGS_CURSE_COFFIN));
     EXPECT_TRUE(expanded::BossSupported(Monster::BLACK_KNIGHT));
-    for (Monster boss : {Monster::DRAN, Monster::DARK_GENIE}) {
-        EXPECT_FALSE(expanded::BossSupported(boss)) << No(boss);
-    }
+    EXPECT_FALSE(expanded::BossSupported(Monster::DARK_GENIE));
 
     // Another boss a staged roster places plays as on its arena.
-    LoadFloor(true, {Monster::DRAN, Monster::SKELETON_SOLDIER});
+    LoadFloor(true, {Monster::DARK_GENIE, Monster::SKELETON_SOLDIER});
     Spawn(0, 0);
     EXPECT_FALSE(expanded::BossOutOfPlace(0));
     EXPECT_FALSE(expanded::BossEventHeld(0));
@@ -248,6 +248,67 @@ TEST_F(OutOfPlaceBoss, BeatenUtanFallsWithHisDeathAndFadesOnItsLastFrame) {
     EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
     EXPECT_EQ(utan.state, -1);
     EXPECT_EQ(unit_->alive_count, 1);
+}
+
+TEST_F(OutOfPlaceBoss, DransArenaIsMeasuredFromWhereHeIsPlaced) {
+    LoadFloor(true, {Monster::DRAN, Monster::WEREWOLF});
+    unit_->chara[0][0].SetPosition(500.0f, 10.0f, 700.0f);
+    Spawn(0, 0);
+    EXPECT_TRUE(expanded::BossInArenaFrame(0));
+
+    // A perch of his arena, into the floor and back.
+    float perch[3] = {200.0f, 40.0f, 0.0f};
+    expanded::BossPointIn(*unit_, 0, perch, expanded::BossPoint::Place);
+    EXPECT_FLOAT_EQ(perch[0], 700.0f);
+    EXPECT_FLOAT_EQ(perch[1], 50.0f);
+    EXPECT_FLOAT_EQ(perch[2], 700.0f);
+    expanded::BossPointOut(0, perch);
+    EXPECT_FLOAT_EQ(perch[0], 200.0f);
+    EXPECT_FLOAT_EQ(perch[1], 40.0f);
+    EXPECT_FLOAT_EQ(perch[2], 0.0f);
+
+    // Joe's script works in the floor's own.
+    unit_->monster[1].state = -1;
+    LoadFloor(true, {Monster::MINOTAUR_JOE, Monster::WEREWOLF});
+    Spawn(1, 0);
+    EXPECT_FALSE(expanded::BossInArenaFrame(1));
+    float place[3] = {200.0f, 40.0f, 0.0f};
+    expanded::BossPointIn(*unit_, 1, place, expanded::BossPoint::Place);
+    EXPECT_FLOAT_EQ(place[0], 200.0f);
+    EXPECT_FLOAT_EQ(place[2], 0.0f);
+}
+
+TEST_F(OutOfPlaceBoss, BeatenDranFallsFromTheAirToHisArenasFloor) {
+    LoadFloor(true, {Monster::DRAN, Monster::WEREWOLF});
+    unit_->chara[0][0].SetPosition(500.0f, 10.0f, 700.0f);
+    Spawn(0, 0);
+    motions_.assign(8, MOTION_INFO{.start = 10, .end = 30, .speed = 0.2f});
+    motions_[6] = {.start = 100, .end = 120, .speed = 0.15f};
+    motions_[7] = {.start = -1, .end = -1, .speed = -1.0f};
+    CCharacter &body = unit_->chara[0][0];
+    body.motion_type.motion_info = motions_.data();
+    body.SetPosition(500.0f, 59.0f, 700.0f);
+    MONSTOR &dran = unit_->monster[0];
+    dran.state = 2;
+    dran.hp = 0;
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(dran.requested_motion, 6);
+
+    // Halfway to the crash, halfway down; on it and after, on the floor.
+    float at[4];
+    body.motion_type.state.time = 107.5f;
+    expanded::BossDeathStep(*unit_, 0);
+    body.GetPosition(at);
+    EXPECT_FLOAT_EQ(at[1], 34.5f);
+    body.motion_type.state.time = 115.0f;
+    expanded::BossDeathStep(*unit_, 0);
+    body.GetPosition(at);
+    EXPECT_FLOAT_EQ(at[1], 10.0f);
+    FinishMotion(0);
+    expanded::BossDeathStep(*unit_, 0);
+    body.GetPosition(at);
+    EXPECT_FLOAT_EQ(at[1], 10.0f);
+    EXPECT_FLOAT_EQ(dran.palette_alpha_step, 128.0f / expanded::kBossFadeFrames);
 }
 
 TEST_F(OutOfPlaceBoss, BeatenBlackKnightBowsWrithesAndFadesWhenTheLightComes) {
