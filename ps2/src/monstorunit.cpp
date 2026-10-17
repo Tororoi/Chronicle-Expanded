@@ -40,6 +40,7 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
@@ -2085,7 +2086,8 @@ void CMonstorUnit::Step(int pause) {
                     }
                 } else {
 #ifdef CHRONICLE_EXPANDED
-                    if (expanded::ReviveStep(*this, current_monster)) {
+                    if (expanded::BossDeathStep(*this, current_monster)) {
+                    } else if (expanded::ReviveStep(*this, current_monster)) {
                     } else if (script_state[current_monster] == 0) {
 #else
                     if (script_state[current_monster] == 0) {
@@ -2487,6 +2489,9 @@ int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDat
     int            file_size;
     attr.fog_enable = true;
     sprintf(filename, "dun/monstor/%s.chr", description->model_name[0]);
+#ifdef CHRONICLE_EXPANDED
+    expanded::BossPackFile(filename, model_no);
+#endif
     LoadFile(filename, read_buffer, NULL);
     wait_now_loading_vsync();
     CCharacter *character = &base_chara[slot][0];

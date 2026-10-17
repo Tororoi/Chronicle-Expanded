@@ -9,7 +9,7 @@ class CMonstorUnit;
 namespace expanded {
 
 // The dungeon sound sets that carry a kind's sounds: snd100 + the dungeon of each floor laying it out,
-// Demon Shaft's five 20-floor bands snd106 to snd110.
+// Demon Shaft's five 20-floor bands snd106 to snd110, and the arena set of a boss whose event loads its own.
 std::vector<int> HomeSoundSets(int model_no);
 
 inline std::vector<int> HomeSoundSets(Monster monster) {
