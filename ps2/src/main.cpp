@@ -50,6 +50,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/debug/enemy_roster.hpp"
+#include "expanded/items/items.hpp"
 #include "expanded/weapons/stats.hpp"
 #endif
 
@@ -437,6 +438,7 @@ void initialize_data() {
     LoadSndTxt();
 #ifdef CHRONICLE_EXPANDED
     expanded::WeaponStatsApply();
+    expanded::ItemsApply();
 #endif
 }
 

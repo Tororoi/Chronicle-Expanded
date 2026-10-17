@@ -37,6 +37,7 @@ still matches retail.
     - `dungeon/`: dungeon systems shared by several features, such as the shot effects.
     - `enemies/`: monsters: the stat scaling every stat change goes through, the features built on it, and how
       monsters move, act and revive.
+    - `items/`: changes to the game's items (non-weapon).
     - `status/`: status effects and new abilities' effects on monsters and the player (Confuse, poison,
       freeze).
     - `town/`: town features.
