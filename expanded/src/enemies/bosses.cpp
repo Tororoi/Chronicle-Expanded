@@ -35,6 +35,10 @@ constexpr int kIceQueenDeathLoop = 12;
 constexpr int kCoffinDeath = 5;
 constexpr int kCoffinDeathLoop = 6;
 
+// The Black Knight's death and its loop.
+constexpr int kBlackKnightDeath = 7;
+constexpr int kBlackKnightDeathLoop = 8;
+
 // The arena crowd's cheer, which Joe's script plays when he is hit.
 constexpr int kCrowdCheer = 1798;
 
@@ -60,6 +64,9 @@ std::pair<int, int> DeathMotions(int kind, const CCharacter &character) {
     }
     if (kind == No(Monster::KINGS_CURSE_COFFIN)) {
         return {kCoffinDeath, kCoffinDeathLoop};
+    }
+    if (kind == No(Monster::BLACK_KNIGHT)) {
+        return {kBlackKnightDeath, kBlackKnightDeathLoop};
     }
     // Joe: the built fall when the pack has it, else the disc's death.
     if (MotionCount(character) > kJoeDeathLoopKey) {
@@ -106,7 +113,8 @@ bool OnLastFrame(const CCharacter &character) {
 
 bool BossSupported(int model_no) {
     return model_no == No(Monster::MINOTAUR_JOE) || model_no == No(Monster::MASTER_UTAN) ||
-           model_no == No(Monster::ICE_QUEEN) || model_no == No(Monster::KINGS_CURSE_COFFIN);
+           model_no == No(Monster::ICE_QUEEN) || model_no == No(Monster::KINGS_CURSE_COFFIN) ||
+           model_no == No(Monster::BLACK_KNIGHT);
 }
 
 bool BossOutOfPlace(int monster) {

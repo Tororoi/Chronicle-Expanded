@@ -83,6 +83,8 @@ constexpr std::pair<Monster, int> kArenaSets[] = {
     {Monster::ICE_QUEEN,          202},
     {Monster::KINGS_CURSE_COFFIN, 203},
     {Monster::KINGS_CURSE,        203},
+    {Monster::BLACK_KNIGHT,       207},
+    {Monster::BLACK_KNIGHT_MOUNT, 207},
 };
 
 bool Resolves(const audio::Bank *bank, int program, int note) {

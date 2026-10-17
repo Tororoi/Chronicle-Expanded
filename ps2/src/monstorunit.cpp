@@ -998,6 +998,9 @@ void CMonstorUnit::CheckViewLevel() {
 
         CCharacter *character = &chara[i][0];
         character->GetPosition(monster_position);
+#ifdef CHRONICLE_EXPANDED
+        expanded::BossCastWakePosition(*this, i, monster_position);
+#endif
         monster_position[3] = 1;
         player_position[3] = 1;
         float distance = DistVector(player_position, monster_position);
