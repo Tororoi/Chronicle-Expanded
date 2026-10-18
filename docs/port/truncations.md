@@ -65,9 +65,9 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 | port/src/editloop_init.cpp:409 | EditInit | port | low-bits | `reinterpret_cast < std :: intptr_t >(EdNPCReadBuffer)` | global pointer | store: read_misalign |
 | port/src/texture_buffer.cpp:14 | CTextureManager::SetBuffer | port | low-bits | `reinterpret_cast < std :: uintptr_t >(this->buffer)` | field | store: misalignment |
 | ps2/src/dataset.cpp:381 | LoadMDSFile | retail | low-bits | `(int)data` | parameter | test |
-| ps2/src/gameutil.cpp:297 | MotionProc | retail | low-bits | `(int)list` | parameter | test |
-| ps2/src/gameutil.cpp:309 | MotionProc | retail | low-bits | `(int)list` | parameter | test |
-| ps2/src/gameutil.cpp:322 | MotionProc | retail | low-bits | `(int)list` | parameter | test |
+| ps2/src/gameutil.cpp:299 | MotionProc | retail | low-bits | `(int)list` | parameter | test |
+| ps2/src/gameutil.cpp:311 | MotionProc | retail | low-bits | `(int)list` | parameter | test |
+| ps2/src/gameutil.cpp:324 | MotionProc | retail | low-bits | `(int)list` | parameter | test |
 | ps2/src/main.cpp:393 | LoadSndTxt | retail | low-bits | `(int)buffer` | stack | store: offset |
 
 ## Round trips resolved where the value comes back (22)
@@ -105,9 +105,9 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 | ps2/src/btitem.cpp:231 | BtGetTreasureboxBig_Init | replaced | resolved | `(int)img` | local pointer | store: itemOpenItemImg (read back only in BtGetGateKey_Loop, BtGetTreasureboxBig_Loop, BtGetTreasureboxSmall_Loop) |
 | ps2/src/btitem.cpp:498 | BtGetTreasureboxSmall_Init | replaced | resolved | `(int)mds` | local pointer | store: itemOpenItemMds (read back only in BtGetGateKey_Loop, BtGetTreasureboxBig_Loop, BtGetTreasureboxSmall_Loop) |
 | ps2/src/btitem.cpp:502 | BtGetTreasureboxSmall_Init | replaced | resolved | `(int)img` | local pointer | store: itemOpenItemImg (read back only in BtGetGateKey_Loop, BtGetTreasureboxBig_Loop, BtGetTreasureboxSmall_Loop) |
-| ps2/src/btitem.cpp:1012 | BtGetGateKey_Init | replaced | resolved | `(int)model` | local pointer | store: itemOpenItemMds (read back only in BtGetGateKey_Loop, BtGetTreasureboxBig_Loop, BtGetTreasureboxSmall_Loop) |
-| ps2/src/btitem.cpp:1016 | BtGetGateKey_Init | replaced | resolved | `(int)texture` | local pointer | store: itemOpenItemImg (read back only in BtGetGateKey_Loop, BtGetTreasureboxBig_Loop, BtGetTreasureboxSmall_Loop) |
-| ps2/src/btitem.cpp:1190 | BtEscape_Init | replaced | resolved | `(int)chr` | local pointer | store: escape_chr (read back only in BtEscape_Loop) |
+| ps2/src/btitem.cpp:1018 | BtGetGateKey_Init | replaced | resolved | `(int)model` | local pointer | store: itemOpenItemMds (read back only in BtGetGateKey_Loop, BtGetTreasureboxBig_Loop, BtGetTreasureboxSmall_Loop) |
+| ps2/src/btitem.cpp:1022 | BtGetGateKey_Init | replaced | resolved | `(int)texture` | local pointer | store: itemOpenItemImg (read back only in BtGetGateKey_Loop, BtGetTreasureboxBig_Loop, BtGetTreasureboxSmall_Loop) |
+| ps2/src/btitem.cpp:1196 | BtEscape_Init | replaced | resolved | `(int)chr` | local pointer | store: escape_chr (read back only in BtEscape_Loop) |
 | ps2/src/btsysscript.cpp:106 | BtSystemScriptLoad | replaced | resolved | `(s32)(BtSystemScriptFileBuffer.base + BtSystemScriptFileBuffer.used * 0x10)` | arena (base) | store: BtEventData (read back only in BtSystemScriptLoad, BtSystemScriptRun) |
 | ps2/src/btsysscript.cpp:362 | _ITEM_USE_WINDOW | replaced | resolved | `(s32)stack->p` | field | store: BtEventInfo.item_select_result (read back only in BtMiniItemSelect_Loop) |
 | ps2/src/cloth.cpp:553 | CCloth::CreateVUData | replaced | resolved | `(int)(normal + span * 2)` | local pointer | store: span (read back only in CCloth::CreateVUData) |
@@ -115,12 +115,12 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 | ps2/src/dataread.cpp:199 | LoadFileBG | replaced | low-bits | `(int)buffer` | parameter | test |
 | ps2/src/dataread.cpp:511 | InitCDFile | replaced | resolved | `(int)header_buff` | image | store: records[i].name (read back only in InitCDFile, SearchFile) |
 | ps2/src/dataread.cpp:617 | LoadFile2 | replaced | round-trip | `(int)buffer` | parameter | compare: GT |
-| ps2/src/dun/gameloop.cpp:5023 | DunMoveChara | replaced | resolved | `(unsigned int)NowDngMap` | global pointer | store: address (read back only in DunMoveChara) |
-| ps2/src/dun/gameloop.cpp:5027 | DunMoveChara | replaced | resolved | `(unsigned int)NowDngMap` | global pointer | store: address (read back only in DunMoveChara) |
-| ps2/src/dun/gameloop.cpp:7258 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
-| ps2/src/dun/gameloop.cpp:7283 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
-| ps2/src/dun/gameloop.cpp:7308 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
-| ps2/src/dun/gameloop.cpp:7333 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
+| ps2/src/dun/gameloop.cpp:5014 | DunMoveChara | replaced | resolved | `(unsigned int)NowDngMap` | global pointer | store: address (read back only in DunMoveChara) |
+| ps2/src/dun/gameloop.cpp:5018 | DunMoveChara | replaced | resolved | `(unsigned int)NowDngMap` | global pointer | store: address (read back only in DunMoveChara) |
+| ps2/src/dun/gameloop.cpp:7239 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
+| ps2/src/dun/gameloop.cpp:7264 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
+| ps2/src/dun/gameloop.cpp:7289 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
+| ps2/src/dun/gameloop.cpp:7314 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
 | ps2/src/dungeonmap.cpp:3175 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
 | ps2/src/dungeonmap.cpp:3190 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
 | ps2/src/dungeonmap.cpp:3203 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
@@ -231,10 +231,10 @@ pointer where it is stored, or resolve the integer where it comes back.
 | ps2/src/btitem.cpp:268 | BtGetTreasureboxBig_Loop | replaced | `(u_int *)itemOpenItemMds` | itemOpenItemMds |
 | ps2/src/btitem.cpp:537 | BtGetTreasureboxSmall_Loop | replaced | `(char *)itemOpenItemImg` | itemOpenItemImg |
 | ps2/src/btitem.cpp:538 | BtGetTreasureboxSmall_Loop | replaced | `(u_int *)itemOpenItemMds` | itemOpenItemMds |
-| ps2/src/btitem.cpp:978 | BtMiniItemSelect_Loop | replaced | `(int *)BtEventInfo.item_select_result` | BtEventInfo.item_select_result |
-| ps2/src/btitem.cpp:1047 | BtGetGateKey_Loop | replaced | `(char *)itemOpenItemImg` | itemOpenItemImg |
-| ps2/src/btitem.cpp:1048 | BtGetGateKey_Loop | replaced | `(u_int *)itemOpenItemMds` | itemOpenItemMds |
-| ps2/src/btitem.cpp:1228 | BtEscape_Loop | replaced | `(u_int *)escape_chr` | escape_chr |
+| ps2/src/btitem.cpp:984 | BtMiniItemSelect_Loop | replaced | `(int *)BtEventInfo.item_select_result` | BtEventInfo.item_select_result |
+| ps2/src/btitem.cpp:1053 | BtGetGateKey_Loop | replaced | `(char *)itemOpenItemImg` | itemOpenItemImg |
+| ps2/src/btitem.cpp:1054 | BtGetGateKey_Loop | replaced | `(u_int *)itemOpenItemMds` | itemOpenItemMds |
+| ps2/src/btitem.cpp:1234 | BtEscape_Loop | replaced | `(u_int *)escape_chr` | escape_chr |
 | ps2/src/btsysscript.cpp:107 | BtSystemScriptLoad | replaced | `(void *)BtEventData` | BtEventData |
 | ps2/src/btsysscript.cpp:114 | BtSystemScriptLoad | replaced | `(char *)BtEventData` | BtEventData |
 | ps2/src/btsysscript.cpp:258 | BtSystemScriptRun | replaced | `(char *)BtEventData` | BtEventData |
@@ -242,12 +242,12 @@ pointer where it is stored, or resolve the integer where it comes back.
 | ps2/src/cloth.cpp:554 | CCloth::CreateVUData | replaced | `(u_long128 *)span` | span |
 | ps2/src/dataread.cpp:100 | SearchFile | dead | `(char *)record->name` | records[i].name |
 | ps2/src/dataread.cpp:513 | InitCDFile | replaced | `(char *)records[i].name` | records[i].name |
-| ps2/src/dun/gameloop.cpp:5023 | DunMoveChara | replaced | `(CDungeonMap *)(offset + address)` | address |
-| ps2/src/dun/gameloop.cpp:5027 | DunMoveChara | replaced | `(CDungeonMap *)(offset + address)` | address |
-| ps2/src/dun/gameloop.cpp:7259 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
-| ps2/src/dun/gameloop.cpp:7284 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
-| ps2/src/dun/gameloop.cpp:7309 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
-| ps2/src/dun/gameloop.cpp:7334 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
+| ps2/src/dun/gameloop.cpp:5014 | DunMoveChara | replaced | `(CDungeonMap *)(offset + address)` | address |
+| ps2/src/dun/gameloop.cpp:5018 | DunMoveChara | replaced | `(CDungeonMap *)(offset + address)` | address |
+| ps2/src/dun/gameloop.cpp:7240 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
+| ps2/src/dun/gameloop.cpp:7265 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
+| ps2/src/dun/gameloop.cpp:7290 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
+| ps2/src/dun/gameloop.cpp:7315 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
 | ps2/src/dungeonmap.cpp:3176 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
 | ps2/src/dungeonmap.cpp:3191 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
 | ps2/src/dungeonmap.cpp:3204 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |

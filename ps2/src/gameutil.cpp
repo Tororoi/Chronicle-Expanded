@@ -27,6 +27,10 @@
 #include "texture.hpp"
 #include "visualvu1.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/core/motion_keys.hpp"
+#endif
+
 /* Shared helpers: the IOP midi bridge, motion interpolation, collision and
  * ground queries, and 2D sprite setup. */
 
@@ -183,9 +187,7 @@ Mot_List *MotionProc(CFrame *frame, MOTION_STATE *state, Mot_List *list) {
 
     key = SearchMotKey(list, state->frame);
 #ifdef CHRONICLE_EXPANDED
-    // Before its first key a track plays nothing (retail reads the track's header as a key there), so a track keyed
-    // from late on leaves its frame as it is until then.
-    if (key < 0 && list->type != MOTION_KEY_VERTEX) {
+    if (expanded::MotionTrackWaits(key, list->type)) {
         return list->next;
     }
 #endif

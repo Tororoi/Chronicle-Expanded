@@ -84,10 +84,9 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/enemies/miniboss_loot.hpp"
-#include "expanded/status/confuse.hpp"
 #include "expanded/status/freeze.hpp"
-#include "expanded/status/poison.hpp"
 #endif
 
 // Defined by ps2/src/dun/gameloop.cpp without a header declaration.
@@ -1726,8 +1725,7 @@ PORT_OVERRIDE void DunMoveChara() {
 
                 NowMonstorUnit->CleanViewMonstor(BtUraDongeon);
 #ifdef CHRONICLE_EXPANDED
-                expanded::ConfuseFloorReset(false);
-                expanded::ShotEffectsReset();
+                expanded::DungeonMonstersCleared(false);
 #endif
 
                 CMonstorUnit *unit = (CMonstorUnit *) NowMonstorUnit;
@@ -1782,8 +1780,7 @@ PORT_OVERRIDE void DunMoveChara() {
 
                 MainMonstorUnit.CleanViewMonstor(BtUraDongeon);
 #ifdef CHRONICLE_EXPANDED
-                expanded::ConfuseFloorReset(true);
-                expanded::ShotEffectsReset();
+                expanded::DungeonMonstersCleared(true);
 #endif
                 MonstorModelBuffer.used = 0;
                 u8 *cash = MonstorModelBuffer.base;
@@ -3021,8 +3018,7 @@ PORT_OVERRIDE void DunMoveChara() {
     }
 
 #ifdef CHRONICLE_EXPANDED
-    expanded::MonsterStepClockAdvance();
-    expanded::ConfuseTick();
+    expanded::DungeonMonstersTick();
 #endif
 
     motionDrive();

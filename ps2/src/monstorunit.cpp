@@ -40,13 +40,10 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/enemies/atla_gemron.hpp"
-#include "expanded/enemies/bomb_gemron.hpp"
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/boss_moves.hpp"
-#include "expanded/enemies/boss_record.hpp"
 #include "expanded/enemies/bosses.hpp"
-#include "expanded/enemies/crystal_gemron.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/miniboss.hpp"
@@ -800,14 +797,11 @@ void CMonstorUnit::DrawMonstor() {
             chara[i][0].Step();
 #endif
 #ifdef CHRONICLE_EXPANDED
-            expanded::BombGemronDrawing(*this, i);
-            expanded::CrystalGemronDrawing(*this, i);
-            expanded::AtlaGemronDrawing(*this, i);
+            expanded::MonsterDrawing(*this, i);
 #endif
             character->Draw();
 #ifdef CHRONICLE_EXPANDED
-            expanded::BombGemronDrawn(*this, i);
-            expanded::AtlaGemronDrawn(*this, i);
+            expanded::MonsterDrawn(*this, i);
 #endif
 
             for (int j = 0; j < monster[i].attachment_count; j++) {
@@ -1251,15 +1245,15 @@ int CMonstorUnit::CheckDmg() {
 
             if (monster[current_monster].hp <= 0) {
                 monster[current_monster].hp = 0;
-                result = MONSTER_DMG_KILLED;
 #ifdef CHRONICLE_EXPANDED
-                expanded::BossRecordKill(*this, current_monster);
-                if (expanded::BossCastCountsKill(current_monster)) {
+                if (expanded::MonsterKilled(*this, current_monster)) {
                     alive_count--;
                     ((CDngStatusData *) UserStatus)->AddKills();
                 }
+                result = MONSTER_DMG_KILLED;
 #else
                 alive_count--;
+                result = MONSTER_DMG_KILLED;
                 ((CDngStatusData *) UserStatus)->AddKills();
 #endif
             }
@@ -1690,15 +1684,15 @@ int CMonstorUnit::CheckDmg() {
                     if (monster[current_monster].hp <= 0) {
                         monster[current_monster].last_attacker = owner;
                         monster[current_monster].hp = 0;
-                        result = MONSTER_DMG_KILLED;
 #ifdef CHRONICLE_EXPANDED
-                        expanded::BossRecordKill(*this, current_monster);
-                        if (expanded::BossCastCountsKill(current_monster)) {
+                        if (expanded::MonsterKilled(*this, current_monster)) {
                             alive_count--;
                             ((CDngStatusData *) UserStatus)->AddKills();
                         }
+                        result = MONSTER_DMG_KILLED;
 #else
                         alive_count--;
+                        result = MONSTER_DMG_KILLED;
                         ((CDngStatusData *) UserStatus)->AddKills();
 #endif
 
@@ -2126,9 +2120,7 @@ void CMonstorUnit::Step(int pause) {
                     }
                 } else {
 #ifdef CHRONICLE_EXPANDED
-                    if (expanded::BossDeathStep(*this, current_monster)) {
-                    } else if (expanded::BombGemronStep(*this, current_monster)) {
-                    } else if (expanded::ReviveStep(*this, current_monster)) {
+                    if (expanded::MonsterStepTaken(*this, current_monster)) {
                     } else if (script_state[current_monster] == 0) {
 #else
                     if (script_state[current_monster] == 0) {
@@ -2532,14 +2524,13 @@ int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDat
 #else
     MONSTOR_MODEL *description = &MonstorTable[model_no];
 #endif
-    char       filename[64];
-    CFrameAttr attr;
-    int        file_size;
+    char           filename[64];
+    CFrameAttr     attr;
+    int            file_size;
     attr.fog_enable = true;
     sprintf(filename, "dun/monstor/%s.chr", description->model_name[0]);
 #ifdef CHRONICLE_EXPANDED
-    expanded::BossPackFile(filename, model_no);
-    expanded::SpeciesPackFile(filename, model_no);
+    expanded::MonsterPackFile(filename, model_no);
 #endif
     LoadFile(filename, read_buffer, NULL);
     wait_now_loading_vsync();
