@@ -24,6 +24,10 @@ void SetWeaponDescription(int item_no, WeaponTextProvider provider);
 // Registers or, with nullptr, removes the provider of an allmenu message's whole text.
 void SetMenuMessage(int message_id, MenuTextProvider provider);
 
+// Registers or, with nullptr, removes the provider of a system message's whole text (the item-got line's bank,
+// SystemMessage's), for a message the bank does not have.
+void SetSystemMessage(int message_id, MenuTextProvider provider);
+
 // Notes a pack entry as the game takes it (GetPackFile): allmenu.mes and itemshop.bin are the banks given Expanded
 // text; any other entry at the same address is not.
 void MenuTextLoaded(std::string_view name, const void *data);

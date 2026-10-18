@@ -126,7 +126,9 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/dungeon/navigation.hpp"
+#include "expanded/enemies/atla_gemron.hpp"
 #include "expanded/enemies/black_knight.hpp"
 #include "expanded/enemies/bomb_gemron.hpp"
 #include "expanded/enemies/boss_casts.hpp"
@@ -6333,6 +6335,7 @@ void motionDrive() {
     expanded::BossCastStep(*NowMonstorUnit);
     expanded::IceQueenStep(*NowMonstorUnit);
     expanded::CrystalGemronStep(*NowMonstorUnit);
+    expanded::AtlaGemronStep(*NowMonstorUnit);
     expanded::BlackKnightStep();
 #endif
 
@@ -6598,6 +6601,7 @@ void BtLoadMonstor(int ura) {
     expanded::NavigationFloorLoaded();
     expanded::MonsterSoundsFloorLoaded(*NowMonstorUnit);
     expanded::SteveLinesFloorLoaded(*NowMonstorUnit);
+    expanded::AtlaDropsFloorLoaded();
 #endif
     MemoryMapDump();
 }

@@ -25,5 +25,7 @@
     "options.expanded.randomizer_bosses.choice.1": "Besiegte",
     "options.expanded.randomizer_bosses.choice.2": "Alle",
     "dun.message.ww_mes.dunmsd00.3320": "Bomben-Gemron",
-    "dun.message.ww_mes.dunmsd00.3321": "Kristall-Gemron"
+    "dun.message.ww_mes.dunmsd00.3321": "Kristall-Gemron",
+    "dun.message.ww_mes.dunmsd00.3322": "Atla-Gemron",
+    "expanded.atla_drop.sphere": "{icon-orb}SynthSphere \"{insert1}\" erhalten."
 }

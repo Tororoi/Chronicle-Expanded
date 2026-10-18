@@ -47,6 +47,40 @@ extern const char *const kCrystalGemronLook;
 Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<const unsigned char> ball);
 Bytes BuildCrystalGemronScript(std::span<const unsigned char> stb);
 
+// The Atla Gemron: Ice Gemron's pack in its own look, holding a dungeon atla on its big gem and wearing Toan's
+// Atlamillia on its forehead with the Atlamillia's light playing on it, fly_light glows on its wing gems and a spawn
+// bone for its shot; its death copied to 200 and held, the held atla out of the draw from the swap (the copy of the
+// gem landing), where the game's own atla takes its place and bounces free. Holy Gemron's script, firing its shot from
+// the spawn bone along its facing, from closer and more often; and the shot's pack, the Atlamillia's burst.
+inline constexpr const char *kAtlaGemronModelFile = "expanded/monstor/e169a.chr";
+inline constexpr const char *kAtlaGemronScriptFile = "expanded/monstor/e169a.stb";
+inline constexpr const char *kAtlaShotFile = "expanded/effect/atla_s.chr";
+inline constexpr const char *kAtlaGemronSource = "dun/monstor/e112a.chr";
+inline constexpr const char *kAtlaGemronScriptSource = "dun/monstor/e115a.stb";
+inline constexpr const char *kAtlaPackFile = "dun/pack/maindat.pac";
+inline constexpr const char *kAtlaPictureFile = "dun/etc/atrtx.img";
+inline constexpr const char *kToanPackFile = "dun/mainchara/c01d.chr";
+inline constexpr const char *kAtlamilliaLightFile = "gedit/s88/chara/e503ex_atall.chr";
+inline constexpr const char *kFlyLightFile = "gedit/e01/chara/fly_light.chr";
+inline constexpr const char *kAtlaGemronLens = "renzu__m";
+inline constexpr const char *kAtlaShotSpawn = "shot0";
+inline constexpr const char *kAtlaShotModel = "atla_s";
+inline constexpr int         kAtlaGemronDeathStart = 200;
+inline constexpr int         kAtlaGemronSwap = kAtlaGemronDeathStart + 122 - 105;
+inline constexpr int         kAtlaGemronDeathEnd = kAtlaGemronSwap + 12;
+// The shot: e503ex_atall's key 9 tail at 0.35.
+inline constexpr int    kAtlaShotFrom = 221;
+inline constexpr int    kAtlaShotTo = 250;
+inline constexpr double kAtlaShotSpeed = 0.35;
+
+extern const char *const kAtlaGemronLook;
+
+Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<const unsigned char> atla_pack,
+                           std::span<const unsigned char> atla_img, std::span<const unsigned char> toan,
+                           std::span<const unsigned char> light, std::span<const unsigned char> fly);
+Bytes BuildAtlaShotPack(std::span<const unsigned char> light);
+Bytes BuildAtlaGemronScript(std::span<const unsigned char> stb);
+
 Bytes BuildBombGemronModel(std::span<const unsigned char> gemron, std::span<const unsigned char> bomb_mds,
                            std::span<const unsigned char> bomb_img, std::span<const unsigned char> quad_chr,
                            std::span<const unsigned char> glow_pack);

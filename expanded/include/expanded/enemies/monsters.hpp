@@ -174,6 +174,7 @@ enum class Monster {
     // Expanded's own (expanded/enemies/species.hpp).
     BOMB_GEMRON = 167,
     CRYSTAL_GEMRON = 168,
+    ATLA_GEMRON = 169,
 };
 
 // A monster's MonstorTable index, as the game's model_no.

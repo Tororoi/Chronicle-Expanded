@@ -42,3 +42,32 @@ Powder, rarely drops a Crystal Eyeball. Its name is message 3321.
 | Shot | `crystal_gemron.cpp`, `ice_shots.cpp` | Holy Gemron's shot on the Ice Queen's arrow (`korinoya`): flying from the moment it is fired at 1.2, steered as the korinoya flies (within 60 degrees of its heading it turns toward the player's chest by a 0.12 chord a step), Freeze (the hit's 65 % roll; the Anti-Freeze Amulet blocks it) and the Ice element, a guardable knockback, for 360 frames. |
 | Prison | same | An arrow spent within 20 of the player's chest while he is frozen encases him in the Ice Queen's prison (`kori`), held formed while his ailment lasts, then shattering. A hit on the frozen player ends the freeze (`BreakFreeze`). |
 | Eyes | same, `frame_tint.cpp` | 45, 70 and 50 more on the ambient for their own draw. |
+
+## Atla Gemron
+
+Kind 169, on Holy Gemron (its stats and sounds): weak to wind (150 %) and immune to the rest, 40 ABS, steals a Dran's
+Feather, rarely drops a Potato Cake. Its name is message 3322.
+
+| Part | Where | What |
+|---|---|---|
+| Model `expanded/monstor/e169a.chr` | `BuildAtlaGemronModel` | Ice Gemron's pack in the look chosen on the PS2 mod's preview page (`atla_gemron_look.cpp`: every section more saturated and a little darker). A dungeon atla (`atr.mds` in `dun/pack/maindat.pac`, its picture from `dun/etc/atrtx.img`) grafted under the big gem at the gem's size, turned as a real atla is; Toan's Atlamillia lens (`renzu__m` in `c01d.chr`, on its patch of his sheet) on the forehead; the Atlamillia's light (`e503ex_atall`'s glow pair, from the s88 event) on the lens, playing on the Gemron's own frames; fly_light's glows, half desaturated, on the wing gems; and a spawn bone for the shot (`shot0`). The gems and their glow shells dropped. The numbers the preview page fitted to the rig are `atla_gemron_recipe.hpp`. |
+| Death clip | same | The vanilla death (105-125) copied to 200-220 in both motion files and held to 229 (KEY 11 at 0.35, KEY 12 its loop). The held atla leaves the draw on 217, the copy of the gem landing (a subtree-visibility track). |
+| Shot pack `expanded/effect/atla_s.chr` | `BuildAtlaShotPack` | `e503ex_atall`'s burst (its key 9 tail, frames 221-250 at 0.35) under a root of the shot's own, its flight backed off so the burst stands where it was fired while the shot flies; each mesh out of the draw while it is clear. |
+| Script `expanded/monstor/e169a.stb` | `BuildAtlaGemronScript` | Holy Gemron's: the shot fires from `shot0` along the Gemron's facing (the fire frame's hold-fire check jumps to aim cells appended past the end: its own place + its facing x 100, 7.4 up), within 50 (walking closer beyond), every 40-109 frames; close in it backs off 60 % of the time, else shoots (the bite before). |
+| Shot | `atla_gemron.cpp` | Holy Gemron's shot (its damage, reaction, element, target and sounds) on the burst, one phase, turned to its aim. It flies 0.65 a frame whatever it meets (the engine's flight is only its aim), its hit growing from 1 to 18 between the burst's frames 224.5 and 233.25 (attack frames 140 and 145 of the script's fire). |
+| Atlamillia | same, `frame_tint.cpp` | 50 more on each of the ambient's channels for the lens's own draw. |
+| Its atla | same, `atla_drops.cpp` | As its death reaches 200 it places a real atla carrying its drop (below) where the held one will rest, out of the draw. From 217 to 228 the atla moves from the held one's pose, as the unit last drew it, to a real atla's: turned, grown to its own size and eased into place, rising 6 at the middle. It can be picked up once it settles. With every place on the floor holding an atla, the one farthest from the player comes to it instead (its own content); with no atla model on the floor (or no event free), the drop is handed over at once. |
+| Drop | `atla_gemron.cpp` | 5 % the Atlamillia Sword (from Sun & Moon Temple on; before it, a weapon's sphere), 15 % its SynthSphere, 10 % the dungeon's featured weapon's (Bone Rapier, Wise Owl Sword, Dusack, Maneater, 7 Branch Sword, Dark Cloud; Demon Shaft has none), else the SynthSphere of a weapon of the tiers the dungeon draws from (its own and every one below; Demon Shaft all), one whose owner has joined. |
+| Randomizer | `randomize.cpp` | In the random mix's pool. |
+
+## Atlas carrying a drop
+
+`expanded/dungeon/atla_drops.hpp` places atlas that carry a drop of their own in place of a georama part: a weapon, or
+a weapon's SynthSphere. `PlaceAtlaDrop` lays one as `CDungeonMap::SetAtraBoll` does (part -1), or in a collected one's
+place once the floor's eight are used; `MoveAtla` takes over its draw (`DrawAtraBoll`) while it moves into place and
+keeps its pickup radius at 0 until then. Toan picks it up as any atla: `BtAtraGetShort_Loop` reads no part and saves
+nothing for it, and the drop is handed over (`AtlaDropTaken`) and named in place of the part (`AtlaDropNamed`). A weapon
+goes to its owner as a chest's does, or its SynthSphere when the owner has no room. A SynthSphere is a sixth of the
+weapon's base values (attack, endurance, speed, magic, elements and antis), each rounded up, with all its abilities;
+its line, `expanded.atla_drop.sphere` in the language files, is a system message of its own (`SetSystemMessage`). A
+new floor forgets them: an atla left behind is lost.

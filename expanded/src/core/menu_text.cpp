@@ -10,6 +10,7 @@
 #include "gametext.hpp"
 #include "itemdata.hpp"
 #include "localize.hpp"
+#include "sysmes.hpp"
 
 namespace expanded {
 
@@ -31,6 +32,7 @@ struct Loaded {
 std::map<const void *, Loaded>                              g_banks;
 std::map<int, WeaponTextProvider>                           g_weapons;
 std::map<int, MenuTextProvider>                             g_messages;
+std::map<int, MenuTextProvider>                             g_system;
 std::map<std::pair<const void *, int>, std::vector<s16>>    g_built;
 
 bool SameName(std::string_view a, std::string_view b) {
@@ -96,6 +98,14 @@ void SetMenuMessage(int message_id, MenuTextProvider provider) {
     }
 }
 
+void SetSystemMessage(int message_id, MenuTextProvider provider) {
+    if (provider != nullptr) {
+        g_system[message_id] = provider;
+    } else {
+        g_system.erase(message_id);
+    }
+}
+
 void MenuTextLoaded(std::string_view name, const void *data) {
     if (data == nullptr) {
         return;
@@ -111,6 +121,16 @@ void MenuTextLoaded(std::string_view name, const void *data) {
 }
 
 short *MenuText(const short *buff, int id) {
+    if (auto message = g_system.find(id); buff != nullptr && buff == SystemMessage.buff && message != g_system.end()) {
+        std::optional<std::string> text = message->second();
+        if (!text) {
+            return nullptr;
+        }
+        std::vector<s16> &kept = g_built[{buff, id}];
+        kept.clear();
+        GameTextEncode(*text, kept);
+        return kept.data();
+    }
     auto bank = buff != nullptr ? g_banks.find(buff) : g_banks.end();
     if (bank == g_banks.end() || bank->second.count != buff[0]) {
         return nullptr;
@@ -146,6 +166,7 @@ void MenuTextReset() {
     g_banks.clear();
     g_weapons.clear();
     g_messages.clear();
+    g_system.clear();
     g_built.clear();
 }
 

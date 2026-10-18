@@ -40,6 +40,7 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/atla_gemron.hpp"
 #include "expanded/enemies/bomb_gemron.hpp"
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/boss_moves.hpp"
@@ -800,10 +801,12 @@ void CMonstorUnit::DrawMonstor() {
 #ifdef CHRONICLE_EXPANDED
             expanded::BombGemronDrawing(*this, i);
             expanded::CrystalGemronDrawing(*this, i);
+            expanded::AtlaGemronDrawing(*this, i);
 #endif
             character->Draw();
 #ifdef CHRONICLE_EXPANDED
             expanded::BombGemronDrawn(*this, i);
+            expanded::AtlaGemronDrawn(*this, i);
 #endif
 
             for (int j = 0; j < monster[i].attachment_count; j++) {
