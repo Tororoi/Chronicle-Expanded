@@ -55,7 +55,8 @@ inline bool SpawnsOnceNatively(Monster monster) {
 }
 
 // Stages a floor of the dungeon being visited; it keeps the rosters until the visit ends, with the bosses'
-// rules applied (BossCastRoster).
+// rules applied (BossCastRoster). A side whose every kind drops (bosses the party cannot fight, kinds not built)
+// stages nothing: the floor keeps its own monsters.
 void StageFloor(int floor, const FloorRosters &rosters);
 
 // The floor's staged rosters this visit, or null.

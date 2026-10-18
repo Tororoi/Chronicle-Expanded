@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "expanded/enemies/monsters.hpp"
 
 class CMonstorUnit;
@@ -14,6 +16,18 @@ struct Roster;
 
 // Globals a cast's mailbox holds, as many as the floor's.
 inline constexpr int kBossMailbox = 10;
+
+// A kind's cast: both kinds and their names, which of them the kind is, the party member its boss needs (-1 for
+// anyone; CHARA_*), and whether the kind comes alone when a roster has none of the rest. None for a kind in no cast.
+struct BossCastInfo {
+    Monster     kinds[2];
+    const char *names[2];
+    int         member;
+    int         needs;
+    bool        alone;
+};
+
+std::optional<BossCastInfo> BossCastOf(Monster kind);
 
 // Whether the party lets a cast member's boss be placed (one with the party member who can hurt it).
 bool BossCastAllowed(Monster kind);

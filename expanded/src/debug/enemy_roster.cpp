@@ -5,9 +5,12 @@
 #include <algorithm>
 #include <charconv>
 #include <cstdio>
+#include <format>
 
+#include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/species.hpp"
 #include "gamepad.hpp"
+#include "itemdata.hpp"
 #include "mainselect.hpp"
 #include "monstorunit.hpp"
 #include "platform/window.hpp"
@@ -30,6 +33,7 @@ bool        commit = false;
 bool        cancel = false;
 bool        rejected = false;
 std::string entry;
+std::string reason; // why the entry was refused
 
 std::string_view Trim(std::string_view text) {
     while (!text.empty() && text.front() == ' ') {
@@ -80,6 +84,23 @@ void OnEvent(const SDL_Event &event) {
     }
 }
 
+// A refusal's reason under the row, in lines of the menu's 32 columns indented by 2.
+std::string WrapReason(std::string_view text) {
+    constexpr std::size_t kWidth = 30;
+    std::string           out, line;
+    while (!text.empty()) {
+        std::size_t      space = text.find(' ');
+        std::string_view word = text.substr(0, space);
+        text = space == std::string_view::npos ? std::string_view() : text.substr(space + 1);
+        if (!line.empty() && line.size() + 1 + word.size() > kWidth) {
+            out += "  " + line + "\n";
+            line.clear();
+        }
+        line += (line.empty() ? "" : " ") + std::string(word);
+    }
+    return line.empty() ? out : out + "  " + line + "\n";
+}
+
 void StopTyping() {
     typing = false;
     if (WindowHandle() != nullptr) {
@@ -89,7 +110,46 @@ void StopTyping() {
 
 } // namespace
 
-bool ParseRosterSpec(std::string_view text, Roster &out) {
+std::string RosterProblem(const Roster &roster) {
+    static constexpr const char *kParty[] = {"Toan", "Xiao", "Goro", "Ruby", "Ungaga", "Osmond"};
+    int                          size = roster.Size();
+    bool                         gated = size > 0;
+    for (int i = 0; i < size; i++) {
+        int                         kind = roster.model_no[i];
+        std::optional<BossCastInfo> cast = BossCastOf(static_cast<Monster>(kind));
+        if (!SpeciesBuilt(kind)) {
+            return std::format("{} is not built yet: run `dcdata expanded <data>`", kind);
+        }
+        gated = gated && cast && cast->needs >= 0;
+    }
+    // A cast keeps together: its other kind comes too, unless this one comes alone.
+    int count = size;
+    for (int i = 0; i < size; i++) {
+        std::optional<BossCastInfo> cast = BossCastOf(static_cast<Monster>(roster.model_no[i]));
+        if (!cast || cast->alone) {
+            continue;
+        }
+        Monster partner = cast->kinds[1 - cast->member];
+        if (!roster.Contains(partner) && ++count > kRosterSize) {
+            return std::format("no room for {} ({}), which comes with {} ({}): drop a kind", No(partner), cast->names[1 - cast->member],
+                               roster.model_no[i], cast->names[cast->member]);
+        }
+    }
+    if (gated) {
+        std::optional<BossCastInfo> cast = BossCastOf(static_cast<Monster>(roster.model_no[0]));
+        return std::format("{} ({}) and {} ({}) come only with {} in the party: add another kind", No(cast->kinds[0]), cast->names[0],
+                           No(cast->kinds[1]), cast->names[1], kParty[cast->needs]);
+    }
+    return {};
+}
+
+bool ParseRosterSpec(std::string_view text, Roster &out, std::string *why) {
+    auto refuse = [&](std::string message) {
+        if (why != nullptr) {
+            *why = std::move(message);
+        }
+        return false;
+    };
     Roster parsed;
     text = Trim(text);
     while (!text.empty()) {
@@ -102,20 +162,32 @@ bool ParseRosterSpec(std::string_view text, Roster &out) {
         }
         int kind = -1;
         auto [end, error] = std::from_chars(item.data(), item.data() + item.size(), kind);
-        if (item.empty() || error != std::errc() || end != item.data() + item.size() || kind < 0 || kind >= kKinds || Species(kind) == nullptr) {
-            return false;
+        if (item.empty()) {
+            return refuse("a kind is missing between commas");
+        }
+        if (error != std::errc() || end != item.data() + item.size() || kind < 0 || kind >= kKinds || Species(kind) == nullptr) {
+            return refuse(std::format("{} is not a kind: kinds are 0 to {}", item, kKinds - 1));
+        }
+        if (parsed.Contains(kind)) {
+            return refuse(std::format("{} is listed twice", kind));
         }
         if (!parsed.Add(kind, once || Species(kind)->kind == MONSTER_KIND_NO_LOCK_ON)) {
-            return false;
+            return refuse(std::format("a roster holds at most {} kinds", kRosterSize));
         }
     }
     out = parsed;
     return true;
 }
 
-bool SetDebugRoster(std::string_view text) {
+bool SetDebugRoster(std::string_view text, std::string *why) {
     Roster parsed;
-    if (!ParseRosterSpec(text, parsed)) {
+    if (!ParseRosterSpec(text, parsed, why)) {
+        return false;
+    }
+    if (std::string problem = RosterProblem(parsed); !problem.empty()) {
+        if (why != nullptr) {
+            *why = problem;
+        }
         return false;
     }
     spec = Trim(text);
@@ -138,8 +210,12 @@ int DevMenuRosterDraw(char *text, std::size_t room, bool selected) {
         return 0;
     }
     const char *cursor = selected || typing ? ">" : " ";
-    int         written = typing ? std::snprintf(text, room, "%senemy roster %s_%s\n", cursor, entry.c_str(), rejected ? " ?" : "")
-                                 : std::snprintf(text, room, "%senemy roster %s\n", cursor, spec.empty() ? "-" : spec.c_str());
+    std::string row = typing ? std::format("{}enemy roster {}_{}\n", cursor, entry, rejected ? " ?" : "")
+                             : std::format("{}enemy roster {}\n", cursor, spec.empty() ? "-" : spec);
+    if (typing && rejected) {
+        row += WrapReason(reason);
+    }
+    int written = std::snprintf(text, room, "%s", row.c_str());
     return std::clamp(written, 0, static_cast<int>(room) - 1);
 }
 
@@ -148,7 +224,7 @@ bool DevMenuRosterStep(bool selected) {
         if (cancel) {
             StopTyping();
         } else if (commit) {
-            rejected = !SetDebugRoster(entry);
+            rejected = !SetDebugRoster(entry, &reason);
             if (!rejected) {
                 StopTyping();
             }
