@@ -108,6 +108,7 @@ Each section lists this repository's own changes first, then those that come fro
 - Gladius "Jacket Hunter": a Master Jacket killed with the Gladius in hand gives four times its ABS, and so does one killed by Super Steve carrying the Gladius's SynthSphere. [#184](https://github.com/Tororoi/Chronicle-Expanded/pull/184)
 - Crysknife "Crystal Affinity": thrown elemental gems deal twice their damage while the Crysknife is in hand, or Super Steve carries its SynthSphere. [#185](https://github.com/Tororoi/Chronicle-Expanded/pull/185)
 - Macho Sword "Overtraining": while you own a Macho Sword (in hand, a bag or storage), every weapon's ABS keeps filling past its max, up to twice it, and the surplus carries into the next level (a weapon at 116/100 starts its new level at 16). [#186](https://github.com/Tororoi/Chronicle-Expanded/pull/186)
+- Buster Sword "Buster Boost": anti-monster attachments (Dinoslayer to Mage Slayer) are worth +4 instead of +3 on a Buster Sword, in its stats, its damage, its build-ups and what a level-up absorbs. [#187](https://github.com/Tororoi/Chronicle-Expanded/pull/187)
 
 ### Weapon stats and abilities
 
