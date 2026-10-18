@@ -14,6 +14,7 @@ The tables are `expanded/src/enemies/miniboss_loot.cpp`'s.
 | Alexander (Enhanced) | Takes Alexander's loot | |
 | Arthur | ★5 Foot Nail (Sun and Moon Temple+) | Steel Slingshot (Wise Owl Forest+) or Swallow (Moon Sea+) |
 | Arthur (Enhanced) | Takes Arthur's loot | |
+| Atla Gemron | Atlamillia Sword (Shipwreck+) | Turquoise |
 | Auntie Medu | Serpent Sword (Shipwreck+) | Turquoise, Garnet or Emerald |
 | Auntie Medu (Enhanced) | Takes Auntie Medu's loot | |
 | Billy |  | ★Trial Hammer (Gallery of Time+) |
@@ -21,9 +22,11 @@ The tables are `expanded/src/enemies/miniboss_loot.cpp`'s.
 | Black Dragon | Dragon's Y (Sun and Moon Temple+) → ★Dragon's Y (Gallery of Time+) | Peridot |
 | Blizzard | Crystal Ring (Shipwreck+) | Aquamarine or Turquoise |
 | Blue Dragon | Dragon's Y (Sun and Moon Temple+) → ★Dragon's Y (Gallery of Time+) | Amethyst, Aquamarine or Turquoise |
+| Bomb Gemron | Big Bang (Gallery of Time+) | Auto Repair Powder |
 | Bomber Head |  | Powerup Powder |
 | Bomber Head (Enhanced) | Takes Bomber Head's loot | |
 | Cannibal Plant and Cursed Rose | Thorn Armlet (Shipwreck+) → ★Thorn Armlet (Gallery of Time+) | Sun Dew (Wise Owl Forest+) |
+| Crystal Gemron | Crystal Ring → ★Crystal Ring (Shipwreck+) | Powerup Powder |
 | Cursed Rose (Enhanced) | Takes Cursed Rose's loot | |
 | Captain | Flamingo (Shipwreck+) | Gold Bullion or Bravery Launch (Moon Sea+) |
 | Captain (Enhanced) | Takes Captain's loot | |
@@ -141,7 +144,7 @@ Weapons marked ★ above come boosted: once picked up, they have these.
 | Super Steve | Joker (Gallery of Time+) | WHP 99, Attack 80, Magic 50, Steal, Abs Up |
 | Dark Cloud | Spade (Gallery of Time+) | WHP 99, Fire 40, Holy 40, Anti-Mage 30, Stop, Drain |
 | Trial Hammer | Billy (Gallery of Time+), Thunder Gemron (Demon Shaft+) | Thunder 50 |
-| Crystal Ring | Ice Gemron (Demon Shaft+) | Ice 50 |
+| Crystal Ring | Crystal Gemron (Shipwreck+), Ice Gemron (Demon Shaft+) | Ice 50 |
 | Heaven's Cloud | Wind Gemron (Demon Shaft+) | Wind 50 |
 | Flamingo | Bishop Q (Gallery of Time+) | Abs Up |
 | Steel Slingshot | Steel Giant (Wise Owl Forest+) | Durable |
