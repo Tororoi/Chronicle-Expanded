@@ -10,7 +10,7 @@
 #include "options/rows.hpp"
 #include "platform/config.hpp"
 #include "platform/paths.hpp"
-#include "platform_fixture.hpp"
+#include "test_support.hpp"
 
 namespace {
 
@@ -23,6 +23,23 @@ const options::Page *ExpandedPage() {
     return nullptr;
 }
 
+const options::Row *RowOf(const options::Page &page, std::string_view key) {
+    for (const options::Row &row : page.rows) {
+        if (std::string_view(row.key) == key) {
+            return &row;
+        }
+    }
+    return nullptr;
+}
+
+// The test toggles, each added once a run (a key is added only once).
+bool AddTestToggles() {
+    static const bool added = expanded::AddToggle({.key = "test_toggle", .label = "Test Toggle", .help = "\"Test Toggle\"\nA test."}) &&
+                              expanded::AddToggle({.key = "test_default_on", .label = "Test On", .on = true}) &&
+                              expanded::AddToggle({.key = "test_choice", .label = "Test Choice", .choices = "Off|Some|All"});
+    return added;
+}
+
 } // namespace
 
 TEST(ExpandedOptions, AnUnknownToggleIsOffAndNotKept) {
@@ -31,8 +48,7 @@ TEST(ExpandedOptions, AnUnknownToggleIsOffAndNotKept) {
 }
 
 TEST(ExpandedOptions, ToggleRoundTripsThroughConfig) {
-    ASSERT_TRUE(expanded::AddToggle({.key = "test_toggle", .label = "Test Toggle", .help = "\"Test Toggle\"\nA test."}));
-    ASSERT_TRUE(expanded::AddToggle({.key = "test_default_on", .label = "Test On", .on = true}));
+    ASSERT_TRUE(AddTestToggles());
     EXPECT_FALSE(expanded::AddToggle({.key = "test_toggle", .label = "Again"}));
 
     // The defaults are written, and a default value keeps the settings equal to Config{}.
@@ -56,28 +72,24 @@ TEST(ExpandedOptions, ToggleRoundTripsThroughConfig) {
     EXPECT_EQ(bad, Config{});
 
     // Through config.json and back.
-    std::filesystem::path root =
-        std::filesystem::temp_directory_path() / ("dc_expanded_options_" + std::to_string(dc::test::ProcessId()));
-    std::filesystem::create_directories(root);
-    PathsSetSaveRoot(root);
+    expanded::test::OptionScope scope;
     ASSERT_TRUE(ConfigChange(config));
     std::ostringstream text;
-    text << std::ifstream(root / "config.json").rdbuf();
+    text << std::ifstream(PathsSaveRoot() / "config.json").rdbuf();
     EXPECT_NE(text.str().find(R"("test_toggle": true)"), std::string::npos);
     ASSERT_TRUE(ConfigLoad());
     EXPECT_TRUE(expanded::OptionOn("test_toggle"));
     EXPECT_FALSE(expanded::OptionOn("test_default_on"));
-    std::filesystem::remove_all(root);
 }
 
 TEST(ExpandedOptions, PageShowsAToggleAsARow) {
-    ASSERT_TRUE(expanded::AddToggle({.key = "test_toggle", .label = "Test Toggle", .help = "\"Test Toggle\"\nA test."}));
+    ASSERT_TRUE(AddTestToggles());
     const options::Page *page = ExpandedPage();
     ASSERT_NE(page, nullptr);
     EXPECT_EQ(&options::Pages().back(), page);
     ASSERT_EQ(page->rows.size(), expanded::Toggles().size());
-    const options::Row &row = page->rows.back();
-    EXPECT_STREQ(row.key, "expanded.test_toggle");
+    ASSERT_NE(RowOf(*page, "expanded.test_toggle"), nullptr);
+    const options::Row &row = *RowOf(*page, "expanded.test_toggle");
 
     Config config;
     EXPECT_EQ(options::RowValue(row, config), "Off");
@@ -89,7 +101,7 @@ TEST(ExpandedOptions, PageShowsAToggleAsARow) {
 }
 
 TEST(ExpandedOptions, AChoiceRoundTripsThroughConfigByName) {
-    ASSERT_TRUE(expanded::AddToggle({.key = "test_choice", .label = "Test Choice", .choices = "Off|Some|All"}));
+    ASSERT_TRUE(AddTestToggles());
 
     Config config = ConfigParse("");
     EXPECT_EQ(expanded::OptionChoice(config.expanded_options, "test_choice"), 0);
@@ -112,11 +124,11 @@ TEST(ExpandedOptions, AChoiceRoundTripsThroughConfigByName) {
 }
 
 TEST(ExpandedOptions, PageShowsAChoiceAsARowOfItsNames) {
-    ASSERT_TRUE(expanded::AddToggle({.key = "test_choice", .label = "Test Choice", .choices = "Off|Some|All"}));
+    ASSERT_TRUE(AddTestToggles());
     const options::Page *page = ExpandedPage();
     ASSERT_NE(page, nullptr);
-    const options::Row &row = page->rows.back();
-    EXPECT_STREQ(row.key, "expanded.test_choice");
+    ASSERT_NE(RowOf(*page, "expanded.test_choice"), nullptr);
+    const options::Row &row = *RowOf(*page, "expanded.test_choice");
 
     Config config;
     EXPECT_EQ(options::RowValue(row, config), "Off");

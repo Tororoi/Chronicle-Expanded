@@ -15,6 +15,7 @@
 #include "monstorunit.hpp"
 #include "runscript_opcodes.hpp"
 #include "shot_effect.hpp"
+#include "test_support.hpp"
 #include "userstatus.hpp"
 
 namespace {
@@ -33,60 +34,24 @@ bool FakeLoad(CSHOT_EFFECT &effect, CDataAlloc2<1> &, BT_SHOT_EFFECT *descriptio
 class BossCasts : public ::testing::Test {
 protected:
     void SetUp() override {
-        saved_status_ = UserStatus;
-        saved_map_ = selectMapNo;
-        UserStatus = status_.get();
         UserStatus->party_size = CHARA_UNGAGA + 1;
         expanded::SetShotEffectLoader(FakeLoad);
         expanded::ShotEffectsClear();
         expanded::RosterVisitBegun();
-        for (MONSTOR &monster : unit_->monster) {
-            monster.state = -1;
-        }
     }
 
     void TearDown() override {
         expanded::RosterVisitBegun();
         expanded::ShotEffectsClear();
         expanded::SetShotEffectLoader(nullptr);
-        UserStatus = saved_status_;
-        selectMapNo = saved_map_;
     }
 
-    // BtLoadMonstor's read of floor 2's front (as staged), then SetupBaseModel's part for each kind.
-    const expanded::Roster &LoadFloor(bool staged, std::initializer_list<Monster> kinds) {
-        expanded::FloorRosters rosters;
-        for (Monster kind : kinds) {
-            rosters.front.Add(kind, expanded::SpawnsOnceNatively(kind));
-        }
-        if (staged) {
-            expanded::StageFloor(2, rosters);
-        }
-        selectMapNo = 0;
-        UserStatus->cur_floor = 2;
-        expanded::RosterFloorLayout(BtEnemyLayoutList[0] + 2, 0);
-        const expanded::Roster &loaded = staged ? expanded::StagedFloor(2)->front : rosters.front;
-        for (int slot = 0; slot < loaded.Size(); slot++) {
-            unit_->model[slot] = MonstorTable[loaded.model_no[slot]];
-            expanded::EnemyModelSetUp(*unit_, slot, loaded.model_no[slot]);
-        }
-        return loaded;
-    }
+    const expanded::Roster &LoadFloor(bool staged, std::initializer_list<Monster> kinds) { return floor_.LoadRoster(staged, kinds); }
 
-    // SetupViewMonstor's part: a dormant monster of a slot.
-    void Spawn(int monster, int slot) {
-        MONSTOR &live = unit_->monster[monster];
-        live.state = 1;
-        live.base_model = slot;
-        live.max_hp = live.hp = unit_->model[slot].max_hp;
-        expanded::EnemySpawned(*unit_, monster);
-        unit_->alive_count++;
-    }
+    void Spawn(int monster, int slot) { floor_.Spawn(monster, slot); }
 
-    std::unique_ptr<CMonstorUnit> unit_ = std::make_unique<CMonstorUnit>();
-    std::unique_ptr<CUserStatus>  status_ = std::make_unique<CUserStatus>();
-    CUserStatus                  *saved_status_ = nullptr;
-    s32                           saved_map_ = 0;
+    expanded::test::TestFloor floor_;
+    CMonstorUnit             *unit_ = &floor_.unit();
 };
 
 } // namespace

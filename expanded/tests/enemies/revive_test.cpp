@@ -11,20 +11,16 @@
 #include "monstorunit.hpp"
 #include "platform/config.hpp"
 #include "platform/paths.hpp"
-#include "platform_fixture.hpp"
+#include "test_support.hpp"
 
 namespace {
 
-// Turns Harder Enemy AI on in the current settings.
-void SetHarder() {
-    std::filesystem::path root =
-        std::filesystem::temp_directory_path() / ("dc_expanded_revive_" + std::to_string(dc::test::ProcessId()));
-    std::filesystem::create_directories(root);
-    PathsSetSaveRoot(root);
-    Config config = ConfigGet();
-    ASSERT_TRUE(expanded::SetOption(config.expanded_options, "harder_enemy_ai", true));
-    ASSERT_TRUE(ConfigChange(config));
-}
+// Harder Enemy AI on for a test.
+struct Harder {
+    Harder() { EXPECT_TRUE(options.Set("harder_enemy_ai", true)); }
+
+    expanded::test::OptionScope options;
+};
 
 // A floor of one monster of script, at slot 0, with the motions a revival plays.
 struct Floor {
@@ -47,9 +43,18 @@ struct Floor {
     CCharacter &Chara() { return unit->chara[0][0]; }
 };
 
+// Rules stay once added, so the one test's keeps kills only while it runs.
+bool g_always_down = false;
+
 bool AlwaysDown(const CMonstorUnit &, int) {
-    return true;
+    return g_always_down;
 }
+
+struct AlwaysDownScope {
+    AlwaysDownScope() { g_always_down = true; }
+
+    ~AlwaysDownScope() { g_always_down = false; }
+};
 
 } // namespace
 
@@ -74,9 +79,10 @@ TEST(Revive, OffKillsAsRetail) {
 }
 
 TEST(Revive, StaysDownRuleKeepsEveryKill) {
-    SetHarder();
+    Harder harder;
     ASSERT_TRUE(expanded::AddStaysDownRule(AlwaysDown));
     EXPECT_FALSE(expanded::AddStaysDownRule(AlwaysDown));
+    AlwaysDownScope always_down;
 
     Floor floor("e03a");
     for (int i = 0; i < 50; i++) {
@@ -92,7 +98,7 @@ TEST(Revive, StaysDownRuleKeepsEveryKill) {
 }
 
 TEST(Revive, ScriptRollsAtTheNativeChance) {
-    SetHarder();
+    Harder harder;
     Floor mummy("e50a");
     int   revived = 0;
     for (int i = 0; i < 2000; i++) {
@@ -105,7 +111,7 @@ TEST(Revive, ScriptRollsAtTheNativeChance) {
 }
 
 TEST(Revive, CollapsesLiesStillAndGetsUp) {
-    SetHarder();
+    Harder        harder;
     Floor         floor("e14a");
     CMonstorUnit &unit = *floor.unit;
 
@@ -144,9 +150,11 @@ TEST(Revive, CollapsesLiesStillAndGetsUp) {
 }
 
 TEST(Revive, AHitHandsItBackToItsScript) {
-    SetHarder();
+    Harder harder;
     Floor floor("e03a");
+    int    kills = 0;
     while (expanded::ReviveCheckDmg(*floor.unit, MONSTER_DMG_KILLED) == MONSTER_DMG_KILLED) {
+        ASSERT_LT(++kills, 200);
     }
     EXPECT_EQ(expanded::ReviveCheckDmg(*floor.unit, MONSTER_DMG_HIT), MONSTER_DMG_HIT);
     EXPECT_FALSE(expanded::ReviveStep(*floor.unit, 0));

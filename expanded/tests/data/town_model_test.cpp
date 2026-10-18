@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <bit>
-#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -11,6 +10,7 @@
 
 #include "expanded/data/chr_pack.hpp"
 #include "expanded/data/town_model.hpp"
+#include "test_support.hpp"
 
 using namespace expanded;
 
@@ -217,9 +217,7 @@ TEST(TownModel, GraftsReversesAndOffsetsSlots) {
 }
 
 TEST(TownModel, SkipsAnAllyWhoseBaseIsMissing) {
-    fs::path dir = fs::temp_directory_path() / std::format("dc_town_model_{}", std::rand());
-    fs::create_directories(dir);
-    EXPECT_EQ(BuildTownModels(dir, nullptr), 0);
-    EXPECT_FALSE(fs::exists(dir / "expanded"));
-    fs::remove_all(dir);
+    expanded::test::ScratchDir dir("town_model");
+    EXPECT_EQ(BuildTownModels(dir.path(), nullptr), 0);
+    EXPECT_FALSE(fs::exists(dir.path() / "expanded"));
 }

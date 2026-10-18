@@ -31,6 +31,9 @@ still matches retail.
     extracted data directory, `ExpandedData.BuildsWhatTheModsToolsBuild` builds everything `dcdata expanded`
     makes and checks each file's bytes; it takes a few seconds (`ctest -R ExpandedData --timeout 60`). A
     change that is meant to alter a built file updates its hash there.
+    A case puts back what it changes, so the cases pass in any order in one process: `test_support.hpp`
+    has a scratch folder, settings and a data directory set for one case, and a floor of monsters set up as
+    the game sets them up. A case that rolls seeds `SeedModRandom` first.
   - All three use the same folders, and a file in a folder drops the folder's name (`weapons/stats.cpp`,
     not `weapons/weapon_stats.cpp`):
     - `core/`: shared plumbing: options, per-save state, menu text, languages.

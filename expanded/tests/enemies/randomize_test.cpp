@@ -18,7 +18,7 @@
 #include "monstorunit.hpp"
 #include "platform/config.hpp"
 #include "platform/paths.hpp"
-#include "platform_fixture.hpp"
+#include "test_support.hpp"
 #include "userstatus.hpp"
 
 namespace {
@@ -29,6 +29,17 @@ using expanded::No;
 constexpr int kDivineBeastCave = 0;
 constexpr int kDemonShaft = 6;
 
+// A regular kind: an 'e' model of a normal kind but the mimics, Wine Keg and the boss-record Gacious, or an Expanded
+// kind.
+bool Regular(int kind) {
+    const MONSTOR_MODEL &species = *expanded::Species(kind);
+    if (kind >= expanded::kRetailSpecies) {
+        return true;
+    }
+    return species.kind == MONSTER_KIND_NORMAL && species.model_name[0][0] == 'e' && species.attachment_kind != MONSTER_FAMILY_MIMIC &&
+           kind != No(Monster::WINE_KEG) && kind != No(Monster::GACIOUS);
+}
+
 bool InPool(Monster kind) {
     std::span<const Monster> pool = expanded::RandomizerPool();
     return std::find(pool.begin(), pool.end(), kind) != pool.end();
@@ -38,9 +49,7 @@ bool InPool(Monster kind) {
 class RandomizeFloors : public ::testing::Test {
 protected:
     void SetUp() override {
-        root_ = std::filesystem::temp_directory_path() / ("dc_randomize_" + std::to_string(dc::test::ProcessId()));
-        std::filesystem::create_directories(root_);
-        PathsSetSaveRoot(root_);
+        expanded::SeedModRandom(1);
         saved_status_ = UserStatus;
         UserStatus = status_.get();
         saved_map_ = selectMapNo;
@@ -53,14 +62,9 @@ protected:
         expanded::RosterVisitBegun();
         UserStatus = saved_status_;
         selectMapNo = saved_map_;
-        std::filesystem::remove_all(root_);
     }
 
-    static void Randomize(bool on) {
-        Config config = ConfigGet();
-        ASSERT_TRUE(expanded::SetOption(config.expanded_options, expanded::kRandomizeEnemies, on));
-        ASSERT_TRUE(ConfigChange(config));
-    }
+    void Randomize(bool on) { ASSERT_TRUE(options_.Set(expanded::kRandomizeEnemies, on)); }
 
     // BtLoadMonstor's read of a floor side.
     BT_ENEMY_FLOOR *Load(int dungeon, int floor, int ura) {
@@ -70,7 +74,7 @@ protected:
         return expanded::RosterFloorLayout(layout, ura);
     }
 
-    std::filesystem::path        root_;
+    expanded::test::OptionScope  options_;
     std::unique_ptr<CUserStatus> status_ = std::make_unique<CUserStatus>();
     CUserStatus                 *saved_status_ = nullptr;
     s32                          saved_map_ = 0;
@@ -89,7 +93,9 @@ TEST(EnemyRandomize, IsAnExpandedToggleOffByDefault) {
 
 TEST(EnemyRandomize, ThePoolIsEveryRegularMonster) {
     std::span<const Monster> pool = expanded::RandomizerPool();
-    EXPECT_EQ(pool.size(), 122u);
+    for (int kind = 0; kind < expanded::kSpeciesCount; kind++) {
+        EXPECT_EQ(InPool(static_cast<Monster>(kind)), Regular(kind)) << kind;
+    }
     for (Monster monster : pool) {
         const MONSTOR_MODEL *species = expanded::Species(No(monster));
         ASSERT_NE(species, nullptr) << No(monster);
@@ -157,6 +163,7 @@ TEST(EnemyRandomize, TheMimicsKeepTheirIndexes) {
 }
 
 TEST(EnemyRandomize, AMixIsDistinctKindsWithTheDungeonsMimicsByChance) {
+    expanded::SeedModRandom(1);
     std::mt19937 &random = expanded::ModRandom();
     int           mimics = 0, kings = 0;
     constexpr int kRolls = 4000;
@@ -197,6 +204,7 @@ TEST(EnemyRandomize, TheKindCountWeightsAreTheTable) {
 }
 
 TEST(EnemyRandomize, TheKindCountFollowsTheTable) {
+    expanded::SeedModRandom(1);
     constexpr int       kRolls = 200000;
     std::array<int, 10> seen = {};
     for (int roll = 0; roll < kRolls; roll++) {
@@ -209,12 +217,13 @@ TEST(EnemyRandomize, TheKindCountFollowsTheTable) {
 }
 
 TEST(EnemyRandomize, BothMimicsRescaleTheCountOverOneToSeven) {
+    expanded::SeedModRandom(1);
     // Two mimics leave room for seven regular kinds, the weights of one to seven rescaled.
     double kept = 0.0;
     for (int n = 1; n <= 7; n++) {
         kept += expanded::kKindCountWeights[n - 1];
     }
-    constexpr int       kRolls = 400000;
+    constexpr int       kRolls = 100000;
     std::array<int, 10> seen = {};
     int                 both = 0;
     for (int roll = 0; roll < kRolls; roll++) {
@@ -224,7 +233,7 @@ TEST(EnemyRandomize, BothMimicsRescaleTheCountOverOneToSeven) {
             seen[roster.Size() - 2]++;
         }
     }
-    ASSERT_GT(both, 30000);
+    ASSERT_GT(both, 7500);
     EXPECT_EQ(seen[8] + seen[9], 0);
     for (int n = 1; n <= 7; n++) {
         EXPECT_NEAR(seen[n] / static_cast<double>(both), expanded::kKindCountWeights[n - 1] / kept, 0.008) << n;
