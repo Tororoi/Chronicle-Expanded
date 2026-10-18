@@ -34,6 +34,12 @@ still matches retail.
     A case puts back what it changes, so the cases pass in any order in one process: `test_support.hpp`
     has a scratch folder, settings and a data directory set for one case, and a floor of monsters set up as
     the game sets them up. A case that rolls seeds `SeedModRandom` first.
+  - `expanded/lang/`: the mod's own text in each language (`en_us.json`...): its monsters' and abilities'
+    names and its new messages, keyed as `docs/LOCALIZATION.md` describes. The build copies it to
+    `lang/expanded/` beside the executable, read after `lang/` and before the save folder's `lang/`, so a
+    translation there still wins.
+  - `expanded/docs/`: how the larger features work (`bosses.md`, `gemrons.md`, `town-models.md`), and the
+    miniboss loot tables (`miniboss-loot.md`).
   - All three use the same folders, and a file in a folder drops the folder's name (`weapons/stats.cpp`,
     not `weapons/weapon_stats.cpp`):
     - `core/`: shared plumbing: options, per-save state, menu text, languages.

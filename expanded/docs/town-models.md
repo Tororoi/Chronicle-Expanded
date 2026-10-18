@@ -11,7 +11,7 @@ The code is `expanded/src/data/`: `chr_pack.cpp` reads and rebuilds `.chr` packs
 motions, `town_model.cpp` assembles a model from `town_rig.cpp`'s cfg text and rig math,
 `town_motion_graft.cpp`'s motion grafts and window edits and `town_mesh_graft.cpp`'s mesh-node graft,
 and `town_allies.cpp` is the table of allies. It is the Dark Cloud Expanded mod's ISO bake
-(`IsoPatch/TownModelBakes.cs`) moved to C++, and builds the same bytes from the same disc files: every
+(`DarkCloud-Expanded/Dark Cloud Improved Version/IsoPatch/TownModelBakes.cs`) moved to C++, and builds the same bytes from the same disc files: every
 ally's model matched the mod's, on the PAL and NTSC discs.
 
 ## Motion slots
@@ -150,7 +150,7 @@ on at its frame 15, and its hub `tukene1` spun 72 degrees a frame through slots 
 ## Ladders
 
 Toan's climb is rigged to his body, so an ally in its built model takes a ladder its own way
-(`expanded/src/town/ladder.cpp`, the mod's `Town/TownLadder.cs`): the press builds a frame-by-frame
+(`expanded/src/town/ladder.cpp`, the mod's `DarkCloud-Expanded/Dark Cloud Improved Version/Town/TownLadder.cs`): the press builds a frame-by-frame
 sequence of positions, facings and motions, which `EdMoveChara` plays in place of its own step, with the
 camera following at the ladder's angle as Toan's climb has it.
 
