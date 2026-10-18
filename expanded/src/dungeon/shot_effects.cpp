@@ -5,6 +5,7 @@
 #include <cstring>
 #include <deque>
 #include <iterator>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -351,8 +352,30 @@ void SetShotEffectLoader(ShotEffectLoader loader) {
     Loader() = loader != nullptr ? loader : DiscLoad;
 }
 
-int ShotEffectBomb(float *position, const BT_SHOT_EFFECT *effect) {
-    int slot = SetBombEffect(position, effect->target, effect->bomb_damage, effect->bomb_scale);
+namespace {
+
+std::map<const BT_SHOT_EFFECT *, BlastDamage> &BlastDamages() {
+    static std::map<const BT_SHOT_EFFECT *, BlastDamage> damages;
+    return damages;
+}
+
+} // namespace
+
+void SetBlastDamage(const BT_SHOT_EFFECT *effect, BlastDamage damage) {
+    if (damage != nullptr) {
+        BlastDamages()[effect] = damage;
+    } else {
+        BlastDamages().erase(effect);
+    }
+}
+
+int ShotEffectBomb(float *position, const BT_SHOT_EFFECT *effect, int owner) {
+    int  damage = effect->bomb_damage;
+    auto found = BlastDamages().find(effect);
+    if (found != BlastDamages().end() && owner >= 0) {
+        damage = found->second(owner);
+    }
+    int slot = SetBombEffect(position, effect->target, damage, effect->bomb_scale);
     int per_scale = effect->unk_056[0] | (effect->unk_056[1] << 8);
     if (slot == -1 || per_scale == 0) {
         return slot;

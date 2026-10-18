@@ -18,10 +18,6 @@
 #include "renderinfo.hpp"
 #include "visualvu1.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/core/frame_tint.hpp"
-#endif
-
 void *operator new(size_t size, u_long128 *block) {
     return block;
 }
@@ -1275,16 +1271,7 @@ int CFrameVu1::DrawVu1(unsigned int *packet, RenderInfo *info) {
 
         attr.remake_pending = 0;
 
-#ifdef CHRONICLE_EXPANDED
-        float tint_saved[4];
-        bool  tinted = expanded::FrameTintBegin(this, info->ambient, tint_saved);
-#endif
         packet += visual->DrawVu1(packet, matrix, info, VU1_PROGRAM_UNKNOWN6, 0, 0, 0);
-#ifdef CHRONICLE_EXPANDED
-        if (tinted) {
-            expanded::FrameTintEnd(info->ambient, tint_saved);
-        }
-#endif
 
         if (attr.use_color || attr.ambient_boost) {
             sceVu0CopyMatrix(info->light_direction, light);

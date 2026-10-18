@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <stdexcept>
 
 #include "expanded/data/model_parts.hpp"
 #include "expanded/data/sheet_look.hpp"
@@ -152,4 +153,22 @@ TEST(SheetLook, SectionsSlideTheirColoursAndSetOnes) {
     EXPECT_EQ(colour(1), (std::array<int, 3>{255, 0, 0}));
     EXPECT_EQ(colour(2), (std::array<int, 3>{160, 160, 160}));
     EXPECT_EQ(colour(0), (std::array<int, 3>{0, 0, 0}));
+}
+
+TEST(ModelParts, DataPastTheEndThrows) {
+    Bytes mds(0x20, 0);
+    Put32(mds, 0x10 + 8, 0x1000); // a mesh claiming more than there is
+    EXPECT_THROW(expanded::MdtAt(mds, 0x10), std::runtime_error);
+
+    Bytes bank(0x40, 0);
+    std::memcpy(bank.data(), "IMG", 4);
+    Put32(bank, 4, 1);
+    Put32(bank, 0x10 + 0x20, 0x400); // an entry past the bank
+    EXPECT_THROW(expanded::ImgBank::Parse(bank), std::runtime_error);
+}
+
+TEST(SheetLook, AMapNamingAMissingSectionIsRefused) {
+    // One section; the map's one run names section 1.
+    const char *json = R"({"sections":[{"hue":0,"sat":1,"bri":1,"con":1,"light":0,"keep":[],"set":{}}],"map":{"w":1,"h":1,"rle":"AQE="}})";
+    EXPECT_THROW(expanded::SheetLook::Parse(json), std::runtime_error);
 }

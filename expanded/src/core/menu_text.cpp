@@ -29,14 +29,24 @@ struct Loaded {
     s16  count;
 };
 
-std::map<const void *, Loaded>                              g_banks;
-std::map<int, WeaponTextProvider>                           g_weapons;
-std::map<int, MenuTextProvider>                             g_messages;
-std::map<int, MenuTextProvider>                             g_system;
-std::map<std::pair<const void *, int>, std::vector<s16>>    g_built;
+// Built on first use: providers register from other files' static initialisers.
+struct Registry {
+    std::map<const void *, Loaded>                           banks;
+    std::map<int, WeaponTextProvider>                        weapons;
+    std::map<int, MenuTextProvider>                          messages;
+    std::map<int, MenuTextProvider>                          system;
+    std::map<std::pair<const void *, int>, std::vector<s16>> built;
+};
+
+Registry &Text() {
+    static Registry registry;
+    return registry;
+}
 
 bool SameName(std::string_view a, std::string_view b) {
-    return std::ranges::equal(a, b, [](char x, char y) { return std::tolower(x) == std::tolower(y); });
+    return std::ranges::equal(a, b, [](char x, char y) {
+        return std::tolower(static_cast<unsigned char>(x)) == std::tolower(static_cast<unsigned char>(y));
+    });
 }
 
 // The bank's own text of message id, as ClsMes::GetTextLineDataTop finds it.
@@ -64,7 +74,7 @@ int WeaponOf(int id) {
 
 // The description lines of a weapon: its provider's, else the language files'.
 std::optional<std::string> WeaponLines(int item_no) {
-    if (auto provider = g_weapons.find(item_no); provider != g_weapons.end()) {
+    if (auto provider = Text().weapons.find(item_no); provider != Text().weapons.end()) {
         if (std::optional<std::string> text = provider->second(item_no)) {
             return text;
         }
@@ -84,25 +94,25 @@ std::string WeaponDescriptionKey(int item_no) {
 
 void SetWeaponDescription(int item_no, WeaponTextProvider provider) {
     if (provider != nullptr) {
-        g_weapons[item_no] = provider;
+        Text().weapons[item_no] = provider;
     } else {
-        g_weapons.erase(item_no);
+        Text().weapons.erase(item_no);
     }
 }
 
 void SetMenuMessage(int message_id, MenuTextProvider provider) {
     if (provider != nullptr) {
-        g_messages[message_id] = provider;
+        Text().messages[message_id] = provider;
     } else {
-        g_messages.erase(message_id);
+        Text().messages.erase(message_id);
     }
 }
 
 void SetSystemMessage(int message_id, MenuTextProvider provider) {
     if (provider != nullptr) {
-        g_system[message_id] = provider;
+        Text().system[message_id] = provider;
     } else {
-        g_system.erase(message_id);
+        Text().system.erase(message_id);
     }
 }
 
@@ -112,31 +122,31 @@ void MenuTextLoaded(std::string_view name, const void *data) {
     }
     const s16 count = static_cast<const s16 *>(data)[0];
     if (SameName(name, "allmenu.mes")) {
-        g_banks[data] = {Bank::AllMenu, count};
+        Text().banks[data] = {Bank::AllMenu, count};
     } else if (SameName(name, "itemshop.bin")) {
-        g_banks[data] = {Bank::Shop, count};
+        Text().banks[data] = {Bank::Shop, count};
     } else {
-        g_banks.erase(data);
+        Text().banks.erase(data);
     }
 }
 
 short *MenuText(const short *buff, int id) {
-    if (auto message = g_system.find(id); buff != nullptr && buff == SystemMessage.buff && message != g_system.end()) {
+    if (auto message = Text().system.find(id); buff != nullptr && buff == SystemMessage.buff && message != Text().system.end()) {
         std::optional<std::string> text = message->second();
         if (!text) {
             return nullptr;
         }
-        std::vector<s16> &kept = g_built[{buff, id}];
+        std::vector<s16> &kept = Text().built[{buff, id}];
         kept.clear();
         GameTextEncode(*text, kept);
         return kept.data();
     }
-    auto bank = buff != nullptr ? g_banks.find(buff) : g_banks.end();
-    if (bank == g_banks.end() || bank->second.count != buff[0]) {
+    auto bank = buff != nullptr ? Text().banks.find(buff) : Text().banks.end();
+    if (bank == Text().banks.end() || bank->second.count != buff[0]) {
         return nullptr;
     }
     std::vector<s16> codes;
-    if (auto message = g_messages.find(id); bank->second.bank == Bank::AllMenu && message != g_messages.end()) {
+    if (auto message = Text().messages.find(id); bank->second.bank == Bank::AllMenu && message != Text().messages.end()) {
         if (std::optional<std::string> text = message->second()) {
             GameTextEncode(*text, codes);
         }
@@ -157,17 +167,17 @@ short *MenuText(const short *buff, int id) {
     if (codes.empty()) {
         return nullptr;
     }
-    std::vector<s16> &kept = g_built[{buff, id}];
+    std::vector<s16> &kept = Text().built[{buff, id}];
     kept = std::move(codes);
     return kept.data();
 }
 
 void MenuTextReset() {
-    g_banks.clear();
-    g_weapons.clear();
-    g_messages.clear();
-    g_system.clear();
-    g_built.clear();
+    Text().banks.clear();
+    Text().weapons.clear();
+    Text().messages.clear();
+    Text().system.clear();
+    Text().built.clear();
 }
 
 } // namespace expanded

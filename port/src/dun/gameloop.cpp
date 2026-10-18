@@ -68,6 +68,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/atla_drops.hpp"
+#include "expanded/enemies/bomb_gemron.hpp"
 #include "expanded/status/confuse.hpp"
 #endif
 
@@ -547,6 +548,9 @@ PORT_OVERRIDE void DunMainDraw() {
             if (CEffectHyde == 0 && BtEventMode == 0) {
                 NowShotData->draw();
                 OzumondShotEffect.Draw();
+#ifdef CHRONICLE_EXPANDED
+                expanded::BombGemronEffectsDraw();
+#endif
                 OzumondFire.Draw();
             }
 

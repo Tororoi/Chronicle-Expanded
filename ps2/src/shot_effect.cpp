@@ -243,7 +243,7 @@ void CSHOT_EFFECT::Step() {
                         switch (effect_data->end_effect) {
                             case SHOT_END_EFFECT_BOMB:
 #ifdef CHRONICLE_EXPANDED
-                                expanded::ShotEffectBomb(hit_position, effect_data);
+                                expanded::ShotEffectBomb(hit_position, effect_data, user_id_2[slot]);
 #else
                                 SetBombEffect(hit_position, effect_data->target, effect_data->bomb_damage, effect_data->bomb_scale);
 #endif
@@ -276,7 +276,7 @@ void CSHOT_EFFECT::Step() {
                 switch (effect_data->end_effect) {
                     case SHOT_END_EFFECT_BOMB:
 #ifdef CHRONICLE_EXPANDED
-                        expanded::ShotEffectBomb(hit_position, effect_data);
+                        expanded::ShotEffectBomb(hit_position, effect_data, user_id_2[slot]);
 #else
                         SetBombEffect(hit_position, effect_data->target, effect_data->bomb_damage, effect_data->bomb_scale);
 #endif
@@ -305,7 +305,7 @@ void CSHOT_EFFECT::Step() {
             switch (effect_data->end_effect) {
                 case SHOT_END_EFFECT_BOMB:
 #ifdef CHRONICLE_EXPANDED
-                    expanded::ShotEffectBomb(hit_position, effect_data);
+                    expanded::ShotEffectBomb(hit_position, effect_data, user_id_2[slot]);
 #else
                     SetBombEffect(hit_position, effect_data->target, effect_data->bomb_damage, effect_data->bomb_scale);
 #endif

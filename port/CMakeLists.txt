@@ -138,7 +138,18 @@ if(WIN32 AND (NOT MINGW OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
     message(FATAL_ERROR "The Windows build requires clang/llvm-mingw")
 endif()
 
-add_library(dc_ps2 OBJECT ${PS2_UNITS} ${PORT_OVERRIDES_CHECKED})
+# An Expanded hook inside a definition the port replaces never runs: its place is the replacement.
+set(EXPANDED_HOOKS_CHECKED "")
+if(CHRONICLE_EXPANDED)
+    set(EXPANDED_HOOKS_CHECKED ${CMAKE_BINARY_DIR}/expanded_hooks.checked)
+    add_custom_command(OUTPUT ${EXPANDED_HOOKS_CHECKED}
+        COMMAND ${Python3_EXECUTABLE} ${EXPANDED_DIR}/cmake/check_hooks.py --originals ${PS2_DIR}
+            --copies ${CMAKE_BINARY_DIR}/ps2_src -o ${EXPANDED_HOOKS_CHECKED} ${PS2_SOURCES}
+        DEPENDS ${PS2_UNITS} ${EXPANDED_DIR}/cmake/check_hooks.py
+        COMMENT "Checking that every Expanded hook in ps2/src is in code the port compiles"
+        VERBATIM)
+endif()
+add_library(dc_ps2 OBJECT ${PS2_UNITS} ${PORT_OVERRIDES_CHECKED} ${EXPANDED_HOOKS_CHECKED})
 target_link_libraries(dc_ps2 PRIVATE dc_options)
 # Retail's code reads locals it never set and falls off the end of functions
 # that return a value, and ps2/src keeps both because the match depends on

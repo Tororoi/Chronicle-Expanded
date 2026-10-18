@@ -65,9 +65,14 @@ void ShotEffectsStep();
 void ShotEffectsDraw();
 
 // A shot's blast (SHOT_END_EFFECT_BOMB): the item bomb's, its hit radius and shock ring the description's per unit of
-// scale when it gives one (unk_056; the engine's are 20 and 30), the hit throwing what it hits away from the blast
-// (the engine's along +X). Its collision record, or -1.
-int ShotEffectBomb(float *position, const BT_SHOT_EFFECT *effect);
+// scale when it gives one (unk_056; the engine's are 20 and 30), the hit throwing the player away from the blast (the
+// engine's along +X), its damage the description's or, when one is set for it, its owner's (the monster that fired the
+// shot, or -1). Its collision record, or -1.
+int ShotEffectBomb(float *position, const BT_SHOT_EFFECT *effect, int owner);
+
+// A description's blast damage by the monster that fired it, in place of its bomb_damage (nullptr removes it).
+using BlastDamage = int (*)(int owner);
+void SetBlastDamage(const BT_SHOT_EFFECT *effect, BlastDamage damage);
 
 // Tests replace the disc load: it sets up effect from its file in arena, returning false on failure.
 using ShotEffectLoader = bool (*)(CSHOT_EFFECT &effect, CDataAlloc2<1> &arena, BT_SHOT_EFFECT *description, int shots,

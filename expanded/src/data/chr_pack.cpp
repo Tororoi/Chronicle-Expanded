@@ -60,6 +60,11 @@ float GetF32(std::span<const unsigned char> data, std::size_t offset) {
     return std::bit_cast<float>(Get32(data, offset));
 }
 
+std::span<const unsigned char> Slice(std::span<const unsigned char> data, std::size_t offset, std::size_t size, const char *what) {
+    Need(data, offset, size, what);
+    return data.subspan(offset, size);
+}
+
 std::string NameAt(std::span<const unsigned char> data, std::size_t offset, std::size_t max) {
     Need(data, offset, 0, "a name");
     std::size_t end = offset;

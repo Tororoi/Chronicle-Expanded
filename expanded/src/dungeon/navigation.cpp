@@ -72,6 +72,21 @@ int DungeonPolys(float *center, float radius, float height_ratio, CCPoly *polys,
 const NavigationFloor  kDungeonFloor = {DungeonGridded, DungeonOpen, DungeonPolys};
 const NavigationFloor *floor_now = &kDungeonFloor;
 
+// The cells of the square ring r out from a centre, as a row-by-row scan of the square meets them; visit returns
+// true to stop. Whether it stopped.
+template <typename Visit>
+bool ForRing(int r, Visit visit) {
+    for (int dj = -r; dj <= r; dj++) {
+        int step = (dj == -r || dj == r || r == 0) ? 1 : 2 * r;
+        for (int di = -r; di <= r; di += step) {
+            if (visit(di, dj)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 int Bucket(float ground) {
     return static_cast<int>(std::floor(ground / 10.0f));
 }
@@ -98,12 +113,12 @@ const std::vector<CCPoly> &TilePolys(int tile, float ground) {
     if (found != tile_polys.end()) {
         return found->second;
     }
-    std::vector<CCPoly> polys(kPolyLimit);
-    float               radius = kTile / 2.0f + kReach;
-    float               center[4] = {kTile * static_cast<float>(tile % kTiles), ground, kTile * static_cast<float>(tile / kTiles), 1.0f};
-    int                 count = floor_now->polys(center, radius, kHeight / radius, polys.data(), kPolyLimit);
-    polys.resize(static_cast<std::size_t>(std::clamp(count, 0, kPolyLimit)));
-    return tile_polys.emplace(key, std::move(polys)).first->second;
+    static std::vector<CCPoly> scratch(kPolyLimit);
+    float                      radius = kTile / 2.0f + kReach;
+    float                      center[4] = {kTile * static_cast<float>(tile % kTiles), ground, kTile * static_cast<float>(tile / kTiles), 1.0f};
+    int                        count = std::clamp(floor_now->polys(center, radius, kHeight / radius, scratch.data(), kPolyLimit), 0, kPolyLimit);
+    // Kept at the size found: the cache holds a tile for every height a body crossed it at.
+    return tile_polys.emplace(key, std::vector<CCPoly>(scratch.begin(), scratch.begin() + count)).first->second;
 }
 
 bool Wall(const CCPoly &poly) {
@@ -175,14 +190,16 @@ struct Grid {
     // The walkable cell nearest (i, j) within reach cells, or false.
     bool Nearest(int &i, int &j, int reach) {
         for (int r = 0; r <= reach; r++) {
-            for (int dj = -r; dj <= r; dj++) {
-                for (int di = -r; di <= r; di++) {
-                    if (std::max(std::abs(di), std::abs(dj)) == r && Walkable(i + di, j + dj)) {
-                        i += di;
-                        j += dj;
-                        return true;
-                    }
+            bool found = ForRing(r, [&](int di, int dj) {
+                if (!Walkable(i + di, j + dj)) {
+                    return false;
                 }
+                i += di;
+                j += dj;
+                return true;
+            });
+            if (found) {
+                return true;
             }
         }
         return false;
@@ -380,20 +397,19 @@ bool NavigateRegionNearest(int region, const float *point, float *spot) {
     for (int r = 0; r < kCells; r++) {
         int   best = -1;
         float best_distance = 0.0f;
-        for (int dj = -r; dj <= r; dj++) {
-            for (int di = -r; di <= r; di++) {
-                int i = ci + di;
-                int j = cj + dj;
-                if (std::max(std::abs(di), std::abs(dj)) != r || !InGrid(i, j) || !inside[static_cast<std::size_t>(i + j * kCells)]) {
-                    continue;
-                }
-                float distance = std::hypot(CellCenter(i) - point[0], CellCenter(j) - point[2]);
-                if (best < 0 || distance < best_distance) {
-                    best = i + j * kCells;
-                    best_distance = distance;
-                }
+        ForRing(r, [&](int di, int dj) {
+            int i = ci + di;
+            int j = cj + dj;
+            if (!InGrid(i, j) || !inside[static_cast<std::size_t>(i + j * kCells)]) {
+                return false;
             }
-        }
+            float distance = std::hypot(CellCenter(i) - point[0], CellCenter(j) - point[2]);
+            if (best < 0 || distance < best_distance) {
+                best = i + j * kCells;
+                best_distance = distance;
+            }
+            return false;
+        });
         if (best >= 0) {
             if (r > 0) {
                 spot[0] = CellCenter(best % kCells);
