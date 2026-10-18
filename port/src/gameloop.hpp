@@ -22,6 +22,10 @@ void GameSetFrameBudget(std::int64_t frames);
 
 std::int64_t GameFrameCount();
 
+// Writes each frame of the main loop from frame from on, once it has ended, as dir/<frame>.png, and its
+// clock tick and the tick rate as a line of dir/ticks.txt (--record).
+void GameSetRecording(const char *dir, std::int64_t from);
+
 // Clears save for a new game as retail's main() does, keeping its configuration, and keeping the
 // last file's number whole where retail's round trip keeps one byte of it.
 void ResetSaveKeepingConfig(CSaveData &save);
