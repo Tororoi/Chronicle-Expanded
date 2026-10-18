@@ -49,6 +49,8 @@ constexpr Monster kLooted[] = {
     Monster::SPACE_GYON_ENHANCED, Monster::SPADE_ENHANCED, Monster::STATUE_DOG_ENHANCED,
     Monster::STEEL_GIANT_ENHANCED, Monster::TITAN_ENHANCED, Monster::VULCAN_ENHANCED, Monster::WHITE_FANG_ENHANCED,
     Monster::WITCH_HELLZA_ENHANCED, Monster::YAMMICH_ENHANCED,
+    // Expanded's
+    Monster::BOMB_GEMRON, Monster::CRYSTAL_GEMRON, Monster::ATLA_GEMRON,
 };
 
 std::deque<int> g_rolls;
@@ -169,6 +171,32 @@ TEST_F(MinibossLoot, TheSameWeaponPlainOrBoosted) {
     EXPECT_EQ(expanded::MinibossLoot(Monster::ARTHUR, DUNGEON_MOON_SEA, MinibossTier::COMMON)[0].boost, nullptr);
 }
 
+TEST_F(MinibossLoot, ExpandedGemronsHaveTheirOwn) {
+    using ItemList = std::vector<int>;
+    EXPECT_TRUE(Items(Monster::BOMB_GEMRON, DUNGEON_MOON_SEA, MinibossTier::RARE).empty());
+    EXPECT_EQ(Items(Monster::BOMB_GEMRON, DUNGEON_GALLERY_OF_TIME, MinibossTier::RARE), (ItemList{ITEM_WEAPON_BIG_BANG}));
+    EXPECT_EQ(expanded::MinibossLoot(Monster::BOMB_GEMRON, DUNGEON_GALLERY_OF_TIME, MinibossTier::RARE)[0].boost, nullptr);
+    EXPECT_EQ(Items(Monster::BOMB_GEMRON, DUNGEON_DIVINE_BEAST_CAVE, MinibossTier::COMMON), (ItemList{ITEM_AUTO_REPAIR_POWDER}));
+
+    // The Crystal Ring, plain until Shipwreck and boosted from there.
+    std::vector<expanded::MinibossDrop> early = expanded::MinibossLoot(Monster::CRYSTAL_GEMRON, DUNGEON_WISE_OWL_FOREST, MinibossTier::RARE);
+    ASSERT_EQ(early.size(), 1u);
+    EXPECT_EQ(early[0].item, ITEM_WEAPON_CRYSTAL_RING);
+    EXPECT_EQ(early[0].boost, nullptr);
+    for (int dungeon : {DUNGEON_SHIPWRECK, DUNGEON_DEMON_SHAFT}) {
+        std::vector<expanded::MinibossDrop> late = expanded::MinibossLoot(Monster::CRYSTAL_GEMRON, dungeon, MinibossTier::RARE);
+        ASSERT_EQ(late.size(), 1u) << dungeon;
+        EXPECT_EQ(late[0].item, ITEM_WEAPON_CRYSTAL_RING);
+        ASSERT_NE(late[0].boost, nullptr);
+        EXPECT_EQ(late[0].boost->elem[1], 50);
+    }
+    EXPECT_EQ(Items(Monster::CRYSTAL_GEMRON, DUNGEON_SHIPWRECK, MinibossTier::COMMON), (ItemList{ITEM_POWERUP_POWDER}));
+
+    EXPECT_TRUE(Items(Monster::ATLA_GEMRON, DUNGEON_WISE_OWL_FOREST, MinibossTier::RARE).empty());
+    EXPECT_EQ(Items(Monster::ATLA_GEMRON, DUNGEON_SHIPWRECK, MinibossTier::RARE), (ItemList{ITEM_WEAPON_ATLAMILLIA_SWORD}));
+    EXPECT_EQ(Items(Monster::ATLA_GEMRON, DUNGEON_DIVINE_BEAST_CAVE, MinibossTier::COMMON), (ItemList{ITEM_ATTACH_TURQUOISE}));
+}
+
 TEST_F(MinibossLoot, EnhancedSpeciesTakeTheirBasesLoot) {
     for (int dungeon = 0; dungeon < DUNGEON_COUNT; dungeon++) {
         for (MinibossTier tier : {MinibossTier::RARE, MinibossTier::COMMON}) {
@@ -191,7 +219,7 @@ TEST_F(MinibossLoot, DeSangaComesPlain) {
 }
 
 TEST_F(MinibossLoot, EveryLootedSpeciesHasLoot) {
-    EXPECT_EQ(std::size(kLooted), 118u);
+    EXPECT_EQ(std::size(kLooted), 121u);
     for (Monster species : kLooted) {
         EXPECT_FALSE(expanded::MinibossLoot(species, DUNGEON_DEMON_SHAFT, MinibossTier::RARE).empty() &&
                      expanded::MinibossLoot(species, DUNGEON_DEMON_SHAFT, MinibossTier::COMMON).empty())
