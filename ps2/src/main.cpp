@@ -1263,7 +1263,7 @@ int MenuLoop() {
     i++;
     DebugFont.length += sprintf(&DebugFont.text[DebugFont.length], menu[i], cursor[i == select], LanguageCode);
 #ifdef CHRONICLE_EXPANDED
-    DebugFont.length += expanded::DevMenuRosterDraw(&DebugFont.text[DebugFont.length], i + 1 == select);
+    DebugFont.length += expanded::DevMenuRosterDraw(&DebugFont.text[DebugFont.length], sizeof(DebugFont.text) - DebugFont.length, i + 1 == select);
 #endif
 
     TexManager.ReloadTexture(GetVif1Packet(), 0);

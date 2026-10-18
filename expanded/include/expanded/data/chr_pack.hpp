@@ -19,6 +19,9 @@ std::uint32_t Get32(std::span<const unsigned char> data, std::size_t offset);
 void          Set32(std::span<unsigned char> data, std::size_t offset, std::uint32_t value);
 float         GetF32(std::span<const unsigned char> data, std::size_t offset);
 
+// size bytes at offset, throwing (naming what) when they run past the end of data.
+std::span<const unsigned char> Slice(std::span<const unsigned char> data, std::size_t offset, std::size_t size, const char *what);
+
 // The NUL-terminated name at offset, at most max bytes.
 std::string NameAt(std::span<const unsigned char> data, std::size_t offset, std::size_t max);
 

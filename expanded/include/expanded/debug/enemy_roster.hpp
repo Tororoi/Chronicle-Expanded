@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <string_view>
 
@@ -17,11 +18,11 @@ bool ParseRosterSpec(std::string_view spec, Roster &roster);
 bool               SetDebugRoster(std::string_view spec);
 const std::string &DebugRosterSpec();
 
-// The developer menu's roster row. Hooks: the rows it adds, its text (the row selected or not; typing
-// shows the entry) and its step (true while it takes the pad: Cross opens the entry, Enter sets it,
+// The developer menu's roster row. Hooks: the rows it adds, its text (into room bytes, cut to fit; the row selected or
+// not; typing shows the entry) and its step (true while it takes the pad: Cross opens the entry, Enter sets it,
 // Escape leaves it).
 int  DevMenuRosterRows();
-int  DevMenuRosterDraw(char *text, bool selected);
+int  DevMenuRosterDraw(char *text, std::size_t room, bool selected);
 bool DevMenuRosterStep(bool selected);
 
 } // namespace expanded

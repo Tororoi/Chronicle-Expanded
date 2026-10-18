@@ -102,11 +102,13 @@ struct PictureAt {
 
 PictureAt Locate(std::span<const unsigned char> tim) {
     constexpr std::size_t p = tim8::kPicture;
+    Slice(tim, p, 0x18, "a sheet's picture header");
     std::size_t           clut = Get32(tim, p + 4), image = Get32(tim, p + 8), header = tim[p + 0xC] | (tim[p + 0xD] << 8);
     int                   width = tim[p + 0x14] | (tim[p + 0x15] << 8), height = tim[p + 0x16] | (tim[p + 0x17] << 8);
     if (tim[p + 0x13] != 5 || image != std::size_t(width * height) || clut != 256 * 4) {
         throw std::runtime_error("look: not an 8-bit 256-colour picture");
     }
+    Slice(tim, p + header, image + clut, "a sheet's pixels and CLUT");
     return {width, height, p + header + image, p + header};
 }
 
@@ -226,6 +228,9 @@ SheetLook SheetLook::Parse(std::string_view text) {
         look.map_.assign(static_cast<std::size_t>(look.map_width_ * look.map_height_), 0);
         std::size_t o = 0;
         for (std::size_t i = 0; i + 1 < runs.size(); i += 2) {
+            if (runs[i + 1] >= look.sections_.size()) {
+                throw std::runtime_error("look: the map names a section past the last");
+            }
             for (int j = 0; j < runs[i] && o < look.map_.size(); j++) {
                 look.map_[o++] = runs[i + 1];
             }
@@ -260,14 +265,13 @@ std::array<int, 3> SheetLook::Colour(int s, int k, const std::vector<std::array<
 
 Bytes SheetLook::ApplyToSheet(std::span<const unsigned char> tim) const {
     PictureAt                       at = Locate(tim);
-    Bytes                           index = tim8::Unswizzle(tim.subspan(at.pixels, std::size_t(at.width * at.height)), at.width, at.height);
+    Bytes                           index = tim8::Unswizzle(Slice(tim, at.pixels, std::size_t(at.width) * at.height, "a sheet's pixels"), at.width, at.height);
     std::vector<std::array<int, 3>> pal(256);
     for (int k = 0; k < 256; k++) {
         std::size_t j = at.clut + std::size_t(tim8::Csm1(k)) * 4;
         pal[std::size_t(k)] = {tim[j], tim[j + 1], tim[j + 2]};
     }
     const Bytes *map = !map_.empty() && map_width_ == at.width && map_height_ == at.height ? &map_ : nullptr;
-    int          n = static_cast<int>(sections_.size());
     // Every (entry, section) pair a texel uses, and its colours weighted by texels, in first-seen order.
     std::unordered_map<int, int> pair_count;
     std::vector<int>             pair_order;
@@ -280,7 +284,7 @@ Bytes SheetLook::ApplyToSheet(std::span<const unsigned char> tim) const {
     std::unordered_map<int, double> colour_count;
     std::vector<int>                colour_order;
     for (int key : pair_order) {
-        int v = Key(Colour(std::min(key % kRows, n - 1), key / kRows, pal));
+        int v = Key(Colour(key % kRows, key / kRows, pal));
         if (!colour_count.contains(v)) {
             colour_order.push_back(v);
         }
@@ -292,7 +296,7 @@ Bytes SheetLook::ApplyToSheet(std::span<const unsigned char> tim) const {
     std::vector<int>             out_pal;
     for (std::size_t i = 0; i < index.size(); i++) {
         int s = map != nullptr ? (*map)[i] : 0;
-        int v = Key(Colour(s < n ? s : 0, index[i], pal));
+        int v = Key(Colour(s, index[i], pal));
         if (auto m = merged.find(v); m != merged.end()) {
             v = m->second;
         }

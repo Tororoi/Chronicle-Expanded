@@ -109,3 +109,10 @@ TEST_F(DebugRoster, OnlyInDebugModeAndUntilCleared) {
     expanded::RosterVisitBegun();
     EXPECT_EQ(Load(0, 2), BtEnemyLayoutList[0] + 2);
 }
+
+TEST(DebugRosterSpec, TheMenuRowIsCutToItsRoom) {
+    char text[8];
+    EXPECT_EQ(expanded::DevMenuRosterDraw(text, sizeof(text), false), 7);
+    EXPECT_STREQ(text, " enemy ");
+    EXPECT_EQ(expanded::DevMenuRosterDraw(text, 0, false), 0);
+}

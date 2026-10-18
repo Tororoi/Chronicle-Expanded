@@ -23,6 +23,11 @@ namespace expanded {
 
 namespace {
 
+// The port's rand() (retail's 31-bit generator, whatever the host's RAND_MAX) as a fraction in [0, 1).
+float Unit() {
+    return static_cast<float>(std::rand()) / 2147483648.0f;
+}
+
 constexpr int kMonsters = 16;
 
 // Her mailbox, as her script and the companions' use it (values past retail's mark a shot under way).
@@ -335,8 +340,8 @@ void StepTornadoes() {
         int &mail = fight.mailbox[kTornado + i];
         int &slot = fight.tornado[i];
         if (mail == 1 && !Live(kTornadoShot, slot)) {
-            float angle = 2.0f * PI * static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
-            float reach = kTornadoNear + kTornadoSpread * static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+            float angle = 2.0f * PI * Unit();
+            float reach = kTornadoNear + kTornadoSpread * Unit();
             float at[4] = {CharaMain.pos[0] + std::cos(angle) * reach, CharaMain.pos[1] + kTornadoLift,
                            CharaMain.pos[2] + std::sin(angle) * reach, 1.0f};
             slot = Fire(kTornadoShot, at, at);

@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL.h>
 
+#include <algorithm>
 #include <charconv>
 #include <cstdio>
 
@@ -132,12 +133,14 @@ int DevMenuRosterRows() {
     return 1;
 }
 
-int DevMenuRosterDraw(char *text, bool selected) {
-    const char *cursor = selected || typing ? ">" : " ";
-    if (typing) {
-        return std::sprintf(text, "%senemy roster %s_%s\n", cursor, entry.c_str(), rejected ? " ?" : "");
+int DevMenuRosterDraw(char *text, std::size_t room, bool selected) {
+    if (room == 0) {
+        return 0;
     }
-    return std::sprintf(text, "%senemy roster %s\n", cursor, spec.empty() ? "-" : spec.c_str());
+    const char *cursor = selected || typing ? ">" : " ";
+    int         written = typing ? std::snprintf(text, room, "%senemy roster %s_%s\n", cursor, entry.c_str(), rejected ? " ?" : "")
+                                 : std::snprintf(text, room, "%senemy roster %s\n", cursor, spec.empty() ? "-" : spec.c_str());
+    return std::clamp(written, 0, static_cast<int>(room) - 1);
 }
 
 bool DevMenuRosterStep(bool selected) {

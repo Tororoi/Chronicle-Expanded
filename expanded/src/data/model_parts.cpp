@@ -180,7 +180,11 @@ std::vector<MdsFrame> ReadMdsSkeleton(std::span<const unsigned char> mds) {
         frame.name = NameAt(mds, rec + 8, 0x20);
         frame.mesh = static_cast<int>(Get32(mds, rec + 0x28));
         frame.parent = GetI32(mds, rec + 0x2C);
-        frame.record.assign(mds.begin() + static_cast<std::ptrdiff_t>(rec), mds.begin() + static_cast<std::ptrdiff_t>(rec + kFrameRecord));
+        if (frame.parent >= i) {
+            throw std::runtime_error("an .mds frame's parent comes after it");
+        }
+        auto record = Slice(mds, rec, kFrameRecord, "an .mds frame record");
+        frame.record.assign(record.begin(), record.end());
         Mat4 local{};
         for (int r = 0; r < 3; r++) {
             for (int c = 0; c < 3; c++) {
@@ -207,8 +211,8 @@ const MdsFrame *FindFrame(const std::vector<MdsFrame> &frames, std::string_view 
 }
 
 Bytes MdtAt(std::span<const unsigned char> mds, std::size_t offset) {
-    std::size_t size = Get32(mds, offset + 8);
-    return Bytes(mds.begin() + static_cast<std::ptrdiff_t>(offset), mds.begin() + static_cast<std::ptrdiff_t>(offset + size));
+    auto mesh = Slice(mds, offset, Get32(mds, offset + 8), "an MDT mesh");
+    return Bytes(mesh.begin(), mesh.end());
 }
 
 Bytes ReplaceMeshes(std::span<const unsigned char> mds, const std::map<std::string, std::optional<Bytes>> &replaced,
@@ -450,7 +454,8 @@ ImgBank ImgBank::Parse(std::span<const unsigned char> bank) {
                 next = std::min(next, other.second);
             }
         }
-        out.entries.emplace_back(name, Bytes(bank.begin() + static_cast<std::ptrdiff_t>(offset), bank.begin() + static_cast<std::ptrdiff_t>(next)));
+        auto block = Slice(bank, offset, next - offset, "a texture bank entry");
+        out.entries.emplace_back(name, Bytes(block.begin(), block.end()));
     }
     return out;
 }
@@ -502,9 +507,9 @@ Picture Read(std::span<const unsigned char> tim, bool swizzled) {
     Picture     p;
     p.width = Get16(tim, kPicture + 0x14);
     p.height = Get16(tim, kPicture + 0x16);
-    auto pixels = tim.subspan(kPicture + header, image);
+    auto pixels = Slice(tim, kPicture + header, image, "a TIM2 picture's pixels");
     p.pixels = swizzled ? Unswizzle(pixels, p.width, p.height) : Bytes(pixels.begin(), pixels.end());
-    auto colours = tim.subspan(kPicture + header + image, clut);
+    auto colours = Slice(tim, kPicture + header + image, clut, "a TIM2 picture's CLUT");
     p.clut.assign(colours.begin(), colours.end());
     return p;
 }
@@ -573,7 +578,7 @@ Bytes Swizzled(std::span<const unsigned char> tim) {
     std::size_t header = Get16(tim, kPicture + 0xC);
     int         width = Get16(tim, kPicture + 0x14), height = Get16(tim, kPicture + 0x16);
     Bytes       out(tim.begin(), tim.end());
-    Bytes       blocks = Swizzle(tim.subspan(kPicture + header, static_cast<std::size_t>(width * height)), width, height);
+    Bytes       blocks = Swizzle(Slice(tim, kPicture + header, static_cast<std::size_t>(width) * height, "a TIM2 picture's pixels"), width, height);
     std::copy(blocks.begin(), blocks.end(), out.begin() + static_cast<std::ptrdiff_t>(kPicture + header));
     return out;
 }

@@ -118,6 +118,12 @@ Gemron gemrons[kMonsters];
 int    blast_effect = -1;
 int    effect_draws = 0;
 
+// Both blasts deal the shot damage of the Gemron that set them off.
+int ThrowerShot(int owner) {
+    int damage = NowMonstorUnit != nullptr && owner < kMonsters ? MonsterStats(*NowMonstorUnit, owner).shot : 0;
+    return damage > 0 ? damage : kBlastDamage;
+}
+
 void OnModel(CMonstorUnit &unit, int model_slot, int model_no) {
     if (model_slot == 0) {
         blast_effect = -1;
@@ -126,6 +132,8 @@ void OnModel(CMonstorUnit &unit, int model_slot, int model_no) {
     if (model_no != No(Monster::BOMB_GEMRON)) {
         return;
     }
+    SetBlastDamage(&throw_shot, ThrowerShot);
+    SetBlastDamage(&blast_shot, ThrowerShot);
     int thrown = EnterShotEffect(&throw_shot, kShots, kBombThrowFile);
     blast_effect = EnterShotEffect(&blast_shot, kShots, kBombThrowFile);
     if (thrown >= 0) {
@@ -140,19 +148,10 @@ void OnSpawn(CMonstorUnit &unit, int monster) {
 
 [[maybe_unused]] const bool kListening = (AddEnemyModelListener(OnModel), AddEnemySpawnListener(OnSpawn), true);
 
-// Both blasts deal the Gemron's shot damage.
-void ArmBlasts(const CMonstorUnit &unit, int monster) {
-    int damage = MonsterStats(unit, monster).shot;
-    if (damage > 0) {
-        throw_shot.bomb_damage = blast_shot.bomb_damage = damage;
-    }
-}
-
 void Blast(CMonstorUnit &unit, int monster) {
     if (blast_effect < 0) {
         return;
     }
-    ArmBlasts(unit, monster);
     float at[4];
     unit.chara[monster][0].GetPosition(at);
     at[1] += kBlastHeight;
@@ -177,7 +176,6 @@ void PlayMotion(CMonstorUnit &unit, int monster, int motion, int flags) {
 void BombGemronAim(const CMonstorUnit &unit, int monster, float *target) {
     if (monster >= 0 && monster < kMonsters && gemrons[monster].bomb && unit.monster[monster].hp > 0) {
         target[1] += kAimHeight - kHolyAimHeight;
-        ArmBlasts(unit, monster);
     }
 }
 

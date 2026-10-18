@@ -188,8 +188,12 @@ void BakeSelfDestruct(ChrPack &pack) {
     if (start == std::string::npos) {
         throw std::runtime_error("info.cfg has no KEY_START");
     }
-    std::size_t line = s.find('\n', start) + 1;
-    for (int n = 0; line != std::string::npos && line < s.size(); line = s.find('\n', line) + 1) {
+    std::size_t keys = s.find('\n', start);
+    if (keys == std::string::npos) {
+        throw std::runtime_error("info.cfg has no KEY 14");
+    }
+    int n = 0;
+    for (std::size_t line = keys + 1; line < s.size(); line = s.find('\n', line) + 1) {
         std::size_t      end = s.find('\n', line);
         std::string_view content(s.data() + line, (end == std::string::npos ? s.size() : end) - line);
         std::size_t      first = content.find_first_not_of(" \t");
