@@ -9,6 +9,8 @@
 #include "expanded/core/frame_tint.hpp"
 #include "expanded/data/gemron_models.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "expanded/enemies/species.hpp"
@@ -24,28 +26,19 @@ namespace expanded {
 
 namespace {
 
-constexpr int kMonsters = 16;
-
-// The record: Holy Gemron's, its model the built one, weak to fire (150 %) and immune to the rest.
-constexpr int kName = 320;
-constexpr s16 kAbs = 40;
-
-void BuildRecord(MONSTOR_MODEL &record) {
-    std::memset(record.model_name[0], 0, sizeof(record.model_name[0]));
-    std::strcpy(record.model_name[0], "e167a");
-    record.attachment_weight[0] = 150;
-    for (int i = 1; i < 5; i++) {
-        record.attachment_weight[i] = 0;
-    }
-    record.shot_effect[0] = record.shot_effect[1] = -1; // its own, entered when it is set up
-    record.exp = kAbs;
-    record.name_no = kName;
-    record.steal_item = ITEM_BOMB;
-    record.rare_item = ITEM_REPAIR_POWDER;
-}
-
-[[maybe_unused]] const bool kSpecies =
-    AddSpecies({Monster::BOMB_GEMRON, Monster::GEMRON_HOLY, kBombGemronModelFile, nullptr, BuildRecord});
+// Holy Gemron's record on the built model, weak to fire and immune to the rest.
+[[maybe_unused]] const bool kSpecies = AddSpecies({
+    .kind = Monster::BOMB_GEMRON,
+    .stand_in = Monster::GEMRON_HOLY,
+    .model_file = kBombGemronModelFile,
+    .script_file = nullptr,
+    .model_name = "e167a",
+    .elements = {150, 0, 0, 0, 0},
+    .abs = 40,
+    .name_no = 320,
+    .steal_item = ITEM_BOMB,
+    .rare_item = ITEM_REPAIR_POWDER,
+});
 
 // Its two shots, both ending in the item bomb's blast (no hit of their own): the thrown bomb, the apple shot's flight
 // at the Big Bang pellet's blast scale, and the death and self-destruct blast, no flight and no life, at the Big Bang
@@ -114,31 +107,28 @@ struct Gemron {
     int   drawn = -1;
 };
 
-Gemron gemrons[kMonsters];
+Gemron gemrons[kFloorMonsters];
 int    blast_effect = -1;
 int    effect_draws = 0;
 
 // Both blasts deal the shot damage of the Gemron that set them off.
 int ThrowerShot(int owner) {
-    int damage = NowMonstorUnit != nullptr && owner < kMonsters ? MonsterStats(*NowMonstorUnit, owner).shot : 0;
+    int damage = NowMonstorUnit != nullptr && owner < kFloorMonsters ? MonsterStats(*NowMonstorUnit, owner).shot : 0;
     return damage > 0 ? damage : kBlastDamage;
 }
 
+void OnFloor() {
+    blast_effect = -1;
+}
+
 void OnModel(CMonstorUnit &unit, int model_slot, int model_no) {
-    if (model_slot == 0) {
-        blast_effect = -1;
-        ClearFrameTints();
-    }
     if (model_no != No(Monster::BOMB_GEMRON)) {
         return;
     }
     SetBlastDamage(&throw_shot, ThrowerShot);
     SetBlastDamage(&blast_shot, ThrowerShot);
-    int thrown = EnterShotEffect(&throw_shot, kShots, kBombThrowFile);
+    EnterOwnShot(unit, model_slot, &throw_shot, kShots, kBombThrowFile);
     blast_effect = EnterShotEffect(&blast_shot, kShots, kBombThrowFile);
-    if (thrown >= 0) {
-        unit.model[model_slot].shot_effect[0] = static_cast<s16>(thrown);
-    }
 }
 
 void OnSpawn(CMonstorUnit &unit, int monster) {
@@ -146,7 +136,7 @@ void OnSpawn(CMonstorUnit &unit, int monster) {
     gemrons[monster].bomb = ModelKind(unit.monster[monster].base_model) == No(Monster::BOMB_GEMRON);
 }
 
-[[maybe_unused]] const bool kListening = (AddEnemyModelListener(OnModel), AddEnemySpawnListener(OnSpawn), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), AddEnemyModelListener(OnModel), AddEnemySpawnListener(OnSpawn), true);
 
 void Blast(CMonstorUnit &unit, int monster) {
     if (blast_effect < 0) {
@@ -160,27 +150,16 @@ void Blast(CMonstorUnit &unit, int monster) {
     NowShotEffect->SetUserID2(monster);
 }
 
-void PlayMotion(CMonstorUnit &unit, int monster, int motion, int flags) {
-    float speed = unit.chara[monster][0].motion_type.motion_info[motion].speed;
-    unit.monster[monster].requested_motion = static_cast<s16>(motion);
-    unit.monster[monster].requested_motion_flags = static_cast<s16>(flags);
-    unit.monster[monster].requested_motion_speed = speed;
-    for (int i = 0; i <= unit.monster[monster].attachment_count; i++) {
-        unit.chara[monster][i].SetMotion(motion, flags);
-        unit.chara[monster][i].SetMotionSpeed(speed);
-    }
-}
-
 } // namespace
 
 void BombGemronAim(const CMonstorUnit &unit, int monster, float *target) {
-    if (monster >= 0 && monster < kMonsters && gemrons[monster].bomb && unit.monster[monster].hp > 0) {
+    if (monster >= 0 && monster < kFloorMonsters && gemrons[monster].bomb && unit.monster[monster].hp > 0) {
         target[1] += kAimHeight - kHolyAimHeight;
     }
 }
 
 bool BombGemronStep(CMonstorUnit &unit, int monster) {
-    if (monster < 0 || monster >= kMonsters || !gemrons[monster].bomb) {
+    if (monster < 0 || monster >= kFloorMonsters || !gemrons[monster].bomb) {
         return false;
     }
     Gemron           &gemron = gemrons[monster];
@@ -210,7 +189,7 @@ bool BombGemronStep(CMonstorUnit &unit, int monster) {
             }
             live.movement_speed = 0.0f;
             live.turn_speed = 0.0f;
-            PlayMotion(unit, monster, kBombSelfDestructKey, 2 | 4);
+            PlayMonsterMotion(unit, monster, kBombSelfDestructKey, kMotionHoldLast | kMotionCut);
             gemron.fuse = Fuse::Lit;
             return true;
         case Fuse::Lit:
@@ -223,16 +202,12 @@ bool BombGemronStep(CMonstorUnit &unit, int monster) {
             if (body.motion_no == kBombSelfDestructKey && frame >= kBombSelfDestructEnd - 1) {
                 Blast(unit, monster);
                 gemron.blown = true;
-                live.palette_alpha_step = kFadeStep;
-                live.palette_delay = 0;
+                FadeMonster(unit, monster, kFadeStep);
                 gemron.fuse = Fuse::Fading;
             }
             return true;
         case Fuse::Fading:
-            if (live.palette_alpha <= 0.0f && live.state != -1) {
-                live.state = -1;
-                unit.alive_count--;
-            }
+            RemoveFadedMonster(unit, monster);
             return true;
     }
     return false;
@@ -283,7 +258,7 @@ void Burst(int monster, const float *at) {
 } // namespace
 
 void BombGemronDrawing(CMonstorUnit &unit, int monster) {
-    if (monster < 0 || monster >= kMonsters || !gemrons[monster].bomb) {
+    if (monster < 0 || monster >= kFloorMonsters || !gemrons[monster].bomb) {
         return;
     }
     if (CFrame *bomb = BombFrame(unit, monster)) {
@@ -293,7 +268,7 @@ void BombGemronDrawing(CMonstorUnit &unit, int monster) {
 }
 
 void BombGemronDrawn(CMonstorUnit &unit, int monster) {
-    if (monster < 0 || monster >= kMonsters || !gemrons[monster].bomb || !Lit(unit, monster)) {
+    if (monster < 0 || monster >= kFloorMonsters || !gemrons[monster].bomb || !Lit(unit, monster)) {
         return;
     }
     CFrame *bomb = BombFrame(unit, monster);
@@ -312,7 +287,7 @@ void BombGemronDrawn(CMonstorUnit &unit, int monster) {
 }
 
 void BombGemronEffectsDraw() {
-    for (int monster = 0; NowMonstorUnit != nullptr && monster < kMonsters; monster++) {
+    for (int monster = 0; NowMonstorUnit != nullptr && monster < kFloorMonsters; monster++) {
         Gemron &gemron = gemrons[monster];
         if (!gemron.bomb || gemron.drawn != effect_draws || !Lit(*NowMonstorUnit, monster)) {
             continue;

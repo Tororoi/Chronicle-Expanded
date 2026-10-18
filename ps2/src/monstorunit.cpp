@@ -47,6 +47,7 @@
 #include "expanded/enemies/boss_record.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/crystal_gemron.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"

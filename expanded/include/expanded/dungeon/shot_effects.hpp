@@ -32,15 +32,9 @@ int ShotEffectIndex(const BT_SHOT_EFFECT *effect);
 // (dun/effect/<model_name>.chr when null); returns its pack index (an existing one when loaded), or -1.
 int EnterShotEffect(BT_SHOT_EFFECT *effect, int shots, const char *path = nullptr);
 
-// EnterShotEffect for BtEntryEffectTbl[config].
-int EnterTableShotEffect(int config, int shots);
-
-// A monster kind's shot effect (which: 0 or 1), with SetupBaseModel's shot count; its pack index, or -1.
-int EnterMonsterShotEffect(int model_no, int which);
-
-// Loads a monster kind's shot effects into a unit's model slot, which every later spawn of it copies;
-// for kinds set up mid-floor (the randomizer, Pocklekul's pockle, the Gemrons). Null leaves one as it is.
-void EnterModelShotEffects(CMonstorUnit &unit, int model_slot, BT_SHOT_EFFECT *first, BT_SHOT_EFFECT *second, int shots);
+// EnterShotEffect as a kind's first shot in its model slot, which every later spawn of it copies: its pack index,
+// or -1 with the slot left as it is.
+int EnterOwnShot(CMonstorUnit &unit, int model_slot, BT_SHOT_EFFECT *effect, int shots, const char *path);
 
 // The form of a weapon a registered effect is fired in.
 enum class WeaponShotForm {

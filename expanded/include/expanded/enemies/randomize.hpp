@@ -51,9 +51,6 @@ std::optional<DungeonMimics> MimicsOf(int dungeon, int floor);
 // Whether the randomizer stages a floor: any but the boss and event floors.
 bool RandomizedFloor(int dungeon, int floor);
 
-// The randomizer's generator.
-std::mt19937 &RosterRandom();
-
 // A random mix for one side of a dungeon's floor: its mimic and king mimic by chance (the king once), then a
 // rolled number of distinct kinds of the pool in the room they leave.
 Roster RandomMix(int dungeon, int floor, std::mt19937 &random);

@@ -1,12 +1,12 @@
 #include "expanded/enemies/revive.hpp"
 
-#include <cstdlib>
 #include <cstring>
 #include <initializer_list>
 #include <vector>
 
 #include "dun/gameloop.hpp"
 #include "expanded/core/options.hpp"
+#include "expanded/core/random.hpp"
 #include "monstorunit.hpp"
 #include "runscript.hpp"
 #include "runscript_opcodes.hpp"
@@ -79,7 +79,7 @@ std::vector<StaysDownRule> &Rules() {
 
 // A percent roll as the game's scripts make it.
 int Percent() {
-    return (int) (100.0f * (float) rand() / 2147483648.0f);
+    return (int) (100.0f * GameFraction());
 }
 
 // Runs one of the monster script commands for the current monster.
@@ -245,7 +245,7 @@ bool ReviveStep(CMonstorUnit &unit, int monster_no) {
         case Phase::kCollapse:
             // A step first, for the motion to start.
             if (++state.steps > 1 && MotionEnding(unit, monster_no)) {
-                state = {Phase::kLie, kReviveLieSteps + (int) ((float) kReviveLieSpread * (float) rand() / 2147483648.0f)};
+                state = {Phase::kLie, kReviveLieSteps + (int) ((float) kReviveLieSpread * GameFraction())};
             }
             break;
         case Phase::kLie:

@@ -15,7 +15,6 @@
 #include "dataread.hpp"
 #include "dataset.hpp"
 #include "dun/gameloop.hpp"
-#include "expanded/enemies/species.hpp"
 #include "itembombeffect.hpp"
 #include "itemdata.hpp"
 #include "main.hpp"
@@ -252,31 +251,12 @@ int EnterShotEffect(BT_SHOT_EFFECT *effect, int shots, const char *path) {
     return kRetailShotEffects + store.live++;
 }
 
-int EnterTableShotEffect(int config, int shots) {
-    if (config < 0 || config >= static_cast<int>(std::size(BtEntryEffectTbl))) {
-        return -1;
+int EnterOwnShot(CMonstorUnit &unit, int model_slot, BT_SHOT_EFFECT *effect, int shots, const char *path) {
+    int index = EnterShotEffect(effect, shots, path);
+    if (index >= 0) {
+        unit.model[model_slot].shot_effect[0] = static_cast<s16>(index);
     }
-    return EnterShotEffect(BtEntryEffectTbl[config], shots);
-}
-
-int EnterMonsterShotEffect(int model_no, int which) {
-    if (Species(model_no) == nullptr) {
-        return -1;
-    }
-    const MONSTOR_MODEL &model = *Species(model_no);
-    return EnterTableShotEffect(model.shot_effect[which], model.kind == MONSTER_KIND_NO_LOCK_ON ? 6 : 2);
-}
-
-void EnterModelShotEffects(CMonstorUnit &unit, int model_slot, BT_SHOT_EFFECT *first, BT_SHOT_EFFECT *second, int shots) {
-    BT_SHOT_EFFECT *effects[2] = {first, second};
-    for (int i = 0; i < 2; i++) {
-        if (effects[i] != nullptr) {
-            int index = EnterShotEffect(effects[i], shots);
-            if (index >= 0) {
-                unit.model[model_slot].shot_effect[i] = static_cast<s16>(index);
-            }
-        }
-    }
+    return index;
 }
 
 void RegisterWeaponShotEffect(int weapon_no, WeaponShotForm form, BT_SHOT_EFFECT *effect, int shots, const char *path) {

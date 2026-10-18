@@ -2,10 +2,11 @@
 
 #include <algorithm>
 #include <cmath>
-#include <random>
 #include <vector>
 
 #include "dun/gameloop.hpp"
+#include "expanded/core/random.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/miniboss_loot.hpp"
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
@@ -14,7 +15,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kMonsters = 16;
 
 // The chase motion of every monster.
 constexpr int kWalkMotion = 1;
@@ -26,11 +26,11 @@ constexpr int kLongReach[] = {11, 25, 67, 68, 77, 304, 306};
 // The bats, whose motion 1 is a flying loop with no feet to keep pace.
 constexpr int kFlyers[] = {60, 61};
 
-bool         miniboss[kMonsters];
-float        range[kMonsters];
-bool         walk_synced[kMonsters];
-MinibossDrop drops[kMonsters];
-MinibossDrop landing[kMonsters]; // a defeated miniboss's drop, until it is put on the floor
+bool         miniboss[kFloorMonsters];
+float        range[kFloorMonsters];
+bool         walk_synced[kFloorMonsters];
+MinibossDrop drops[kFloorMonsters];
+MinibossDrop landing[kFloorMonsters]; // a defeated miniboss's drop, until it is put on the floor
 
 // The MonstorTable kinds of the living minibosses on the floor (0) and its back floor (1), once populated.
 struct Side {
@@ -43,23 +43,18 @@ Side sides[2];
 MinibossChance chance_override = nullptr;
 MinibossPick   pick_override = nullptr;
 
-std::minstd_rand &Rng() {
-    static std::minstd_rand rng{std::random_device{}()};
-    return rng;
-}
-
 bool Chance(float chance) {
     if (chance_override != nullptr) {
         return chance_override(chance);
     }
-    return std::uniform_real_distribution<float>(0.0f, 1.0f)(Rng()) < chance;
+    return ModChance(chance);
 }
 
 int Pick(int count) {
     if (pick_override != nullptr) {
         return pick_override(count);
     }
-    return std::uniform_int_distribution<int>(0, count - 1)(Rng());
+    return ModRoll(count);
 }
 
 template <size_t N>
@@ -90,7 +85,7 @@ bool Eligible(const CMonstorUnit &unit, int monster) {
 template <class Filter>
 std::vector<int> Monsters(const CMonstorUnit &unit, Filter pick) {
     std::vector<int> found;
-    for (int monster = 0; monster < kMonsters; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         if (pick(monster)) {
             found.push_back(monster);
         }
@@ -158,11 +153,11 @@ void Spawned(CMonstorUnit &, int monster) {
 } // namespace
 
 bool IsMiniboss(int monster) {
-    return monster >= 0 && monster < kMonsters && miniboss[monster];
+    return monster >= 0 && monster < kFloorMonsters && miniboss[monster];
 }
 
 void MakeMiniboss(CMonstorUnit &unit, int monster) {
-    if (monster < 0 || monster >= kMonsters || miniboss[monster]) {
+    if (monster < 0 || monster >= kFloorMonsters || miniboss[monster]) {
         return;
     }
     miniboss[monster] = true;
@@ -228,7 +223,7 @@ void MinibossesArranged(CMonstorUnit &unit) {
         }
     }
     side.kinds.clear();
-    for (int monster = 0; monster < kMonsters; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         if (miniboss[monster] && unit.monster[monster].state != -1) {
             side.kinds.push_back(Kind(unit, monster));
         }

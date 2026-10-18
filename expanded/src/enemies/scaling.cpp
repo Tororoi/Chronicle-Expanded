@@ -2,10 +2,10 @@
 
 #include <algorithm>
 #include <cmath>
-#include <vector>
 
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
 #include "shot_effect_pack.hpp"
@@ -14,35 +14,21 @@ namespace expanded {
 
 namespace {
 
-constexpr int kModelSlots = 9;
-constexpr int kMonsters = 16;
-
-// MonstorTable kind of each model slot, and its stats on the floor.
-int        model_kind[kModelSlots] = {-1, -1, -1, -1, -1, -1, -1, -1, -1};
+// Each model slot's kind's stats on the floor.
 EnemyStats species_stats[kModelSlots];
 
 // Each model slot's multipliers, each monster's own, and each monster's with its kind's (melee and shot
 // also carrying its kind's damage over the native).
 EnemyScale species_scale[kModelSlots];
-EnemyScale monster_scale[kMonsters];
-EnemyScale effective[kMonsters];
-
-std::vector<EnemyModelListener> &ModelListeners() {
-    static std::vector<EnemyModelListener> listeners;
-    return listeners;
-}
-
-std::vector<EnemySpawnListener> &SpawnListeners() {
-    static std::vector<EnemySpawnListener> listeners;
-    return listeners;
-}
+EnemyScale monster_scale[kFloorMonsters];
+EnemyScale effective[kFloorMonsters];
 
 bool ValidModel(int model_slot) {
     return model_slot >= 0 && model_slot < kModelSlots;
 }
 
 bool ValidMonster(int monster) {
-    return monster >= 0 && monster < kMonsters;
+    return monster >= 0 && monster < kFloorMonsters;
 }
 
 float Ratio(int value, int native) {
@@ -56,7 +42,7 @@ void Apply(CMonstorUnit &unit, int monster) {
         return;
     }
     const EnemyStats &stats = species_stats[live.base_model];
-    EnemyStats        native = NativeStats(model_kind[live.base_model]);
+    EnemyStats        native = NativeStats(ModelKind(live.base_model));
     EnemyScale        scale = species_scale[live.base_model] * monster_scale[monster];
     effective[monster] = scale;
     effective[monster].melee *= Ratio(stats.melee, native.melee);
@@ -74,7 +60,7 @@ void Apply(CMonstorUnit &unit, int monster) {
 
 // Applies a model slot's stats and multipliers to its monsters on the floor.
 void ApplySpecies(CMonstorUnit &unit, int model_slot) {
-    for (int monster = 0; monster < kMonsters; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         if (unit.monster[monster].state != -1 && unit.monster[monster].base_model == model_slot) {
             Apply(unit, monster);
         }
@@ -93,10 +79,6 @@ int ScaleStat(int value, float scale) {
     }
     float scaled = value * scale;
     return std::max(1, static_cast<int>(std::nearbyint(static_cast<double>(scaled))));
-}
-
-int ModelKind(int model_slot) {
-    return ValidModel(model_slot) ? model_kind[model_slot] : -1;
 }
 
 void SetSpeciesStats(CMonstorUnit &unit, int model_slot, const EnemyStats &stats) {
@@ -148,37 +130,22 @@ EnemyStats MonsterStats(const CMonstorUnit &unit, int monster) {
     return {live.max_hp, live.exp, live.defense, live.hardness, ScaleStat(stats.melee, scale.melee), ScaleStat(stats.shot, scale.shot)};
 }
 
-void AddEnemyModelListener(EnemyModelListener listener) {
-    ModelListeners().push_back(listener);
-}
-
-void AddEnemySpawnListener(EnemySpawnListener listener) {
-    SpawnListeners().push_back(listener);
-}
-
-void EnemyModelSetUp(CMonstorUnit &unit, int model_slot, int model_no) {
+void ResetSpeciesStats(const CMonstorUnit &unit, int model_slot) {
     if (!ValidModel(model_slot)) {
         return;
     }
     const MONSTOR_MODEL &model = unit.model[model_slot];
-    EnemyStats           native = NativeStats(model_no);
-    model_kind[model_slot] = model_no;
+    EnemyStats           native = NativeStats(ModelKind(model_slot));
     species_stats[model_slot] = {model.max_hp, model.exp, model.defense, model.hardness, native.melee, native.shot};
     species_scale[model_slot] = {};
-    for (EnemyModelListener listener : ModelListeners()) {
-        listener(unit, model_slot, model_no);
-    }
 }
 
-void EnemySpawned(CMonstorUnit &unit, int monster) {
+void ResetMonsterScale(CMonstorUnit &unit, int monster) {
     if (!ValidMonster(monster)) {
         return;
     }
     monster_scale[monster] = {};
     Apply(unit, monster);
-    for (EnemySpawnListener listener : SpawnListeners()) {
-        listener(unit, monster);
-    }
 }
 
 int EnemyMeleeDamage(int monster, int damage) {

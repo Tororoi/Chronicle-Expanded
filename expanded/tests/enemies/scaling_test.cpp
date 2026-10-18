@@ -7,6 +7,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/data/script_damage.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "monstorunit.hpp"
 #include "platform/paths.hpp"

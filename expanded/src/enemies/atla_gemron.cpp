@@ -5,17 +5,17 @@
 #include <cmath>
 #include <cstring>
 #include <iterator>
-#include <random>
 #include <vector>
 
 #include "dun/gameloop.hpp"
 #include "expanded/core/frame_tint.hpp"
+#include "expanded/core/random.hpp"
 #include "expanded/data/atla_gemron_recipe.hpp"
 #include "expanded/data/gemron_models.hpp"
 #include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monsters.hpp"
-#include "expanded/enemies/scaling.hpp"
 #include "expanded/enemies/species.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
@@ -30,28 +30,20 @@ namespace {
 
 namespace rc = atla_recipe;
 
-constexpr int kMonsters = 16;
-
-// The record: Holy Gemron's (its script name too, for its damage: the built script loads in its place), its model the
-// built one, weak to wind (150 %) and immune to the rest.
-constexpr int kName = 322;
-constexpr s16 kAbs = 40;
-
-void BuildRecord(MONSTOR_MODEL &record) {
-    std::memset(record.model_name[0], 0, sizeof(record.model_name[0]));
-    std::strcpy(record.model_name[0], "e169a");
-    for (int i = 0; i < 5; i++) {
-        record.attachment_weight[i] = i == 3 ? 150 : 0;
-    }
-    record.shot_effect[0] = record.shot_effect[1] = -1; // its own, entered when it is set up
-    record.exp = kAbs;
-    record.name_no = kName;
-    record.steal_item = ITEM_DRAN_S_FEATHER;
-    record.rare_item = ITEM_POTATO_CAKE;
-}
-
-[[maybe_unused]] const bool kSpecies =
-    AddSpecies({Monster::ATLA_GEMRON, Monster::GEMRON_HOLY, kAtlaGemronModelFile, kAtlaGemronScriptFile, BuildRecord});
+// Holy Gemron's record (its script name too, for its damage: the built script loads in its place) on the built
+// model, weak to wind and immune to the rest.
+[[maybe_unused]] const bool kSpecies = AddSpecies({
+    .kind = Monster::ATLA_GEMRON,
+    .stand_in = Monster::GEMRON_HOLY,
+    .model_file = kAtlaGemronModelFile,
+    .script_file = kAtlaGemronScriptFile,
+    .model_name = "e169a",
+    .elements = {0, 0, 0, 150, 0},
+    .abs = 40,
+    .name_no = 322,
+    .steal_item = ITEM_DRAN_S_FEATHER,
+    .rare_item = ITEM_POTATO_CAKE,
+});
 
 // Its shot: Holy Gemron's (its damage, reaction, element, target and sounds) on the Atlamillia's burst, one phase (the
 // shot ends with its motion), turned to its aim. It flies the burst's own pace a frame whatever it meets (the engine's
@@ -104,25 +96,16 @@ struct Gemron {
     AtlaPath      path{};
 };
 
-Gemron gemrons[kMonsters];
+Gemron gemrons[kFloorMonsters];
 
-std::minstd_rand &Rng() {
-    static std::minstd_rand rng{std::random_device{}()};
-    return rng;
-}
-
-bool Atla(const CMonstorUnit &unit, int monster) {
-    return monster >= 0 && monster < kMonsters && unit.monster[monster].state != -1 &&
-           ModelKind(unit.monster[monster].base_model) == No(Monster::ATLA_GEMRON);
+void OnFloor() {
+    shot = -1;
+    for (Gemron &g : gemrons) {
+        g = {};
+    }
 }
 
 void OnModel(CMonstorUnit &unit, int model_slot, int model_no) {
-    if (model_slot == 0) {
-        shot = -1;
-        for (Gemron &g : gemrons) {
-            g = {};
-        }
-    }
     if (model_no != No(Monster::ATLA_GEMRON) || BtEntryEffectTbl[kHolyShot] == nullptr) {
         return;
     }
@@ -138,20 +121,17 @@ void OnModel(CMonstorUnit &unit, int model_slot, int model_no) {
         atla_shot.speed[i] = atla_shot.radius[i] = 0.0f;
         atla_shot.motion[i] = -1;
     }
-    shot = EnterShotEffect(&atla_shot, kShots, kAtlaShotFile);
-    if (shot >= 0) {
-        unit.model[model_slot].shot_effect[0] = static_cast<s16>(shot);
-    }
+    shot = EnterOwnShot(unit, model_slot, &atla_shot, kShots, kAtlaShotFile);
 }
 
 void OnSpawn(CMonstorUnit &unit, int monster) {
-    if (monster >= 0 && monster < kMonsters) {
+    if (monster >= 0 && monster < kFloorMonsters) {
         gemrons[monster] = {};
-        gemrons[monster].atla_gemron = Atla(unit, monster);
+        gemrons[monster].atla_gemron = IsKind(unit, monster, Monster::ATLA_GEMRON);
     }
 }
 
-[[maybe_unused]] const bool kListening = (AddEnemyModelListener(OnModel), AddEnemySpawnListener(OnSpawn), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), AddEnemyModelListener(OnModel), AddEnemySpawnListener(OnSpawn), true);
 
 int RandomWeapon(int dungeon) {
     std::vector<int> pool;
@@ -164,12 +144,12 @@ int RandomWeapon(int dungeon) {
             }
         }
     }
-    return pool.empty() ? ITEM_WEAPON_DAGGER : pool[std::uniform_int_distribution<std::size_t>(0, pool.size() - 1)(Rng())];
+    return pool.empty() ? ITEM_WEAPON_DAGGER : pool[static_cast<std::size_t>(ModRoll(static_cast<int>(pool.size())))];
 }
 
 AtlaDrop RollDrop() {
     int dungeon = std::clamp(int(selectMapNo), 0, DUNGEON_COUNT - 1);
-    int roll = std::uniform_int_distribution<int>(0, 99)(Rng());
+    int roll = ModRoll(100);
     if (roll < kSwordPercent && dungeon >= DUNGEON_SUN_MOON_TEMPLE) {
         return {ITEM_WEAPON_ATLAMILLIA_SWORD, false};
     }
@@ -315,7 +295,7 @@ void StepDeath(CMonstorUnit &unit, int monster) {
 
 void AtlaGemronStep(CMonstorUnit &unit) {
     StepShot();
-    for (int monster = 0; monster < kMonsters; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         if (gemrons[monster].atla_gemron) {
             StepDeath(unit, monster);
         }
@@ -323,7 +303,7 @@ void AtlaGemronStep(CMonstorUnit &unit) {
 }
 
 void AtlaGemronDrawing(CMonstorUnit &unit, int monster) {
-    if (!Atla(unit, monster) || unit.chara[monster][0].frame == nullptr) {
+    if (!IsKind(unit, monster, Monster::ATLA_GEMRON) || unit.chara[monster][0].frame == nullptr) {
         return;
     }
     if (CFrame *lens = unit.chara[monster][0].frame->SearchFrame(const_cast<char *>(kAtlaGemronLens))) {
@@ -332,7 +312,7 @@ void AtlaGemronDrawing(CMonstorUnit &unit, int monster) {
 }
 
 void AtlaGemronDrawn(CMonstorUnit &unit, int monster) {
-    if (!Atla(unit, monster) || unit.chara[monster][0].frame == nullptr) {
+    if (!IsKind(unit, monster, Monster::ATLA_GEMRON) || unit.chara[monster][0].frame == nullptr) {
         return;
     }
     const CCharacter &body = unit.chara[monster][0];

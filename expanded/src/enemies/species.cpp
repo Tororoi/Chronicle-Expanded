@@ -39,7 +39,17 @@ bool AddSpecies(const ExpandedSpecies &species) {
         return false;
     }
     Entry entry{species, MonstorTable[No(species.stand_in)]};
-    species.build(entry.record);
+    MONSTOR_MODEL &record = entry.record;
+    std::memset(record.model_name[0], 0, sizeof(record.model_name[0]));
+    std::strncpy(record.model_name[0], species.model_name, sizeof(record.model_name[0]) - 1);
+    for (std::size_t i = 0; i < species.elements.size(); i++) {
+        record.attachment_weight[i] = static_cast<s16>(species.elements[i]);
+    }
+    record.shot_effect[0] = record.shot_effect[1] = -1;
+    record.exp = static_cast<s16>(species.abs);
+    record.name_no = static_cast<s16>(species.name_no);
+    record.steal_item = static_cast<s16>(species.steal_item);
+    record.rare_item = static_cast<s16>(species.rare_item);
     Registry().push_back(entry);
     return true;
 }

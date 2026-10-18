@@ -1,3 +1,4 @@
+#include "dungeon.h"
 #include "expanded/enemies/randomize.hpp"
 
 #include <algorithm>
@@ -5,6 +6,7 @@
 #include <vector>
 
 #include "expanded/core/options.hpp"
+#include "expanded/core/random.hpp"
 #include "expanded/enemies/species.hpp"
 #include "expanded/enemies/themes.hpp"
 
@@ -12,7 +14,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kDungeons = 7;
 
 [[maybe_unused]] const bool kRegistered =
     AddToggle({.key = kRandomizeEnemies,
@@ -45,26 +46,9 @@ const std::vector<Monster> &Pool() {
     return pool;
 }
 
-constexpr int kDemonShaft = 6;
-
-// Each dungeon's mimic and king mimic, then Demon Shaft's from floor 40, 60 and 80.
-constexpr std::array<DungeonMimics, kDungeons + 3> kMimics = {
-    {
-     {Monster::MIMIC_DBC, Monster::KING_MIMIC_DBC}, // Divine Beast Cave
-        {Monster::MIMIC_WOF, Monster::KING_MIMIC_WOF}, // Wise Owl Forest
-        {Monster::MIMIC_SW, Monster::KING_MIMIC_SW},   // Shipwreck
-        {Monster::MIMIC_SMT, Monster::KING_MIMIC_SMT}, // Sun & Moon Temple
-        {Monster::MIMIC_MS, Monster::KING_MIMIC_MS},   // Moon Sea
-        {Monster::MIMIC_GOT, Monster::KING_MIMIC_GOT}, // Gallery of Time
-        {Monster::MIMIC_DS, Monster::KING_MIMIC_DS},   // Demon Shaft
-        {Monster::MIMIC_DS_ENHANCED, Monster::KING_MIMIC_DS_ENHANCED},
-     {Monster::MIMIC_DS_ENHANCED_TWICE, Monster::KING_MIMIC_DS_ENHANCED_TWICE},
-     {Monster::MIMIC_DS_ENHANCED_THRICE, Monster::KING_MIMIC_DS_ENHANCED_THRICE},
-     }
-};
 
 // Boss and event floors, 0 for a dungeon's first.
-const std::vector<int> kEventFloors[kDungeons] = {
+const std::vector<int> kEventFloors[DUNGEON_COUNT] = {
     {3, 7, 14},
     {8, 16},
     {8, 17},
@@ -79,12 +63,12 @@ void StageRandomMix(int dungeon, int floor) {
         return;
     }
     // A themed floor shares one roster between its sides.
-    if (std::uniform_real_distribution<double>(0.0, 1.0)(RosterRandom()) < kThemeChance) {
-        Roster themed = ThemedRoster(dungeon, floor, RosterRandom());
+    if (ModChance(kThemeChance)) {
+        Roster themed = ThemedRoster(dungeon, floor, ModRandom());
         StageFloor(floor, {themed, themed});
         return;
     }
-    StageFloor(floor, {RandomMix(dungeon, floor, RosterRandom()), RandomMix(dungeon, floor, RosterRandom())});
+    StageFloor(floor, {RandomMix(dungeon, floor, ModRandom()), RandomMix(dungeon, floor, ModRandom())});
 }
 
 [[maybe_unused]] const bool kStager = (AddFloorStager(StageRandomMix), true);
@@ -100,26 +84,22 @@ std::span<const Monster> RandomizerPool() {
 }
 
 std::optional<DungeonMimics> MimicsOf(int dungeon, int floor) {
-    if (dungeon == kDemonShaft && floor >= 40) {
-        return kMimics[kDemonShaft + std::min(floor / 20 - 1, 3)];
+    if (dungeon == DUNGEON_DEMON_SHAFT && floor >= 40) {
+        int band = DUNGEON_DEMON_SHAFT + std::min(floor / 20 - 1, 3);
+        return DungeonMimics{kMimicLine[band], kKingMimicLine[band]};
     }
-    if (dungeon < 0 || dungeon >= kDungeons) {
+    if (dungeon < 0 || dungeon >= DUNGEON_COUNT) {
         return std::nullopt;
     }
-    return kMimics[dungeon];
+    return DungeonMimics{kMimicLine[dungeon], kKingMimicLine[dungeon]};
 }
 
 bool RandomizedFloor(int dungeon, int floor) {
-    if (dungeon < 0 || dungeon >= kDungeons) {
+    if (dungeon < 0 || dungeon >= DUNGEON_COUNT) {
         return false;
     }
     const std::vector<int> &events = kEventFloors[dungeon];
     return std::find(events.begin(), events.end(), floor) == events.end();
-}
-
-std::mt19937 &RosterRandom() {
-    static std::mt19937 random{std::random_device{}()};
-    return random;
 }
 
 Roster RandomMix(int dungeon, int floor, std::mt19937 &random) {

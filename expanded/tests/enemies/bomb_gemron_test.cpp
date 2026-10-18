@@ -8,6 +8,7 @@
 #include "expanded/data/gemron_models.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/bomb_gemron.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "expanded/enemies/species.hpp"

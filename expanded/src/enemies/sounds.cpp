@@ -1,3 +1,4 @@
+#include "dungeon.h"
 #include "expanded/enemies/sounds.hpp"
 
 #include <algorithm>
@@ -12,8 +13,9 @@
 #include "audio/mixer.hpp"
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/enemies/boss_table.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/roster.hpp"
-#include "expanded/enemies/scaling.hpp"
 #include "expanded/enemies/species.hpp"
 #include "monstorunit.hpp"
 #include "snd.hpp"
@@ -24,8 +26,6 @@ namespace expanded {
 namespace {
 
 constexpr int kKinds = kSpeciesCount;
-constexpr int kDungeons = 7;
-constexpr int kDemonShaft = 6;
 constexpr int kMonsterBankSlot = 3; // the *_g bank's slot in CSound's state
 constexpr int kExtraBanks = 15;     // CC 0 selects 1 to 15
 
@@ -77,17 +77,10 @@ void UnbindAll() {
     bound_for = -1;
 }
 
-// Kinds whose sounds only their arena's event loads (_LOAD_SOUND_SET).
-constexpr std::pair<Monster, int> kArenaSets[] = {
-    {Monster::DRAN,               200},
-    {Monster::MINOTAUR_JOE,       204},
-    {Monster::MASTER_UTAN,        201},
-    {Monster::ICE_QUEEN,          202},
-    {Monster::KINGS_CURSE_COFFIN, 203},
-    {Monster::KINGS_CURSE,        203},
-    {Monster::BLACK_KNIGHT,       207},
-    {Monster::BLACK_KNIGHT_MOUNT, 207},
-    {Monster::CRYSTAL_GEMRON,     202}, // the life sphere's shatter, the Ice Queen's arrow and prison
+// Kinds besides the bosses that sound from an arena's set: the Crystal Gemron, the Ice Queen's (the life sphere's
+// shatter, her arrow and prison).
+constexpr std::pair<Monster, int> kArenaSounds[] = {
+    {Monster::CRYSTAL_GEMRON, 202},
 };
 
 bool Resolves(const audio::Bank *bank, int program, int note) {
@@ -100,22 +93,18 @@ bool Resolves(const audio::Bank *bank, int program, int note) {
 std::vector<int> HomeSoundSets(int model_no) {
     int              native = SpeciesStandIn(model_no);
     std::vector<int> sets;
-    for (int dungeon = 0; dungeon < kDungeons; dungeon++) {
-        for (BT_ENEMY_FLOOR *layout : {BtEnemyLayoutList[dungeon], BtUraEnemyLayoutList[dungeon]}) {
-            for (int floor = 0; floor < maxFloorTbl__3[dungeon]; floor++) {
-                for (const BT_ENEMY_LAYOUT &entry : layout[floor].monster) {
-                    if (entry.monster_no != native) {
-                        continue;
-                    }
-                    int set = 100 + (dungeon == kDemonShaft ? kDemonShaft + floor / 20 : dungeon);
-                    if (std::find(sets.begin(), sets.end(), set) == sets.end()) {
-                        sets.push_back(set);
-                    }
-                }
-            }
+    ForEachLaidOutKind([&](int dungeon, int floor, int kind) {
+        int set = 100 + (dungeon == DUNGEON_DEMON_SHAFT ? DUNGEON_DEMON_SHAFT + floor / 20 : dungeon);
+        if (kind == native && std::find(sets.begin(), sets.end(), set) == sets.end()) {
+            sets.push_back(set);
+        }
+    });
+    for (const BossEntry &boss : kBossTable) {
+        if (No(boss.kind) == model_no || No(boss.partner) == model_no) {
+            sets.push_back(boss.sound_set);
         }
     }
-    for (auto [monster, set] : kArenaSets) {
+    for (auto [monster, set] : kArenaSounds) {
         if (No(monster) == model_no) {
             sets.push_back(set);
         }

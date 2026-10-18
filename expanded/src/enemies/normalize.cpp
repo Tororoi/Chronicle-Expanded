@@ -1,17 +1,22 @@
+#include "dungeon.h"
 #include "expanded/enemies/normalize.hpp"
-#include "expanded/enemies/monsters.hpp"
 
 #include <algorithm>
 #include <climits>
 #include <cmath>
+#include <filesystem>
 #include <optional>
 #include <vector>
 
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/boss_stats.hpp"
+#include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monsters.hpp"
+#include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/species.hpp"
 #include "expanded/enemies/stronger.hpp"
 #include "monstorunit.hpp"
+#include "platform/paths.hpp"
 #include "userstatus.hpp"
 
 namespace expanded {
@@ -20,7 +25,6 @@ namespace {
 
 constexpr int kKinds = kSpeciesCount;
 constexpr int kStats = 6;
-constexpr int kDemonShaft = 6;
 constexpr int kBands = 5;
 constexpr int kBandFloors = 20;
 constexpr int kBeyond = kEnemyRegions; // past Demon Shaft's last band, for Stronger enemies
@@ -62,31 +66,7 @@ const std::vector<std::vector<Monster>> kLookAlikes = {
     {Monster::STATUE_DOG, Monster::STATUE_DOG_ENHANCED},
 };
 
-// The Mimic and the King Mimic, dungeon by dungeon then Demon Shaft's Enhanced, and their stats past the last.
-constexpr Monster kMimics[] = {
-    Monster::MIMIC_DBC,
-    Monster::MIMIC_WOF,
-    Monster::MIMIC_SW,
-    Monster::MIMIC_SMT,
-    Monster::MIMIC_MS,
-    Monster::MIMIC_GOT,
-    Monster::MIMIC_DS,
-    Monster::MIMIC_DS_ENHANCED,
-    Monster::MIMIC_DS_ENHANCED_TWICE,
-    Monster::MIMIC_DS_ENHANCED_THRICE,
-};
-constexpr Monster kKingMimics[] = {
-    Monster::KING_MIMIC_DBC,
-    Monster::KING_MIMIC_WOF,
-    Monster::KING_MIMIC_SW,
-    Monster::KING_MIMIC_SMT,
-    Monster::KING_MIMIC_MS,
-    Monster::KING_MIMIC_GOT,
-    Monster::KING_MIMIC_DS,
-    Monster::KING_MIMIC_DS_ENHANCED,
-    Monster::KING_MIMIC_DS_ENHANCED_TWICE,
-    Monster::KING_MIMIC_DS_ENHANCED_THRICE,
-};
+// The Mimics' and King Mimics' stats past the last of their lines.
 constexpr EnemyStats kMimicBeyond = {.hp = 12000, .defense = 40, .hardness = 15, .melee = 140};
 constexpr EnemyStats kKingMimicBeyond = {.hp = 30000, .defense = 40, .hardness = 60, .melee = 180};
 
@@ -132,21 +112,14 @@ struct Pools {
 Pools Build() {
     Pools pools;
     std::fill(std::begin(pools.home), std::end(pools.home), -1);
-    for (int dungeon = 0; dungeon <= kDemonShaft; dungeon++) {
-        for (BT_ENEMY_FLOOR *layout : {BtEnemyLayoutList[dungeon], BtUraEnemyLayoutList[dungeon]}) {
-            for (int floor = 0; floor < maxFloorTbl__3[dungeon]; floor++) {
-                int region = EnemyRegion(dungeon, floor);
-                for (const BT_ENEMY_LAYOUT &entry : layout[floor].monster) {
-                    if (entry.monster_no < 0 || entry.monster_no >= kKinds) {
-                        break;
-                    }
-                    pools.member[region][entry.monster_no] = true;
-                    int &home = pools.home[entry.monster_no];
-                    home = home == -1 ? region : std::min(home, region);
-                }
-            }
+    ForEachLaidOutKind([&](int dungeon, int floor, int kind) {
+        if (kind < kKinds) {
+            int region = EnemyRegion(dungeon, floor);
+            pools.member[region][kind] = true;
+            int &home = pools.home[kind];
+            home = home == -1 ? region : std::min(home, region);
         }
-    }
+    });
     // Expanded's kinds are at home where their stand-ins are.
     for (int kind = kRetailSpecies; kind < kKinds; kind++) {
         pools.home[kind] = pools.home[SpeciesStandIn(kind)];
@@ -180,17 +153,23 @@ Pools Build() {
         }
     }
     for (int i = 0; i < 10; i++) {
-        pools.mimic_line[No(kMimics[i])] = kMimics;
-        pools.mimic_index[No(kMimics[i])] = i;
-        pools.mimic_line[No(kKingMimics[i])] = kKingMimics;
-        pools.mimic_index[No(kKingMimics[i])] = i;
+        pools.mimic_line[No(kMimicLine[i])] = kMimicLine;
+        pools.mimic_index[No(kMimicLine[i])] = i;
+        pools.mimic_line[No(kKingMimicLine[i])] = kKingMimicLine;
+        pools.mimic_index[No(kKingMimicLine[i])] = i;
     }
     return pools;
 }
 
+// Built once per data directory, whose script damage the averages take in.
 const Pools &State() {
-    static const Pools pools = Build();
-    return pools;
+    static std::filesystem::path built_for;
+    static std::optional<Pools>  pools;
+    if (!pools || built_for != PathsDataRoot()) {
+        built_for = PathsDataRoot();
+        pools = Build();
+    }
+    return *pools;
 }
 
 // Stronger enemies: the next region's average over this one's in ten-thousandths, at least 10000.
@@ -208,7 +187,7 @@ std::optional<int> NextMimicStat(const Monster *line, int index, EnemyStat stat)
     if (index + 1 < 10) {
         return Native(No(line[index + 1]), stat);
     }
-    const EnemyStats &beyond = line == kKingMimics ? kKingMimicBeyond : kMimicBeyond;
+    const EnemyStats &beyond = line == kKingMimicLine ? kKingMimicBeyond : kMimicBeyond;
     switch (stat) {
         case EnemyStat::Hp:
             return beyond.hp;
@@ -278,10 +257,10 @@ const bool kRegistered = (AddEnemyModelListener(Normalize), true);
 } // namespace
 
 int EnemyRegion(int dungeon, int floor) {
-    if (dungeon < 0 || dungeon > kDemonShaft) {
+    if (dungeon < 0 || dungeon > DUNGEON_DEMON_SHAFT) {
         return -1;
     }
-    return dungeon < kDemonShaft ? dungeon : kDemonShaft + std::clamp(floor / kBandFloors, 0, kBands - 1);
+    return dungeon < DUNGEON_DEMON_SHAFT ? dungeon : DUNGEON_DEMON_SHAFT + std::clamp(floor / kBandFloors, 0, kBands - 1);
 }
 
 int NormalizedStat(int model_no, EnemyStat stat, int region, bool stronger) {

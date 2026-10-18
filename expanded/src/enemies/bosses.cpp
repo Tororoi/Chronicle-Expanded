@@ -11,9 +11,11 @@
 #include "expanded/enemies/black_knight.hpp"
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/boss_moves.hpp"
+#include "expanded/enemies/boss_table.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/ice_queen.hpp"
+#include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/roster.hpp"
-#include "expanded/enemies/scaling.hpp"
 #include "monstorunit.hpp"
 #include "platform/paths.hpp"
 #include "userstatus.hpp"
@@ -22,7 +24,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kMonsters = 16;
 
 // The bosses' death labels (120): invincible a while.
 constexpr int kDeathInvincible = 100;
@@ -104,8 +105,8 @@ std::pair<int, int> DeathMotions(int kind, const CCharacter &character) {
     return {kJoeDiscDeath, -1};
 }
 
-bool  out_of_place[kMonsters] = {};
-Death death[kMonsters];
+bool  out_of_place[kFloorMonsters] = {};
+Death death[kFloorMonsters];
 bool  logged_missing;
 
 void OnSpawn(CMonstorUnit &unit, int monster) {
@@ -115,21 +116,6 @@ void OnSpawn(CMonstorUnit &unit, int monster) {
 }
 
 [[maybe_unused]] const bool kListening = (AddEnemySpawnListener(OnSpawn), true);
-
-constexpr int kLoop = 0;
-constexpr int kStopOnLastFrame = 2;
-
-// _SET_MOTION on the monster and its attachments, with the motion's speed and flags.
-void PlayMotion(CMonstorUnit &unit, int monster, int motion, int flags) {
-    float speed = unit.chara[monster][0].motion_type.motion_info[motion].speed;
-    unit.monster[monster].requested_motion = static_cast<s16>(motion);
-    unit.monster[monster].requested_motion_flags = static_cast<s16>(flags);
-    unit.monster[monster].requested_motion_speed = speed;
-    for (int i = 0; i <= unit.monster[monster].attachment_count; i++) {
-        unit.chara[monster][i].SetMotion(motion, flags);
-        unit.chara[monster][i].SetMotionSpeed(speed);
-    }
-}
 
 // Lowers a boss falling in its arena's coordinates from fell_from to the arena's floor, landing at frame crash.
 void FallToFloor(CMonstorUnit &unit, int monster, float fell_from, float crash) {
@@ -158,13 +144,11 @@ bool OnLastFrame(const CCharacter &character) {
 } // namespace
 
 bool BossSupported(int model_no) {
-    return model_no == No(Monster::MINOTAUR_JOE) || model_no == No(Monster::MASTER_UTAN) ||
-           model_no == No(Monster::ICE_QUEEN) || model_no == No(Monster::KINGS_CURSE_COFFIN) ||
-           model_no == No(Monster::BLACK_KNIGHT) || model_no == No(Monster::DRAN);
+    return BossEntryOf(model_no) != nullptr;
 }
 
 bool BossOutOfPlace(int monster) {
-    return monster >= 0 && monster < kMonsters && out_of_place[monster];
+    return monster >= 0 && monster < kFloorMonsters && out_of_place[monster];
 }
 
 int MotionCount(const CCharacter &character) {
@@ -241,7 +225,7 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
             if (kind == No(Monster::BLACK_KNIGHT) &&
                 MotionCount(unit.chara[monster][0]) >= kBlackKnightBowKey + kBlackKnightDeathKeys) {
                 state.key = kBlackKnightBowKey;
-                PlayMotion(unit, monster, state.key, kStopOnLastFrame);
+                PlayMonsterMotion(unit, monster, state.key, kMotionHoldLast);
                 state.phase = Phase::Throes;
                 break;
             }
@@ -250,7 +234,7 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
             float at[4];
             unit.chara[monster][0].GetPosition(at);
             state.fell_from = at[1];
-            PlayMotion(unit, monster, fall, kStopOnLastFrame);
+            PlayMonsterMotion(unit, monster, fall, kMotionHoldLast);
             state.phase = Phase::Falling;
             break;
         }
@@ -259,7 +243,7 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
             int last = kBlackKnightBowKey + kBlackKnightDeathKeys - 1;
             if (state.key < last && OnLastFrame(unit.chara[monster][0])) {
                 state.key++;
-                PlayMotion(unit, monster, state.key, state.key == last ? kLoop : kStopOnLastFrame);
+                PlayMonsterMotion(unit, monster, state.key, state.key == last ? kMotionLoop : kMotionHoldLast);
                 if (state.key == last - 1) {
                     state.throes = 0;
                 }
@@ -273,8 +257,7 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
             }
             state.throes++;
             if (lit || (state.throes > kKnightLightAfterThroes && BlackKnightLit())) {
-                live.palette_alpha_step = 128.0f / kBossFadeFrames;
-                live.palette_delay = 0;
+                FadeMonster(unit, monster, 128.0f / kBossFadeFrames);
                 state.phase = Phase::Fading;
             }
             break;
@@ -285,17 +268,14 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
             }
             if (OnLastFrame(unit.chara[monster][0])) {
                 if (state.loop >= 0) {
-                    PlayMotion(unit, monster, state.loop, kLoop);
+                    PlayMonsterMotion(unit, monster, state.loop, kMotionLoop);
                 }
-                live.palette_alpha_step = 128.0f / kBossFadeFrames;
-                live.palette_delay = 0;
+                FadeMonster(unit, monster, 128.0f / kBossFadeFrames);
                 state.phase = Phase::Fading;
             }
             break;
         case Phase::Fading:
-            if (live.palette_alpha <= 0.0f) {
-                live.state = -1;
-                unit.alive_count--;
+            if (RemoveFadedMonster(unit, monster)) {
                 state.phase = Phase::Dead;
             }
             break;

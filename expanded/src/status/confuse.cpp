@@ -1,17 +1,19 @@
 #include "expanded/status/confuse.hpp"
-#include "expanded/dungeon/shot_effects.hpp"
+
+#include <libvu0.h>
 
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
-#include <libvu0.h>
-
 #include "bt_shot_effect.hpp"
 #include "collisiondata.hpp"
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/random.hpp"
+#include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/status/confuse_icon.hpp"
 #include "itembombeffect.hpp"
 #include "itemdata.hpp"
 #include "mathutil.hpp"
@@ -21,8 +23,6 @@
 #include "shot_effect_pack.hpp"
 #include "snd.hpp"
 #include "texture_port.hpp"
-
-#include "expanded/status/confuse_icon.hpp"
 
 namespace expanded {
 
@@ -281,7 +281,7 @@ void ConfuseRoll(CMonstorUnit &unit, int slot) {
     if (monster.kind == MONSTER_KIND_NO_LOCK_ON || monster.hp <= 0) {
         return;
     }
-    if (!(100.0f * static_cast<float>(rand()) / 2147483648.0f < kConfuseChance)) {
+    if (!(100.0f * GameFraction() < kConfuseChance)) {
         return;
     }
     Confusion &state = State();

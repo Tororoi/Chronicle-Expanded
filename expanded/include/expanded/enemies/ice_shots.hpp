@@ -1,6 +1,7 @@
 #pragma once
 
 class CSHOT_EFFECT;
+struct BT_SHOT_EFFECT;
 
 namespace expanded {
 
@@ -9,8 +10,12 @@ namespace expanded {
 inline constexpr const char *kIceArrowFile = "dun/monstor/korinoya.chr";
 inline constexpr const char *kIcePrisonFile = "dun/monstor/kori.chr";
 
-// The player's chest, which the arrow is aimed and steered at.
+// The prison's description (no hit; phase 1 formed, 2 shattering), each user entering its own copy.
+BT_SHOT_EFFECT IcePrisonShot();
+
+// The player's chest, which the arrow is aimed and steered at, and feet, where the prison forms.
 void PlayerChest(float *chest);
+void PlayerFeet(float *feet);
 
 // Whether the player is frozen, and whether any of his ailments still runs.
 bool PlayerFrozen();
@@ -25,5 +30,9 @@ void EnterShotPhase(CSHOT_EFFECT &effect, int slot, int phase);
 
 // Holds a formed prison (phase 1) on its last frame; true while it stands formed.
 bool HoldIcePrison(CSHOT_EFFECT &effect, int slot);
+
+// The freeze's sounds, as a prison forms, and a prison's shatter: its sound and phase, at half pace.
+void PlayIceFreeze();
+void ShatterIcePrison(CSHOT_EFFECT &effect, int slot);
 
 } // namespace expanded

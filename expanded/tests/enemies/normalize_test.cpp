@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "dun/gameloop.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/normalize.hpp"
 #include "monstorunit.hpp"

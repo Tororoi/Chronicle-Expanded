@@ -182,4 +182,30 @@ constexpr int No(Monster monster) {
     return static_cast<int>(monster);
 }
 
+// The Mimic and the King Mimic, dungeon by dungeon, then Demon Shaft's from floor 40, 60 and 80.
+inline constexpr Monster kMimicLine[] = {
+    Monster::MIMIC_DBC,
+    Monster::MIMIC_WOF,
+    Monster::MIMIC_SW,
+    Monster::MIMIC_SMT,
+    Monster::MIMIC_MS,
+    Monster::MIMIC_GOT,
+    Monster::MIMIC_DS,
+    Monster::MIMIC_DS_ENHANCED,
+    Monster::MIMIC_DS_ENHANCED_TWICE,
+    Monster::MIMIC_DS_ENHANCED_THRICE,
+};
+inline constexpr Monster kKingMimicLine[] = {
+    Monster::KING_MIMIC_DBC,
+    Monster::KING_MIMIC_WOF,
+    Monster::KING_MIMIC_SW,
+    Monster::KING_MIMIC_SMT,
+    Monster::KING_MIMIC_MS,
+    Monster::KING_MIMIC_GOT,
+    Monster::KING_MIMIC_DS,
+    Monster::KING_MIMIC_DS_ENHANCED,
+    Monster::KING_MIMIC_DS_ENHANCED_TWICE,
+    Monster::KING_MIMIC_DS_ENHANCED_THRICE,
+};
+
 } // namespace expanded

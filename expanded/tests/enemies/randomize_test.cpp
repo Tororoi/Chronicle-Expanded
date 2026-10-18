@@ -10,6 +10,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/core/options.hpp"
+#include "expanded/core/random.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/randomize.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -156,7 +157,7 @@ TEST(EnemyRandomize, TheMimicsKeepTheirIndexes) {
 }
 
 TEST(EnemyRandomize, AMixIsDistinctKindsWithTheDungeonsMimicsByChance) {
-    std::mt19937 &random = expanded::RosterRandom();
+    std::mt19937 &random = expanded::ModRandom();
     int           mimics = 0, kings = 0;
     constexpr int kRolls = 4000;
     for (int roll = 0; roll < kRolls; roll++) {
@@ -199,7 +200,7 @@ TEST(EnemyRandomize, TheKindCountFollowsTheTable) {
     constexpr int       kRolls = 200000;
     std::array<int, 10> seen = {};
     for (int roll = 0; roll < kRolls; roll++) {
-        seen[expanded::RollKindCount(expanded::kRosterSize, expanded::RosterRandom())]++;
+        seen[expanded::RollKindCount(expanded::kRosterSize, expanded::ModRandom())]++;
     }
     EXPECT_EQ(seen[0], 0);
     for (int n = 1; n <= expanded::kRosterSize; n++) {
@@ -217,7 +218,7 @@ TEST(EnemyRandomize, BothMimicsRescaleTheCountOverOneToSeven) {
     std::array<int, 10> seen = {};
     int                 both = 0;
     for (int roll = 0; roll < kRolls; roll++) {
-        expanded::Roster roster = expanded::RandomMix(kDivineBeastCave, 0, expanded::RosterRandom());
+        expanded::Roster roster = expanded::RandomMix(kDivineBeastCave, 0, expanded::ModRandom());
         if (roster.Contains(No(Monster::MIMIC_DBC)) && roster.Contains(No(Monster::KING_MIMIC_DBC))) {
             both++;
             seen[roster.Size() - 2]++;
@@ -228,7 +229,7 @@ TEST(EnemyRandomize, BothMimicsRescaleTheCountOverOneToSeven) {
     for (int n = 1; n <= 7; n++) {
         EXPECT_NEAR(seen[n] / static_cast<double>(both), expanded::kKindCountWeights[n - 1] / kept, 0.008) << n;
     }
-    EXPECT_EQ(expanded::RollKindCount(0, expanded::RosterRandom()), 0);
+    EXPECT_EQ(expanded::RollKindCount(0, expanded::ModRandom()), 0);
 }
 
 TEST(EnemyRandomize, MimicsAreNeverCrowdedOut) {
