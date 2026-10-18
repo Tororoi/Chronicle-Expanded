@@ -34,13 +34,19 @@ int TakeOverAtla(const float *pos);
 // cannot be picked up until then.
 void MoveAtla(int atla, const AtlaPath &path, float progress);
 
+// Draws an atla after the shadow pass, as the monsters are drawn: a shadow volume around it (the body of the monster
+// it came out of) then darkens the ground under it but not the atla.
+void DrawAtlaOverShadows(int atla, bool on);
+
 // Hands a drop over at once, named.
 void GiveAtlaDrop(const AtlaDrop &drop);
 
-// Hooks: CDungeonMap::DrawAtraBoll for each atla it draws (true when the atla's draw is taken over); the atla pickup
+// Hooks: CDungeonMap::DrawAtraBoll for each atla it draws (true when the atla's draw is taken over), and the dungeon
+// draw after the shadow pass (the atlas drawn over the shadows; pos the player's); the atla pickup
 // as it takes the atla (true when it carries a drop, handed over then) and as it names it (true when named); and the
 // floor's monsters set up (a new floor).
 bool AtlaDrawn(CDungeonMap &map, int atla);
+void AtlaDropsDrawOverShadows(const float *pos);
 bool AtlaDropTaken(int atla);
 bool AtlaDropNamed();
 void AtlaDropsFloorLoaded();

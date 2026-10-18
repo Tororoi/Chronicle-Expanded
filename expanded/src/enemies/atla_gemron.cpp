@@ -95,9 +95,10 @@ const std::vector<int> kTiers[DUNGEON_COUNT] = {
 // clang-format on
 
 struct Gemron {
-    bool          atla = false;
+    bool          atla_gemron = false;
     bool          dropped = false; // its death has placed its atla
     int           placed = -1;     // the atla, while it bounces
+    int           atla = -1;       // the atla, while the body lies over it
     bool          held = false;    // the held atla's pose seen
     sceVu0FMATRIX world{};         // the held atla's, as the unit last drew it
     AtlaPath      path{};
@@ -146,7 +147,7 @@ void OnModel(CMonstorUnit &unit, int model_slot, int model_no) {
 void OnSpawn(CMonstorUnit &unit, int monster) {
     if (monster >= 0 && monster < kMonsters) {
         gemrons[monster] = {};
-        gemrons[monster].atla = Atla(unit, monster);
+        gemrons[monster].atla_gemron = Atla(unit, monster);
     }
 }
 
@@ -281,11 +282,17 @@ void StepDeath(CMonstorUnit &unit, int monster) {
             GiveAtlaDrop(drop);
             return;
         }
+        g.atla = atla;
+        DrawAtlaOverShadows(atla, true); // the body's shadow on the ground under it, not on it
         if (g.held) {
             g.placed = atla;
             MoveAtla(atla, g.path, -1.0f);
         }
         return;
+    }
+    if (!dying && g.atla >= 0) {
+        DrawAtlaOverShadows(g.atla, false);
+        g.atla = -1;
     }
     if (g.placed < 0) {
         return;
@@ -309,7 +316,7 @@ void StepDeath(CMonstorUnit &unit, int monster) {
 void AtlaGemronStep(CMonstorUnit &unit) {
     StepShot();
     for (int monster = 0; monster < kMonsters; monster++) {
-        if (gemrons[monster].atla) {
+        if (gemrons[monster].atla_gemron) {
             StepDeath(unit, monster);
         }
     }

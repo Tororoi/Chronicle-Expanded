@@ -1,3 +1,4 @@
+#include "dungeon.h"
 #include "expanded/dungeon/atla_drops.hpp"
 
 #include <algorithm>
@@ -15,8 +16,10 @@
 #include "frame.hpp"
 #include "itemdata.hpp"
 #include "localize.hpp"
+#include "mathutil.hpp"
 #include "mglib.hpp"
 #include "sysmes.hpp"
+#include "texture.hpp"
 #include "userstatus.hpp"
 
 namespace expanded {
@@ -26,6 +29,7 @@ namespace {
 constexpr int   kAtlas = 8;
 constexpr float kPickupRadius = 13.0f; // SetAtraBoll's
 constexpr float kLift = 24.0f;         // 6 at the middle of the way
+constexpr int   kAtlaTextureBlock = 0x16;
 constexpr int   kMessageFrames = 0x28;
 // The SynthSphere's line, a system message of its own (the bank has none past 78): the weapon's name in it.
 constexpr int kSphereMessage = 1000;
@@ -42,6 +46,7 @@ struct Placed {
     bool     drop_set = false;
     AtlaDrop drop;
     bool     moving = false;
+    bool     over_shadows = false;
     AtlaPath path{};
     float    omega = 0, inv_sin = 1;
     float    progress = 0;
@@ -231,18 +236,24 @@ void MoveAtla(int atla, const AtlaPath &path, float progress) {
     }
 }
 
+void DrawAtlaOverShadows(int atla, bool on) {
+    if (atla >= 0 && atla < kAtlas) {
+        placed[atla].over_shadows = on;
+    }
+}
+
 void GiveAtlaDrop(const AtlaDrop &drop) {
     Name(Deliver(drop));
 }
 
-bool AtlaDrawn(CDungeonMap &map, int atla) {
-    if (atla < 0 || atla >= kAtlas || !placed[atla].moving) {
-        return false;
-    }
+namespace {
+
+// An atla on its way into place, drawn at its progress (below 0 out of the draw).
+void DrawMoving(CDungeonMap &map, int atla) {
     const Placed &p = placed[atla];
     map.atra[atla].phase = 0.0f; // it bobs from rest once settled
     if (p.progress < 0.0f) {
-        return true;
+        return;
     }
     float   t = p.progress, e = 1.0f - (1.0f - t) * (1.0f - t);
     float   w0 = std::sin((1.0f - e) * p.omega) * p.inv_sin, w1 = std::sin(e * p.omega) * p.inv_sin;
@@ -265,7 +276,47 @@ bool AtlaDrawn(CDungeonMap &map, int atla) {
     MGDraw(model);
     model->SetTransMatrix(own);
     model->SetScale(1.0f, 1.0f, 1.0f);
+}
+
+} // namespace
+
+bool AtlaDrawn(CDungeonMap &map, int atla) {
+    if (atla < 0 || atla >= kAtlas || (!placed[atla].moving && !placed[atla].over_shadows)) {
+        return false;
+    }
+    if (!placed[atla].over_shadows) {
+        DrawMoving(map, atla);
+    }
     return true;
+}
+
+// As CDungeonMap::DrawAtraBoll draws an atla (the port's: Moon Sea's in sight however far), after the shadow pass.
+void AtlaDropsDrawOverShadows(const float *pos) {
+    CDungeonMap *map = NowDngMap;
+    if (map == nullptr || map->atra_model == nullptr) {
+        return;
+    }
+    bool loaded = false;
+    for (int i = 0; i < std::min(map->atra_num, kAtlas); i++) {
+        if (!placed[i].over_shadows || map->atra[i].used == 0 ||
+            (selectMapNo != DUNGEON_MOON_SEA && DistVector(map->atra[i].pos, const_cast<float *>(pos)) > 160.0f * map->draw_dist_scale)) {
+            continue;
+        }
+        if (!loaded) {
+            TexManager.ReloadTexture(Vif1Packet, kAtlaTextureBlock);
+            loaded = true;
+        }
+        if (placed[i].moving) {
+            DrawMoving(*map, i);
+            continue;
+        }
+        float draw_pos[4];
+        sceVu0CopyVector(draw_pos, map->atra[i].pos);
+        draw_pos[1] += std::sin(map->atra[i].phase);
+        map->atra_model->SetPosition(draw_pos);
+        MGDraw(map->atra_model);
+        map->atra[i].phase = map->atra[i].phase <= 360.0f ? map->atra[i].phase + 0.1f : 0.0f;
+    }
 }
 
 bool AtlaDropTaken(int atla) {
