@@ -27,6 +27,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/weapons/toan/macho_sword.hpp"
 #endif
 
 CDataAlloc2<1> MenuEffectCashBuffer(-1);
@@ -446,7 +447,11 @@ void CWeaponLevelUp::SetLevelUpWeaponData() {
         weapon->durability = 99;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    weapon->experience = expanded::OvertrainingCarry(*weapon, GetWeaponMaxExp(weapon));
+#else
     weapon->experience = 0;
+#endif
 }
 
 void CWeaponLevelUp::SetStatusBreak(WEAPON_HAVE *have, CCharacter *character, CWeaponLevelUp *load_buffer, int tex_block) {
