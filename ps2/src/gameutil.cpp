@@ -182,6 +182,13 @@ Mot_List *MotionProc(CFrame *frame, MOTION_STATE *state, Mot_List *list) {
     float t;
 
     key = SearchMotKey(list, state->frame);
+#ifdef CHRONICLE_EXPANDED
+    // Before its first key a track plays nothing (retail reads the track's header as a key there), so a track keyed
+    // from late on leaves its frame as it is until then.
+    if (key < 0 && list->type != MOTION_KEY_VERTEX) {
+        return list->next;
+    }
+#endif
 
     if (state->next_frame == state->frame + 1) {
         u_int time;

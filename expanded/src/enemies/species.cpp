@@ -56,9 +56,17 @@ bool SpeciesBuilt(int model_no) {
     if (model_no >= 0 && model_no < kRetailSpecies) {
         return true;
     }
-    Entry          *entry = Find(model_no);
+    Entry *entry = Find(model_no);
+    if (entry == nullptr) {
+        return false;
+    }
     std::error_code error;
-    return entry != nullptr && std::filesystem::is_regular_file(PathsDataRoot() / entry->species.model_file, error);
+    for (const char *file : {entry->species.model_file, entry->species.script_file}) {
+        if (file != nullptr && !std::filesystem::is_regular_file(PathsDataRoot() / file, error)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 int SpeciesStandIn(int model_no) {
@@ -73,6 +81,12 @@ MONSTOR_MODEL *SpeciesRecord(int model_no) {
 void SpeciesPackFile(char *filename, int model_no) {
     if (Entry *entry = Find(model_no)) {
         std::strcpy(filename, entry->species.model_file);
+    }
+}
+
+void SpeciesScriptFile(char *filename, int model_no) {
+    if (Entry *entry = Find(model_no); entry != nullptr && entry->species.script_file != nullptr) {
+        std::strcpy(filename, entry->species.script_file);
     }
 }
 

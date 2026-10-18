@@ -87,6 +87,7 @@ constexpr std::pair<Monster, int> kArenaSets[] = {
     {Monster::KINGS_CURSE,        203},
     {Monster::BLACK_KNIGHT,       207},
     {Monster::BLACK_KNIGHT_MOUNT, 207},
+    {Monster::CRYSTAL_GEMRON,     202}, // the life sphere's shatter, the Ice Queen's arrow and prison
 };
 
 bool Resolves(const audio::Bank *bank, int program, int note) {
@@ -97,13 +98,13 @@ bool Resolves(const audio::Bank *bank, int program, int note) {
 } // namespace
 
 std::vector<int> HomeSoundSets(int model_no) {
-    model_no = SpeciesStandIn(model_no);
+    int              native = SpeciesStandIn(model_no);
     std::vector<int> sets;
     for (int dungeon = 0; dungeon < kDungeons; dungeon++) {
         for (BT_ENEMY_FLOOR *layout : {BtEnemyLayoutList[dungeon], BtUraEnemyLayoutList[dungeon]}) {
             for (int floor = 0; floor < maxFloorTbl__3[dungeon]; floor++) {
                 for (const BT_ENEMY_LAYOUT &entry : layout[floor].monster) {
-                    if (entry.monster_no != model_no) {
+                    if (entry.monster_no != native) {
                         continue;
                     }
                     int set = 100 + (dungeon == kDemonShaft ? kDemonShaft + floor / 20 : dungeon);

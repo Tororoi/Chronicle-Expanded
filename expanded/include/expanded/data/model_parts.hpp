@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cstdint>
+#include <initializer_list>
 #include <map>
 #include <optional>
 #include <span>
@@ -19,6 +20,9 @@ namespace expanded {
 using Vec3 = std::array<double, 3>;
 using Mat3 = std::array<Vec3, 3>; // rows
 using Mat4 = std::array<std::array<double, 4>, 4>;
+
+// A sum as Python's sum() makes it (Neumaier-compensated), which the PS2 mod's builders used, so built models match theirs.
+double ExactSum(std::initializer_list<double> values);
 
 Vec3   Add(const Vec3 &a, const Vec3 &b);
 Vec3   Scale(const Vec3 &a, double s);
@@ -41,6 +45,7 @@ struct MdsFrame {
     int         parent = -1;
     int         mesh = 0;
     std::string name;
+    Mat4        local{};
     Mat4        world{};
     Bytes       record;
 

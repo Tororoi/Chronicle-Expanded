@@ -419,8 +419,10 @@ int BuildGemronModels(const fs::path &data, std::FILE *log) {
     };
 
     const Build builds[] = {
-        {"Bomb Gemron",        kBombGemronModelFile, {kBombGemronSource, kBombModelFile, kBombPictureFile, kGlowQuadFile, kGlowSourcePack}, [](const std::vector<Bytes> &s) { return BuildBombGemronModel(s[0], s[1], s[2], s[3], s[4]); }},
-        {"Bomb Gemron's bomb", kBombThrowFile,       {kBombThrowSource, kBombModelFile, kBombPictureFile},                                  [](const std::vector<Bytes> &s) { return BuildBombThrowPack(s[0], s[1], s[2]); }              },
+        {"Bomb Gemron",             kBombGemronModelFile,     {kBombGemronSource, kBombModelFile, kBombPictureFile, kGlowQuadFile, kGlowSourcePack}, [](const std::vector<Bytes> &s) { return BuildBombGemronModel(s[0], s[1], s[2], s[3], s[4]); }},
+        {"Bomb Gemron's bomb",      kBombThrowFile,           {kBombThrowSource, kBombModelFile, kBombPictureFile},                                  [](const std::vector<Bytes> &s) { return BuildBombThrowPack(s[0], s[1], s[2]); }              },
+        {"Crystal Gemron",          kCrystalGemronModelFile,  {kCrystalGemronSource, kCrystalBallFile},                                              [](const std::vector<Bytes> &s) { return BuildCrystalGemronModel(s[0], s[1]); }               },
+        {"Crystal Gemron's script", kCrystalGemronScriptFile, {kCrystalGemronScriptSource},                                                          [](const std::vector<Bytes> &s) { return BuildCrystalGemronScript(s[0]); }                    },
     };
     int failures = 0;
     for (const Build &build : builds) {

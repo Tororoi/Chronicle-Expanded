@@ -38,6 +38,7 @@ const std::vector<Monster> &Pool() {
         range(Monster::GEMRON_HOLY, Monster::LIVING_ARMOR_ENHANCED);
         kinds.push_back(Monster::GACIOUS_ENHANCED); // Gacious's own chance
         kinds.push_back(Monster::BOMB_GEMRON);      // Expanded's (expanded/enemies/species.hpp)
+        kinds.push_back(Monster::CRYSTAL_GEMRON);
         return kinds;
     }();
     return pool;

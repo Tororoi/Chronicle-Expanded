@@ -8,6 +8,7 @@
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/boss_stats.hpp"
 #include "expanded/enemies/bosses.hpp"
+#include "expanded/enemies/ice_shots.hpp"
 #include "expanded/enemies/normalize.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
@@ -75,12 +76,9 @@ const EffectSpec kSpecs[kEffects] = {
     {&tornado_shot, "dun/monstor/i_tatumaki.chr", kTornadoes, {0.2f, 0.2f, 0.2f, 0.2f}},
 };
 
-// The arrow: the Crystal Gemron's steering, turning toward the player's chest only within 60 degrees ahead.
-constexpr float kArrowSpeed = 1.2f;
-constexpr float kArrowTurn = 0.12f;
-constexpr float kArrowCone = 0.5f;
-constexpr float kChest = 10.1f;
+// The arrow, fired this far ahead of her.
 constexpr float kArrowLead = 15.0f;
+constexpr float kChest = 10.1f;
 constexpr int   kArrowSettle = 2; // steps the arrow's hit takes to reach the player
 constexpr float kMeteorHeight = 50.0f;
 constexpr float kMeteorFall = 1.6f;
@@ -115,14 +113,6 @@ Fight fight;
 bool Here(const CMonstorUnit &unit, int monster, Monster kind) {
     return monster >= 0 && monster < kMonsters && unit.monster[monster].state != -1 &&
            ModelKind(unit.monster[monster].base_model) == No(kind);
-}
-
-bool Frozen() {
-    return UserStatus != nullptr && (UserStatus->ailments[UserStatus->cur_chara] & AILMENT_FREEZE) != 0;
-}
-
-bool Afflicted() {
-    return UserStatus != nullptr && UserStatus->ailment_frames[UserStatus->cur_chara] > 0;
 }
 
 void Play(int sound) {
@@ -160,19 +150,6 @@ bool Live(Effect which, int slot) {
     return effect != nullptr && slot >= 0 && effect->active[slot] != 0;
 }
 
-// Moves a shot to a phase as its impact would, ending it when the phase has no motion.
-void EnterPhase(CSHOT_EFFECT &effect, int slot, int phase) {
-    effect.phase[slot] = static_cast<s16>(phase);
-    int motion = effect.effect_data->motion[phase];
-    if (motion == -1) {
-        effect.active[slot] = 0;
-        return;
-    }
-    effect.chara[slot].motion_type.state.time = static_cast<float>(effect.chara[slot].motion_type.motion_info[motion].start);
-    effect.chara[slot].SetMotion(motion, 6);
-    effect.velocity[slot][0] = effect.velocity[slot][1] = effect.velocity[slot][2] = 0.0f;
-}
-
 // Each phase plays at the speed the companion's script gave its motion.
 void PaceMotions() {
     for (int which = 0; which < kEffects; which++) {
@@ -194,12 +171,6 @@ float Distance(const float *a, const float *b) {
     float dy = a[1] - b[1];
     float dz = a[2] - b[2];
     return std::sqrt(dx * dx + dy * dy + dz * dz);
-}
-
-void PlayerChest(float *chest) {
-    sceVu0CopyVector(chest, CharaMain.pos);
-    chest[1] += kChest;
-    chest[3] = 1.0f;
 }
 
 // The arrow: fired 15 ahead of her toward the player, steered while flying; once it is spent, a frozen
@@ -230,31 +201,7 @@ void StepArrow(CMonstorUnit &unit) {
     }
     int slot = fight.arrow;
     if (effect->active[slot] != 0 && effect->phase[slot] == 1) {
-        float position[4];
-        float chest[4];
-        effect->chara[slot].GetPosition(position);
-        PlayerChest(chest);
-        float heading[4];
-        float wanted[4] = {chest[0] - position[0], chest[1] - position[1], chest[2] - position[2], 1.0f};
-        sceVu0Normalize(heading, effect->velocity[slot]);
-        sceVu0Normalize(wanted, wanted);
-        if (sceVu0InnerProduct(heading, wanted) >= kArrowCone) {
-            float step[4] = {wanted[0] - heading[0], wanted[1] - heading[1], wanted[2] - heading[2], 1.0f};
-            float gap = std::sqrt(step[0] * step[0] + step[1] * step[1] + step[2] * step[2]);
-            if (gap <= kArrowTurn) {
-                sceVu0CopyVector(heading, wanted);
-            } else {
-                for (int i = 0; i < 3; i++) {
-                    heading[i] += step[i] * (kArrowTurn / gap);
-                }
-                sceVu0Normalize(heading, heading);
-            }
-        }
-        sceVu0ScaleVectorXYZ(effect->velocity[slot], heading, kArrowSpeed);
-        sceVu0FMATRIX facing;
-        LookAtMatrixZ(facing, effect->velocity[slot]);
-        effect->chara[slot].frame->SetTransMatrix(facing);
-        effect->chara[slot].SetPosition(position);
+        SteerIceArrow(*effect, slot);
         return;
     }
     // Spent: burst, worn out or gone; once its hit has reached the player.
@@ -263,7 +210,7 @@ void StepArrow(CMonstorUnit &unit) {
     }
     fight.arrow_landed = 0;
     fight.arrow = -1;
-    if (Frozen()) {
+    if (PlayerFrozen()) {
         for (int sound : kFreezeSounds) {
             Play(sound);
         }
@@ -298,22 +245,19 @@ void StepPrison() {
         return;
     }
     if (effect->phase[slot] == 1) {
-        // Formed: hold its last frame.
-        const MOTION_INFO &formed = effect->chara[slot].motion_type.motion_info[effect->effect_data->motion[1]];
-        effect->chara[slot].motion_type.state.time = static_cast<float>(formed.end) - 0.01f;
-        effect->chara[slot].SetMotionSpeed(0.0f);
+        HoldIcePrison(*effect, slot);
         if (fight.mailbox[kPrison] == 4) {
             fight.mailbox[kPrison] = 3;
             fight.mailbox[kPhase] = 3;
         }
-        if (fight.mailbox[kPrison] == 3 && !Afflicted()) {
+        if (fight.mailbox[kPrison] == 3 && !PlayerAfflicted()) {
             fight.mailbox[kPrison] = 2;
         }
     }
     if (fight.mailbox[kPrison] == 2 && effect->phase[slot] < 2) {
         Play(kShatterSound);
         fight.mailbox[kPrison] = 0;
-        EnterPhase(*effect, slot, 2);
+        EnterShotPhase(*effect, slot, 2);
         effect->chara[slot].SetMotionSpeed(kShatterSpeed);
     }
 }
@@ -419,7 +363,7 @@ void StepTornadoes() {
             float dx = CharaMain.pos[0] - at[0];
             float dz = CharaMain.pos[2] - at[2];
             if (std::sqrt(dx * dx + dz * dz) > kTornadoLeash) {
-                EnterPhase(*effect, slot, 3);
+                EnterShotPhase(*effect, slot, 3);
             }
         }
     }

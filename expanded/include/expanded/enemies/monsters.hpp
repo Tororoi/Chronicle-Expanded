@@ -173,6 +173,7 @@ enum class Monster {
     BLACK_KNIGHT_MOUNT = 166,
     // Expanded's own (expanded/enemies/species.hpp).
     BOMB_GEMRON = 167,
+    CRYSTAL_GEMRON = 168,
 };
 
 // A monster's MonstorTable index, as the game's model_no.

@@ -158,3 +158,25 @@ TEST_F(BombGemron, AimsItsThrowAtTheContactHeight) {
     expanded::BombGemronAim(*unit_, 1, target);
     EXPECT_FLOAT_EQ(target[1], 14.0f);
 }
+
+TEST(CrystalGemronSpecies, IsHolyGemronsRecordWithItsOwnModelScriptAndElements) {
+    const MONSTOR_MODEL *crystal = expanded::Species(No(Monster::CRYSTAL_GEMRON));
+    ASSERT_NE(crystal, nullptr);
+    const MONSTOR_MODEL &holy = *expanded::Species(No(Monster::GEMRON_HOLY));
+    EXPECT_STREQ(crystal->model_name[0], "e168a");
+    EXPECT_STREQ(crystal->script_name, holy.script_name); // its damage; the built script loads in its place
+    EXPECT_EQ(crystal->attachment_weight[1], 150);
+    for (int i : {0, 2, 3, 4}) {
+        EXPECT_EQ(crystal->attachment_weight[i], 0) << i;
+    }
+    EXPECT_EQ(crystal->exp, 80);
+    EXPECT_EQ(crystal->steal_item, ITEM_POWERUP_POWDER);
+    EXPECT_EQ(crystal->rare_item, ITEM_CRYSTAL_EYEBALL);
+    EXPECT_EQ(crystal->name_no, 321);
+    char script[64] = "dun/monstor/e115a.stb";
+    expanded::SpeciesScriptFile(script, No(Monster::CRYSTAL_GEMRON));
+    EXPECT_STREQ(script, expanded::kCrystalGemronScriptFile);
+    std::strcpy(script, "dun/monstor/e115a.stb");
+    expanded::SpeciesScriptFile(script, No(Monster::BOMB_GEMRON));
+    EXPECT_STREQ(script, "dun/monstor/e115a.stb");
+}

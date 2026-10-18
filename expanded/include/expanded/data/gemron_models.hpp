@@ -32,6 +32,21 @@ inline constexpr const char *kBombGlowFrame = "bombglow__czappba";
 
 extern const char *const kBombGemronLook;
 
+// The Crystal Gemron: Holy Gemron's pack in its own look, each gem the e209 event's crystal ball (the big one with its
+// glints, beams and rings), shattering through a death rebuilt from frame 200, its painted eyes a frame of their own;
+// and Holy Gemron's script, its death sounding the shatter and its shots reaching to 140.
+inline constexpr const char *kCrystalGemronModelFile = "expanded/monstor/e168a.chr";
+inline constexpr const char *kCrystalGemronScriptFile = "expanded/monstor/e168a.stb";
+inline constexpr const char *kCrystalGemronSource = "dun/monstor/e115a.chr";
+inline constexpr const char *kCrystalGemronScriptSource = "dun/monstor/e115a.stb";
+inline constexpr const char *kCrystalBallFile = "gedit/s34/chara/e209ball_b.chr";
+inline constexpr const char *kCrystalEyeFrame = "eyes";
+
+extern const char *const kCrystalGemronLook;
+
+Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<const unsigned char> ball);
+Bytes BuildCrystalGemronScript(std::span<const unsigned char> stb);
+
 Bytes BuildBombGemronModel(std::span<const unsigned char> gemron, std::span<const unsigned char> bomb_mds,
                            std::span<const unsigned char> bomb_img, std::span<const unsigned char> quad_chr,
                            std::span<const unsigned char> glow_pack);
