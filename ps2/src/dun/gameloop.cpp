@@ -127,6 +127,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/dungeon_hooks.hpp"
+#include "expanded/dungeon/magic_circles.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/weapons/heal.hpp"
@@ -8880,6 +8881,12 @@ int Run_TrapCircle(MAP_TRAP_CIRCLE *trap) {
     if (item_no == defWeapon__6[chara] || item_no == defWeapon__6[chara] + 1) {
         kind = TRAP_CIRCLE_STAMINA;
     }
+
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::AmplifiedCircle(kind, *weapon)) {
+        return kind;
+    }
+#endif
 
     switch (kind) {
         case TRAP_CIRCLE_STAMINA:
