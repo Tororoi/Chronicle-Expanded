@@ -95,9 +95,11 @@ passes `Root` as `<checkout>\.kazarov\windows`.
 
 ```powershell
 ./tools/windows/acquire.ps1 -Root $root [-VulkanLoader]
-./tools/windows/configure.ps1 -Root $root -BuildDirectory $build [-Tests] [-BuildType RelWithDebInfo] [-VulkanLibrary <dll>]
+./tools/windows/configure.ps1 -Root $root -BuildDirectory $build [-Tests] [-BuildType RelWithDebInfo] [-VulkanLibrary <dll>] [-TestTimeout <seconds>]
 ./tools/windows/build.ps1 -Root $root -BuildDirectory $build [-Tests] [-Jobs N]
 ```
+
+`-TestTimeout` sets how long a test case may run before CTest cuts it off (`DC_TEST_TIMEOUT`, 5 seconds by default); CI gives 60, as on Linux and macOS.
 
 Builds default to `<root>/build`, or `<root>/build-tests` for
 `configure-tests.ps1`; `-BuildDirectory` overrides that location. Data and

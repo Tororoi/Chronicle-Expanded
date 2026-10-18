@@ -1,5 +1,5 @@
 param([string]$Root, [string]$BuildDirectory, [switch]$Tests, [string]$BuildType = 'Debug',
-      [string]$VulkanLibrary = "$env:SystemRoot/System32/vulkan-1.dll")
+      [string]$VulkanLibrary = "$env:SystemRoot/System32/vulkan-1.dll", [int]$TestTimeout = 0)
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot/common.ps1"
 $root = (Resolve-WindowsRoot $Root).Replace('\', '/')
@@ -9,6 +9,7 @@ $llvm = "$root/deps/llvm/llvm-mingw-20260922-ucrt-x86_64/bin"
 $cmake = Find-WindowsTool cmake 'C:/Program Files/CMake/bin/cmake.exe'
 $python = Find-WindowsPython
 $testOption = if ($Tests) { 'ON' } else { 'OFF' }
+$timeoutOption = if ($TestTimeout -gt 0) { @("-DDC_TEST_TIMEOUT=$TestTimeout") } else { @() }
 & $cmake -S $source -B $build -G Ninja `
     -DPLATFORM=PC "-DCMAKE_BUILD_TYPE=$BuildType" "-DDC_BUILD_TESTS=$testOption" `
     "-DCMAKE_CXX_COMPILER=$llvm/clang++.exe" "-DCMAKE_RC_COMPILER=$llvm/windres.exe" `
@@ -16,5 +17,5 @@ $testOption = if ($Tests) { 'ON' } else { 'OFF' }
     "-DSDL3_DIR=$root/deps/sdl/SDL3-3.4.18/x86_64-w64-mingw32/lib/cmake/SDL3" `
     "-DVulkan_INCLUDE_DIR=$root/deps/vulkan/Vulkan-Headers-vulkan-sdk-1.4.363.0/include" `
     "-DVulkan_LIBRARY=$VulkanLibrary" `
-    "-DGLSLANG_VALIDATOR=$root/deps/glslang/bin/glslang.exe"
+    "-DGLSLANG_VALIDATOR=$root/deps/glslang/bin/glslang.exe" @timeoutOption
 exit $LASTEXITCODE
