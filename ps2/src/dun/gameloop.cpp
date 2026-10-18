@@ -130,6 +130,7 @@
 #include "expanded/enemies/black_knight.hpp"
 #include "expanded/enemies/bomb_gemron.hpp"
 #include "expanded/enemies/boss_casts.hpp"
+#include "expanded/enemies/crystal_gemron.hpp"
 #include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -6331,6 +6332,7 @@ void motionDrive() {
     expanded::ShotEffectsStep();
     expanded::BossCastStep(*NowMonstorUnit);
     expanded::IceQueenStep(*NowMonstorUnit);
+    expanded::CrystalGemronStep(*NowMonstorUnit);
     expanded::BlackKnightStep();
 #endif
 

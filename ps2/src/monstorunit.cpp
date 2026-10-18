@@ -45,6 +45,7 @@
 #include "expanded/enemies/boss_moves.hpp"
 #include "expanded/enemies/boss_record.hpp"
 #include "expanded/enemies/bosses.hpp"
+#include "expanded/enemies/crystal_gemron.hpp"
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
@@ -798,6 +799,7 @@ void CMonstorUnit::DrawMonstor() {
 #endif
 #ifdef CHRONICLE_EXPANDED
             expanded::BombGemronDrawing(*this, i);
+            expanded::CrystalGemronDrawing(*this, i);
 #endif
             character->Draw();
 #ifdef CHRONICLE_EXPANDED
@@ -2555,6 +2557,9 @@ int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDat
     }
 
     sprintf(filename, "dun/monstor/%s.stb", description->script_name);
+#ifdef CHRONICLE_EXPANDED
+    expanded::SpeciesScriptFile(filename, model_no);
+#endif
     LoadFile(filename, read_buffer, &file_size);
     wait_now_loading_vsync();
     script_data[slot] = (char *) (alloc->base + alloc->used * 16);

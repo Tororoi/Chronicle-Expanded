@@ -45,7 +45,7 @@ void BuildRecord(MONSTOR_MODEL &record) {
 }
 
 [[maybe_unused]] const bool kSpecies =
-    AddSpecies({Monster::BOMB_GEMRON, Monster::GEMRON_HOLY, kBombGemronModelFile, BuildRecord});
+    AddSpecies({Monster::BOMB_GEMRON, Monster::GEMRON_HOLY, kBombGemronModelFile, nullptr, BuildRecord});
 
 // Its two shots, both ending in the item bomb's blast (no hit of their own): the thrown bomb, the apple shot's flight
 // at the Big Bang pellet's blast scale, and the death and self-destruct blast, no flight and no life, at the Big Bang

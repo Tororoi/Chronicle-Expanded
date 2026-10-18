@@ -44,9 +44,7 @@ Mat4 MatMul4(const Mat4 &a, const Mat4 &b) {
     Mat4 out{};
     for (int r = 0; r < 4; r++) {
         for (int c = 0; c < 4; c++) {
-            for (int k = 0; k < 4; k++) {
-                out[r][c] += a[r][k] * b[k][c];
-            }
+            out[r][c] = ExactSum({a[r][0] * b[0][c], a[r][1] * b[1][c], a[r][2] * b[2][c], a[r][3] * b[3][c]});
         }
     }
     return out;
@@ -55,6 +53,16 @@ Mat4 MatMul4(const Mat4 &a, const Mat4 &b) {
 constexpr std::size_t kFrameRecord = 0x70;
 
 } // namespace
+
+double ExactSum(std::initializer_list<double> values) {
+    double sum = 0.0, compensation = 0.0;
+    for (double x : values) {
+        double t = sum + x;
+        compensation += std::fabs(sum) >= std::fabs(x) ? (sum - t) + x : (x - t) + sum;
+        sum = t;
+    }
+    return sum + compensation;
+}
 
 Vec3 Add(const Vec3 &a, const Vec3 &b) {
     return {a[0] + b[0], a[1] + b[1], a[2] + b[2]};
@@ -183,6 +191,7 @@ std::vector<MdsFrame> ReadMdsSkeleton(std::span<const unsigned char> mds) {
             local[3][c] = GetF32(mds, rec + 0x60 + c * 4);
         }
         local[3][3] = 1.0;
+        frame.local = local;
         frame.world = frame.parent < 0 ? local : MatMul4(local, frames[static_cast<std::size_t>(frame.parent)].world);
     }
     return frames;
