@@ -2,5 +2,7 @@
     "meswin.system.69": "Confuse",
     "meswin.system14.69": "Confuse",
     "dun.message.ww_mes.dunmsd00.3320": "Bomb Gemron",
-    "dun.message.ww_mes.dunmsd00.3321": "Crystal Gemron"
+    "dun.message.ww_mes.dunmsd00.3321": "Crystal Gemron",
+    "dun.message.ww_mes.dunmsd00.3322": "Atla Gemron",
+    "expanded.atla_drop.sphere": "{icon-orb}\"{insert1}\" SynthSphere acquired."
 }

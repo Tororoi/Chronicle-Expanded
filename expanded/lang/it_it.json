@@ -25,5 +25,7 @@
     "options.expanded.randomizer_bosses.choice.1": "Sconfitti",
     "options.expanded.randomizer_bosses.choice.2": "Tutti",
     "dun.message.ww_mes.dunmsd00.3320": "Gemron bomba",
-    "dun.message.ww_mes.dunmsd00.3321": "Gemron di cristallo"
+    "dun.message.ww_mes.dunmsd00.3321": "Gemron di cristallo",
+    "dun.message.ww_mes.dunmsd00.3322": "Gemron atla",
+    "expanded.atla_drop.sphere": "{icon-orb}Sfera di sintesi \"{insert1}\" acquisita."
 }

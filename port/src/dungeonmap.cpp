@@ -22,6 +22,9 @@
 #include "texture.hpp"
 #include "textureanime.hpp"
 #include "userstatus.hpp"
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/atla_drops.hpp"
+#endif
 
 // Retail's, with the cell picked for a character's key door addressed on the whole pointer.
 
@@ -596,6 +599,11 @@ PORT_OVERRIDE void CDungeonMap::DrawAtraBoll(float *pos) {
         if (this->atra[i].used != 0 &&
             (selectMapNo == DUNGEON_MOON_SEA ||
              DistVector(this->atra[i].pos, pos) <= 160.0f * this->draw_dist_scale)) {
+#ifdef CHRONICLE_EXPANDED
+            if (expanded::AtlaDrawn(*this, i)) {
+                continue;
+            }
+#endif
             sceVu0CopyVector(draw_pos, this->atra[i].pos);
             draw_pos[1] += sinf(this->atra[i].phase);
             this->atra_model->SetPosition(draw_pos);

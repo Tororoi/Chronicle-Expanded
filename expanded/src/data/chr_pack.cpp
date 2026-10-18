@@ -86,6 +86,19 @@ void ChrRecord::ReplacePayload(std::span<const unsigned char> payload) {
     raw = std::move(record);
 }
 
+ChrRecord ChrRecord::Make(std::string_view name, std::span<const unsigned char> payload) {
+    constexpr std::uint32_t kDataOff = 0x50, kTag = 0x00140E02;
+    ChrRecord               record;
+    record.name = std::string(name.substr(0, 0x3F));
+    record.data_off = kDataOff;
+    record.raw.assign(kDataOff, 0);
+    std::copy(record.name.begin(), record.name.end(), record.raw.begin());
+    Set32(record.raw, 0x40, kDataOff);
+    Set32(record.raw, 0x4C, kTag);
+    record.ReplacePayload(payload);
+    return record;
+}
+
 ChrPack ChrPack::Parse(std::span<const unsigned char> blob) {
     ChrPack     pack;
     std::size_t p = 0;

@@ -14,6 +14,7 @@
 #include "itemdata.hpp"
 #include "localize.hpp"
 #include "mainselect.hpp"
+#include "sysmes.hpp"
 
 namespace fs = std::filesystem;
 
@@ -64,6 +65,10 @@ std::optional<std::string> DaggerLines(int item_no) {
     return "Item " + std::to_string(item_no) + ".\nA test override.";
 }
 
+std::optional<std::string> SphereLine() {
+    return "{icon-orb}\"{insert1}\" SynthSphere acquired.";
+}
+
 struct Reset {
     Reset() { expanded::MenuTextReset(); }
 
@@ -112,6 +117,18 @@ TEST(ExpandedMenuText, AMessageFollowsItsProvider) {
     expanded::MenuTextLoaded("itemshop.bin", bank.data());
     EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.");
     g_seven = false;
+}
+
+TEST(ExpandedMenuText, ASystemMessageIsTheItemLinesBanksOnly) {
+    Reset            reset;
+    std::vector<s16> bank = Bank();
+    expanded::SetSystemMessage(1000, SphereLine);
+    EXPECT_EQ(Text(bank, 1000), "<none>");
+    short *own = SystemMessage.buff;
+    SystemMessage.buff = bank.data();
+    EXPECT_EQ(Text(bank, 1000), "{icon-orb}\"{insert1}\" SynthSphere acquired.");
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.");
+    SystemMessage.buff = own;
 }
 
 TEST(ExpandedMenuText, LanguageFilesGiveADescription) {

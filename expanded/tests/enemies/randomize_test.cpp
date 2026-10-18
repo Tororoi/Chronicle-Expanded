@@ -88,7 +88,7 @@ TEST(EnemyRandomize, IsAnExpandedToggleOffByDefault) {
 
 TEST(EnemyRandomize, ThePoolIsEveryRegularMonster) {
     std::span<const Monster> pool = expanded::RandomizerPool();
-    EXPECT_EQ(pool.size(), 121u);
+    EXPECT_EQ(pool.size(), 122u);
     for (Monster monster : pool) {
         const MONSTOR_MODEL *species = expanded::Species(No(monster));
         ASSERT_NE(species, nullptr) << No(monster);
@@ -117,7 +117,7 @@ TEST(EnemyRandomize, ThePoolKeepsItsIndexes) {
     range(143, 151);
     range(154, 162);
     range(155, 155);
-    range(167, 168);
+    range(167, 169);
     std::span<const Monster> pool = expanded::RandomizerPool();
     ASSERT_EQ(pool.size(), indexes.size());
     for (size_t i = 0; i < pool.size(); i++) {

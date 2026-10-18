@@ -9,7 +9,7 @@ namespace expanded {
 // Monster kinds: retail's 167 (MonstorTable), then Expanded's own, each a record of its own built on a retail kind
 // (its stand-in: where it counts as native, whose sounds it makes) and a model dcdata builds.
 inline constexpr int kRetailSpecies = 167;
-inline constexpr int kSpeciesCount = 169;
+inline constexpr int kSpeciesCount = 170;
 
 struct ExpandedSpecies {
     Monster     kind;

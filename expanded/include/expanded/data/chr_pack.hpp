@@ -33,6 +33,9 @@ struct ChrRecord {
     Bytes Payload() const;
     // Swaps the payload, padding the stride to 16: a following .mds is DMA'd in qwords.
     void ReplacePayload(std::span<const unsigned char> payload);
+
+    // A new record, its payload at 0x50 and the tag every retail record has @0x4C.
+    static ChrRecord Make(std::string_view name, std::span<const unsigned char> payload);
 };
 
 // A pack: records chained by their strides up to one whose first byte is 0, then the trailer.

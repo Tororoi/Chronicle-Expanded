@@ -9,6 +9,7 @@
 #include <string>
 
 #include "expanded/data/gemron_models.hpp"
+#include "expanded/data/gemron_parts.hpp"
 #include "expanded/data/model_parts.hpp"
 #include "expanded/data/sheet_look.hpp"
 
@@ -31,7 +32,6 @@ constexpr const char *kBallMot = "e209ball_b.mot";
 constexpr double      kBallRadius = 1.0;
 constexpr const char *kGems[] = {"tama1__m", "tamas00__m", "tamas03__m"};
 constexpr const char *kEffectGem = "tama1__m";
-constexpr const char *kGemDrop[] = {"tama1__m", "tamas00__m", "tamas03__m", "tama__appz", "tamas01__appz", "tamas02__appz"};
 constexpr const char *kPiecesRoot = "null9";
 constexpr const char *kEffectsRoot = "null14";
 constexpr const char *kShardsRoot = "null10";
@@ -39,7 +39,6 @@ constexpr const char *kShardsRoot = "null10";
 // The death clip: the vanilla death (105-125, KEY 11 at 0.35) copied to 200, the Gemron then holding its last pose
 // while the ball's shatter (its own frames 1-21, at 0.1 in the event) runs from the copy of frame 121, stretched to keep
 // its speed under the death's; its effects 1.5 times that, its pieces twice.
-constexpr int    kDeathKey = 11, kDeathLoopKey = 12;
 constexpr int    kClipFrom = 105, kClipTo = 125;
 constexpr int    kShatterFrom = 121;
 constexpr double kDeathSpeed = 0.35, kBallSpeed = 0.1;
@@ -63,49 +62,6 @@ constexpr const char *kEyeHead = "obj2_2";
 constexpr double      kEyeU0 = 0.21, kEyeU1 = 0.35, kEyeV0 = 0.50, kEyeV1 = 0.61;
 
 constexpr Vec3 kForward = {0.0, 0.0, 1.0}, kUp = {0.0, 1.0, 0.0};
-
-std::array<float, 4> Values(const MotKeyframe &key) {
-    return {key.Value(0), key.Value(1), key.Value(2), key.Value(3)};
-}
-
-MotKeyframe Key(std::uint32_t frame, const std::array<double, 4> &v) {
-    MotKeyframe key;
-    key.SetFrame(frame);
-    for (int i = 0; i < 4; i++) {
-        key.SetValue(i, static_cast<float>(v[std::size_t(i)]));
-    }
-    return key;
-}
-
-std::array<double, 4> Wide(const std::array<float, 4> &v) {
-    return {v[0], v[1], v[2], v[3]};
-}
-
-// A track's value at a frame: its first or last key outside its range, else the pair around it blended.
-std::array<double, 4> At(const MotTrack &track, double frame) {
-    const auto &keys = track.keys;
-    if (frame <= keys.front().Frame()) {
-        return Wide(Values(keys.front()));
-    }
-    if (frame >= keys.back().Frame()) {
-        return Wide(Values(keys.back()));
-    }
-    std::size_t b = 0;
-    while (keys[b].Frame() <= frame) {
-        b++;
-    }
-    const MotKeyframe   &ka = keys[b - 1], &kb = keys[b];
-    double               t = (frame - ka.Frame()) / (double(kb.Frame()) - ka.Frame());
-    std::array<float, 4> va = Values(ka), vb = Values(kb);
-    if (track.w2 == 0) {
-        return SlerpKeys(va, vb, t);
-    }
-    std::array<double, 4> v;
-    for (int i = 0; i < 4; i++) {
-        v[std::size_t(i)] = va[std::size_t(i)] + (vb[std::size_t(i)] - double(va[std::size_t(i)])) * t;
-    }
-    return v;
-}
 
 Mat3 QuatToMat(const std::array<double, 4> &q) {
     double w = q[0], x = q[1], y = q[2], z = q[3];
@@ -144,7 +100,7 @@ std::vector<Mat4> PoseWorld(const std::vector<MdsFrame> &frames, const MotFile &
     for (const MdsFrame &f : frames) {
         Mat4 local = f.local;
         if (auto found = rotation.find(std::uint32_t(f.index)); found != rotation.end()) {
-            Mat3 r = QuatToMat(At(*found->second, frame));
+            Mat3 r = QuatToMat(TrackAt(*found->second, frame));
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 3; j++) {
                     local[std::size_t(i)][std::size_t(j)] = r[std::size_t(i)][std::size_t(j)];
@@ -152,7 +108,7 @@ std::vector<Mat4> PoseWorld(const std::vector<MdsFrame> &frames, const MotFile &
             }
         }
         if (auto found = translation.find(std::uint32_t(f.index)); found != translation.end()) {
-            std::array<double, 4> t = At(*found->second, frame);
+            std::array<double, 4> t = TrackAt(*found->second, frame);
             for (int j = 0; j < 3; j++) {
                 local[3][std::size_t(j)] = t[std::size_t(j)];
             }
@@ -176,41 +132,6 @@ Mat3 Upright(const Mat4 &w) {
     double along = ExactSum({f[0] * u[0], f[1] * u[1], f[2] * u[2]});
     f = Unit({f[0] - along * u[0], f[1] - along * u[1], f[2] - along * u[2]});
     return {Cross(u, f), u, f};
-}
-
-void SetF32(Bytes &data, std::size_t at, float value) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &value, 4);
-    Set32(data, at, bits);
-}
-
-// A ball frame's record under the Gemron: its index and parent; the root's rotation and position given, the rest's
-// position scaled.
-Bytes Record(const Bytes &raw, int index, int parent, const std::optional<Mat3> &r, const std::optional<Vec3> &t, double scale) {
-    Bytes rec = raw;
-    Set32(rec, 0, std::uint32_t(index));
-    Set32(rec, 0x2C, std::uint32_t(parent));
-    if (r) {
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                SetF32(rec, 0x30 + std::size_t(i * 16 + j * 4), static_cast<float>((*r)[std::size_t(i)][std::size_t(j)]));
-            }
-            SetF32(rec, 0x30 + std::size_t(i * 16 + 12), 0.0f);
-        }
-    }
-    Vec3 p = t ? *t : Vec3{GetF32(rec, 0x60) * scale, GetF32(rec, 0x64) * scale, GetF32(rec, 0x68) * scale};
-    for (int c = 0; c < 3; c++) {
-        SetF32(rec, 0x60 + std::size_t(c) * 4, static_cast<float>(p[std::size_t(c)]));
-    }
-    return rec;
-}
-
-Bytes ScaledMesh(std::span<const unsigned char> mds, std::size_t offset, double s) {
-    MdtMesh mesh = MdtMesh::Parse(MdtAt(mds, offset));
-    for (auto &p : mesh.positions) {
-        p = {p[0] * s, p[1] * s, p[2] * s, p[3]};
-    }
-    return mesh.Build();
 }
 
 // The padding after a display list sized so the blocks after it start 16-aligned.
@@ -289,134 +210,6 @@ std::pair<Bytes, Bytes> SplitEyes(std::span<const unsigned char> mds, const MdsF
     return {head_mesh.Build(), m.Build()};
 }
 
-struct Graft {
-    std::vector<Bytes>   records;
-    std::map<int, Bytes> meshes; // by the record's place in the graft
-};
-
-// The .mds with the gems' meshes (and glow shells) dropped, the head's replaced and the grafts' records appended.
-Bytes GraftMds(std::span<const unsigned char> mds, const std::vector<Graft> &grafts, const std::map<std::string, Bytes> &replace) {
-    int                               count = static_cast<int>(Get32(mds, 8));
-    std::size_t                       table = Get32(mds, 12);
-    std::vector<Bytes>                records;
-    std::vector<std::optional<Bytes>> blobs;
-    std::set<std::string>             drop(std::begin(kGemDrop), std::end(kGemDrop));
-    for (int i = 0; i < count; i++) {
-        std::size_t at = table + std::size_t(i) * 0x70;
-        Bytes       raw(mds.begin() + std::ptrdiff_t(at), mds.begin() + std::ptrdiff_t(at + 0x70));
-        std::string name = NameAt(raw, 8, 0x20);
-        std::size_t off = Get32(raw, 0x28);
-        records.push_back(raw);
-        if (drop.contains(name) || off == 0) {
-            blobs.push_back(std::nullopt);
-        } else if (auto found = replace.find(name); found != replace.end()) {
-            blobs.push_back(found->second);
-        } else {
-            blobs.push_back(MdtAt(mds, off));
-        }
-    }
-    for (const Graft &graft : grafts) {
-        for (std::size_t j = 0; j < graft.records.size(); j++) {
-            records.push_back(graft.records[j]);
-            auto found = graft.meshes.find(int(j));
-            blobs.push_back(found != graft.meshes.end() ? std::optional<Bytes>(found->second) : std::nullopt);
-        }
-    }
-    std::size_t base = 0x10 + records.size() * 0x70;
-    Bytes       body;
-    for (std::size_t i = 0; i < records.size(); i++) {
-        bool has = blobs[i] && !blobs[i]->empty();
-        Set32(records[i], 0x28, has ? std::uint32_t(base + body.size()) : 0u);
-        if (has) {
-            body.insert(body.end(), blobs[i]->begin(), blobs[i]->end());
-            while (body.size() % 16 != 0) {
-                body.push_back(0);
-            }
-        }
-    }
-    Bytes out(mds.begin(), mds.begin() + 8);
-    Bytes words(8);
-    Set32(words, 0, std::uint32_t(records.size()));
-    Set32(words, 4, 0x10);
-    out.insert(out.end(), words.begin(), words.end());
-    for (const Bytes &record : records) {
-        out.insert(out.end(), record.begin(), record.end());
-    }
-    out.insert(out.end(), body.begin(), body.end());
-    return out;
-}
-
-// The vanilla death copied to 200 on, every track keyed on each frame of it, its last pose held to the clip's end.
-void DeathClip(MotFile &mot) {
-    for (MotTrack &track : mot.tracks) {
-        if (track.keys.back().Frame() >= kDeathStart) {
-            throw std::runtime_error(std::format("track {}/{} already reaches {}", track.w0, track.w2, track.keys.back().Frame()));
-        }
-        std::vector<MotKeyframe> made;
-        for (int n = kDeathStart; n <= kDeathStart + kClipTo - kClipFrom; n++) {
-            made.push_back(Key(std::uint32_t(n), At(track, n - kDeathStart + kClipFrom)));
-        }
-        made.push_back(Key(std::uint32_t(kDeathEnd), At(track, kClipTo)));
-        made.push_back(Key(std::uint32_t(kTimelineEnd), At(track, kClipTo)));
-        track.keys.insert(track.keys.end(), made.begin(), made.end());
-    }
-}
-
-// The death keys on the new clip, the loop on its last frame, material animation on (the fades), and the ball's
-// texture scroll as a second TEX_ANIME group.
-void Cfg(ChrPack &pack) {
-    ChrRecord               &record = pack.Require("info.cfg");
-    Bytes                    payload = record.Payload();
-    std::string              text(payload.begin(), payload.end());
-    std::vector<std::string> lines;
-    for (std::size_t from = 0;;) {
-        std::size_t end = text.find('\n', from);
-        lines.push_back(text.substr(from, end == std::string::npos ? std::string::npos : end - from));
-        if (end == std::string::npos) {
-            break;
-        }
-        from = end + 1;
-    }
-    int  k = -1;
-    bool scrolled = false;
-    for (std::string &line : lines) {
-        std::string s = line.substr(std::min(line.size(), line.find_first_not_of(" \t")));
-        if (s.starts_with("KEY_START")) {
-            k = 0;
-            continue;
-        }
-        if (s.starts_with("TEX_ANIME_END") && !scrolled) {
-            line += std::string("\nTEX_ANIME 1,1\r\n") + kBallScroll + "\r\nTEX_ANIME_END\r";
-            scrolled = true;
-        }
-        if (s.starts_with("MATERIAL_ANIME")) {
-            line = "MATERIAL_ANIME 1\r";
-        }
-        if (k >= 0 && s.starts_with("KEY") && !s.starts_with("KEY_")) {
-            std::size_t comment_at = line.find("//");
-            std::string comment = comment_at == std::string::npos ? "\r" : line.substr(comment_at);
-            if (k == kDeathKey) {
-                line = std::format("KEY\t{},\t{},\t{},\t{}", kDeathStart, kDeathEnd, "0.35", comment);
-            }
-            if (k == kDeathLoopKey) {
-                line = std::format("KEY\t{},\t{},\t0.0,\t{}", kDeathEnd, kDeathEnd, comment);
-            }
-            k++;
-        }
-    }
-    if (!scrolled) {
-        throw std::runtime_error("info.cfg has no TEX_ANIME_END to follow with the ball's scroll");
-    }
-    std::string joined;
-    for (std::size_t i = 0; i < lines.size(); i++) {
-        joined += lines[i];
-        if (i + 1 < lines.size()) {
-            joined += '\n';
-        }
-    }
-    record.ReplacePayload(Bytes(joined.begin(), joined.end()));
-}
-
 } // namespace
 
 Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<const unsigned char> ball_chr) {
@@ -445,16 +238,6 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
             throw std::runtime_error(std::format("{} has no {}", kBallMds, name));
         }
         return f->index;
-    };
-    auto track_like = [&](std::uint32_t node, std::uint32_t w1, std::uint32_t w2) {
-        MotTrack track;
-        track.w0 = node;
-        track.w1 = w1;
-        track.w2 = w2;
-        track.w3 = reference.w3;
-        track.w6 = reference.w6;
-        track.w7 = reference.w7;
-        return track;
     };
     std::vector<Graft>    grafts;
     std::vector<MotTrack> added;
@@ -485,8 +268,8 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
         Graft graft;
         for (int j : keep) {
             const MdsFrame &f = bframes[std::size_t(j)];
-            graft.records.push_back(f.parent < 0 ? Record(f.record, at + placed[j], gem->index, r, t, 1.0)
-                                                 : Record(f.record, at + placed[j], at + placed[f.parent], std::nullopt, std::nullopt, s));
+            graft.records.push_back(f.parent < 0 ? GraftRecord(f.record, at + placed[j], gem->index, r, t, 1.0)
+                                                 : GraftRecord(f.record, at + placed[j], at + placed[f.parent], std::nullopt, std::nullopt, s));
             if (f.mesh != 0) {
                 graft.meshes[placed[j]] = ScaledMesh(bmds, std::size_t(f.mesh), s);
             }
@@ -498,22 +281,22 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
                 continue;
             }
             double   stretch = kStretch / (pieces.contains(int(source.w0)) ? kPieceSpeedup : kEffectSpeedup);
-            MotTrack track = track_like(std::uint32_t(at + found->second), source.w1, source.w2);
+            MotTrack track = TrackLike(reference, std::uint32_t(at + found->second), source.w1, source.w2);
             for (const MotKeyframe &key : source.keys) {
-                std::array<double, 4> v = Wide(Values(key));
+                std::array<double, 4> v = Wide(KeyValues(key));
                 if (source.w2 == 2) {
                     v = {v[0] * s, v[1] * s, v[2] * s, v[3]};
                 }
-                track.keys.push_back(Key(std::uint32_t(kShatterStart + std::nearbyint((double(key.Frame()) - 1) * stretch)), v));
+                track.keys.push_back(MakeKey(std::uint32_t(kShatterStart + std::nearbyint((double(key.Frame()) - 1) * stretch)), v));
             }
-            std::array<double, 4> first = Wide(Values(track.keys.front())), last = Wide(Values(track.keys.back()));
+            std::array<double, 4> first = Wide(KeyValues(track.keys.front())), last = Wide(KeyValues(track.keys.back()));
             // A material-alpha key writes the species' one material: its fades are keyed from the shatter on only, so only
             // a dying Gemron writes it. Every other track is per Gemron: at rest from 0.
             if (source.w2 != kMaterialAlpha) {
-                track.keys.insert(track.keys.begin(), Key(0, first));
+                track.keys.insert(track.keys.begin(), MakeKey(0, first));
             }
             if (track.keys.back().Frame() < std::uint32_t(kTimelineEnd)) {
-                track.keys.push_back(Key(std::uint32_t(kTimelineEnd), last));
+                track.keys.push_back(MakeKey(std::uint32_t(kTimelineEnd), last));
             }
             added.push_back(std::move(track));
         }
@@ -540,9 +323,9 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
             if (found == placed.end()) {
                 continue;
             }
-            MotTrack track = track_like(std::uint32_t(at + found->second), 0, kSubtreeVisible);
+            MotTrack track = TrackLike(reference, std::uint32_t(at + found->second), 0, kSubtreeVisible);
             for (auto [f, v] : keys) {
-                track.keys.push_back(Key(std::uint32_t(f), {v, 0, 0, 0}));
+                track.keys.push_back(MakeKey(std::uint32_t(f), {v, 0, 0, 0}));
             }
             added.push_back(std::move(track));
         }
@@ -551,7 +334,7 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
             if (bframes[std::size_t(j)].name.find("__ba") == std::string::npos) {
                 continue;
             }
-            MotTrack     track = track_like(std::uint32_t(at + placed[j]), 0, 1);
+            MotTrack     track = TrackLike(reference, std::uint32_t(at + placed[j]), 0, 1);
             const double h = kHidden;
             for (auto [f, v] : {
                      std::pair{0,                 h  },
@@ -561,7 +344,7 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
                      std::pair{kShatterEnd,       h  },
                      std::pair{kTimelineEnd,      h  }
             }) {
-                track.keys.push_back(Key(std::uint32_t(f), {v, v, v, 0}));
+                track.keys.push_back(MakeKey(std::uint32_t(f), {v, v, v, 0}));
             }
             added.push_back(std::move(track));
         }
@@ -581,11 +364,11 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
     Bytes bbp = pack.Require(kBbp).Payload();
     bbp.resize(bbp.size() + 64 * (std::size_t(at) - frames.size()), 0); // bind poses (not skinned: zero)
     pack.Require(kBbp).ReplacePayload(bbp);
-    DeathClip(mot);
+    DeathClip(mot, kDeathStart, kClipFrom, kClipTo, kDeathEnd);
     mot.tracks.insert(mot.tracks.end(), added.begin(), added.end());
     pack.Require(kMot).ReplacePayload(mot.BuildPayload());
     MotFile shadow = MotFile::FromRecord(pack.Require(kShadowMot));
-    DeathClip(shadow);
+    DeathClip(shadow, kDeathStart, kClipFrom, kClipTo, kDeathEnd);
     pack.Require(kShadowMot).ReplacePayload(shadow.BuildPayload());
     // The sheets in the look; the ball's pictures into the bank (e209ex's from a row-major IMG bank, swizzled).
     ImgBank   bank = ImgBank::Parse(pack.Require(kImg).Payload());
@@ -604,7 +387,7 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
         bank.entries.emplace_back(name, tim8::Swizzled(block));
     }
     pack.Require(kImg).ReplacePayload(bank.Build());
-    Cfg(pack);
+    DeathCfg(pack, kDeathStart, kDeathEnd, kBallScroll);
     return pack.Rebuild();
 }
 
