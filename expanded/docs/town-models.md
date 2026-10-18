@@ -166,5 +166,6 @@ which has neither, can't take a ladder.
 ## Adding an ally
 
 Add a `TownAlly` to `town_allies.cpp` with its output file, base and slots; the mod's
-`docs/town-swap-animation-map.md` says why each clip was chosen. `TownModel.AlliesMatchTheModsBakes`
-checks every ally against the mod's bytes when `DC_TEST_DATA` names an extracted data directory.
+`docs/town-swap-animation-map.md` says why each clip was chosen. `ExpandedData.BuildsWhatTheModsToolsBuild`
+(`expanded/tests/data/built_files_test.cpp`) checks every built file, the allies' among them, against the mod's
+bytes when `DC_TEST_DATA` names an extracted data directory; add the new ally's file and hash to its table.

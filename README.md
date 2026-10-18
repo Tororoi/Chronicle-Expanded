@@ -27,7 +27,10 @@ still matches retail.
 - **The mod's code lives in `expanded/`:**
   - `expanded/src/`: compiled into the port. Functions are in namespace `expanded`.
   - `expanded/include/expanded/`: headers, included as `"expanded/<folder>/<name>.hpp"`.
-  - `expanded/tests/`: `<name>_test.cpp` cases, run with the port's tests.
+  - `expanded/tests/`: `<name>_test.cpp` cases, run with the port's tests. With `DC_TEST_DATA` naming an
+    extracted data directory, `ExpandedData.BuildsWhatTheModsToolsBuild` builds everything `dcdata expanded`
+    makes and checks each file's bytes; it takes a few seconds (`ctest -R ExpandedData --timeout 60`). A
+    change that is meant to alter a built file updates its hash there.
   - All three use the same folders, and a file in a folder drops the folder's name (`weapons/stats.cpp`,
     not `weapons/weapon_stats.cpp`):
     - `core/`: shared plumbing: options, per-save state, menu text, languages.
