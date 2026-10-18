@@ -17,6 +17,7 @@
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/species.hpp"
+#include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "platform/config.hpp"
 #include "platform/paths.hpp"
@@ -167,6 +168,31 @@ private:
     FloorRosters                  rosters_;
     CUserStatus                  *saved_status_;
     s32                           saved_map_;
+};
+
+// The active character's weapon for a test (NowWeaponHave): weapon_no in hand, carrying sphere's SynthSphere when
+// one is given (Super Steve's, for a sphere's effect).
+class Wielding {
+public:
+    explicit Wielding(int weapon_no, int sphere = 0) {
+        weapon_.item_no = static_cast<s16>(weapon_no);
+        if (sphere != 0) {
+            weapon_.attach[0].item_no = ITEM_ATTACH_SYNTHESIS_SPHERE;
+            weapon_.attach[0].sphere_weapon_no = static_cast<s16>(sphere);
+        }
+        NowWeaponHave = &weapon_;
+    }
+
+    ~Wielding() { NowWeaponHave = saved_; }
+
+    Wielding(const Wielding &) = delete;
+    Wielding &operator=(const Wielding &) = delete;
+
+    WEAPON_HAVE &weapon() { return weapon_; }
+
+private:
+    WEAPON_HAVE  weapon_ = {};
+    WEAPON_HAVE *saved_ = NowWeaponHave;
 };
 
 } // namespace expanded::test

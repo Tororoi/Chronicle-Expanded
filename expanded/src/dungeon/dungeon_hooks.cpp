@@ -17,6 +17,7 @@
 #include "expanded/enemies/steve.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/weapons/toan/gladius.hpp"
 
 namespace expanded {
 
@@ -67,6 +68,10 @@ void MonsterDrawn(CMonstorUnit &unit, int monster) {
 bool MonsterKilled(const CMonstorUnit &unit, int monster) {
     BossRecordKill(unit, monster);
     return BossCastCountsKill(monster);
+}
+
+int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs) {
+    return JacketHunterAbs(unit, monster, abs);
 }
 
 bool MonsterStepTaken(CMonstorUnit &unit, int monster) {

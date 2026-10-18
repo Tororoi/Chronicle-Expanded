@@ -2319,7 +2319,11 @@ void CMonstorUnit::Step(int pause) {
 
                         if (monster[current_monster].last_attacker == current_chara && no_exp == 0) {
                             int max_exp = GetWeaponMaxExp(weapon);
+#ifdef CHRONICLE_EXPANDED
+                            int exp = expanded::MonsterKillAbs(*this, current_monster, monster[current_monster].exp);
+#else
                             int exp = monster[current_monster].exp;
+#endif
 
                             if (back_dungeon != 0) {
                                 exp *= 2;
