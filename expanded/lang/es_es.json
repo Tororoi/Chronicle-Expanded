@@ -27,5 +27,6 @@
     "dun.message.ww_mes.dunmsd00.3320": "Gemron bomba",
     "dun.message.ww_mes.dunmsd00.3321": "Gemron de cristal",
     "dun.message.ww_mes.dunmsd00.3322": "Gemron atla",
-    "expanded.atla_drop.sphere": "{icon-orb}Esfera de Síntesis \"{insert1}\" obtenida."
+    "expanded.atla_drop.sphere": "{icon-orb}Esfera de Síntesis \"{insert1}\" obtenida.",
+    "expanded.wise_owl.key": "La Espada Búho percibe {insert1} cerca..."
 }

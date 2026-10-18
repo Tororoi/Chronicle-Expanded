@@ -1,5 +1,6 @@
 #include "expanded/dungeon/dungeon_hooks.hpp"
 
+#include "dun/gameloop.hpp"
 #include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/dungeon/navigation.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
@@ -18,6 +19,7 @@
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
+#include "expanded/weapons/toan/wise_owl_sword.hpp"
 
 namespace expanded {
 
@@ -47,6 +49,9 @@ void DungeonMonstersCleared(bool drop_stars) {
 void DungeonMonstersTick() {
     MonsterStepClockAdvance();
     ConfuseTick();
+    if (NowMonstorUnit != nullptr) {
+        WiseOwlStep(*NowMonstorUnit);
+    }
 }
 
 void MonsterPackFile(char *filename, int model_no) {
