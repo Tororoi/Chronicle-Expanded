@@ -121,18 +121,18 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 | ps2/src/dun/gameloop.cpp:7287 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
 | ps2/src/dun/gameloop.cpp:7312 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
 | ps2/src/dun/gameloop.cpp:7337 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
-| ps2/src/dungeonmap.cpp:3183 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
-| ps2/src/dungeonmap.cpp:3198 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
-| ps2/src/dungeonmap.cpp:3211 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
-| ps2/src/dungeonmap.cpp:3226 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
-| ps2/src/dungeonmap.cpp:3239 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
-| ps2/src/dungeonmap.cpp:3264 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
-| ps2/src/dungeonmap.cpp:3277 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
-| ps2/src/dungeonmap.cpp:3312 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
-| ps2/src/dungeonmap.cpp:3325 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
-| ps2/src/dungeonmap.cpp:3391 | CDungeonMap::SetCharaDoor | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::SetCharaDoor) |
-| ps2/src/dungeonmap.cpp:3403 | CDungeonMap::SetCharaDoor | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::SetCharaDoor) |
-| ps2/src/dungeonmap.cpp:3415 | CDungeonMap::SetCharaDoor | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::SetCharaDoor) |
+| ps2/src/dungeonmap.cpp:3175 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
+| ps2/src/dungeonmap.cpp:3190 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
+| ps2/src/dungeonmap.cpp:3203 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
+| ps2/src/dungeonmap.cpp:3218 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
+| ps2/src/dungeonmap.cpp:3231 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
+| ps2/src/dungeonmap.cpp:3256 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
+| ps2/src/dungeonmap.cpp:3269 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
+| ps2/src/dungeonmap.cpp:3304 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
+| ps2/src/dungeonmap.cpp:3317 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
+| ps2/src/dungeonmap.cpp:3383 | CDungeonMap::SetCharaDoor | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::SetCharaDoor) |
+| ps2/src/dungeonmap.cpp:3395 | CDungeonMap::SetCharaDoor | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::SetCharaDoor) |
+| ps2/src/dungeonmap.cpp:3407 | CDungeonMap::SetCharaDoor | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::SetCharaDoor) |
 | ps2/src/edit_in.cpp:465 | InitWorkBuffer | dead | round-trip | `(int)free_start` | arena (base) | cast back: (u_char *)((((int)free_start >> 6)+ 1)<< 6) |
 | ps2/src/edit_in.cpp:1867 | LoadData | replaced | low-bits | `(int)func_point[i].parts` | field | index: InteriorParts[(int)func_point[i].parts] |
 | ps2/src/edit_in.cpp:2019 | GetFuncPoint | replaced | low-bits | `(int)header->func` | field | pointer offset: (char *)header +(int)header->func |
@@ -248,18 +248,18 @@ pointer where it is stored, or resolve the integer where it comes back.
 | ps2/src/dun/gameloop.cpp:7288 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
 | ps2/src/dun/gameloop.cpp:7313 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
 | ps2/src/dun/gameloop.cpp:7338 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
-| ps2/src/dungeonmap.cpp:3184 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
-| ps2/src/dungeonmap.cpp:3199 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
-| ps2/src/dungeonmap.cpp:3212 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
-| ps2/src/dungeonmap.cpp:3227 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
-| ps2/src/dungeonmap.cpp:3240 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
-| ps2/src/dungeonmap.cpp:3265 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
-| ps2/src/dungeonmap.cpp:3278 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
-| ps2/src/dungeonmap.cpp:3313 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
-| ps2/src/dungeonmap.cpp:3326 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
-| ps2/src/dungeonmap.cpp:3392 | CDungeonMap::SetCharaDoor | replaced | `(CDungeonMap *)address` | address |
-| ps2/src/dungeonmap.cpp:3404 | CDungeonMap::SetCharaDoor | replaced | `(CDungeonMap *)address` | address |
-| ps2/src/dungeonmap.cpp:3416 | CDungeonMap::SetCharaDoor | replaced | `(CDungeonMap *)address` | address |
+| ps2/src/dungeonmap.cpp:3176 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
+| ps2/src/dungeonmap.cpp:3191 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
+| ps2/src/dungeonmap.cpp:3204 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
+| ps2/src/dungeonmap.cpp:3219 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
+| ps2/src/dungeonmap.cpp:3232 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
+| ps2/src/dungeonmap.cpp:3257 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
+| ps2/src/dungeonmap.cpp:3270 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
+| ps2/src/dungeonmap.cpp:3305 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
+| ps2/src/dungeonmap.cpp:3318 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
+| ps2/src/dungeonmap.cpp:3384 | CDungeonMap::SetCharaDoor | replaced | `(CDungeonMap *)address` | address |
+| ps2/src/dungeonmap.cpp:3396 | CDungeonMap::SetCharaDoor | replaced | `(CDungeonMap *)address` | address |
+| ps2/src/dungeonmap.cpp:3408 | CDungeonMap::SetCharaDoor | replaced | `(CDungeonMap *)address` | address |
 | ps2/src/editground.cpp:1446 | CEditGround::DrawPartsCursor | replaced | `(CFrame *)source->preview_frame` | parts->preview_frame |
 | ps2/src/editloop.cpp:987 | EditInit | replaced | `(u_char *)free_start` | free_start |
 | ps2/src/editloop.cpp:990 | EditInit | replaced | `(u_char *)free_start` | free_start |

@@ -29,9 +29,6 @@
 #include "texture.hpp"
 #include "textureanime.hpp"
 #include "userstatus.hpp"
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/dungeon/atla_drops.hpp"
-#endif
 
 /**
  * What a grid cell holds while a floor is being built, as bit flags.
@@ -1312,11 +1309,6 @@ void CDungeonMap::DrawAtraBoll(float *pos) {
     for (int i = 0; i < this->atra_num; i++) {
         if (this->atra[i].used != 0) {
             if (DistVector(this->atra[i].pos, pos) <= 160.0f * this->draw_dist_scale) {
-#ifdef CHRONICLE_EXPANDED
-                if (expanded::AtlaDrawn(*this, i)) {
-                    continue;
-                }
-#endif
                 sceVu0CopyVector(draw_pos, this->atra[i].pos);
 
                 // The ball bobs up and down on the spot.

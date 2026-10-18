@@ -64,8 +64,8 @@ Feather, rarely drops a Potato Cake. Its name is message 3322.
 
 `expanded/dungeon/atla_drops.hpp` places atlas that carry a drop of their own in place of a georama part: a weapon, or
 a weapon's SynthSphere. `PlaceAtlaDrop` lays one as `CDungeonMap::SetAtraBoll` does (part -1), or in a collected one's
-place once the floor's eight are used; `MoveAtla` takes over its draw (`DrawAtraBoll`) while it moves into place and
-keeps its pickup radius at 0 until then. Toan picks it up as any atla: `BtAtraGetShort_Loop` reads no part and saves
+place once the floor's eight are used; `MoveAtla` takes over its draw while it moves into place and
+keeps its pickup radius at 0 until then (the port's `DrawAtraBoll`, `port/src/dungeonmap.cpp`). Toan picks it up as any atla: `BtAtraGetShort_Loop` reads no part and saves
 nothing for it, and the drop is handed over (`AtlaDropTaken`) and named in place of the part (`AtlaDropNamed`). A weapon
 goes to its owner as a chest's does, or its SynthSphere when the owner has no room. A SynthSphere is a sixth of the
 weapon's base values (attack, endurance, speed, magic, elements and antis), each rounded up, with all its abilities;
