@@ -71,12 +71,6 @@ inline constexpr int kBlackKnightScreamSound = 2591;
 // scream an EVENT line at the throes' first frame.
 Bytes BuildBlackKnightModel(std::span<const unsigned char> battle, std::span<const unsigned char> cutscene);
 
-// The cfg with lines inserted before the MOTION_END after its KEY_START.
-Bytes AppendKeys(std::span<const unsigned char> cfg, std::string_view lines);
-
-// The cfg with lines inserted after the MOTION_END after its KEY_START.
-Bytes AppendEvents(std::span<const unsigned char> cfg, std::string_view lines);
-
 // The cfg's sound EVENT lines (kind 1) as (frame, sound).
 std::vector<std::pair<double, int>> SoundEvents(std::span<const unsigned char> cfg);
 

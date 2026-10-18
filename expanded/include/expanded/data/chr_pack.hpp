@@ -11,19 +11,9 @@
 #include <string_view>
 #include <vector>
 
+#include "expanded/data/bytes.hpp"
+
 namespace expanded {
-
-using Bytes = std::vector<unsigned char>;
-
-std::uint32_t Get32(std::span<const unsigned char> data, std::size_t offset);
-void          Set32(std::span<unsigned char> data, std::size_t offset, std::uint32_t value);
-float         GetF32(std::span<const unsigned char> data, std::size_t offset);
-
-// size bytes at offset, throwing (naming what) when they run past the end of data.
-std::span<const unsigned char> Slice(std::span<const unsigned char> data, std::size_t offset, std::size_t size, const char *what);
-
-// The NUL-terminated name at offset, at most max bytes.
-std::string NameAt(std::span<const unsigned char> data, std::size_t offset, std::size_t max);
 
 // One file of a pack: name, payload offset @0x40, size @0x44, stride @0x48, then the payload.
 struct ChrRecord {
@@ -65,9 +55,23 @@ struct MotKeyframe {
     void          SetFrame(std::uint32_t frame);
     float         Value(int i) const;
     void          SetValue(int i, float value);
+
+    // All four values, and set from doubles (each rounded to a float).
+    std::array<float, 4> Values() const;
+    void                 SetValues(const std::array<double, 4> &values);
+    static MotKeyframe   Make(std::uint32_t frame, const std::array<double, 4> &values);
 };
 
-// One .mot track: w0 the joint's .mds frame index, w2 the channel (0 rotation, 2 translation).
+// Keys in frame order, those on one frame kept in their order.
+void SortByFrame(std::vector<MotKeyframe> &keys);
+
+// .mot track channels (MotTrack::w2): a joint's rotation and translation, a frame's subtree shown (below 1 out of the
+// draw) and a material's alpha.
+namespace mot {
+inline constexpr std::uint32_t kRotation = 0, kTranslation = 2, kSubtreeVisible = 0x33, kMaterialAlpha = 40;
+} // namespace mot
+
+// One .mot track: w0 the joint's .mds frame index, w2 the channel (mot::).
 struct MotTrack {
     static constexpr std::size_t   kHeaderSize = 0x20;
     static constexpr std::uint32_t kTagW6 = 0x74700000;

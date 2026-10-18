@@ -8,19 +8,16 @@
 #include <sstream>
 #include <vector>
 
+#include "expanded/data/data_build.hpp"
+#include "expanded/data/stb.hpp"
+
 namespace expanded {
 
 namespace {
 
 namespace fs = std::filesystem;
 
-// Script layout: word 2 the code base, words 3 and 4 the label table and its count ({id, function header}
-// pairs); a function header's first word is its entry, from the code base. Cells are {op, a1, a2}.
-constexpr std::size_t kCell = 12;
-constexpr std::uint32_t kLoad = 1, kLoadAddress = 2, kPushConst = 3, kPop = 4, kStore = 5, kReturn = 15,
-                        kJumpFalse = 17, kJumpTrue = 18, kCall = 19, kExt = 21, kEnd = 27;
-constexpr std::uint32_t kLocal = 1;                 // a load's a2: an int local, a function's argument
-constexpr std::uint32_t kFloat = 2, kString = 3;    // a constant's a1
+// The script's layout and cells as stb.hpp has them; an int local (stb::kIntLocal) is a function's argument.
 constexpr std::int32_t  kSetDmgPara = 132, kSetShot = 133, kSetShot2 = 229;
 constexpr int           kMaxDepth = 8;
 
@@ -45,9 +42,9 @@ public:
     // A function's cells, from its entry to the return followed by an empty cell.
     std::vector<std::size_t> Cells(std::size_t base, std::size_t header) const {
         std::vector<std::size_t> cells;
-        for (std::size_t at = base + U32(header); at + kCell <= Size(); at += kCell) {
+        for (std::size_t at = base + U32(header); at + stb::kCell <= Size(); at += stb::kCell) {
             cells.push_back(at);
-            if (U32(at) == kReturn && (at + 2 * kCell > Size() || U32(at + kCell) == 0)) {
+            if (U32(at) == stb::kReturn && (at + 2 * stb::kCell > Size() || U32(at + stb::kCell) == 0)) {
                 break;
             }
         }
@@ -91,7 +88,7 @@ std::optional<ScriptDamage> ReadScriptDamage(std::span<const std::uint8_t> bytes
         for (std::size_t at : script.Cells(base, header)) {
             std::uint32_t op = script.U32(at);
             std::size_t   target = base + script.U32(at + 8);
-            if ((op == kCall || op == kEnd) && target < bytes.size() && functions.insert(target).second) {
+            if ((op == stb::kCall || op == stb::kEnd) && target < bytes.size() && functions.insert(target).second) {
                 todo.push_back(target);
             }
         }
@@ -107,22 +104,22 @@ std::optional<ScriptDamage> ReadScriptDamage(std::span<const std::uint8_t> bytes
         for (std::size_t at : script.Cells(base, header)) {
             std::uint32_t op = script.U32(at), a1 = script.U32(at + 4), a2 = script.U32(at + 8);
             switch (op) {
-                case kLoad:
-                    stack.push_back(a2 == kLocal ? Value{Value::Argument, static_cast<std::int32_t>(a1)} : Value{});
+                case stb::kLoad:
+                    stack.push_back(a2 == stb::kIntLocal ? Value{Value::Argument, static_cast<std::int32_t>(a1)} : Value{});
                     break;
-                case kLoadAddress:
+                case stb::kLoadAddress:
                     stack.push_back({});
                     break;
-                case kPushConst:
-                    stack.push_back(a1 != kFloat && a1 != kString ? Value{Value::Constant, static_cast<std::int32_t>(a2)} : Value{});
+                case stb::kPushConst:
+                    stack.push_back(a1 != stb::kFloat && a1 != stb::kString ? Value{Value::Constant, static_cast<std::int32_t>(a2)} : Value{});
                     break;
-                case kPop:
-                case kReturn:
-                case kJumpFalse:
-                case kJumpTrue:
+                case stb::kPop:
+                case stb::kReturn:
+                case stb::kJumpFalse:
+                case stb::kJumpTrue:
                     pop(1);
                     break;
-                case kStore:
+                case stb::kStore:
                 case 6: case 7: case 8: case 9: case 10: case 14: case 24: case 25: // binary operators
                     pop(2);
                     stack.push_back({});
@@ -131,7 +128,7 @@ std::optional<ScriptDamage> ReadScriptDamage(std::span<const std::uint8_t> bytes
                     pop(1);
                     stack.push_back({});
                     break;
-                case kExt: {
+                case stb::kExt: {
                     std::size_t        n = std::min<std::size_t>(a1, stack.size());
                     std::vector<Value> args(stack.end() - static_cast<std::ptrdiff_t>(n), stack.end());
                     pop(n);
@@ -148,8 +145,8 @@ std::optional<ScriptDamage> ReadScriptDamage(std::span<const std::uint8_t> bytes
                     stack.push_back({});
                     break;
                 }
-                case kCall:
-                case kEnd:
+                case stb::kCall:
+                case stb::kEnd:
                     calls[base + a2].push_back({at, header});
                     stack.push_back({});
                     break;
@@ -171,10 +168,10 @@ std::optional<ScriptDamage> ReadScriptDamage(std::span<const std::uint8_t> bytes
         }
         for (auto [site, caller] : calls[function]) {
             std::vector<std::size_t> args;
-            for (std::size_t at = site; at >= base + kCell;) {
-                at -= kCell;
+            for (std::size_t at = site; at >= base + stb::kCell;) {
+                at -= stb::kCell;
                 std::uint32_t op = script.U32(at);
-                if (op != kLoad && op != kLoadAddress && op != kPushConst) {
+                if (op != stb::kLoad && op != stb::kLoadAddress && op != stb::kPushConst) {
                     break;
                 }
                 args.insert(args.begin(), at);
@@ -184,9 +181,9 @@ std::optional<ScriptDamage> ReadScriptDamage(std::span<const std::uint8_t> bytes
             }
             std::size_t   at = args[value.value];
             std::uint32_t op = script.U32(at), a1 = script.U32(at + 4), a2 = script.U32(at + 8);
-            if (op == kPushConst && a1 != kFloat && a1 != kString) {
+            if (op == stb::kPushConst && a1 != stb::kFloat && a1 != stb::kString) {
                 out.push_back(static_cast<std::int32_t>(a2));
-            } else if (op == kLoad && a2 == kLocal) {
+            } else if (op == stb::kLoad && a2 == stb::kIntLocal) {
                 self(self, Value{Value::Argument, static_cast<std::int32_t>(a1)}, caller, depth + 1, seen, out);
             }
         }
@@ -254,22 +251,14 @@ int BuildScriptDamage(const fs::path &data, std::FILE *log) {
         }
     }
     std::string text = FormatScriptDamage(scripts);
-    fs::path    target = data / kScriptDamageFile;
-    std::string current;
-    if (std::ifstream old(target, std::ios::binary); old) {
-        current.assign(std::istreambuf_iterator<char>(old), std::istreambuf_iterator<char>());
+    bool        unchanged = false;
+    try {
+        unchanged = WriteIfChanged(data / kScriptDamageFile, Bytes(text.begin(), text.end()));
+    } catch (const std::exception &failure) {
+        say(std::format("script damage: {}\n", failure.what()));
+        return 1;
     }
-    if (current != text) {
-        fs::create_directories(target.parent_path(), error);
-        std::ofstream stream(target, std::ios::binary | std::ios::trunc);
-        stream << text;
-        stream.close();
-        if (!stream) {
-            say(std::format("script damage: cannot write {}\n", target.string()));
-            return 1;
-        }
-    }
-    say(std::format("script damage: {} ({} scripts{})\n", kScriptDamageFile, scripts.size(), current == text ? ", unchanged" : ""));
+    say(std::format("script damage: {} ({} scripts{})\n", kScriptDamageFile, scripts.size(), unchanged ? ", unchanged" : ""));
     return 0;
 }
 

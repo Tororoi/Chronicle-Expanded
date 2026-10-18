@@ -30,16 +30,26 @@ Vec3   Cross(const Vec3 &a, const Vec3 &b);
 double Dot(const Vec3 &a, const Vec3 &b);
 Vec3   Unit(const Vec3 &a);
 Mat3   MatMul(const Mat3 &a, const Mat3 &b);
+Mat4   MatMul4(const Mat4 &a, const Mat4 &b);
 Vec3   MatVec(const Mat3 &m, const Vec3 &v);
 // The rotation by angle radians about unit axis, right-hand rule (Rodrigues).
 Mat3 AxisRotation(const Vec3 &axis, double angle);
 // The rotation taking +Y onto unit d.
 Mat3 RotationYTo(const Vec3 &d);
+// A key's float values as doubles.
+std::array<double, 4> Wide(const std::array<float, 4> &v);
 // Two .mot rotation keys (w first) slerped the shorter way round, linear past 0.9995.
 std::array<double, 4> SlerpKeys(const std::array<float, 4> &a, const std::array<float, 4> &b, double t);
 
-// One .mds frame record (0x70 bytes): its index, name @8, mesh offset @0x28 (0 for none), parent @0x2C, then its
-// local matrix (rotation rows @0x30, translation @0x60); world is its bind pose (row vectors, world = local x parent).
+// An .mds: its frame count @0x08 and the frame table's offset @0x0C (kTable in every pack), the records, then the
+// meshes. A record (kRecord bytes): its index, its size @4, name @kName, mesh offset @kMesh (0 for none), parent
+// @kParent, then its local matrix (rotation rows @kRotation, translation @kPosition).
+namespace mds {
+inline constexpr std::size_t kTable = 0x10, kRecord = 0x70;
+inline constexpr std::size_t kName = 0x08, kMesh = 0x28, kParent = 0x2C, kRotation = 0x30, kPosition = 0x60;
+} // namespace mds
+
+// One .mds frame record; world is its bind pose (row vectors, world = local x parent).
 struct MdsFrame {
     int         index = 0;
     int         parent = -1;
@@ -64,13 +74,20 @@ const MdsFrame *FindFrame(const std::vector<MdsFrame> &frames, std::string_view 
 // The MDT mesh at offset in an .mds.
 Bytes MdtAt(std::span<const unsigned char> mds, std::size_t offset);
 
+// An .mds of records and their meshes (none, or empty, for a frame without one) after source's first 8 bytes: the
+// meshes after the table, each padded to 16, every record's mesh offset laid.
+Bytes LayOutMds(std::span<const unsigned char> source, std::vector<Bytes> records, const std::vector<std::optional<Bytes>> &meshes);
+
 // An .mds with some frames' meshes replaced (name -> MDT; nullopt drops the mesh) and records appended after the last
 // (record, MDT), every mesh offset laid again.
 Bytes ReplaceMeshes(std::span<const unsigned char> mds, const std::map<std::string, std::optional<Bytes>> &replaced,
                     const std::vector<std::pair<Bytes, Bytes>> &appended = {});
 
-// A new frame record: index, name, parent, identity matrix, no mesh.
-Bytes FrameRecord(int index, std::string_view name, int parent);
+// A new frame record: index, name, parent, rotation rows and position, no mesh.
+inline constexpr Mat3 kIdentity = {
+    {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
+};
+Bytes FrameRecord(int index, std::string_view name, int parent, const Mat3 &rotation = kIdentity, const Vec3 &position = {0, 0, 0});
 
 // An MDT mesh read into its blocks and laid back out byte for byte (blocks in their recorded order with the padding
 // between them). A display list record is (position, normal, texture coordinate[, colour]) indices; the block the

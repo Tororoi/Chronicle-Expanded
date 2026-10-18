@@ -199,19 +199,6 @@ TEST(BlackKnightModel, AppendsTheDefeatsBowAndThroesWithTheScream) {
     EXPECT_EQ(mot.TrackBy(1, 0)->keys.back().Frame(), 707u);
 }
 
-TEST(JoeModel, AppendsKeysBeforeTheMotionEnd) {
-    std::string cfg = Cfg("a", "KEY\t1,\t2,\t0.1,\t//a\r\n") + "EVENT 1,1,1\r\n";
-    EXPECT_EQ(Str(AppendKeys(Bytes(cfg.begin(), cfg.end()), "KEY\t3,\t4,\t0.1,\t//b\r\n")),
-              Cfg("a", "KEY\t1,\t2,\t0.1,\t//a\r\nKEY\t3,\t4,\t0.1,\t//b\r\n") + "EVENT 1,1,1\r\n");
-    std::string none = "MODEL \"a.mds\"\r\n";
-    EXPECT_THROW(AppendKeys(Bytes(none.begin(), none.end()), "KEY\r\n"), std::runtime_error);
-}
-
-TEST(JoeModel, AppendsEventsAfterTheMotionEnd) {
-    std::string cfg = Cfg("a", "KEY\t1,\t2,\t0.1,\t//a\r\n") + "EVENT 1,1,1\r\n";
-    EXPECT_EQ(Str(AppendEvents(Bytes(cfg.begin(), cfg.end()), "EVENT 2,1,2\r\n")),
-              Cfg("a", "KEY\t1,\t2,\t0.1,\t//a\r\n") + "EVENT 2,1,2\r\nEVENT 1,1,1\r\n");
-}
 
 TEST(JoeModel, ReadsTheSoundEvents) {
     std::string cfg = "EVENT 40,1,1799 //x\r\nEVENT 49.8,1,1800\r\n\tEVENT 3, 0, 2\r\n//EVENT 5,1,6\r\n";

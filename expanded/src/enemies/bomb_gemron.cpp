@@ -65,7 +65,7 @@ constexpr int kRelight = 60;
 // The fuse: the big bomb's wick centreline, tip first, in its bone's frame (the built bomb's placement), the spark at
 // its tip until a fuse burns it down; the flash (the machine-gun hit's, at 3 across, its three cells 4 frames each)
 // and a guard spark burst every 15 frames (20 marks at twice the size, scattered 0.75, bouncing 6 below the wick).
-constexpr const char *kBombFrame = "tama1__m";
+constexpr const char *kBombFrame = kGemronBigGem;
 constexpr float       kWick[][3] = {
     {-4.502f,  0.4241f, 0.163f },
     {-4.7109f, 0.4496f, 0.1215f},

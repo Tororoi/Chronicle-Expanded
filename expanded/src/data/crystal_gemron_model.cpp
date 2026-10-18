@@ -12,6 +12,7 @@
 #include "expanded/data/gemron_parts.hpp"
 #include "expanded/data/model_parts.hpp"
 #include "expanded/data/sheet_look.hpp"
+#include "expanded/data/stb.hpp"
 
 namespace expanded {
 
@@ -30,8 +31,8 @@ constexpr const char *kBallMot = "e209ball_b.mot";
 // The ball's shell in its own model sits 1.0 over its root. It hangs from each gem bone; only the big one keeps its
 // glints, beams and rings (null14).
 constexpr double      kBallRadius = 1.0;
-constexpr const char *kGems[] = {"tama1__m", "tamas00__m", "tamas03__m"};
-constexpr const char *kEffectGem = "tama1__m";
+constexpr const char *kGems[] = {kGemronBigGem, kGemronSmallGems[0], kGemronSmallGems[1]};
+constexpr const char *kEffectGem = kGemronBigGem;
 constexpr const char *kPiecesRoot = "null9";
 constexpr const char *kEffectsRoot = "null14";
 constexpr const char *kShardsRoot = "null10";
@@ -45,14 +46,13 @@ constexpr double kDeathSpeed = 0.35, kBallSpeed = 0.1;
 constexpr int    kDeathStart = 200;
 constexpr double kPieceSpeedup = 2.0, kEffectSpeedup = 1.5;
 const double     kStretch = kDeathSpeed / kBallSpeed;
-constexpr int    kShatterStart = kDeathStart + kShatterFrom - kClipFrom;
+constexpr int    kShatterStart = kCrystalShatterFrame;
+static_assert(kShatterStart == kDeathStart + kShatterFrom - kClipFrom);
 const int        kShatterEnd = kShatterStart + static_cast<int>(std::nearbyint(20 * kStretch / kEffectSpeedup));
 const int        kDeathEnd = kShatterEnd;
 // The engine plays a track only between two of its keys, so every track runs from 0 to one past the last frame any key
 // plays.
 const int               kTimelineEnd = kDeathEnd + 1;
-constexpr std::uint32_t kMaterialAlpha = 40;
-constexpr std::uint32_t kSubtreeVisible = 0x33; // < 1: the frame and its subtree out of the draw
 constexpr float         kHidden = 0.001f;
 constexpr const char   *kBallScroll = "TEX_SCROLL_DATA \"ball_b01\",0,32,128,32,\"ball_b01\",0,0,0.5,0.5,0,1\t//\x8b\xca"; // 玉
 
@@ -74,25 +74,13 @@ Mat3 QuatToMat(const std::array<double, 4> &q) {
     };
 }
 
-Mat4 MatMul4(const Mat4 &a, const Mat4 &b) {
-    Mat4 out{};
-    for (int r = 0; r < 4; r++) {
-        for (int c = 0; c < 4; c++) {
-            out[std::size_t(r)][std::size_t(c)] =
-                ExactSum({a[std::size_t(r)][0] * b[0][std::size_t(c)], a[std::size_t(r)][1] * b[1][std::size_t(c)],
-                          a[std::size_t(r)][2] * b[2][std::size_t(c)], a[std::size_t(r)][3] * b[3][std::size_t(c)]});
-        }
-    }
-    return out;
-}
-
 // Every frame's world matrix at a frame of the motion.
 std::vector<Mat4> PoseWorld(const std::vector<MdsFrame> &frames, const MotFile &mot, double frame) {
     std::map<std::uint32_t, const MotTrack *> rotation, translation;
     for (const MotTrack &track : mot.tracks) {
-        if (track.w2 == 0) {
+        if (track.w2 == mot::kRotation) {
             rotation[track.w0] = &track;
-        } else if (track.w2 == 2) {
+        } else if (track.w2 == mot::kTranslation) {
             translation[track.w0] = &track;
         }
     }
@@ -283,20 +271,20 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
             double   stretch = kStretch / (pieces.contains(int(source.w0)) ? kPieceSpeedup : kEffectSpeedup);
             MotTrack track = TrackLike(reference, std::uint32_t(at + found->second), source.w1, source.w2);
             for (const MotKeyframe &key : source.keys) {
-                std::array<double, 4> v = Wide(KeyValues(key));
-                if (source.w2 == 2) {
+                std::array<double, 4> v = Wide(key.Values());
+                if (source.w2 == mot::kTranslation) {
                     v = {v[0] * s, v[1] * s, v[2] * s, v[3]};
                 }
-                track.keys.push_back(MakeKey(std::uint32_t(kShatterStart + std::nearbyint((double(key.Frame()) - 1) * stretch)), v));
+                track.keys.push_back(MotKeyframe::Make(std::uint32_t(kShatterStart + std::nearbyint((double(key.Frame()) - 1) * stretch)), v));
             }
-            std::array<double, 4> first = Wide(KeyValues(track.keys.front())), last = Wide(KeyValues(track.keys.back()));
+            std::array<double, 4> first = Wide(track.keys.front().Values()), last = Wide(track.keys.back().Values());
             // A material-alpha key writes the species' one material: its fades are keyed from the shatter on only, so only
             // a dying Gemron writes it. Every other track is per Gemron: at rest from 0.
-            if (source.w2 != kMaterialAlpha) {
-                track.keys.insert(track.keys.begin(), MakeKey(0, first));
+            if (source.w2 != mot::kMaterialAlpha) {
+                track.keys.insert(track.keys.begin(), MotKeyframe::Make(0, first));
             }
             if (track.keys.back().Frame() < std::uint32_t(kTimelineEnd)) {
-                track.keys.push_back(MakeKey(std::uint32_t(kTimelineEnd), last));
+                track.keys.push_back(MotKeyframe::Make(std::uint32_t(kTimelineEnd), last));
             }
             added.push_back(std::move(track));
         }
@@ -323,9 +311,9 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
             if (found == placed.end()) {
                 continue;
             }
-            MotTrack track = TrackLike(reference, std::uint32_t(at + found->second), 0, kSubtreeVisible);
+            MotTrack track = TrackLike(reference, std::uint32_t(at + found->second), 0, mot::kSubtreeVisible);
             for (auto [f, v] : keys) {
-                track.keys.push_back(MakeKey(std::uint32_t(f), {v, 0, 0, 0}));
+                track.keys.push_back(MotKeyframe::Make(std::uint32_t(f), {v, 0, 0, 0}));
             }
             added.push_back(std::move(track));
         }
@@ -344,7 +332,7 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
                      std::pair{kShatterEnd,       h  },
                      std::pair{kTimelineEnd,      h  }
             }) {
-                track.keys.push_back(MakeKey(std::uint32_t(f), {v, v, v, 0}));
+                track.keys.push_back(MotKeyframe::Make(std::uint32_t(f), {v, v, v, 0}));
             }
             added.push_back(std::move(track));
         }
@@ -389,86 +377,6 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
     pack.Require(kImg).ReplacePayload(bank.Build());
     DeathCfg(pack, kDeathStart, kDeathEnd, kBallScroll);
     return pack.Rebuild();
-}
-
-} // namespace expanded
-
-namespace expanded {
-
-namespace {
-
-constexpr std::uint32_t kOpPushConst = 3, kOpAdd = 6, kOpRet = 15, kOpCall = 19;
-constexpr std::uint32_t kInt = 1, kFloat = 2;
-constexpr float         kCryFrame = 214.0f;
-constexpr std::uint32_t kSoundBase = 2501, kCryOffset = 11;
-constexpr int           kShatterSound = 312; // the life sphere breaking, in the Ice Queen's arena set
-constexpr float         kVanillaRange = 70.0f, kShotRange = 140.0f;
-constexpr float         kVanillaWalkIn = 50.0f, kWalkIn = 100.0f;
-
-float Float(std::span<const unsigned char> data, std::size_t at) {
-    return GetF32(data, at);
-}
-
-void PutFloat(Bytes &data, std::size_t at, float value) {
-    std::uint32_t bits;
-    std::memcpy(&bits, &value, 4);
-    Set32(data, at, bits);
-}
-
-// The header of a label's function: its first word the code's offset from the code base.
-std::size_t Label(std::span<const unsigned char> stb, std::uint32_t id) {
-    std::size_t table = Get32(stb, 0xC), count = Get32(stb, 0x10);
-    for (std::size_t i = 0; i < count; i++) {
-        if (Get32(stb, table + i * 8) == id) {
-            return Get32(stb, table + i * 8 + 4);
-        }
-    }
-    throw std::runtime_error(std::format("e115a.stb has no label {}", id));
-}
-
-} // namespace
-
-Bytes BuildCrystalGemronScript(std::span<const unsigned char> stb) {
-    std::size_t base = Get32(stb, 8);
-    // The death wait cries at frame 214, which the vanilla clip never reaches: it sounds the shatter as the ball breaks.
-    std::size_t death_call = base + Get32(stb, Label(stb, 120));
-    if (Get32(stb, death_call) != kOpCall) {
-        throw std::runtime_error("e115a.stb: label 120 does not start with a CALL");
-    }
-    std::size_t call = base + Get32(stb, base + Get32(stb, death_call + 8));
-    while (Get32(stb, call) != kOpCall) {
-        if (Get32(stb, call) == kOpRet) {
-            throw std::runtime_error("e115a.stb: the death function has no CALL");
-        }
-        call += 12;
-    }
-    std::size_t push = call - 12, id = push - 24;
-    if (Get32(stb, push) != kOpPushConst || Get32(stb, push + 4) != kFloat || Float(stb, push + 8) != kCryFrame ||
-        Get32(stb, push - 36) != kOpPushConst || Get32(stb, push - 32) != kInt || Get32(stb, push - 28) != kSoundBase ||
-        Get32(stb, push - 12) != kOpAdd || Get32(stb, id) != kOpPushConst || Get32(stb, id + 4) != kInt || Get32(stb, id + 8) != kCryOffset) {
-        throw std::runtime_error("e115a.stb: the death wait is not the vanilla cry at frame 214");
-    }
-    Bytes out(stb.begin(), stb.end());
-    PutFloat(out, push + 8, float(kShatterStart));
-    Set32(out, id + 8, static_cast<std::uint32_t>(kShatterSound - int(kSoundBase)));
-    // The AI loop (label 100) shoots within 140 and walks closer beyond it, to 100.
-    std::size_t loop = base + Get32(stb, Label(stb, 100));
-    int         ranges = 0, walks = 0;
-    for (std::size_t c = loop; c + 12 <= stb.size() && Get32(stb, c) != kOpRet; c += 12) {
-        if (Get32(stb, c) == kOpPushConst && Get32(stb, c + 4) == kFloat && Float(stb, c + 8) == kVanillaRange) {
-            PutFloat(out, c + 8, kShotRange);
-            ranges++;
-        }
-        if (c > loop && Get32(stb, c) == kOpCall && Get32(stb, c - 12) == kOpPushConst && Get32(stb, c - 8) == kFloat &&
-            Float(stb, c - 4) == kVanillaWalkIn) {
-            PutFloat(out, c - 4, kWalkIn);
-            walks++;
-        }
-    }
-    if (ranges != 3 || walks != 1) {
-        throw std::runtime_error(std::format("e115a.stb: {} ranges and {} walks in the AI loop, expected 3 and 1", ranges, walks));
-    }
-    return out;
 }
 
 } // namespace expanded

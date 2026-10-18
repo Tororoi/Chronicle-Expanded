@@ -11,6 +11,10 @@
 
 namespace expanded {
 
+// Every Gemron's gems: the big one on its head and the two small ones.
+inline constexpr const char *kGemronBigGem = "tama1__m";
+inline constexpr const char *kGemronSmallGems[] = {"tamas00__m", "tamas03__m"};
+
 // The Bomb Gemron: Ice Gemron's pack (the five Gemrons share one rig and sheet layout) in its own look, its three gems
 // the thrown bomb, a glow disc on the big bomb and a self-destruct motion; and its thrown bomb's pack.
 inline constexpr const char *kBombGemronModelFile = "expanded/monstor/e167a.chr";
@@ -41,6 +45,8 @@ inline constexpr const char *kCrystalGemronSource = "dun/monstor/e115a.chr";
 inline constexpr const char *kCrystalGemronScriptSource = "dun/monstor/e115a.stb";
 inline constexpr const char *kCrystalBallFile = "gedit/s34/chara/e209ball_b.chr";
 inline constexpr const char *kCrystalEyeFrame = "eyes";
+// The frame its ball shatters on: the death clip's (from 200) copy of the vanilla death's frame 121 (from 105).
+inline constexpr int kCrystalShatterFrame = 216;
 
 extern const char *const kCrystalGemronLook;
 

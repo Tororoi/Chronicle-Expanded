@@ -34,7 +34,7 @@ std::string Keys() {
 expanded::MotTrack Track(std::initializer_list<std::pair<std::uint32_t, float>> keys) {
     expanded::MotTrack track;
     for (auto [frame, value] : keys) {
-        track.keys.push_back(expanded::MakeKey(frame, {value, 0, 0, 0}));
+        track.keys.push_back(expanded::MotKeyframe::Make(frame, {value, 0, 0, 0}));
     }
     track.w2 = 2;
     return track;

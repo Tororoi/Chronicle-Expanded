@@ -8,9 +8,11 @@ The town ally swap (`kTownAllyBodies` in `town/ally.hpp`) loads an ally's built 
 it, and otherwise the ally's disc model, which lacks most motions, logging once which models are missing.
 
 The code is `expanded/src/data/`: `chr_pack.cpp` reads and rebuilds `.chr` packs and their `.mot`
-motions, `town_model.cpp` assembles a model, and `town_allies.cpp` is the table of allies. It is the
-Dark Cloud Expanded mod's ISO bake (`IsoPatch/TownModelBakes.cs`) moved to C++, and builds the same
-bytes from the same disc files: every ally's model matched the mod's, on the PAL and NTSC discs.
+motions, `town_model.cpp` assembles a model from `town_rig.cpp`'s cfg text and rig math,
+`town_motion_graft.cpp`'s motion grafts and window edits and `town_mesh_graft.cpp`'s mesh-node graft,
+and `town_allies.cpp` is the table of allies. It is the Dark Cloud Expanded mod's ISO bake
+(`IsoPatch/TownModelBakes.cs`) moved to C++, and builds the same bytes from the same disc files: every
+ally's model matched the mod's, on the PAL and NTSC discs.
 
 ## Motion slots
 
