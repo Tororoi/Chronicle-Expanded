@@ -13,6 +13,10 @@
 #include "mainselect.hpp"
 #include "nowload.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/toan/bone_rapier.hpp"
+#endif
+
 // Retail keeps the floor's event script in BtEventData, an s32, and casts it back to a pointer
 // to run an event. Both ends are replaced to hold the address whole; nothing else reads it.
 
@@ -79,6 +83,11 @@ PORT_OVERRIDE int _ITEM_USE_WINDOW(RS_STACKDATA *stack, int argument_count) {
     }
 
     BtEventInfo.item_select_list[i] = -1;
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::SkeletonKeyAnswers(BtEventInfo.item_select_list, PortItemSelectResult)) {
+        return 1;
+    }
+#endif
     BtEventInfo.request = BT_REQUEST_ITEM_WINDOW;
     return 1;
 }
