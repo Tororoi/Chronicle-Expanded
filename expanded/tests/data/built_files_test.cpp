@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -10,6 +9,7 @@
 #include <system_error>
 
 #include "expanded/data/data.hpp"
+#include "test_support.hpp"
 
 namespace fs = std::filesystem;
 
@@ -57,15 +57,13 @@ TEST(ExpandedData, BuildsWhatTheModsToolsBuild) {
     if (data == nullptr) {
         GTEST_SKIP() << "DC_TEST_DATA is not set";
     }
-    fs::path        scratch = fs::temp_directory_path() / ("dc_expanded_data_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
-    std::error_code error;
-    fs::remove_all(scratch, error);
-    fs::create_directories(scratch);
+    expanded::test::ScratchDir folder("expanded_data");
+    const fs::path            &scratch = folder.path();
+    std::error_code            error;
     for (const fs::directory_entry &entry : fs::directory_iterator(data)) {
         if (entry.path().filename() != "expanded") {
             fs::create_symlink(fs::absolute(entry.path()), scratch / entry.path().filename(), error);
             if (error) {
-                fs::remove_all(scratch, error);
                 GTEST_SKIP() << "cannot link the data here: " << error.message();
             }
         }
@@ -87,5 +85,4 @@ TEST(ExpandedData, BuildsWhatTheModsToolsBuild) {
                 << entry.path() << " is built but not checked";
         }
     }
-    fs::remove_all(scratch, error);
 }

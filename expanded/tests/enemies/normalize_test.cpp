@@ -7,6 +7,7 @@
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/normalize.hpp"
 #include "monstorunit.hpp"
+#include "test_support.hpp"
 #include "userstatus.hpp"
 
 namespace {
@@ -59,32 +60,16 @@ TEST(EnemyNormalize, MimicsAndBossesKeepTheirStats) {
 }
 
 TEST(EnemyNormalize, AKindSetUpOnAFloorIsNormalizedForItsRegion) {
-    auto           unit = std::make_unique<CMonstorUnit>();
-    auto           status = std::make_unique<CUserStatus>();
-    CUserStatus   *saved_status = UserStatus;
-    s32            saved_map = selectMapNo;
-    UserStatus = status.get();
-    selectMapNo = 0;
-    UserStatus->cur_floor = 2;
-    for (MONSTOR &monster : unit->monster) {
-        monster.state = -1;
-    }
-
-    unit->model[1] = MonstorTable[No(Monster::WEREWOLF)];
-    expanded::EnemyModelSetUp(*unit, 1, No(Monster::WEREWOLF));
-    unit->monster[0].state = 1;
-    unit->monster[0].base_model = 1;
-    unit->monster[0].max_hp = unit->monster[0].hp = 180;
-    expanded::EnemySpawned(*unit, 0);
-    EXPECT_EQ(unit->monster[0].max_hp, 90);
-    EXPECT_EQ(unit->monster[0].exp, 5);
-    EXPECT_EQ(unit->monster[0].defense, 0);
+    expanded::test::TestFloor floor(0, 2);
+    MONSTOR                  &live = floor.unit().monster[0];
+    floor.SetUpModel(1, Monster::WEREWOLF);
+    floor.Spawn(0, 1);
+    EXPECT_EQ(live.max_hp, 90);
+    EXPECT_EQ(live.exp, 5);
+    EXPECT_EQ(live.defense, 0);
 
     selectMapNo = 1;
-    expanded::EnemyModelSetUp(*unit, 1, No(Monster::WEREWOLF));
-    expanded::EnemySpawned(*unit, 0);
-    EXPECT_EQ(unit->monster[0].max_hp, 180);
-
-    UserStatus = saved_status;
-    selectMapNo = saved_map;
+    floor.SetUpModel(1, Monster::WEREWOLF);
+    floor.Spawn(0, 1);
+    EXPECT_EQ(live.max_hp, 180);
 }

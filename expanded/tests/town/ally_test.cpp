@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <cstdlib>
 #include <filesystem>
-#include <format>
 #include <fstream>
 
 #include "battlemenu.hpp"
@@ -12,6 +10,7 @@
 #include "expanded/town/ally.hpp"
 #include "main.hpp"
 #include "platform/paths.hpp"
+#include "test_support.hpp"
 
 TEST(TownAlly, CommitsOnlyPartyMembersOutsideYellowDrops) {
     int saved_map = MapNo;
@@ -75,7 +74,8 @@ TEST(TownAlly, ToanIsTheFirstBody) {
 
 TEST(TownAlly, BuiltModelsReplaceTheDiscBodies) {
     namespace fs = std::filesystem;
-    fs::path dir = fs::temp_directory_path() / std::format("dc_town_ally_{}", std::rand());
+    expanded::test::ScratchDir scratch("town_ally");
+    fs::path                   dir = scratch.path();
     fs::create_directories(dir / "expanded/town");
     std::ofstream(dir / "expanded/town/ungaga.chr") << "chr";
 
@@ -89,7 +89,6 @@ TEST(TownAlly, BuiltModelsReplaceTheDiscBodies) {
 
     PathsReset();
     expanded::TownAllyReset();
-    fs::remove_all(dir);
 }
 
 TEST(TownAllyMenu, ASwapPlaysTheDungeonChangeAndARefusalLeavesThePage) {

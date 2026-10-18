@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <string>
@@ -9,6 +8,7 @@
 
 #include "expanded/data/boss_model.hpp"
 #include "expanded/data/chr_pack.hpp"
+#include "test_support.hpp"
 
 using namespace expanded;
 
@@ -210,9 +210,7 @@ TEST(JoeModel, ReadsTheSoundEvents) {
 }
 
 TEST(JoeModel, SkipsDataWithoutHisPacks) {
-    fs::path dir = fs::temp_directory_path() / std::format("dc_boss_model_{}", std::rand());
-    fs::create_directories(dir);
-    EXPECT_EQ(BuildBossModels(dir, nullptr), 0);
-    EXPECT_FALSE(fs::exists(dir / "expanded"));
-    fs::remove_all(dir);
+    expanded::test::ScratchDir dir("boss_model");
+    EXPECT_EQ(BuildBossModels(dir.path(), nullptr), 0);
+    EXPECT_FALSE(fs::exists(dir.path() / "expanded"));
 }

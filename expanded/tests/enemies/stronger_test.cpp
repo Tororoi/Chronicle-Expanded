@@ -13,7 +13,7 @@
 #include "monstorunit.hpp"
 #include "platform/config.hpp"
 #include "platform/paths.hpp"
-#include "platform_fixture.hpp"
+#include "test_support.hpp"
 #include "userstatus.hpp"
 
 namespace {
@@ -50,26 +50,12 @@ TEST(StrongerEnemies, AMimicIsAtLeastTheNextOne) {
 }
 
 TEST(StrongerEnemies, TheToggleScalesTheFloorsOwnMonsters) {
-    std::filesystem::path root =
-        std::filesystem::temp_directory_path() / ("dc_stronger_enemies_" + std::to_string(dc::test::ProcessId()));
-    std::filesystem::create_directories(root);
-    PathsSetSaveRoot(root);
-    Config config = ConfigGet();
-    ASSERT_TRUE(expanded::SetOption(config.expanded_options, expanded::kStrongerEnemies, true));
-    ASSERT_TRUE(ConfigChange(config));
+    expanded::test::OptionScope options;
+    ASSERT_TRUE(options.Set(expanded::kStrongerEnemies, true));
     ASSERT_TRUE(expanded::StrongerEnemies());
 
-    auto         unit = std::make_unique<CMonstorUnit>();
-    auto         status = std::make_unique<CUserStatus>();
-    CUserStatus *saved_status = UserStatus;
-    UserStatus = status.get();
-    UserStatus->cur_floor = 4;
-    selectMapNo = 1;
-    unit->model[0] = MonstorTable[No(Monster::WEREWOLF)];
-    expanded::EnemyModelSetUp(*unit, 0, No(Monster::WEREWOLF));
+    expanded::test::TestFloor floor(1, 4);
+    floor.SetUpModel(0, Monster::WEREWOLF);
     EXPECT_EQ(expanded::SpeciesStats(0).hp, 493);
     EXPECT_EQ(expanded::SpeciesStats(0).abs, 12);
-
-    UserStatus = saved_status;
-    std::filesystem::remove_all(root);
 }

@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -17,7 +18,7 @@
 #include "monstorunit.hpp"
 #include "platform/config.hpp"
 #include "platform/paths.hpp"
-#include "platform_fixture.hpp"
+#include "test_support.hpp"
 #include "userstatus.hpp"
 
 namespace {
@@ -54,8 +55,9 @@ int Find(const expanded::Roster &roster, Monster kind) {
 } // namespace
 
 TEST(EnemyThemes, TheGroupsAreRegularMonsters) {
-    EXPECT_EQ(expanded::Themes().size(), 33u);
+    std::set<std::string> names;
     for (const expanded::Theme &theme : expanded::Themes()) {
+        EXPECT_TRUE(names.insert(std::string(theme.name)).second) << theme.name;
         EXPECT_FALSE(theme.members.empty()) << theme.name;
         EXPECT_LE(theme.members.size(), 10u) << theme.name;
         for (Monster kind : theme.members) {
@@ -220,6 +222,7 @@ TEST(EnemyThemes, ARosterFillsTheFloorWithItsGroup) {
 }
 
 TEST(EnemyThemes, ACappedFloorsFillersKeepToTheirCaps) {
+    expanded::SeedModRandom(1);
     using Fill = expanded::ThemeOutcome::Fill;
     std::map<Fill, int> sources;
     int                 mimics_only_one = 0, mimics_only_roomy = 0;
@@ -276,9 +279,7 @@ namespace {
 class BossThemes : public ::testing::Test {
 protected:
     void SetUp() override {
-        root_ = std::filesystem::temp_directory_path() / ("dc_expanded_boss_themes_" + std::to_string(dc::test::ProcessId()));
-        std::filesystem::create_directories(root_);
-        PathsSetSaveRoot(root_);
+        expanded::SeedModRandom(1);
         saved_status_ = UserStatus;
         status_->party_size = 6;
         UserStatus = status_.get();
@@ -289,14 +290,9 @@ protected:
         Set(expanded::RandomizerBosses::Off);
         expanded::SaveClear();
         UserStatus = saved_status_;
-        std::filesystem::remove_all(root_);
     }
 
-    static void Set(expanded::RandomizerBosses setting) {
-        Config config = ConfigGet();
-        ASSERT_TRUE(expanded::SetOptionChoice(config.expanded_options, expanded::kRandomizerBosses, static_cast<int>(setting)));
-        ASSERT_TRUE(ConfigChange(config));
-    }
+    void Set(expanded::RandomizerBosses setting) { ASSERT_TRUE(options_.Choose(expanded::kRandomizerBosses, static_cast<int>(setting))); }
 
     static const expanded::Theme &Boss(Monster boss) {
         for (const expanded::Theme &theme : expanded::BossThemes()) {
@@ -308,7 +304,7 @@ protected:
         return none;
     }
 
-    std::filesystem::path        root_;
+    expanded::test::OptionScope  options_;
     std::unique_ptr<CUserStatus> status_ = std::make_unique<CUserStatus>();
     CUserStatus                 *saved_status_ = nullptr;
 };

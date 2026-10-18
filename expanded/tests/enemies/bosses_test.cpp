@@ -15,6 +15,7 @@
 #include "expanded/enemies/scaling.hpp"
 #include "monstorunit.hpp"
 #include "platform/paths.hpp"
+#include "test_support.hpp"
 #include "userstatus.hpp"
 
 namespace {
@@ -25,49 +26,13 @@ using expanded::No;
 // A Divine Beast Cave floor laid out by a staged roster, or by its own.
 class OutOfPlaceBoss : public ::testing::Test {
 protected:
-    void SetUp() override {
-        saved_status_ = UserStatus;
-        saved_map_ = selectMapNo;
-        UserStatus = status_.get();
-        expanded::RosterVisitBegun();
-        for (MONSTOR &monster : unit_->monster) {
-            monster.state = -1;
-        }
-    }
+    void SetUp() override { expanded::RosterVisitBegun(); }
 
-    void TearDown() override {
-        expanded::RosterVisitBegun();
-        UserStatus = saved_status_;
-        selectMapNo = saved_map_;
-    }
+    void TearDown() override { expanded::RosterVisitBegun(); }
 
-    // BtLoadMonstor's read of floor 2's front, then SetupBaseModel's part for each kind.
-    void LoadFloor(bool staged, std::initializer_list<Monster> kinds) {
-        expanded::FloorRosters rosters;
-        for (Monster kind : kinds) {
-            rosters.front.Add(kind, expanded::SpawnsOnceNatively(kind));
-        }
-        if (staged) {
-            expanded::StageFloor(2, rosters);
-        }
-        selectMapNo = 0;
-        UserStatus->cur_floor = 2;
-        expanded::RosterFloorLayout(BtEnemyLayoutList[0] + 2, 0);
-        for (int slot = 0; slot < rosters.front.Size(); slot++) {
-            unit_->model[slot] = MonstorTable[rosters.front.model_no[slot]];
-            expanded::EnemyModelSetUp(*unit_, slot, rosters.front.model_no[slot]);
-        }
-    }
+    void LoadFloor(bool staged, std::initializer_list<Monster> kinds) { floor_.LoadRoster(staged, kinds); }
 
-    // SetupViewMonstor's part: a dormant monster of a slot.
-    void Spawn(int monster, int slot) {
-        MONSTOR &live = unit_->monster[monster];
-        live.state = 1;
-        live.base_model = slot;
-        live.max_hp = live.hp = unit_->model[slot].max_hp;
-        live.palette_alpha = 128.0f;
-        expanded::EnemySpawned(*unit_, monster);
-    }
+    void Spawn(int monster, int slot) { floor_.Spawn(monster, slot); }
 
     // A pack's KEY table of count motions: Joe's disc death, and his built fall and loop when it has them.
     void GiveMotions(int monster, int count) {
@@ -87,11 +52,9 @@ protected:
         body.motion_type.state.time = static_cast<float>(body.motion_type.motion_info[body.motion_no].end);
     }
 
-    std::vector<MOTION_INFO>      motions_;
-    std::unique_ptr<CMonstorUnit> unit_ = std::make_unique<CMonstorUnit>();
-    std::unique_ptr<CUserStatus>  status_ = std::make_unique<CUserStatus>();
-    CUserStatus                  *saved_status_ = nullptr;
-    s32                           saved_map_ = 0;
+    std::vector<MOTION_INFO>  motions_;
+    expanded::test::TestFloor floor_;
+    CMonstorUnit             *unit_ = &floor_.unit();
 };
 
 } // namespace

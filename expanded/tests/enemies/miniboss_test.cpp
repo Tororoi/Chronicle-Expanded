@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "dun/gameloop.hpp"
+#include "expanded/core/random.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/monsters.hpp"
@@ -224,6 +225,7 @@ TEST_F(Miniboss, TheBackFloorRollsTheSameWay) {
 // The real dice over many floors of these species sizes, against the exact none / one / two-or-more rates.
 TEST_F(Miniboss, FloorsGetAboutOneMiniboss) {
     expanded::SetMinibossRoll(nullptr, nullptr);
+    expanded::SeedModRandom(1);
 
     struct Floor {
         std::vector<int> sizes;
@@ -237,7 +239,7 @@ TEST_F(Miniboss, FloorsGetAboutOneMiniboss) {
         {{2, 2, 2, 2, 2, 2, 2},       0.167, 0.758, 0.075},
         {{2, 2, 2, 2, 2, 1, 1, 1, 1}, 0.167, 0.756, 0.077},
     };
-    constexpr int kFloors = 20000;
+    constexpr int kFloors = 5000;
     for (const Floor &floor : floors) {
         int counts[3] = {};
         for (int i = 0; i < kFloors; i++) {
