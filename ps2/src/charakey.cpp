@@ -32,6 +32,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/weapons/toan/small_sword.hpp"
+#include "expanded/weapons/toan/tsukikage.hpp"
 #endif
 
 void sound_play(float from, float to, float now, int se_no) {
@@ -435,7 +436,11 @@ void ToanKey_Play() {
         }
 
         BtActStatus.motion_no = 14;
+#ifdef CHRONICLE_EXPANDED
+        BtActStatus.charge_time += expanded::MoonlitFocusCharge(0.016666667f);
+#else
         BtActStatus.charge_time += 0.016666667f;
+#endif
 
         if (BtActStatus.charge_time >= 1.5f && BtActStatus.charge_level == 0) {
             BtActStatus.charge_level = 1;
