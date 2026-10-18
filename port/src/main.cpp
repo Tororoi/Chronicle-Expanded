@@ -57,6 +57,8 @@ struct Options {
     bool         offscreen = false;
     std::int64_t frames = -1;
     const char  *screenshot = nullptr;
+    const char  *record = nullptr;
+    long         record_from = 0;
     const char  *input = nullptr;
     int          width = 0;
     int          height = 0;
@@ -91,6 +93,9 @@ Options g_options;
                  "                     --headless does when there is no VK_EXT_headless_surface)\n"
                  "  --frames N         stop after N frames of the game's main loop\n"
                  "  --screenshot PATH  write the last tick's image (no FPS counter) to PATH on exit\n"
+                 "  --record DIR       write each frame's image to DIR/<frame>.png (scripts/port/record_clip.py\n"
+                 "                     makes a video of them)\n"
+                 "  --record-from N    with --record: from frame N on\n"
                  "  --input FILE       drive pad 1 from a script (default: DC_INPUT); see docs/PC.md\n"
                  "  --width, --height  window size in pixels (default: config.json, then the monitor's)\n"
                  "  --screenshot-fps   with --screenshot and --show-fps: the image as a window shows it, the\n"
@@ -141,6 +146,10 @@ Options ParseOptions(int argc, const char **argv) {
             options.frames = number();
         } else if (arg == "--screenshot") {
             options.screenshot = value();
+        } else if (arg == "--record") {
+            options.record = value();
+        } else if (arg == "--record-from") {
+            options.record_from = number();
         } else if (arg == "--input") {
             options.input = value();
         } else if (arg == "--width") {
@@ -463,6 +472,7 @@ int Run(int argc, const char **argv) {
     ClockSetUnbounded(options.headless);
     ClockAddPumpHook(PumpHost);
     GameSetFrameBudget(options.frames);
+    GameSetRecording(options.record, options.record_from);
     ApplyDiscord(config);
     GameSetPresentSettings(PresentSettings(config));
     ConfigAddChangeHook(ApplyConfigChange);

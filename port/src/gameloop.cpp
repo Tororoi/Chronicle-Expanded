@@ -682,6 +682,36 @@ std::int64_t GameFrameCount() {
     return g_frames;
 }
 
+namespace {
+
+const char  *g_record_dir = nullptr;
+std::int64_t g_record_from = 0;
+
+void RecordFrame() {
+    if (g_record_dir == nullptr || g_frames < g_record_from) {
+        return;
+    }
+    std::vector<std::uint8_t> pixels;
+    std::uint32_t             width = 0;
+    std::uint32_t             height = 0;
+    std::string               path = std::format("{}/{:06}.png", g_record_dir, g_frames);
+    if (std::FILE *ticks = std::fopen(std::format("{}/ticks.txt", g_record_dir).c_str(), g_frames == g_record_from ? "w" : "a")) {
+        std::fprintf(ticks, "%lld %lld %g\n", static_cast<long long>(g_frames), static_cast<long long>(ClockTickCount()), ClockTickRate());
+        std::fclose(ticks);
+    }
+    if (!GameScreenshot(pixels, width, height) || !gfx::WritePng(PathsFromUtf8(path.c_str()), pixels.data(), width, height)) {
+        std::fprintf(stderr, "cannot record frame %lld to %s\n", static_cast<long long>(g_frames), path.c_str());
+        g_record_dir = nullptr;
+    }
+}
+
+} // namespace
+
+void GameSetRecording(const char *dir, std::int64_t from) {
+    g_record_dir = dir;
+    g_record_from = from;
+}
+
 void GameRequestStop() {
     g_stop = true;
 }
@@ -962,6 +992,7 @@ int RunGame(int argc, char **argv) {
             GamePad.VibrationEnable(ConfigWords()[kConfigVibrationOff] == 0);
             GamePad.Step();
             MGEndFrame();
+            RecordFrame();
             ++g_frames;
             PresenceTick();
 

@@ -84,6 +84,7 @@ a language the data lacks, and its English button reads as the disc's art does.
 | `--offscreen` | `--headless` without a Vulkan surface: frames are drawn to an image only (what `--headless` does by itself when the loader has no `VK_EXT_headless_surface`) |
 | `--frames N` | stop after N frames of the game's main loop |
 | `--screenshot PATH` | after the run, write the last tick's canonical image (or the loading screen's frame, if it presented since) to PATH as a PNG; never a display frame, so never the FPS counter |
+| `--record DIR` | write the canonical image of every frame of the main loop, once it has ended, as `DIR/<frame>.png`, and the frame's clock tick and the tick rate as a line of `DIR/ticks.txt`; `--record-from N` starts at frame N. `scripts/port/record_clip.py` runs a headless recording with `DC_AUDIO_WAV` and makes a video of it with its sound (ffmpeg) |
 | `--input FILE` | drive the pads from a script (default: `DC_INPUT`; see "Scripted input") |
 | `--width W`, `--height H` | window size in pixels, over `config.json` (default: the monitor's resolution) |
 | `--jump MODE[:MAP]` | test hook: start in a mode (see "Test hooks"); also `DC_JUMP` |
