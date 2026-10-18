@@ -16,66 +16,15 @@ namespace {
     throw std::runtime_error(what);
 }
 
-void Need(std::span<const unsigned char> data, std::size_t offset, std::size_t size, const char *what) {
-    if (offset > data.size() || size > data.size() - offset) {
-        Bad(std::string(what) + " runs past the end of its data");
-    }
-}
-
-char Fold(char c) {
-    return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c;
-}
-
-bool EqualsFolded(std::string_view a, std::string_view b) {
-    return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [](char x, char y) {
-               return Fold(x) == Fold(y);
-           });
-}
-
 std::string_view Basename(std::string_view path) {
     std::size_t slash = path.find_last_of("/\\");
     return slash == std::string_view::npos ? path : path.substr(slash + 1);
 }
 
-void SortByFrame(std::vector<MotKeyframe> &keys) {
-    std::stable_sort(keys.begin(), keys.end(),
-                     [](const MotKeyframe &a, const MotKeyframe &b) { return a.Frame() < b.Frame(); });
-}
-
 } // namespace
 
-std::uint32_t Get32(std::span<const unsigned char> data, std::size_t offset) {
-    Need(data, offset, 4, "a word");
-    return data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16 | static_cast<std::uint32_t>(data[offset + 3]) << 24;
-}
-
-void Set32(std::span<unsigned char> data, std::size_t offset, std::uint32_t value) {
-    Need(data, offset, 4, "a word");
-    for (int i = 0; i < 4; i++) {
-        data[offset + i] = static_cast<unsigned char>(value >> (8 * i));
-    }
-}
-
-float GetF32(std::span<const unsigned char> data, std::size_t offset) {
-    return std::bit_cast<float>(Get32(data, offset));
-}
-
-std::span<const unsigned char> Slice(std::span<const unsigned char> data, std::size_t offset, std::size_t size, const char *what) {
-    Need(data, offset, size, what);
-    return data.subspan(offset, size);
-}
-
-std::string NameAt(std::span<const unsigned char> data, std::size_t offset, std::size_t max) {
-    Need(data, offset, 0, "a name");
-    std::size_t end = offset;
-    while (end < data.size() && end - offset < max && data[end] != 0) {
-        end++;
-    }
-    return std::string(reinterpret_cast<const char *>(data.data() + offset), end - offset);
-}
-
 Bytes ChrRecord::Payload() const {
-    Need(raw, data_off, size, "a record's payload");
+    Slice(raw, data_off, size, "a record's payload");
     return Bytes(raw.begin() + data_off, raw.begin() + data_off + size);
 }
 
@@ -115,7 +64,7 @@ ChrPack ChrPack::Parse(std::span<const unsigned char> blob) {
         if (record.stride == 0) {
             break;
         }
-        Need(blob, p, record.stride, "a pack record");
+        Slice(blob, p, record.stride, "a pack record");
         record.name = NameAt(blob, p, 0x40);
         record.raw.assign(blob.begin() + p, blob.begin() + p + record.stride);
         pack.records.push_back(std::move(record));
@@ -178,7 +127,7 @@ void MotKeyframe::SetValue(int i, float value) {
 
 MotFile MotFile::FromRecord(const ChrRecord &record) {
     std::span<const unsigned char> blob = record.raw;
-    Need(blob, record.data_off, record.size, "a .mot payload");
+    Slice(blob, record.data_off, record.size, "a .mot payload");
     MotFile     mot;
     std::size_t p = record.data_off;
     std::size_t end = record.data_off + record.size;
@@ -193,7 +142,7 @@ MotFile MotFile::FromRecord(const ChrRecord &record) {
         std::uint32_t count = Get32(blob, p + 16);
         std::uint32_t next = Get32(blob, p + 20);
         std::size_t   keys = p + MotTrack::kHeaderSize;
-        Need(blob, keys, std::size_t{count} * MotKeyframe::kSize, "a .mot track");
+        Slice(blob, keys, std::size_t{count} * MotKeyframe::kSize, "a .mot track");
         track.keys.resize(count);
         for (std::uint32_t i = 0; i < count; i++) {
             std::memcpy(track.keys[i].raw.data(), blob.data() + keys + i * MotKeyframe::kSize, MotKeyframe::kSize);
@@ -205,6 +154,27 @@ MotFile MotFile::FromRecord(const ChrRecord &record) {
         }
     }
     return mot;
+}
+
+std::array<float, 4> MotKeyframe::Values() const {
+    return {Value(0), Value(1), Value(2), Value(3)};
+}
+
+void MotKeyframe::SetValues(const std::array<double, 4> &values) {
+    for (int i = 0; i < 4; i++) {
+        SetValue(i, static_cast<float>(values[std::size_t(i)]));
+    }
+}
+
+MotKeyframe MotKeyframe::Make(std::uint32_t frame, const std::array<double, 4> &values) {
+    MotKeyframe key;
+    key.SetFrame(frame);
+    key.SetValues(values);
+    return key;
+}
+
+void SortByFrame(std::vector<MotKeyframe> &keys) {
+    std::stable_sort(keys.begin(), keys.end(), [](const MotKeyframe &a, const MotKeyframe &b) { return a.Frame() < b.Frame(); });
 }
 
 Bytes MotFile::BuildPayload() const {

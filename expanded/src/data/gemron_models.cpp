@@ -10,6 +10,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "expanded/data/cfg_text.hpp"
+#include "expanded/data/data_build.hpp"
 #include "expanded/data/model_parts.hpp"
 #include "expanded/data/sheet_look.hpp"
 
@@ -36,7 +38,7 @@ constexpr const char *kBbp = "e112a.bbp";
 constexpr const char *kSheet = "e112a01";
 constexpr const char *kSheet2 = "e112a02";
 constexpr const char *kMotions[] = {"e112a.mot", "e112s.mot"}; // the body's and the shadow's
-constexpr const char *kBodyFrame = "tama1__m";
+constexpr const char *kBodyFrame = kGemronBigGem;
 constexpr const char *kWingFrames[] = {"tamas00__m", "tamas03__m"};
 constexpr const char *kGlowFrames[] = {"tama__appz", "tamas01__appz", "tamas02__appz"};
 
@@ -137,7 +139,7 @@ MotKeyframe Sample(const std::map<std::uint32_t, MotKeyframe> &keys, std::uint32
         b[std::size_t(i)] = after->second.Value(i);
     }
     std::array<double, 4> v;
-    if (channel == 0) {
+    if (channel == mot::kRotation) {
         v = SlerpKeys(a, b, t);
     } else {
         for (int i = 0; i < 4; i++) {
@@ -181,40 +183,9 @@ void BakeSelfDestruct(ChrPack &pack) {
         record.ReplacePayload(mot.BuildPayload());
     }
     // KEY 14 in info.cfg becomes the self-destruct.
-    ChrRecord  &cfg = pack.Require("info.cfg");
-    Bytes       text = cfg.Payload();
-    std::string s(text.begin(), text.end());
-    std::size_t start = s.find("KEY_START");
-    if (start == std::string::npos) {
-        throw std::runtime_error("info.cfg has no KEY_START");
-    }
-    std::size_t keys = s.find('\n', start);
-    if (keys == std::string::npos) {
-        throw std::runtime_error("info.cfg has no KEY 14");
-    }
-    int n = 0;
-    for (std::size_t line = keys + 1; line < s.size(); line = s.find('\n', line) + 1) {
-        std::size_t      end = s.find('\n', line);
-        std::string_view content(s.data() + line, (end == std::string::npos ? s.size() : end) - line);
-        std::size_t      first = content.find_first_not_of(" \t");
-        if (first == std::string::npos || content.substr(first).rfind("KEY", 0) != 0 || content.substr(first).rfind("KEY_", 0) == 0) {
-            if (end == std::string::npos) {
-                break;
-            }
-            continue;
-        }
-        if (n++ == kBombSelfDestructKey) {
-            std::size_t comment = content.find("//");
-            std::string tail = comment == std::string::npos ? "\r" : std::string(content.substr(comment));
-            s.replace(line, content.size(), std::format("KEY\t{},\t{},\t{},\t{}", kBombSelfDestructStart, kBombSelfDestructEnd, kSelfDestructSpeed, tail));
-            cfg.ReplacePayload(Bytes(s.begin(), s.end()));
-            return;
-        }
-        if (end == std::string::npos) {
-            break;
-        }
-    }
-    throw std::runtime_error("info.cfg has no KEY 14");
+    ChrRecord &cfg = pack.Require("info.cfg");
+    cfg.ReplacePayload(SetCfgKey(cfg.Payload(), kBombSelfDestructKey,
+                                 std::format("KEY\t{},\t{},\t{},\t", kBombSelfDestructStart, kBombSelfDestructEnd, kSelfDestructSpeed)));
 }
 
 // The bomb's mesh with every position and normal scaled and turned: p' = R . spin . (scale . p).
@@ -307,29 +278,6 @@ void AddGlowTrack(ChrPack &pack, int frame) {
     record.ReplacePayload(mot.BuildPayload());
 }
 
-Bytes ReadFile(const fs::path &path) {
-    std::ifstream stream(path, std::ios::binary);
-    if (!stream) {
-        throw std::runtime_error(std::format("cannot read {}", path.string()));
-    }
-    return Bytes(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
-}
-
-void WriteIfChanged(const fs::path &target, const Bytes &bytes, bool &unchanged) {
-    std::error_code error;
-    unchanged = fs::is_regular_file(target, error) && fs::file_size(target, error) == bytes.size() && ReadFile(target) == bytes;
-    if (unchanged) {
-        return;
-    }
-    fs::create_directories(target.parent_path());
-    std::ofstream stream(target, std::ios::binary | std::ios::trunc);
-    stream.write(reinterpret_cast<const char *>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
-    stream.close();
-    if (!stream) {
-        throw std::runtime_error(std::format("cannot write {}", target.string()));
-    }
-}
-
 } // namespace
 
 Bytes BuildBombGemronModel(std::span<const unsigned char> gemron, std::span<const unsigned char> bomb_mds,
@@ -409,57 +357,30 @@ Bytes BuildBombThrowPack(std::span<const unsigned char> apple, std::span<const u
 }
 
 int BuildGemronModels(const fs::path &data, std::FILE *log) {
-    auto say = [&](const std::string &line) {
-        if (log != nullptr) {
-            std::fputs(line.c_str(), log);
-        }
+    // Each built from its sources in turn.
+    auto from = [](std::vector<std::string> sources, auto build) {
+        return std::pair{sources, [sources, build](const DiscReader &read) {
+                             std::vector<Bytes> files;
+                             for (const std::string &source : sources) {
+                                 files.push_back(read(source));
+                             }
+                             return build(files);
+                         }};
     };
+    std::vector<DataBuild> builds;
 
-    struct Build {
-        const char                                      *name;
-        const char                                      *target;
-        std::vector<const char *>                        sources;
-        std::function<Bytes(const std::vector<Bytes> &)> build;
-    };
-
-    const Build builds[] = {
-        {"Bomb Gemron",             kBombGemronModelFile,     {kBombGemronSource, kBombModelFile, kBombPictureFile, kGlowQuadFile, kGlowSourcePack},                    [](const std::vector<Bytes> &s) { return BuildBombGemronModel(s[0], s[1], s[2], s[3], s[4]); }      },
-        {"Bomb Gemron's bomb",      kBombThrowFile,           {kBombThrowSource, kBombModelFile, kBombPictureFile},                                                     [](const std::vector<Bytes> &s) { return BuildBombThrowPack(s[0], s[1], s[2]); }                    },
-        {"Crystal Gemron",          kCrystalGemronModelFile,  {kCrystalGemronSource, kCrystalBallFile},                                                                 [](const std::vector<Bytes> &s) { return BuildCrystalGemronModel(s[0], s[1]); }                     },
-        {"Crystal Gemron's script", kCrystalGemronScriptFile, {kCrystalGemronScriptSource},                                                                             [](const std::vector<Bytes> &s) { return BuildCrystalGemronScript(s[0]); }                          },
-        {"Atla Gemron",             kAtlaGemronModelFile,     {kAtlaGemronSource, kAtlaPackFile, kAtlaPictureFile, kToanPackFile, kAtlamilliaLightFile, kFlyLightFile}, [](const std::vector<Bytes> &s) { return BuildAtlaGemronModel(s[0], s[1], s[2], s[3], s[4], s[5]); }},
-        {"Atla Gemron's shot",      kAtlaShotFile,            {kAtlamilliaLightFile},                                                                                   [](const std::vector<Bytes> &s) { return BuildAtlaShotPack(s[0]); }                                 },
-        {"Atla Gemron's script",    kAtlaGemronScriptFile,    {kAtlaGemronScriptSource},                                                                                [](const std::vector<Bytes> &s) { return BuildAtlaGemronScript(s[0]); }                             },
-    };
-    int failures = 0;
-    for (const Build &build : builds) {
-        std::error_code    error;
-        std::vector<Bytes> sources;
-        const char        *missing = nullptr;
-        for (const char *source : build.sources) {
-            if (!fs::is_regular_file(data / source, error)) {
-                missing = source;
-                break;
-            }
-        }
-        if (missing != nullptr) {
-            say(std::format("gemron model {}: skipped, the data has no {}\n", build.name, missing));
-            continue;
-        }
-        try {
-            for (const char *source : build.sources) {
-                sources.push_back(ReadFile(data / source));
-            }
-            Bytes model = build.build(sources);
-            bool  unchanged = false;
-            WriteIfChanged(data / build.target, model, unchanged);
-            say(std::format("gemron model {}: {} ({} bytes{})\n", build.name, build.target, model.size(), unchanged ? ", unchanged" : ""));
-        } catch (const std::exception &failure) {
-            say(std::format("gemron model {}: not built: {}\n", build.name, failure.what()));
-            failures++;
-        }
-    }
-    return failures;
+    auto add = [&](const char *name, const char *target, auto made) { builds.push_back({name, target, made.first, made.second}); };
+    using Files = const std::vector<Bytes> &;
+    // clang-format off
+    add("Bomb Gemron",             kBombGemronModelFile,     from({kBombGemronSource, kBombModelFile, kBombPictureFile, kGlowQuadFile, kGlowSourcePack},                    [](Files s) { return BuildBombGemronModel(s[0], s[1], s[2], s[3], s[4]); }));
+    add("Bomb Gemron's bomb",      kBombThrowFile,           from({kBombThrowSource, kBombModelFile, kBombPictureFile},                                                     [](Files s) { return BuildBombThrowPack(s[0], s[1], s[2]); }));
+    add("Crystal Gemron",          kCrystalGemronModelFile,  from({kCrystalGemronSource, kCrystalBallFile},                                                                 [](Files s) { return BuildCrystalGemronModel(s[0], s[1]); }));
+    add("Crystal Gemron's script", kCrystalGemronScriptFile, from({kCrystalGemronScriptSource},                                                                             [](Files s) { return BuildCrystalGemronScript(s[0]); }));
+    add("Atla Gemron",             kAtlaGemronModelFile,     from({kAtlaGemronSource, kAtlaPackFile, kAtlaPictureFile, kToanPackFile, kAtlamilliaLightFile, kFlyLightFile}, [](Files s) { return BuildAtlaGemronModel(s[0], s[1], s[2], s[3], s[4], s[5]); }));
+    add("Atla Gemron's shot",      kAtlaShotFile,            from({kAtlamilliaLightFile},                                                                                   [](Files s) { return BuildAtlaShotPack(s[0]); }));
+    add("Atla Gemron's script",    kAtlaGemronScriptFile,    from({kAtlaGemronScriptSource},                                                                                [](Files s) { return BuildAtlaGemronScript(s[0]); }));
+    // clang-format on
+    return RunDataBuilds(data, "gemron model", builds, log);
 }
 
 } // namespace expanded

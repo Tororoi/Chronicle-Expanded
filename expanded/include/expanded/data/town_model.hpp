@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "expanded/data/chr_pack.hpp"
+#include "expanded/data/data_build.hpp"
 
 namespace expanded {
 
@@ -83,9 +84,6 @@ struct TownAlly {
 
 // The allies built, in order.
 const std::vector<TownAlly> &TownAllies();
-
-// Reads a disc file by its path in the data directory.
-using DiscReader = std::function<Bytes(std::string_view path)>;
 
 // The ally's model: its base and every source read through read.
 Bytes BuildTownModel(const TownAlly &ally, const DiscReader &read);

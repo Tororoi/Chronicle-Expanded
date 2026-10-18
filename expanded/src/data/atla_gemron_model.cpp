@@ -13,6 +13,7 @@
 #include "expanded/data/gemron_parts.hpp"
 #include "expanded/data/model_parts.hpp"
 #include "expanded/data/sheet_look.hpp"
+#include "expanded/data/stb.hpp"
 
 namespace expanded {
 
@@ -30,7 +31,7 @@ constexpr const char *kSheet2 = "e112a02";
 
 // The held atla: the dungeon's own, under the big gem.
 constexpr const char *kAtlaMds = "atr.mds";
-constexpr const char *kGem = "tama1__m";
+constexpr const char *kGem = kGemronBigGem;
 // The forehead Atlamillia: Toan's lens on its patch of his sheet (x, y, width, height).
 constexpr const char *kToanMds = "c01d.mds";
 constexpr const char *kLens = "renzu__m";
@@ -42,32 +43,16 @@ constexpr const char *kLightMds = "e503ex_atall.mds";
 constexpr const char *kLightMot = "e503ex_atall.mot";
 constexpr const char *kLightName = "atlight";
 constexpr const char *kLightTexture = "e503ex_at03";
-// The wing lights: fly_light's glow pair on each wing gem, its picture half desaturated.
+// The wing lights: fly_light's glow pair on each wing (small) gem, its picture half desaturated.
 constexpr const char *kFlyMds = "fly_light.mds";
 constexpr const char *kFlyImg = "fly_light.img";
 constexpr const char *kFlyTexture = "fly_light";
 constexpr const char *kFlyNodes[] = {"012__CZAPPBA", "013__CZAPPBA"};
-constexpr const char *kWingGems[] = {"tamas00__m", "tamas03__m"};
 constexpr double      kFlySaturation = 0.5;
 
 constexpr int           kClipFrom = 105, kClipTo = 125;
 constexpr int           kTimelineEnd = kAtlaGemronDeathEnd + 1;
-constexpr std::uint32_t kSubtreeVisible = 0x33;
 constexpr std::uint32_t kCameraChannels[] = {30, 31, 32, 33};
-constexpr std::uint32_t kMaterialAlpha = 40;
-
-constexpr Mat3 kIdentity = {
-    {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
-};
-
-std::uint16_t Get16(std::span<const unsigned char> data, std::size_t at) {
-    return static_cast<std::uint16_t>(data[at] | data[at + 1] << 8);
-}
-
-void Set16(Bytes &data, std::size_t at, std::uint16_t value) {
-    data[at] = static_cast<unsigned char>(value);
-    data[at + 1] = static_cast<unsigned char>(value >> 8);
-}
 
 const MdsFrame &Frame(const std::vector<MdsFrame> &frames, std::string_view name, const char *mds) {
     const MdsFrame *f = FindFrame(frames, name);
@@ -89,11 +74,11 @@ std::array<double, 4> StepAt(const MotTrack &track, double frame) {
             key = &k;
         }
     }
-    return Wide(KeyValues(*key));
+    return Wide(key->Values());
 }
 
 std::array<double, 4> LightAt(const MotTrack &track, double frame) {
-    return track.w2 == 0x32 || track.w2 == 0x33 ? StepAt(track, frame) : TrackAt(track, frame);
+    return track.w2 == 0x32 || track.w2 == mot::kSubtreeVisible ? StepAt(track, frame) : TrackAt(track, frame);
 }
 
 // The keys a track keeps: from the first, each next one as far on as the straight blend to it reproduces every key
@@ -113,17 +98,17 @@ std::vector<MotKeyframe> Thinned(const std::vector<MotKeyframe> &keys, std::uint
         default:
             return keys;
     }
-    int                      n = channel == 40 ? 1 : 3;
+    int                      n = channel == mot::kMaterialAlpha ? 1 : 3;
     std::vector<MotKeyframe> out = {keys[0]};
     std::size_t              i = 0;
     while (i + 1 < keys.size()) {
         std::size_t j = i + 1;
         while (j + 1 < keys.size()) {
-            std::array<float, 4> va = KeyValues(keys[i]), vb = KeyValues(keys[j + 1]);
+            std::array<float, 4> va = keys[i].Values(), vb = keys[j + 1].Values();
             double               fa = keys[i].Frame(), fb = keys[j + 1].Frame();
             bool                 ok = true;
             for (std::size_t m = i + 1; m <= j && ok; m++) {
-                std::array<float, 4> vm = KeyValues(keys[m]);
+                std::array<float, 4> vm = keys[m].Values();
                 double               t = (keys[m].Frame() - fa) / (fb - fa);
                 for (int c = 0; c < n; c++) {
                     if (std::fabs(va[std::size_t(c)] + (double(vb[std::size_t(c)]) - va[std::size_t(c)]) * t - vm[std::size_t(c)]) > tolerance) {
@@ -238,7 +223,7 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
         placed[rc::kLightNodes[k]] = light_at + 1 + int(k);
     }
     Graft light;
-    light.records.push_back(PlainRecord(light_at, lens_at, kLightName, rc::kLightR, rc::kLightRecordT));
+    light.records.push_back(FrameRecord(light_at, kLightName, lens_at, rc::kLightR, rc::kLightRecordT));
     for (std::size_t k = 0; k < std::size(rc::kLightNodes); k++) {
         const MdsFrame &f = eframes.at(std::size_t(rc::kLightNodes[k]));
         auto            parent = placed.find(f.parent);
@@ -257,7 +242,7 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
     Bytes                 fmds = fly_pack.Require(kFlyMds).Payload();
     std::vector<MdsFrame> fframes = ReadMdsSkeleton(fmds);
     Graft                 wing;
-    for (const char *gem : kWingGems) {
+    for (const char *gem : kGemronSmallGems) {
         for (std::size_t n = 0; n < std::size(kFlyNodes); n++) {
             const MdsFrame &f = Frame(fframes, kFlyNodes[n], kFlyMds);
             MdtMesh         m = MdtMesh::Parse(MdtAt(fmds, std::size_t(f.mesh)));
@@ -271,7 +256,7 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
     grafts.push_back(std::move(wing));
 
     // The shot's spawn bone, under the root.
-    grafts.push_back({{PlainRecord(spawn_at, 0, kAtlaShotSpawn, kIdentity, rc::kSpawnT)}, {}});
+    grafts.push_back({{FrameRecord(spawn_at, kAtlaShotSpawn, 0, kIdentity, rc::kSpawnT)}, {}});
     int total = spawn_at + 1;
     pack.Require(kMds).ReplacePayload(GraftMds(mds, grafts, {}));
     Bytes bbp = pack.Require(kBbp).Payload();
@@ -281,14 +266,14 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
     // The death copied and held; the held atla out of the draw from the swap; the light on the Gemron's frames.
     DeathClip(mot, kAtlaGemronDeathStart, kClipFrom, kClipTo, kAtlaGemronDeathEnd);
     std::vector<MotTrack> added;
-    MotTrack              shown = TrackLike(reference, std::uint32_t(at), 0, kSubtreeVisible);
+    MotTrack              shown = TrackLike(reference, std::uint32_t(at), 0, mot::kSubtreeVisible);
     for (auto [f, v] : {
              std::pair{0,                   1.0},
              std::pair{kAtlaGemronSwap - 1, 1.0},
              std::pair{kAtlaGemronSwap,     0.0},
              std::pair{kTimelineEnd,        0.0}
     }) {
-        shown.keys.push_back(MakeKey(std::uint32_t(f), {v, 0, 0, 0}));
+        shown.keys.push_back(MotKeyframe::Make(std::uint32_t(f), {v, 0, 0, 0}));
     }
     added.push_back(std::move(shown));
     for (const MotTrack &t : emot.tracks) {
@@ -298,7 +283,7 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
         }
         std::vector<MotKeyframe> keys;
         for (auto [frame, source] : rc::kLightFrames) {
-            keys.push_back(MakeKey(std::uint32_t(frame), LightAt(t, source)));
+            keys.push_back(MotKeyframe::Make(std::uint32_t(frame), LightAt(t, source)));
         }
         MotTrack track = TrackLike(reference, std::uint32_t(node->second), t.w1, t.w2);
         track.keys = Thinned(keys, t.w2);
@@ -307,9 +292,9 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
     const double s = rc::kLightScale;
     const Vec3  &l = rc::kLightT;
     MotTrack     scale = TrackLike(reference, std::uint32_t(light_at), 0, 1);
-    scale.keys = {MakeKey(0, {s, s, s, 0}), MakeKey(kTimelineEnd, {s, s, s, 0})};
+    scale.keys = {MotKeyframe::Make(0, {s, s, s, 0}), MotKeyframe::Make(kTimelineEnd, {s, s, s, 0})};
     MotTrack place = TrackLike(reference, std::uint32_t(light_at), 0, 2);
-    place.keys = {MakeKey(0, {l[0], l[1], l[2], 0}), MakeKey(kTimelineEnd, {l[0], l[1], l[2], 0})};
+    place.keys = {MotKeyframe::Make(0, {l[0], l[1], l[2], 0}), MotKeyframe::Make(kTimelineEnd, {l[0], l[1], l[2], 0})};
     added.push_back(std::move(scale));
     added.push_back(std::move(place));
     mot.tracks.insert(mot.tracks.end(), added.begin(), added.end());
@@ -363,7 +348,7 @@ Bytes BuildAtlaShotPack(std::span<const unsigned char> light_chr) {
     for (std::size_t k = 0; k < std::size(rc::kShotNodes); k++) {
         placed[rc::kShotNodes[k]] = 2 + int(k);
     }
-    std::vector<Bytes>   records = {PlainRecord(0, -1, kAtlaShotModel, kIdentity, {0, 0, 0}), PlainRecord(1, 0, "fx_shot", rc::kShotRows, {0, 0, 0})};
+    std::vector<Bytes>   records = {FrameRecord(0, kAtlaShotModel, -1, kIdentity, {0, 0, 0}), FrameRecord(1, "fx_shot", 0, rc::kShotRows, {0, 0, 0})};
     std::map<int, Bytes> meshes;
     for (int i : rc::kShotNodes) {
         const MdsFrame &f = eframes.at(std::size_t(i));
@@ -373,24 +358,11 @@ Bytes BuildAtlaShotPack(std::span<const unsigned char> light_chr) {
             meshes[placed[i]] = MdtAt(emds, std::size_t(f.mesh));
         }
     }
-    Bytes mds(emds.begin(), emds.begin() + 8);
-    Bytes words(8);
-    Set32(words, 0, std::uint32_t(records.size()));
-    Set32(words, 4, 0x10);
-    mds.insert(mds.end(), words.begin(), words.end());
-    std::size_t base = 0x10 + records.size() * 0x70;
-    Bytes       body;
-    for (std::size_t k = 0; k < records.size(); k++) {
-        Bytes raw = records[k];
-        auto  mesh = meshes.find(int(k));
-        Set32(raw, 0x28, mesh != meshes.end() ? std::uint32_t(base + body.size()) : 0u);
-        if (mesh != meshes.end()) {
-            body.insert(body.end(), mesh->second.begin(), mesh->second.end());
-            body.resize((body.size() + 15) & ~std::size_t{15}, 0);
-        }
-        mds.insert(mds.end(), raw.begin(), raw.end());
+    std::vector<std::optional<Bytes>> laid(records.size());
+    for (auto &[k, mesh] : meshes) {
+        laid[std::size_t(k)] = mesh;
     }
-    mds.insert(mds.end(), body.begin(), body.end());
+    Bytes mds = LayOutMds(emds, std::move(records), laid);
 
     // e503ex_atall's key 9 tail.
     MotFile shot;
@@ -399,13 +371,13 @@ Bytes BuildAtlaShotPack(std::span<const unsigned char> light_chr) {
         if (node == placed.end() || Camera(t.w2) || t.keys.empty()) {
             continue;
         }
-        std::vector<MotKeyframe> keys = {MakeKey(kAtlaShotFrom, LightAt(t, kAtlaShotFrom))};
+        std::vector<MotKeyframe> keys = {MotKeyframe::Make(kAtlaShotFrom, LightAt(t, kAtlaShotFrom))};
         for (const MotKeyframe &k : t.keys) {
             if (k.Frame() > std::uint32_t(kAtlaShotFrom) && k.Frame() < std::uint32_t(kAtlaShotTo)) {
-                keys.push_back(MakeKey(k.Frame(), Wide(KeyValues(k))));
+                keys.push_back(MotKeyframe::Make(k.Frame(), Wide(k.Values())));
             }
         }
-        keys.push_back(MakeKey(kAtlaShotTo, LightAt(t, kAtlaShotTo)));
+        keys.push_back(MotKeyframe::Make(kAtlaShotTo, LightAt(t, kAtlaShotTo)));
         MotTrack track = TrackLike(reference, std::uint32_t(node->second), t.w1, t.w2);
         track.keys = Thinned(keys, t.w2);
         shot.tracks.push_back(std::move(track));
@@ -414,7 +386,7 @@ Bytes BuildAtlaShotPack(std::span<const unsigned char> light_chr) {
     // visibility key holds to the next, so a frame shows the mesh if it or the next one does.
     std::map<int, const MotTrack *> alpha;
     for (const MotTrack &t : emot.tracks) {
-        if (t.w2 == kMaterialAlpha) {
+        if (t.w2 == mot::kMaterialAlpha) {
             alpha[int(t.w0)] = &t;
         }
     }
@@ -427,21 +399,21 @@ Bytes BuildAtlaShotPack(std::span<const unsigned char> light_chr) {
         for (int f = kAtlaShotFrom; f <= kAtlaShotTo; f++) {
             seen.push_back(TrackAt(*a->second, f)[0] < 0.98 || TrackAt(*a->second, f + 1)[0] < 0.98);
         }
-        MotTrack track = TrackLike(reference, std::uint32_t(placed[i]), 0, kSubtreeVisible);
+        MotTrack track = TrackLike(reference, std::uint32_t(placed[i]), 0, mot::kSubtreeVisible);
         for (std::size_t k = 0; k < seen.size(); k++) {
             if (k == 0 || seen[k] != seen[k - 1]) {
-                track.keys.push_back(MakeKey(std::uint32_t(kAtlaShotFrom + int(k)), {seen[k] ? 1.0 : 0.0, 0, 0, 0}));
+                track.keys.push_back(MotKeyframe::Make(std::uint32_t(kAtlaShotFrom + int(k)), {seen[k] ? 1.0 : 0.0, 0, 0, 0}));
             }
         }
         if (track.keys.back().Frame() != std::uint32_t(kAtlaShotTo)) {
-            track.keys.push_back(MakeKey(kAtlaShotTo, {seen.back() ? 1.0 : 0.0, 0, 0, 0}));
+            track.keys.push_back(MotKeyframe::Make(kAtlaShotTo, {seen.back() ? 1.0 : 0.0, 0, 0, 0}));
         }
         shot.tracks.push_back(std::move(track));
     }
     // The flight over the window backed off, so the burst stands where it was fired while the shot flies.
     double   back = -rc::kShotFlight * (kAtlaShotTo - kAtlaShotFrom) / kAtlaShotSpeed;
     MotTrack flight = TrackLike(reference, 1, 0, 2);
-    flight.keys = {MakeKey(kAtlaShotFrom, {0, 0, 0, 0}), MakeKey(kAtlaShotTo, {0, 0, back, 0})};
+    flight.keys = {MotKeyframe::Make(kAtlaShotFrom, {0, 0, 0, 0}), MotKeyframe::Make(kAtlaShotTo, {0, 0, back, 0})};
     shot.tracks.push_back(std::move(flight));
 
     std::string cfg = "//atla shot\r\nIMG 0,\"e503ex_at01.img\"\r\nIMG 1,\"e503ex_at03.img\"\r\nIMG_END\r\nMATERIAL_ANIME 1\r\nVERTEX_ANIME 1\r\n\r\n";
@@ -456,192 +428,6 @@ Bytes BuildAtlaShotPack(std::span<const unsigned char> light_chr) {
     out.records.push_back(light_pack.Require("e503ex_at01.img"));
     out.records.push_back(light_pack.Require("e503ex_at03.img"));
     return out.Rebuild();
-}
-
-namespace {
-
-constexpr std::uint32_t kOpRefPush = 2, kOpPushConst = 3, kOpJmp = 16, kOpBrFalse = 17, kOpCall = 19, kOpCallFn = 21,
-                        kOpMarker = 22, kOpRet = 15, kOpLess = 14, kOpDrop = 4;
-constexpr std::uint32_t kInt = 1, kFloat = 2, kLocalFloat = 8;
-constexpr float         kVanillaRange = 70.0f, kShotRange = 50.0f;     // label 100 shoots within it, walks closer beyond
-constexpr std::uint32_t kVanillaCooldownFrom = 80, kCooldownFrom = 40; // the shot's cooldown: _GET_RAND(70) + this
-constexpr float         kCloseRange = 20.0f;                           // under it: back off or shoot
-constexpr std::uint32_t kVanillaBackOff = 40, kBackOffPercent = 60;    // _GET_RAND(100) under it backs off
-constexpr float         kAimAhead = 100.0f;                            // the shot's aim, this far along the facing
-constexpr float         kAimUp = 7.4f;
-// The shot function's locals: the distance, the aim and the facing.
-constexpr std::uint32_t kAimDistance = 8, kAimX = 2, kAimY = 3, kAimZ = 4, kAimDirX = 8, kAimDirY = 9, kAimDirZ = 10;
-constexpr const char   *kSpawnFrom = "dcol0";
-
-std::uint32_t Bits(float f) {
-    return std::bit_cast<std::uint32_t>(f);
-}
-
-void Cell(Bytes &b, std::size_t at, std::uint32_t op, std::uint32_t a1, std::uint32_t a2) {
-    Set32(b, at, op);
-    Set32(b, at + 4, a1);
-    Set32(b, at + 8, a2);
-}
-
-// The shot's aim, appended past the script's end: v2..v4 its own place (_GET_POSITION(-1)), v8..v10 its facing
-// (_GET_DIRECTION(0)), v2 += facing.x x the reach, v4 += facing.z x the reach, v3 += 7.4, then back to the _SET_SHOT.
-Bytes AimCells(std::uint32_t set_shot) {
-    std::vector<std::array<std::uint32_t, 3>> cells = {
-        {3,          1,        11         },
-        {3,          1,        1          },
-        {11,         0,        0          },
-        {kOpRefPush, kAimX,    kLocalFloat},
-        {kOpRefPush, kAimY,    kLocalFloat},
-        {kOpRefPush, kAimZ,    kLocalFloat},
-        {kOpCallFn,  5,        0          },
-        {3,          1,        31         },
-        {3,          2,        0          },
-        {kOpRefPush, kAimDirX, kLocalFloat},
-        {kOpRefPush, kAimDirY, kLocalFloat},
-        {kOpRefPush, kAimDirZ, kLocalFloat},
-        {kOpCallFn,  5,        0          },
-    };
-    for (auto [v, d] : {
-             std::pair{kAimX, kAimDirX},
-             std::pair{kAimZ, kAimDirZ}
-    }) {
-        cells.insert(cells.end(), {
-                                      {2, v, kLocalFloat    },
-                                      {1, v, kLocalFloat    },
-                                      {3, 2, Bits(kAimAhead)},
-                                      {1, d, kLocalFloat    },
-                                      {8, 0, 0              },
-                                      {6, 0, 0              },
-                                      {5, 0, 0              },
-                                      {4, 0, 0              }
-        });
-    }
-    cells.insert(cells.end(), {
-                                  {2, kAimY, kLocalFloat },
-                                  {1, kAimY, kLocalFloat },
-                                  {3, 2,     Bits(kAimUp)},
-                                  {6, 0,     0           },
-                                  {5, 0,     0           },
-                                  {4, 0,     0           }
-    });
-    cells.push_back({kOpJmp, set_shot, 0});
-    Bytes b(cells.size() * 12);
-    for (std::size_t i = 0; i < cells.size(); i++) {
-        Cell(b, i * 12, cells[i][0], cells[i][1], cells[i][2]);
-    }
-    return b;
-}
-
-} // namespace
-
-// Holy Gemron's script for a short-range wide shot: its one _SET_SHOT fires from the spawn bone, along its facing (the
-// fire frame's hold-fire check becomes a jump to aim cells appended past the end, which jump back); its AI loop shoots
-// within 50 (walking closer beyond), every 40-109 frames, and close in backs off 60 % of the time, else shoots (the bite
-// before).
-Bytes BuildAtlaGemronScript(std::span<const unsigned char> stb) {
-    auto        u = [&](std::size_t o) { return Get32(stb, o); };
-    auto        f = [&](std::size_t o) { return GetF32(stb, o); };
-    auto        op = [&](std::size_t c, std::uint32_t v) { return u(c) == v; };
-    auto        push_i = [&](std::size_t c, std::uint32_t v) { return u(c) == kOpPushConst && u(c + 4) == kInt && u(c + 8) == v; };
-    auto        push_f = [&](std::size_t c) { return u(c) == kOpPushConst && u(c + 4) == kFloat; };
-    auto        bad = [](const std::string &what) { return std::runtime_error("e115a.stb: " + what); };
-    std::size_t cb = u(8), table = u(0xC), count = u(0x10);
-    std::size_t label100 = 0;
-    bool        found = false;
-    for (std::size_t i = 0; i < count; i++) {
-        if (u(table + i * 8) == 100) {
-            label100 = u(table + i * 8 + 4);
-            found = true;
-        }
-    }
-    if (!found) {
-        throw bad("no label 100");
-    }
-    Bytes out(stb.begin(), stb.end());
-    // The shot's bone: push 133, then the bone's string.
-    std::vector<std::size_t> sites;
-    for (std::size_t c = cb; c + 24 <= stb.size(); c += 4) {
-        if (push_i(c, 133) && u(c + 12) == 3 && u(c + 16) == 3) {
-            sites.push_back(c);
-        }
-    }
-    if (sites.size() != 1) {
-        throw bad(std::format("{} _SET_SHOT bone strings, expected 1", sites.size()));
-    }
-    std::size_t bone_at = cb + u(sites[0] + 20);
-    if (NameAt(stb, bone_at, 8) != kSpawnFrom) {
-        throw bad(std::format("the shot fires from '{}', not {}", NameAt(stb, bone_at, 8), kSpawnFrom));
-    }
-    std::copy_n(kAtlaShotSpawn, std::strlen(kAtlaShotSpawn), out.begin() + std::ptrdiff_t(bone_at));
-    // The AI loop, up to its RET.
-    std::size_t start = cb + u(label100), end = start;
-    while (end + 12 <= stb.size() && u(end) != kOpRet) {
-        end += 12;
-    }
-    std::vector<std::size_t> ranges;
-    long                     cooldown = -1, close = -1, back_off = -1, shot_call = -1;
-    for (std::size_t c = start; c < end; c += 12) {
-        if (push_f(c) && f(c + 8) == kVanillaRange && op(c + 12, kOpLess)) {
-            ranges.push_back(c);
-        }
-        if (push_i(c, 180) && push_i(c + 12, 70)) { // _GET_RAND(70, ...) then + 80
-            for (std::size_t k = c + 24; k < c + 108 && cooldown < 0; k += 12) {
-                if (push_i(k, kVanillaCooldownFrom)) {
-                    cooldown = long(k);
-                }
-            }
-        }
-        if (push_f(c) && f(c + 8) == kCloseRange && op(c + 12, kOpLess) && u(c + 16) == 42 && close < 0) {
-            close = long(c);
-        }
-        if (close >= 0 && back_off < 0 && long(c) > close && push_i(c, 180) && push_i(c + 12, 100)) { // _GET_RAND(100, ...) < 40
-            for (std::size_t k = c + 24; k < c + 108 && back_off < 0; k += 12) {
-                if (push_i(k, kVanillaBackOff)) {
-                    back_off = long(k);
-                }
-            }
-        }
-        if (shot_call < 0 && c >= 24 && op(c, kOpCall) && push_f(c - 24) && push_f(c - 12) && op(c + 12, kOpDrop)) {
-            shot_call = long(c);
-        }
-    }
-    if (ranges.size() != 3 || cooldown < 0 || close < 0 || back_off < 0 || shot_call < 0) {
-        throw bad(std::format("label 100 not as expected ({} ranges, cooldown {:X}, close range {:X}, back-off {:X}, shot call {:X})",
-                              ranges.size(), cooldown, close, back_off, shot_call));
-    }
-    // The close branch: cmp, BR_FALSE to other, CALL back-off, drop, JMP to out; other: 4 cells; out: the closing marker.
-    std::size_t bo = std::size_t(back_off), br = bo + 24, other = bo + 72, jmp = bo + 60, outer = other + 48;
-    if (!op(br, kOpBrFalse) || u(br + 4) != other - cb || !op(bo + 36, kOpCall) || !op(jmp, kOpJmp) || u(jmp + 4) != other + 36 - cb ||
-        !op(outer, kOpMarker) || !op(other, kOpMarker) || !op(other + 12, kOpCall) || !op(other + 24, kOpDrop) || !op(other + 36, kOpMarker)) {
-        throw bad(std::format("label 100's close branch at {:X} not as expected", close));
-    }
-    // The shot function's fire frame: _GET_DISTANCE(&v8), v8 < 20 holds fire, else v3 += 7.4, then the _SET_SHOT.
-    std::size_t sc = std::size_t(shot_call);
-    std::size_t shot_func = cb + u(sc + 8), shot_code = cb + u(shot_func);
-    long        hold = -1;
-    for (std::size_t c = shot_code; c < sites[0]; c += 12) {
-        if (push_i(c, 10) && u(c + 12) == kOpRefPush && u(c + 16) == kAimDistance && op(c + 24, kOpCallFn) && push_f(c + 48) &&
-            f(c + 56) == 20.0f && op(c + 60, kOpLess)) {
-            hold = long(c);
-        }
-    }
-    if (hold < 0 || long(sites[0]) - hold != 12 * 15) {
-        throw bad("the shot function's hold-fire check not as expected");
-    }
-    for (std::size_t c : ranges) {
-        Set32(out, c + 8, Bits(kShotRange));
-    }
-    Set32(out, std::size_t(cooldown) + 8, kCooldownFrom);
-    Set32(out, bo + 8, kBackOffPercent);
-    std::copy_n(stb.begin() + std::ptrdiff_t(sc - 24), 36, out.begin() + std::ptrdiff_t(other));      // push 0.3, push 0.0, CALL the shot
-    std::copy_n(stb.begin() + std::ptrdiff_t(sc + 12), 12, out.begin() + std::ptrdiff_t(other + 36)); // its drop
-    Set32(out, jmp + 4, std::uint32_t(outer - cb));
-    std::size_t aim = (out.size() + 3) & ~std::size_t{3};
-    Bytes       tail = AimCells(std::uint32_t(sites[0] - cb));
-    out.resize(aim + tail.size(), 0);
-    std::copy(tail.begin(), tail.end(), out.begin() + std::ptrdiff_t(aim));
-    Cell(out, std::size_t(hold), kOpJmp, std::uint32_t(aim - cb), 0); // to the aim
-    return out;
 }
 
 } // namespace expanded

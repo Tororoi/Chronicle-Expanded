@@ -10,6 +10,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "expanded/data/cfg_text.hpp"
+#include "expanded/data/data_build.hpp"
 #include "expanded/data/town_model.hpp"
 
 namespace expanded {
@@ -38,38 +40,7 @@ std::uint32_t LastFrame(const ChrPack &pack) {
     return last;
 }
 
-// Where the MOTION_END after the cfg's KEY_START begins.
-std::size_t MotionEnd(const std::string &text) {
-    std::size_t start = text.find("KEY_START");
-    std::size_t end = start == std::string::npos ? start : text.find("MOTION_END", start);
-    if (end == std::string::npos) {
-        throw std::runtime_error("the cfg has no KEY_START ... MOTION_END block");
-    }
-    return end;
-}
-
-Bytes ReadFile(const fs::path &file) {
-    std::ifstream stream(file, std::ios::binary);
-    if (!stream) {
-        throw std::runtime_error(std::format("cannot read {}", file.string()));
-    }
-    return Bytes(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
-}
-
 } // namespace
-
-Bytes AppendKeys(std::span<const unsigned char> cfg, std::string_view lines) {
-    std::string text(cfg.begin(), cfg.end());
-    text.insert(MotionEnd(text), lines);
-    return Bytes(text.begin(), text.end());
-}
-
-Bytes AppendEvents(std::span<const unsigned char> cfg, std::string_view lines) {
-    std::string text(cfg.begin(), cfg.end());
-    std::size_t at = text.find('\n', MotionEnd(text));
-    text.insert(at == std::string::npos ? text.size() : at + 1, lines);
-    return Bytes(text.begin(), text.end());
-}
 
 std::vector<std::pair<double, int>> SoundEvents(std::span<const unsigned char> cfg) {
     std::vector<std::pair<double, int>> events;
@@ -111,7 +82,7 @@ Bytes BuildJoeModel(std::span<const unsigned char> battle, std::span<const unsig
     for (auto [frame, sound] : sounds) {
         events += std::format("EVENT {:g},1,{}\r\n", frame - kJoeFallFirst + first, sound);
     }
-    cfg.ReplacePayload(AppendEvents(AppendKeys(cfg.Payload(), lines), events));
+    cfg.ReplacePayload(AppendCfgEvents(AppendCfgKeys(cfg.Payload(), lines), events));
     return base.Rebuild();
 }
 
@@ -130,7 +101,7 @@ Bytes BuildBlackKnightModel(std::span<const unsigned char> battle, std::span<con
     }
     std::string events = std::format("EVENT {},1,{}\r\n", kBlackKnightDeath[2].first - from + first, kBlackKnightScreamSound);
     ChrRecord  &cfg = base.Require("info.cfg");
-    cfg.ReplacePayload(AppendEvents(AppendKeys(cfg.Payload(), lines), events));
+    cfg.ReplacePayload(AppendCfgEvents(AppendCfgKeys(cfg.Payload(), lines), events));
     return base.Rebuild();
 }
 
@@ -149,49 +120,16 @@ const BossBuild kBossBuilds[] = {
     {"Black Knight", kBlackKnightBattleFile, kBlackKnightCutsceneFile, kBlackKnightModelFile, BuildBlackKnightModel},
 };
 
-int BuildBossModel(const fs::path &data, const BossBuild &boss, const std::function<void(const std::string &)> &say) {
-    std::error_code error;
-    for (const char *source : {boss.battle, boss.cutscene}) {
-        if (!fs::is_regular_file(data / source, error)) {
-            say(std::format("boss model {}: skipped, the data has no {}\n", boss.name, source));
-            return 0;
-        }
-    }
-    try {
-        Bytes    model = boss.build(ReadFile(data / boss.battle), ReadFile(data / boss.cutscene));
-        fs::path target = data / boss.target;
-        bool     current = fs::is_regular_file(target, error) && fs::file_size(target, error) == model.size() &&
-                           ReadFile(target) == model;
-        if (!current) {
-            fs::create_directories(target.parent_path());
-            std::ofstream stream(target, std::ios::binary | std::ios::trunc);
-            stream.write(reinterpret_cast<const char *>(model.data()), static_cast<std::streamsize>(model.size()));
-            stream.close();
-            if (!stream) {
-                throw std::runtime_error(std::format("cannot write {}", target.string()));
-            }
-        }
-        say(std::format("boss model {}: {} ({} bytes{})\n", boss.name, boss.target, model.size(), current ? ", unchanged" : ""));
-        return 0;
-    } catch (const std::exception &failure) {
-        say(std::format("boss model {}: not built: {}\n", boss.name, failure.what()));
-        return 1;
-    }
-}
-
 } // namespace
 
 int BuildBossModels(const std::filesystem::path &data, std::FILE *log) {
-    auto say = [&](const std::string &line) {
-        if (log) {
-            std::fputs(line.c_str(), log);
-        }
-    };
-    int failures = 0;
+    std::vector<DataBuild> builds;
     for (const BossBuild &boss : kBossBuilds) {
-        failures += BuildBossModel(data, boss, say);
+        std::vector<std::string> sources = {boss.battle, boss.cutscene};
+        auto                     build = [&boss](const DiscReader &read) { return boss.build(read(boss.battle), read(boss.cutscene)); };
+        builds.push_back(DataBuild{boss.name, boss.target, sources, build});
     }
-    return failures;
+    return RunDataBuilds(data, "boss model", builds, log);
 }
 
 } // namespace expanded
