@@ -48,6 +48,9 @@ still matches retail.
 - **Edits to Chronicle's files (`ps2/`, `port/`, `tools/dcdata/`) are guarded hooks:**
   - Wrap each in `#ifdef CHRONICLE_EXPANDED`; one that replaces code keeps retail's in the `#else`.
   - Keep each to a call into `expanded::` or a constant; the logic lives in `expanded/src`.
+  - Where several features act at one site, the hook calls one dispatch (`dungeon/dungeon_hooks`) that calls
+    them in turn. A hook repeated through a file's functions can be a file-local helper holding the `#ifdef`
+    (`ScriptMonster` in runscript_opcodes.cpp).
   - Don't reformat, rename or move the code around them.
   - Hook the copy of a function that runs: port/src replaces some of ps2/src's (`PORT_OVERRIDE`), and a hook
     in a replaced one never runs. The build stops on one (`expanded/cmake/check_hooks.py`).

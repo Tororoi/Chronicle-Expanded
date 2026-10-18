@@ -751,15 +751,18 @@ int BtAtraGetShort_Loop(int map_no, int floor) {
                 bool dropped = expanded::AtlaDropTaken(index); // an Expanded drop: no part, nothing saved
                 int  atra_id = dropped ? -1 : status->atra_registry[map_no][NowDngMap->atra[index].atra_no].id;
 #else
-                int atra_id = status->atra_registry[map_no][NowDngMap->atra[index].atra_no].id;
+                int             atra_id = status->atra_registry[map_no][NowDngMap->atra[index].atra_no].id;
 #endif
                 BtAtraGetID = atra_id;
                 NowDngMap->atra[NowDngMap->events[BtAtraGetNo].index].used = 0;
                 NowDngMap->events[BtAtraGetNo].kind = DNG_EVENT_NONE;
 #ifdef CHRONICLE_EXPANDED
-                if (!dropped)
-#endif
+                if (!dropped) {
                     getAtraToSaveData(atra_id, NowDngMap->atra[index].atra_no, SaveData, map_no, floor);
+                }
+#else
+                getAtraToSaveData(atra_id, NowDngMap->atra[index].atra_no, SaveData, map_no, floor);
+#endif
                 sceVu0CopyVector(position, NowDngMap->atra[index].pos);
                 CharaMain.SetPosition(position);
                 CharaMain.SetRotation(0.0f, 0.0f, 0.0f);
@@ -795,9 +798,12 @@ int BtAtraGetShort_Loop(int map_no, int floor) {
 
             if (!(shortAtraEffect.motion_type.state.time < 129.5f)) {
 #ifdef CHRONICLE_EXPANDED
-                if (!expanded::AtlaDropNamed())
-#endif
+                if (!expanded::AtlaDropNamed()) {
                     AtraGetMes(map_no, BtAtraGetID, 0x28);
+                }
+#else
+                AtraGetMes(map_no, BtAtraGetID, 0x28);
+#endif
                 atraGetStatus = 2;
                 atraGetMsgBord = 1;
                 atraGetMsgBordRate = 0.0f;

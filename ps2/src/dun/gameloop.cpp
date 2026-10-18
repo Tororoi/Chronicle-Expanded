@@ -126,18 +126,9 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/dungeon/atla_drops.hpp"
-#include "expanded/dungeon/navigation.hpp"
-#include "expanded/enemies/atla_gemron.hpp"
-#include "expanded/enemies/black_knight.hpp"
-#include "expanded/enemies/boss_casts.hpp"
-#include "expanded/enemies/crystal_gemron.hpp"
-#include "expanded/enemies/ice_queen.hpp"
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
-#include "expanded/enemies/sounds.hpp"
-#include "expanded/enemies/steve.hpp"
-#include "expanded/status/confuse.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/stats.hpp"
 #endif
@@ -6327,12 +6318,7 @@ void motionDrive() {
         effects[i].Step();
     }
 #ifdef CHRONICLE_EXPANDED
-    expanded::ShotEffectsStep();
-    expanded::BossCastStep(*NowMonstorUnit);
-    expanded::IceQueenStep(*NowMonstorUnit);
-    expanded::CrystalGemronStep(*NowMonstorUnit);
-    expanded::AtlaGemronStep(*NowMonstorUnit);
-    expanded::BlackKnightStep();
+    expanded::DungeonShotsStep(*NowMonstorUnit);
 #endif
 
     OzumondShot.Step();
@@ -6592,12 +6578,7 @@ void BtLoadMonstor(int ura) {
     }
 
 #ifdef CHRONICLE_EXPANDED
-    expanded::ConfuseFloorLoaded();
-    expanded::ShotEffectsFloorLoaded();
-    expanded::NavigationFloorLoaded();
-    expanded::MonsterSoundsFloorLoaded(*NowMonstorUnit);
-    expanded::SteveLinesFloorLoaded(*NowMonstorUnit);
-    expanded::AtlaDropsFloorLoaded();
+    expanded::DungeonFloorLoaded(*NowMonstorUnit);
 #endif
     MemoryMapDump();
 }

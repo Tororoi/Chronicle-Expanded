@@ -17,6 +17,10 @@
 #include "platform/display.hpp"
 #include "platform/paths.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/core/options_json.hpp"
+#endif
+
 namespace {
 
 Config                        g_config;
@@ -287,10 +291,7 @@ bool ApplyGameOption(ConfigGameOptions &options, std::string_view name, const Js
 bool Apply(Config &config, std::string_view name, const Json &value) {
 #ifdef CHRONICLE_EXPANDED
     if (name.starts_with("expanded.")) {
-        if (value.is_string()) {
-            return expanded::SetOptionChoice(config.expanded_options, name.substr(9), value.get<std::string>());
-        }
-        return value.is_boolean() && expanded::SetOption(config.expanded_options, name.substr(9), value.get<bool>());
+        return expanded::SetOptionValue(config.expanded_options, name.substr(9), value);
     }
 #endif
     if (name == "audio.sound" && value == "surround") {
@@ -691,13 +692,7 @@ std::string ConfigSerialize(const Config &config) {
     root["input"]["bindings"] = std::move(bindings);
     root["discord"]["rich_presence"] = config.discord_rich_presence;
 #ifdef CHRONICLE_EXPANDED
-    for (const expanded::Toggle &toggle : expanded::Toggles()) {
-        if (toggle.choices != nullptr) {
-            root["expanded"][toggle.key] = expanded::OptionChoiceName(toggle.key, expanded::OptionChoice(config.expanded_options, toggle.key));
-        } else {
-            root["expanded"][toggle.key] = expanded::OptionOn(config.expanded_options, toggle.key);
-        }
-    }
+    expanded::SaveOptionValues(root, config.expanded_options);
 #endif
     return root.dump(4) + "\n";
 }
