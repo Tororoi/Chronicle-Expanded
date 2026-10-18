@@ -18,5 +18,10 @@
     "options.expanded.randomize_enemies.label": "Ennemis aléatoires",
     "options.expanded.randomize_enemies.help": "\"Ennemis aléatoires\"\nLes monstres de chaque\nétage sont tirés au\nsort à chaque visite.",
     "options.expanded.randomize_enemies.choice.0": "Activé",
-    "options.expanded.randomize_enemies.choice.1": "Désactivé"
+    "options.expanded.randomize_enemies.choice.1": "Désactivé",
+    "options.expanded.randomizer_bosses.label": "Boss aléatoires",
+    "options.expanded.randomizer_bosses.help": "\"Boss aléatoires\"\nDes boss et leur suite\nsur les étages tirés au\nsort : jamais, une fois\nvaincus, ou toujours.",
+    "options.expanded.randomizer_bosses.choice.0": "Désactivé",
+    "options.expanded.randomizer_bosses.choice.1": "Vaincus",
+    "options.expanded.randomizer_bosses.choice.2": "Tous"
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <random>
 #include <span>
 #include <string_view>
@@ -19,17 +20,33 @@ inline constexpr double kThemeMimicFillChance = 0.50;
 
 // A themed group of monsters.
 struct Theme {
-    std::string_view     name;
-    std::vector<Monster> members;
-    bool                 whole_set = false;   // placed whole, never cut down
-    int                  home = -1;           // the dungeon it is native to, or -1
-    double               weight = 1.0;        // on top of its home's pull
-    std::vector<Monster> single = {};         // members that spawn once even when the group fills the floor
-    bool                 with_mimics = false; // always brings the dungeon's mimic and king mimic
+    std::string_view       name;
+    std::vector<Monster>   members;
+    bool                   whole_set = false;   // placed whole, never cut down
+    int                    home = -1;           // the dungeon it is native to, or -1
+    double                 weight = 1.0;        // on top of its home's pull
+    std::vector<Monster>   single = {};         // members that spawn once even when the group fills the floor
+    bool                   with_mimics = false; // always brings the dungeon's mimic and king mimic
+    std::optional<Monster> boss = {};           // a boss theme's boss (the one whose fall ends its fight)
 };
 
-// Every theme but the dungeon's own Mimics.
+// Every theme but the dungeon's own Mimics and the bosses'.
 std::span<const Theme> Themes();
+
+// The Randomizer Bosses setting: boss themes never, once their boss is beaten, or always.
+inline constexpr const char *kRandomizerBosses = "randomizer_bosses";
+enum class RandomizerBosses {
+    Off,
+    Defeated,
+    Any,
+};
+RandomizerBosses RandomizerBossesSetting();
+
+// The bosses' themes: the boss and six of its company, whole, with the dungeon's mimic and king mimic.
+std::span<const Theme> BossThemes();
+
+// Whether a boss theme may be drawn: as the setting allows, and with the party its boss needs.
+bool BossThemeAvailable(const Theme &theme);
 
 // The regular monsters a dungeon lays out natively, mimics left out.
 const std::vector<Monster> &DungeonNatives(int dungeon);
@@ -52,7 +69,7 @@ struct ThemeOutcome {
     int              fillers = 0;
 };
 
-// A themed roster for a dungeon's floor, both its sides. Its members fill the floor, or spawn once each over a
+// A themed roster for a dungeon's floor, both its sides, the boss themes in the draw as available. Its members fill the floor, or spawn once each over a
 // rolled number (kKindCountWeights) of fillers: the mimic and king mimic, or those then the dungeon's natives.
 // Empty off the dungeons.
 Roster ThemedRoster(int dungeon, int floor, std::mt19937 &random, ThemeOutcome *outcome = nullptr);

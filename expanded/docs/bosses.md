@@ -32,6 +32,19 @@ The Ice Queen's damage is her pieces' (shot effects: the arrow and meteors 69, t
 replaced as they fire (`IceQueenPieceDamage`). The table's melee and shot replace a boss's strongest; its
 other attacks scale with them.
 
+## Randomizer
+
+Each boss has a theme for the randomizer (`BossThemes`, `expanded/src/enemies/themes.cpp`): the boss and six of
+its company placed whole, the boss and the members marked in the table spawning once, with the dungeon's mimic
+and king mimic in the last two of the nine places. They join the other themes' draw at weight 1 as the
+Randomizer Bosses setting (Off, Defeated, Any) allows: Defeated draws a boss's theme once the save has beaten
+it, Any always. A boss whose cast needs a party member (the Ice Queen, King's Curse) is drawn only with them.
+
+A boss is beaten when its fight-ending monster's life runs out (`BossRecordKill`): Dran, Master Utan, the Ice
+Queen, King's Curse's coffin, Minotaur Joe or the Black Knight, wherever it is, kept in the save's
+`expanded.json` (`bosses.defeated`). A save made before that counts the bosses of every dungeon before the
+latest it has visited; the Black Knight, with none after his, counts only once beaten.
+
 ## Paths
 
 A boss's script moves it with `_SET_MOVE` (a direction and a speed towards a point), and the engine stops it

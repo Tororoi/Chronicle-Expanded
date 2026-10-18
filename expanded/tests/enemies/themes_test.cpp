@@ -1,14 +1,23 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <filesystem>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "dun/gameloop.hpp"
+#include "expanded/core/options.hpp"
+#include "expanded/core/save.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/randomize.hpp"
 #include "expanded/enemies/themes.hpp"
 #include "monstorunit.hpp"
+#include "platform/config.hpp"
+#include "platform/paths.hpp"
+#include "platform_fixture.hpp"
+#include "userstatus.hpp"
 
 namespace {
 
@@ -258,4 +267,107 @@ TEST(EnemyThemes, ACappedFloorsFillersKeepToTheirCaps) {
     // The mimics alone are one or two kinds, by the first two weights rescaled.
     double one = expanded::kKindCountWeights[0] / (expanded::kKindCountWeights[0] + expanded::kKindCountWeights[1]);
     EXPECT_NEAR(mimics_only_one / static_cast<double>(mimics_only_roomy), one, 0.03);
+}
+
+namespace {
+
+// Sets Randomizer Bosses in the current settings, a party of everyone and a save that has beaten no one.
+class BossThemes : public ::testing::Test {
+protected:
+    void SetUp() override {
+        root_ = std::filesystem::temp_directory_path() / ("dc_expanded_boss_themes_" + std::to_string(dc::test::ProcessId()));
+        std::filesystem::create_directories(root_);
+        PathsSetSaveRoot(root_);
+        saved_status_ = UserStatus;
+        status_->party_size = 6;
+        UserStatus = status_.get();
+        expanded::SaveClear();
+    }
+
+    void TearDown() override {
+        Set(expanded::RandomizerBosses::Off);
+        expanded::SaveClear();
+        UserStatus = saved_status_;
+        std::filesystem::remove_all(root_);
+    }
+
+    static void Set(expanded::RandomizerBosses setting) {
+        Config config = ConfigGet();
+        ASSERT_TRUE(expanded::SetOptionChoice(config.expanded_options, expanded::kRandomizerBosses, static_cast<int>(setting)));
+        ASSERT_TRUE(ConfigChange(config));
+    }
+
+    static const expanded::Theme &Boss(Monster boss) {
+        for (const expanded::Theme &theme : expanded::BossThemes()) {
+            if (theme.boss == boss) {
+                return theme;
+            }
+        }
+        static const expanded::Theme none;
+        return none;
+    }
+
+    std::filesystem::path        root_;
+    std::unique_ptr<CUserStatus> status_ = std::make_unique<CUserStatus>();
+    CUserStatus                 *saved_status_ = nullptr;
+};
+
+} // namespace
+
+TEST_F(BossThemes, EachIsItsBossAndSixMore) {
+    ASSERT_EQ(expanded::BossThemes().size(), 6u);
+    for (const expanded::Theme &theme : expanded::BossThemes()) {
+        ASSERT_TRUE(theme.boss.has_value()) << theme.name;
+        EXPECT_EQ(theme.members.size(), 7u) << theme.name;
+        EXPECT_TRUE(theme.whole_set) << theme.name;
+        EXPECT_TRUE(theme.with_mimics) << theme.name;
+        EXPECT_TRUE(Contains(theme.members, *theme.boss)) << theme.name;
+        EXPECT_TRUE(Contains(theme.single, *theme.boss)) << theme.name;
+    }
+}
+
+TEST_F(BossThemes, TheSettingSaysWhichAreDrawn) {
+    const expanded::Theme &dran = Boss(Monster::DRAN);
+    EXPECT_EQ(expanded::RandomizerBossesSetting(), expanded::RandomizerBosses::Off);
+    EXPECT_FALSE(expanded::BossThemeAvailable(dran));
+    EXPECT_TRUE(expanded::BossThemeAvailable(expanded::Themes().front()));
+
+    Set(expanded::RandomizerBosses::Defeated);
+    EXPECT_FALSE(expanded::BossThemeAvailable(dran));
+    expanded::SaveValue<std::vector<int>>("bosses.defeated").Set({No(Monster::DRAN)});
+    EXPECT_TRUE(expanded::BossThemeAvailable(dran));
+    EXPECT_FALSE(expanded::BossThemeAvailable(Boss(Monster::MINOTAUR_JOE)));
+
+    Set(expanded::RandomizerBosses::Any);
+    EXPECT_TRUE(expanded::BossThemeAvailable(Boss(Monster::MINOTAUR_JOE)));
+    // The Ice Queen comes only with the party member who can hurt her.
+    EXPECT_TRUE(expanded::BossThemeAvailable(Boss(Monster::ICE_QUEEN)));
+    status_->party_size = 2;
+    EXPECT_FALSE(expanded::BossThemeAvailable(Boss(Monster::ICE_QUEEN)));
+}
+
+TEST_F(BossThemes, ABossFloorHoldsTheBossItsCompanyAndTheMimics) {
+    Set(expanded::RandomizerBosses::Any);
+    std::mt19937               random(5);
+    std::map<std::string, int> seen;
+    for (int roll = 0; roll < 4000; roll++) {
+        expanded::ThemeOutcome  outcome;
+        expanded::Roster        roster = expanded::ThemedRoster(3, 5, random, &outcome);
+        expanded::DungeonMimics mimics = *expanded::MimicsOf(3, 5);
+        for (const expanded::Theme &theme : expanded::BossThemes()) {
+            if (theme.name != outcome.name) {
+                continue;
+            }
+            seen[std::string(theme.name)]++;
+            ASSERT_EQ(roster.Size(), expanded::kRosterSize) << theme.name;
+            for (Monster kind : theme.members) {
+                int at = Find(roster, kind);
+                ASSERT_GE(at, 0) << theme.name << " " << No(kind);
+                EXPECT_EQ(roster.once[at], Contains(theme.single, kind)) << theme.name << " " << No(kind);
+            }
+            EXPECT_GE(Find(roster, mimics.mimic), 0) << theme.name;
+            EXPECT_GE(Find(roster, mimics.king), 0) << theme.name;
+        }
+    }
+    EXPECT_EQ(seen.size(), 6u);
 }

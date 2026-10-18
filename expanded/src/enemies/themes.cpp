@@ -4,6 +4,9 @@
 #include <cmath>
 #include <optional>
 
+#include "expanded/core/options.hpp"
+#include "expanded/enemies/boss_casts.hpp"
+#include "expanded/enemies/boss_record.hpp"
 #include "expanded/enemies/randomize.hpp"
 
 namespace expanded {
@@ -76,6 +79,22 @@ const std::vector<Theme> kThemes = {
     {"Demon Shaft: Holy", kDemonShaftHoly, false, kDemonShaft},
 };
 
+// The bosses' themes: '!' members of the user's lists spawn once.
+const std::vector<Theme> kBossThemes = {
+    {"Dran",         {Monster::DRAN, Monster::MASTER_JACKET, Monster::CAVE_BAT, Monster::SKELETON_SOLDIER, Monster::ROCKANOFF, Monster::OPAR, Monster::DASHER},                            true, -1, 1.0, {Monster::DRAN, Monster::ROCKANOFF, Monster::OPAR, Monster::DASHER},                                     true, Monster::DRAN              },
+    {"Master Utan",  {Monster::MASTER_UTAN, Monster::SUNDAY, Monster::TUESDAY, Monster::FRIDAY, Monster::SATURDAY, Monster::HORNET, Monster::CANNIBAL_PLANT},                              true, -1, 1.0, {Monster::MASTER_UTAN, Monster::SUNDAY, Monster::TUESDAY, Monster::FRIDAY, Monster::SATURDAY},           true, Monster::MASTER_UTAN       },
+    {"Ice Queen",    {Monster::ICE_QUEEN, Monster::ICE_BARRIER, Monster::SAM, Monster::GUNNY, Monster::CAPTAIN, Monster::CORCEA, Monster::PIRATES_CHARIOT},                                true, -1, 1.0, {Monster::ICE_QUEEN, Monster::ICE_BARRIER, Monster::CAPTAIN, Monster::CORCEA, Monster::PIRATES_CHARIOT}, true, Monster::ICE_QUEEN         },
+    {"King's Curse", {Monster::KINGS_CURSE, Monster::KINGS_CURSE_COFFIN, Monster::DUNE, Monster::MUMMY, Monster::GOLEM, Monster::GOL, Monster::SIL},                                       true, -1, 1.0, {Monster::KINGS_CURSE, Monster::KINGS_CURSE_COFFIN, Monster::GOL, Monster::SIL},                         true, Monster::KINGS_CURSE_COFFIN},
+    {"Minotaur Joe", {Monster::MINOTAUR_JOE, Monster::WINE_KEG, Monster::HELL_POCKLE, Monster::MOON_BUG, Monster::CRESCENT_BARON, Monster::WEDNESDAY, Monster::MOON_DIGGER},               true, -1, 1.0, {Monster::MINOTAUR_JOE, Monster::CRESCENT_BARON, Monster::WEDNESDAY, Monster::MOON_DIGGER},              true, Monster::MINOTAUR_JOE      },
+    {"Black Knight", {Monster::BLACK_KNIGHT, Monster::BLACK_KNIGHT_MOUNT, Monster::GEMRON_HOLY, Monster::GEMRON_WIND, Monster::GEMRON_THUNDER, Monster::GEMRON_ICE, Monster::GEMRON_FIRE}, true, -1, 1.0, {Monster::BLACK_KNIGHT, Monster::BLACK_KNIGHT_MOUNT},                                                    true, Monster::BLACK_KNIGHT      },
+};
+
+[[maybe_unused]] const bool kRegistered =
+    AddToggle({.key = kRandomizerBosses,
+               .label = "Randomizer Bosses",
+               .help = "\"Randomizer Bosses\"\nBosses with their group\non randomized floors:\nnever, once beaten,\nor always.",
+               .choices = "Off|Defeated|Any"});
+
 std::vector<Monster> Join(std::initializer_list<const std::vector<Monster> *> groups) {
     std::vector<Monster> kinds;
     for (const std::vector<Monster> *group : groups) {
@@ -133,6 +152,30 @@ std::span<const Theme> Themes() {
     return kThemes;
 }
 
+RandomizerBosses RandomizerBossesSetting() {
+    return static_cast<RandomizerBosses>(OptionChoice(kRandomizerBosses));
+}
+
+std::span<const Theme> BossThemes() {
+    return kBossThemes;
+}
+
+bool BossThemeAvailable(const Theme &theme) {
+    if (!theme.boss) {
+        return true;
+    }
+    RandomizerBosses setting = RandomizerBossesSetting();
+    if (setting == RandomizerBosses::Off || (setting == RandomizerBosses::Defeated && !BossDefeated(*theme.boss))) {
+        return false;
+    }
+    for (Monster kind : theme.members) {
+        if (!BossCastAllowed(kind)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 const std::vector<Monster> &DungeonNatives(int dungeon) {
     static const std::vector<Monster> none;
     return dungeon >= 0 && dungeon < kDungeons ? kNatives[dungeon] : none;
@@ -154,17 +197,26 @@ Roster ThemedRoster(int dungeon, int floor, std::mt19937 &random, ThemeOutcome *
     }
     const DungeonMimics &mimics = *dungeon_mimics;
 
-    // The themes by weight, the dungeon's Mimics last at 1.
+    // The themes by weight, the available bosses' after them, the dungeon's Mimics last at 1.
+    std::vector<const Theme *> candidates;
+    for (const Theme &candidate : kThemes) {
+        candidates.push_back(&candidate);
+    }
+    for (const Theme &candidate : kBossThemes) {
+        if (BossThemeAvailable(candidate)) {
+            candidates.push_back(&candidate);
+        }
+    }
     double total = 1.0;
-    for (const Theme &theme : kThemes) {
-        total += ThemeWeight(theme, dungeon);
+    for (const Theme *candidate : candidates) {
+        total += ThemeWeight(*candidate, dungeon);
     }
     double       roll = std::uniform_real_distribution<double>(0.0, total)(random);
     const Theme *theme = nullptr;
-    for (const Theme &candidate : kThemes) {
-        roll -= ThemeWeight(candidate, dungeon);
+    for (const Theme *candidate : candidates) {
+        roll -= ThemeWeight(*candidate, dungeon);
         if (roll < 0.0) {
-            theme = &candidate;
+            theme = candidate;
             break;
         }
     }

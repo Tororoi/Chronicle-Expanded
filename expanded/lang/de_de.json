@@ -18,5 +18,10 @@
     "options.expanded.randomize_enemies.label": "Zufällige Gegner",
     "options.expanded.randomize_enemies.help": "\"Zufällige Gegner\"\nDie Monster jeder\nEtage werden bei jedem\nBesuch neu gelost.",
     "options.expanded.randomize_enemies.choice.0": "An",
-    "options.expanded.randomize_enemies.choice.1": "Aus"
+    "options.expanded.randomize_enemies.choice.1": "Aus",
+    "options.expanded.randomizer_bosses.label": "Zufällige Bosse",
+    "options.expanded.randomizer_bosses.help": "\"Zufällige Bosse\"\nBosse mit ihrer Gruppe\nauf zufälligen Etagen:\nnie, wenn besiegt,\noder immer.",
+    "options.expanded.randomizer_bosses.choice.0": "Aus",
+    "options.expanded.randomizer_bosses.choice.1": "Besiegte",
+    "options.expanded.randomizer_bosses.choice.2": "Alle"
 }

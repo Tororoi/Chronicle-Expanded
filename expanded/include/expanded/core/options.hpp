@@ -9,16 +9,20 @@
 namespace expanded {
 
 // An Expanded gameplay toggle: config.json's expanded.<key> and a row of the Options screen's Expanded page.
+// One with choices picks one of them instead of On or Off.
 struct Toggle {
-    const char *key = nullptr;   // "faster_enemies"
-    const char *label = nullptr; // "Faster Enemies"
-    const char *help = nullptr;  // "\"Faster Enemies\"\nMonsters move faster."
-    bool        on = false;      // the default
+    const char *key = nullptr;     // "faster_enemies"
+    const char *label = nullptr;   // "Faster Enemies"
+    const char *help = nullptr;    // "\"Faster Enemies\"\nMonsters move faster."
+    bool        on = false;        // the default
+    const char *choices = nullptr; // "Off|Defeated|Any": the row's names, config.json's values
+    int         choice = 0;        // the default choice
 };
 
-// The toggles set away from their defaults, by key (Config::expanded_options).
+// The toggles set away from their defaults, by key (Config::expanded_options): on as 1, off as 0, a choice by
+// its index.
 struct OptionValues {
-    std::map<std::string, bool, std::less<>> changed;
+    std::map<std::string, int, std::less<>> changed;
 
     bool operator==(const OptionValues &) const = default;
 };
@@ -39,7 +43,19 @@ bool OptionOn(const OptionValues &values, std::string_view key);
 // Whether a toggle is on in the current settings (ConfigGet).
 bool OptionOn(std::string_view key);
 
-// Turns a toggle on or off in these settings. Returns false for a key no toggle has.
+// Turns a toggle on or off in these settings. Returns false for a key no toggle has, or one with choices.
 bool SetOption(OptionValues &values, std::string_view key, bool on);
+
+// A toggle's choice in these settings (or the current ones); 0 for a key no toggle with choices has.
+int OptionChoice(const OptionValues &values, std::string_view key);
+int OptionChoice(std::string_view key);
+
+// Picks a toggle's choice, by its index or its name (any case). Returns false for a key no toggle with choices
+// has, or a choice it lacks.
+bool SetOptionChoice(OptionValues &values, std::string_view key, int choice);
+bool SetOptionChoice(OptionValues &values, std::string_view key, std::string_view choice);
+
+// The name of a toggle's choice, or empty.
+std::string OptionChoiceName(std::string_view key, int choice);
 
 } // namespace expanded

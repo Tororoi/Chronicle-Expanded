@@ -18,5 +18,10 @@
     "options.expanded.randomize_enemies.label": "Enemigos aleatorios",
     "options.expanded.randomize_enemies.help": "\"Enemigos aleatorios\"\nLos monstruos de cada\npiso se sortean en\ncada visita.",
     "options.expanded.randomize_enemies.choice.0": "Sí",
-    "options.expanded.randomize_enemies.choice.1": "No"
+    "options.expanded.randomize_enemies.choice.1": "No",
+    "options.expanded.randomizer_bosses.label": "Jefes aleatorios",
+    "options.expanded.randomizer_bosses.help": "\"Jefes aleatorios\"\nJefes con su grupo en\npisos aleatorios: nunca,\nal derrotarlos o\nsiempre.",
+    "options.expanded.randomizer_bosses.choice.0": "No",
+    "options.expanded.randomizer_bosses.choice.1": "Derrotados",
+    "options.expanded.randomizer_bosses.choice.2": "Todos"
 }

@@ -188,6 +188,15 @@ void BossCastRoster(Roster &roster) {
     }
 }
 
+bool BossCastAllowed(Monster kind) {
+    for (const Cast &cast : kCasts) {
+        if (Member(cast, kind) >= 0) {
+            return cast.needs < 0 || (UserStatus != nullptr && UserStatus->party_size > cast.needs);
+        }
+    }
+    return true;
+}
+
 bool BossCastMember(int monster) {
     int cast;
     int member;
