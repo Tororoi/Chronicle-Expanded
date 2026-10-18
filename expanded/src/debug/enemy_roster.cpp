@@ -5,6 +5,7 @@
 #include <charconv>
 #include <cstdio>
 
+#include "expanded/enemies/species.hpp"
 #include "gamepad.hpp"
 #include "mainselect.hpp"
 #include "monstorunit.hpp"
@@ -14,7 +15,7 @@ namespace expanded {
 
 namespace {
 
-constexpr int    kKinds = 167;
+constexpr int    kKinds = kSpeciesCount;
 constexpr size_t kMaxSpec = 60;
 
 std::string spec;
@@ -100,10 +101,10 @@ bool ParseRosterSpec(std::string_view text, Roster &out) {
         }
         int kind = -1;
         auto [end, error] = std::from_chars(item.data(), item.data() + item.size(), kind);
-        if (item.empty() || error != std::errc() || end != item.data() + item.size() || kind < 0 || kind >= kKinds) {
+        if (item.empty() || error != std::errc() || end != item.data() + item.size() || kind < 0 || kind >= kKinds || Species(kind) == nullptr) {
             return false;
         }
-        if (!parsed.Add(kind, once || MonstorTable[kind].kind == MONSTER_KIND_NO_LOCK_ON)) {
+        if (!parsed.Add(kind, once || Species(kind)->kind == MONSTER_KIND_NO_LOCK_ON)) {
             return false;
         }
     }

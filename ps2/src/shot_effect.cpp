@@ -20,6 +20,10 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/weapons/super_steve.hpp"
+
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/shot_effects.hpp"
+#endif
 #endif
 
 int GetWeaponElementAttr(int element);
@@ -238,7 +242,11 @@ void CSHOT_EFFECT::Step() {
 
                         switch (effect_data->end_effect) {
                             case SHOT_END_EFFECT_BOMB:
+#ifdef CHRONICLE_EXPANDED
+                                expanded::ShotEffectBomb(hit_position, effect_data);
+#else
                                 SetBombEffect(hit_position, effect_data->target, effect_data->bomb_damage, effect_data->bomb_scale);
+#endif
                                 break;
                         }
 
@@ -267,7 +275,11 @@ void CSHOT_EFFECT::Step() {
 
                 switch (effect_data->end_effect) {
                     case SHOT_END_EFFECT_BOMB:
+#ifdef CHRONICLE_EXPANDED
+                        expanded::ShotEffectBomb(hit_position, effect_data);
+#else
                         SetBombEffect(hit_position, effect_data->target, effect_data->bomb_damage, effect_data->bomb_scale);
+#endif
                         break;
                 }
 
@@ -292,7 +304,11 @@ void CSHOT_EFFECT::Step() {
 
             switch (effect_data->end_effect) {
                 case SHOT_END_EFFECT_BOMB:
+#ifdef CHRONICLE_EXPANDED
+                    expanded::ShotEffectBomb(hit_position, effect_data);
+#else
                     SetBombEffect(hit_position, effect_data->target, effect_data->bomb_damage, effect_data->bomb_scale);
+#endif
                     break;
             }
         }

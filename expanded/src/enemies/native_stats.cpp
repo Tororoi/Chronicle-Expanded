@@ -1,5 +1,3 @@
-#include "expanded/enemies/scaling.hpp"
-
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -10,6 +8,8 @@
 #include <string>
 
 #include "expanded/data/script_damage.hpp"
+#include "expanded/enemies/scaling.hpp"
+#include "expanded/enemies/species.hpp"
 #include "monstorunit.hpp"
 #include "platform/paths.hpp"
 
@@ -40,10 +40,10 @@ const std::map<std::string, ScriptDamage, std::less<>> &Scripts() {
 } // namespace
 
 EnemyStats NativeStats(int model_no) {
-    if (model_no < 0 || model_no >= 167) {
+    if (Species(model_no) == nullptr) {
         return {};
     }
-    const MONSTOR_MODEL &model = MonstorTable[model_no];
+    const MONSTOR_MODEL &model = *Species(model_no);
     EnemyStats           stats = {model.max_hp, model.exp, model.defense, model.hardness, 0, 0};
     auto                 found = Scripts().find(std::string_view(model.script_name, strnlen(model.script_name, sizeof(model.script_name))));
     if (found != Scripts().end()) {

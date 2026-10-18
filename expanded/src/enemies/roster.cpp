@@ -5,6 +5,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/boss_casts.hpp"
+#include "expanded/enemies/species.hpp"
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
 
@@ -13,7 +14,7 @@ namespace expanded {
 namespace {
 
 constexpr int kDungeons = 7;
-constexpr int kKinds = 167;
+constexpr int kKinds = kSpeciesCount;
 
 // This visit's staged floors, and the roster of the floor side loaded last.
 std::map<int, FloorRosters> staged;
@@ -86,14 +87,24 @@ bool SpawnsOnceNatively(int model_no) {
     if (model_no < 0 || model_no >= kKinds) {
         return false;
     }
-    s16 kind = MonstorTable[model_no].kind;
+    if (Species(model_no) == nullptr) {
+        return false;
+    }
+    s16 kind = Species(model_no)->kind;
     return kind != MONSTER_KIND_NORMAL && kind != MONSTER_KIND_MIMIC_SMALL;
 }
 
 void StageFloor(int floor, const FloorRosters &rosters) {
     FloorRosters &staging = staged[floor] = rosters;
-    BossCastRoster(staging.front);
-    BossCastRoster(staging.back);
+    for (Roster *roster : {&staging.front, &staging.back}) {
+        // An Expanded kind only once dcdata has built it.
+        for (int i = roster->Size() - 1; i >= 0; i--) {
+            if (!SpeciesBuilt(roster->model_no[i])) {
+                roster->Remove(roster->model_no[i]);
+            }
+        }
+        BossCastRoster(*roster);
+    }
 }
 
 const FloorRosters *StagedFloor(int floor) {

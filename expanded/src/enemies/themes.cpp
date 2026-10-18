@@ -65,7 +65,7 @@ const std::vector<Theme> kThemes = {
     {"Metal", {Monster::ARTHUR, Monster::ALEXANDER, Monster::STEEL_GIANT, Monster::PIRATES_CHARIOT, Monster::LIVING_ARMOR}, false, -1, 2.0},
     {"Mages", {Monster::CURSE_DANCER, Monster::WITCH_HELLZA, Monster::BISHOP_Q, Monster::NIKAPOUS}, false, -1, 2.0},
     {"Not the Bees", {Monster::HORNET, Monster::DARK_FLOWER}},
-    {"Bombs Away", {Monster::BOMBER_HEAD, Monster::BOMBER_HEAD_ENHANCED}, false, -1, 2.0},
+    {"Bombs Away", {Monster::BOMBER_HEAD, Monster::BOMBER_HEAD_ENHANCED, Monster::BOMB_GEMRON}, false, -1, 2.0},
     {"Whack-a-Mole", {Monster::EARTH_DIGGER, Monster::HALEY_HOLEY}, false, -1, 0.5},
     {"Bait", {Monster::KING_PRICKLY, Monster::MOON_DIGGER, Monster::WITCH_ILLZA, Monster::HALEY_HOLEY}, false, -1, 3.0, {Monster::KING_PRICKLY}},
     {"Halloween", {Monster::HALLOWEEN, Monster::GHOST, Monster::SKELETON_SOLDIER, Monster::MUMMY_ENHANCED, Monster::WEREWOLF, Monster::EVIL_BAT}, false, -1, 2.0},

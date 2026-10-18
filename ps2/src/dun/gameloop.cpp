@@ -128,6 +128,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/navigation.hpp"
 #include "expanded/enemies/black_knight.hpp"
+#include "expanded/enemies/bomb_gemron.hpp"
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/miniboss.hpp"
@@ -2659,6 +2660,9 @@ void MainDraw() {
             if (CEffectHyde == 0 && BtEventMode == 0) {
                 NowShotData->draw();
                 OzumondShotEffect.Draw();
+#ifdef CHRONICLE_EXPANDED
+                expanded::BombGemronEffectsDraw();
+#endif
                 OzumondFire.Draw();
             }
 

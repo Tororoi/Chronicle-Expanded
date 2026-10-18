@@ -11,6 +11,7 @@
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "expanded/enemies/sounds.hpp"
+#include "expanded/enemies/species.hpp"
 #include "mainselect.hpp"
 #include "monstorunit.hpp"
 
@@ -18,7 +19,7 @@ namespace expanded {
 
 namespace {
 
-constexpr int kKinds = 167;
+constexpr int kKinds = kSpeciesCount;
 constexpr int kDemonShaftSet = 106;
 
 // The sound sets of the staged floor's kinds, and the Steve files read so far.

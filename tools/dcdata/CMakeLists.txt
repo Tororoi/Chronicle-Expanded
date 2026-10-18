@@ -11,6 +11,7 @@ if(CHRONICLE_EXPANDED)
     target_sources(dcdata PRIVATE ${EXPANDED_DATA_SOURCES})
     target_compile_definitions(dcdata PRIVATE CHRONICLE_EXPANDED)
     target_include_directories(dcdata PRIVATE ${EXPANDED_DIR}/include)
+    target_link_libraries(dcdata PRIVATE nlohmann_json::nlohmann_json)
     set_source_files_properties(${EXPANDED_DATA_SOURCES} PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
 

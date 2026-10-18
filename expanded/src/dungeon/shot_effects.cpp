@@ -1,5 +1,6 @@
 #include "expanded/dungeon/shot_effects.hpp"
 
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <deque>
@@ -8,10 +9,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include "collisiondata.hpp"
 #include "dataalloc.hpp"
 #include "dataread.hpp"
 #include "dataset.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/enemies/species.hpp"
+#include "itembombeffect.hpp"
 #include "itemdata.hpp"
 #include "main.hpp"
 #include "mglib.hpp"
@@ -146,9 +150,9 @@ bool DiscLoad(CSHOT_EFFECT &effect, CDataAlloc2<1> &arena, BT_SHOT_EFFECT *descr
     if (bytes == nullptr) {
         return false;
     }
-    std::size_t    pack_bytes = (bytes->size() + 2048 + 63) & ~std::size_t{63};
+    std::size_t pack_bytes = (bytes->size() + 2048 + 63) & ~std::size_t{63};
     // The pack, then the model, motions and images it copies out, then each shot's frame copy.
-    int            quads = static_cast<int>((pack_bytes / 16) * (4 + 2 * shots) * kArenaHeadroom) + 4096;
+    int quads = static_cast<int>((pack_bytes / 16) * (4 + 2 * shots) * kArenaHeadroom) + 4096;
     arena.base = ArenaBlock(&arena, static_cast<std::size_t>(quads) * 16);
     arena.limit = quads;
     arena.used = 0;
@@ -255,7 +259,10 @@ int EnterTableShotEffect(int config, int shots) {
 }
 
 int EnterMonsterShotEffect(int model_no, int which) {
-    const MONSTOR_MODEL &model = MonstorTable[model_no];
+    if (Species(model_no) == nullptr) {
+        return -1;
+    }
+    const MONSTOR_MODEL &model = *Species(model_no);
     return EnterTableShotEffect(model.shot_effect[which], model.kind == MONSTER_KIND_NO_LOCK_ON ? 6 : 2);
 }
 
@@ -342,6 +349,29 @@ void ShotEffectsDraw() {
 
 void SetShotEffectLoader(ShotEffectLoader loader) {
     Loader() = loader != nullptr ? loader : DiscLoad;
+}
+
+int ShotEffectBomb(float *position, const BT_SHOT_EFFECT *effect) {
+    int slot = SetBombEffect(position, effect->target, effect->bomb_damage, effect->bomb_scale);
+    int per_scale = effect->unk_056[0] | (effect->unk_056[1] << 8);
+    if (slot == -1 || per_scale == 0) {
+        return slot;
+    }
+    COLLISION_HIT &hit = NowColData->hit[NowColData->now_hit];
+    hit.radius = per_scale * effect->bomb_scale;
+    if (effect->bomb_scale > 1.0f) {
+        NowShockWave->base_radius = NowShockWave->expand_radius = per_scale * effect->bomb_scale;
+    }
+    // Away from the blast; a blast on the player throws him straight back from the way he faces.
+    float dx = CharaMain.pos[0] - position[0], dz = CharaMain.pos[2] - position[2];
+    float length = std::sqrt(dx * dx + dz * dz);
+    if (length < 0.01f) {
+        dx = -std::sin(CharaMain.rotation.y), dz = -std::cos(CharaMain.rotation.y), length = 1.0f;
+    }
+    hit.velocity[0] = dx / length;
+    hit.velocity[1] = 0.0f;
+    hit.velocity[2] = dz / length;
+    return slot;
 }
 
 } // namespace expanded

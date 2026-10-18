@@ -23,5 +23,6 @@
     "options.expanded.randomizer_bosses.help": "\"Boss aléatoires\"\nDes boss et leur suite\nsur les étages tirés au\nsort : jamais, une fois\nvaincus, ou toujours.",
     "options.expanded.randomizer_bosses.choice.0": "Désactivé",
     "options.expanded.randomizer_bosses.choice.1": "Vaincus",
-    "options.expanded.randomizer_bosses.choice.2": "Tous"
+    "options.expanded.randomizer_bosses.choice.2": "Tous",
+    "dun.message.ww_mes.dunmsd00.3320": "Gemrond bombe"
 }

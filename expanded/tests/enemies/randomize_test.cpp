@@ -13,6 +13,7 @@
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/randomize.hpp"
 #include "expanded/enemies/roster.hpp"
+#include "expanded/enemies/species.hpp"
 #include "monstorunit.hpp"
 #include "platform/config.hpp"
 #include "platform/paths.hpp"
@@ -87,12 +88,13 @@ TEST(EnemyRandomize, IsAnExpandedToggleOffByDefault) {
 
 TEST(EnemyRandomize, ThePoolIsEveryRegularMonster) {
     std::span<const Monster> pool = expanded::RandomizerPool();
-    EXPECT_EQ(pool.size(), 119u);
+    EXPECT_EQ(pool.size(), 120u);
     for (Monster monster : pool) {
-        int kind = No(monster);
-        EXPECT_EQ(MonstorTable[kind].kind, MONSTER_KIND_NORMAL) << kind;
-        EXPECT_EQ(MonstorTable[kind].model_name[0][0], 'e') << kind;
-        EXPECT_NE(MonstorTable[kind].attachment_kind, MONSTER_FAMILY_MIMIC) << kind;
+        const MONSTOR_MODEL *species = expanded::Species(No(monster));
+        ASSERT_NE(species, nullptr) << No(monster);
+        EXPECT_EQ(species->kind, MONSTER_KIND_NORMAL) << No(monster);
+        EXPECT_EQ(species->model_name[0][0], 'e') << No(monster);
+        EXPECT_NE(species->attachment_kind, MONSTER_FAMILY_MIMIC) << No(monster);
     }
     EXPECT_EQ(std::count(pool.begin(), pool.end(), Monster::GACIOUS_ENHANCED), 2);
     EXPECT_FALSE(InPool(Monster::GACIOUS)); // a boss record
@@ -115,6 +117,7 @@ TEST(EnemyRandomize, ThePoolKeepsItsIndexes) {
     range(143, 151);
     range(154, 162);
     range(155, 155);
+    range(167, 167);
     std::span<const Monster> pool = expanded::RandomizerPool();
     ASSERT_EQ(pool.size(), indexes.size());
     for (size_t i = 0; i < pool.size(); i++) {

@@ -40,18 +40,20 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/bomb_gemron.hpp"
 #include "expanded/enemies/boss_casts.hpp"
-#include "expanded/enemies/boss_record.hpp"
 #include "expanded/enemies/boss_moves.hpp"
+#include "expanded/enemies/boss_record.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
+#include "expanded/enemies/species.hpp"
 #include "expanded/status/confuse.hpp"
-#include "expanded/weapons/kick_back.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/weapons/kick_back.hpp"
 #include "expanded/weapons/ungaga/charge_shot.hpp"
 #endif
 
@@ -794,7 +796,13 @@ void CMonstorUnit::DrawMonstor() {
 #else
             chara[i][0].Step();
 #endif
+#ifdef CHRONICLE_EXPANDED
+            expanded::BombGemronDrawing(*this, i);
+#endif
             character->Draw();
+#ifdef CHRONICLE_EXPANDED
+            expanded::BombGemronDrawn(*this, i);
+#endif
 
             for (int j = 0; j < monster[i].attachment_count; j++) {
                 if (chara[i][j + 1].frame != NULL) {
@@ -2113,6 +2121,7 @@ void CMonstorUnit::Step(int pause) {
                 } else {
 #ifdef CHRONICLE_EXPANDED
                     if (expanded::BossDeathStep(*this, current_monster)) {
+                    } else if (expanded::BombGemronStep(*this, current_monster)) {
                     } else if (expanded::ReviveStep(*this, current_monster)) {
                     } else if (script_state[current_monster] == 0) {
 #else
@@ -2512,14 +2521,19 @@ void CMonstorUnit::CleanViewMonstor(int back_floor) {
 }
 
 int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDataAlloc2<1> *alloc) {
+#ifdef CHRONICLE_EXPANDED
+    MONSTOR_MODEL *description = expanded::SpeciesRecord(model_no);
+#else
     MONSTOR_MODEL *description = &MonstorTable[model_no];
-    char           filename[64];
-    CFrameAttr     attr;
-    int            file_size;
+#endif
+    char       filename[64];
+    CFrameAttr attr;
+    int        file_size;
     attr.fog_enable = true;
     sprintf(filename, "dun/monstor/%s.chr", description->model_name[0]);
 #ifdef CHRONICLE_EXPANDED
     expanded::BossPackFile(filename, model_no);
+    expanded::SpeciesPackFile(filename, model_no);
 #endif
     LoadFile(filename, read_buffer, NULL);
     wait_now_loading_vsync();

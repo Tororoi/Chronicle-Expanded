@@ -19,6 +19,7 @@
 #include "userstatus.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/enemies/bomb_gemron.hpp"
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/boss_moves.hpp"
 #include "expanded/enemies/bosses.hpp"
@@ -954,6 +955,7 @@ int _SET_SHOT(RS_STACKDATA *stack, int argc) {
     NowMonstorUnit->event[monster_no].local_position[3] = 1.0f;
 #ifdef CHRONICLE_EXPANDED
     expanded::BossPointIn(*NowMonstorUnit, monster_no, NowMonstorUnit->event[monster_no].local_position, expanded::BossPoint::Target);
+    expanded::BombGemronAim(*NowMonstorUnit, monster_no, NowMonstorUnit->event[monster_no].local_position);
 #endif
 
     if (NowMonstorUnit->event[monster_no].timer == 0) {
