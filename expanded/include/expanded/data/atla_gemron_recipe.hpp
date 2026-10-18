@@ -1,8 +1,9 @@
 #pragma once
 
-// The Atla Gemron's fitted numbers, as the PS2 mod's preview page (game_data/viewers/model/atla_gemron.py) derived them
-// from the rig: the held atla's place on the big gem, the forehead lens's, the light's and its frames, the wing lights'
-// sizes, the spawn bone, the shot's frames and flight, and the bounce's poses. Includes no game header.
+// The Atla Gemron's fitted numbers, as the PS2 mod's preview page
+// (DarkCloud-Expanded/game_data/viewers/model/atla_gemron.py) derived them from the rig: the held atla's place on the
+// big gem, the forehead lens's, the light's and its frames, the wing lights' sizes, the spawn bone, the shot's frames
+// and flight, and the bounce's poses. Includes no game header.
 
 #include <array>
 #include <utility>
