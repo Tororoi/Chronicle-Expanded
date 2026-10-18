@@ -287,6 +287,9 @@ void StepDeath(CMonstorUnit &unit, int monster) {
         }
         return;
     }
+    if (dying && frame >= kAtlaGemronSwap) {
+        unit.monster[monster].shadow_enabled = false; // the body's shadow would fall on the atla rising out of it
+    }
     if (g.placed < 0) {
         return;
     }
