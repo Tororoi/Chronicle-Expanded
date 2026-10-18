@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <iterator>
+#include <optional>
 #include <string>
 
 #include "dun/gameloop.hpp"
@@ -22,8 +23,9 @@ namespace {
 constexpr int kMembers = 2;
 
 struct Cast {
-    Monster kinds[kMembers]; // in the order its scripts number them
-    int     needs;           // the party member who can hurt the boss, or -1 for anyone
+    Monster     kinds[kMembers]; // in the order its scripts number them
+    const char *names[kMembers];
+    int         needs; // the party member who can hurt the boss, or -1 for anyone
     // The member that follows the other (when one does): dormant, it waits by it (raised by rise), and its
     // script's hiding place (when it has one) is taken there too.
     bool    follows;
@@ -44,9 +46,9 @@ struct Cast {
 // without it starts as the mount leaves him: dismounted (g0 1), standing (motion 15).
 // clang-format off
 const Cast kCasts[] = {
-    {{Monster::ICE_QUEEN, Monster::ICE_BARRIER},                CHARA_RUBY,   true,  Monster::ICE_BARRIER,        10.1f,   false, {},                    false, {},                    0, 0 },
-    {{Monster::KINGS_CURSE_COFFIN, Monster::KINGS_CURSE},       CHARA_UNGAGA, true,  Monster::KINGS_CURSE_COFFIN, -500.0f, true,  {0.0f, 0.0f, -500.0f}, false, {},                    0, 0 },
-    {{Monster::BLACK_KNIGHT_MOUNT, Monster::BLACK_KNIGHT},      -1,           false, {},                          0.0f,    false, {},                    true,  Monster::BLACK_KNIGHT, 1, 15},
+    {{Monster::ICE_QUEEN, Monster::ICE_BARRIER},                {"Ice Queen", "Ice Barrier"},                CHARA_RUBY,   true,  Monster::ICE_BARRIER,        10.1f,   false, {},                    false, {},                    0, 0 },
+    {{Monster::KINGS_CURSE_COFFIN, Monster::KINGS_CURSE},       {"King's Curse's coffin", "King's Curse"},   CHARA_UNGAGA, true,  Monster::KINGS_CURSE_COFFIN, -500.0f, true,  {0.0f, 0.0f, -500.0f}, false, {},                    0, 0 },
+    {{Monster::BLACK_KNIGHT_MOUNT, Monster::BLACK_KNIGHT},      {"Black Knight's mount", "Black Knight"},     -1,           false, {},                          0.0f,    false, {},                    true,  Monster::BLACK_KNIGHT, 1, 15},
 };
 // clang-format on
 
@@ -184,6 +186,22 @@ void BossCastRoster(Roster &roster) {
             }
         }
     }
+}
+
+std::optional<BossCastInfo> BossCastOf(Monster kind) {
+    for (const Cast &cast : kCasts) {
+        int member = Member(cast, kind);
+        if (member >= 0) {
+            return BossCastInfo{
+                .kinds = {cast.kinds[0], cast.kinds[1]},
+                .names = {cast.names[0], cast.names[1]},
+                .member = member,
+                .needs = cast.needs,
+                .alone = cast.solo && cast.alone == kind,
+            };
+        }
+    }
+    return std::nullopt;
 }
 
 bool BossCastAllowed(Monster kind) {

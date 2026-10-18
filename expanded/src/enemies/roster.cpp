@@ -1,11 +1,12 @@
 #include "dungeon.h"
-#include "expanded/enemies/roster.hpp"
 
+#include <cstdio>
 #include <map>
 #include <vector>
 
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/boss_casts.hpp"
+#include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/species.hpp"
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
@@ -97,6 +98,7 @@ bool SpawnsOnceNatively(int model_no) {
 void StageFloor(int floor, const FloorRosters &rosters) {
     FloorRosters &staging = staged[floor] = rosters;
     for (Roster *roster : {&staging.front, &staging.back}) {
+        int given = roster->Size();
         // An Expanded kind only once dcdata has built it.
         for (int i = roster->Size() - 1; i >= 0; i--) {
             if (!SpeciesBuilt(roster->model_no[i])) {
@@ -104,6 +106,12 @@ void StageFloor(int floor, const FloorRosters &rosters) {
             }
         }
         BossCastRoster(*roster);
+        // A floor of no monsters cannot load: one left with none keeps its own.
+        if (given > 0 && roster->Size() == 0) {
+            std::fprintf(stderr, "expanded: floor %d's staged roster has no kind left for this party; it keeps its own monsters\n", floor);
+            staged.erase(floor);
+            return;
+        }
     }
 }
 

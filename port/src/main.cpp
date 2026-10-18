@@ -406,8 +406,8 @@ int Run(int argc, const char **argv) {
         std::exit(kExitUsage);
     }
 #ifdef CHRONICLE_EXPANDED
-    if (options.roster != nullptr && !expanded::SetDebugRoster(options.roster)) {
-        std::fprintf(stderr, "bad --roster: %s\n", options.roster);
+    if (std::string why; options.roster != nullptr && !expanded::SetDebugRoster(options.roster, &why)) {
+        std::fprintf(stderr, "bad --roster %s: %s\n", options.roster, why.c_str());
         std::exit(kExitUsage);
     }
 #endif
