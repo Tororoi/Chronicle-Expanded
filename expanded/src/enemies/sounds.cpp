@@ -14,6 +14,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
+#include "expanded/enemies/species.hpp"
 #include "monstorunit.hpp"
 #include "snd.hpp"
 #include "sound.hpp"
@@ -22,7 +23,7 @@ namespace expanded {
 
 namespace {
 
-constexpr int kKinds = 167;
+constexpr int kKinds = kSpeciesCount;
 constexpr int kDungeons = 7;
 constexpr int kDemonShaft = 6;
 constexpr int kMonsterBankSlot = 3; // the *_g bank's slot in CSound's state
@@ -96,6 +97,7 @@ bool Resolves(const audio::Bank *bank, int program, int note) {
 } // namespace
 
 std::vector<int> HomeSoundSets(int model_no) {
+    model_no = SpeciesStandIn(model_no);
     std::vector<int> sets;
     for (int dungeon = 0; dungeon < kDungeons; dungeon++) {
         for (BT_ENEMY_FLOOR *layout : {BtEnemyLayoutList[dungeon], BtUraEnemyLayoutList[dungeon]}) {

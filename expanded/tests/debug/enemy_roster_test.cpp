@@ -71,7 +71,7 @@ TEST(DebugRosterSpec, ParsesKindsAndSpawnOnceMarks) {
 TEST(DebugRosterSpec, RefusesBadSpecs) {
     expanded::Roster roster;
     EXPECT_FALSE(expanded::ParseRosterSpec("20,,60", roster));
-    EXPECT_FALSE(expanded::ParseRosterSpec("167", roster));
+    EXPECT_FALSE(expanded::ParseRosterSpec("168", roster));
     EXPECT_FALSE(expanded::ParseRosterSpec("-1", roster));
     EXPECT_FALSE(expanded::ParseRosterSpec("20,20", roster));
     EXPECT_FALSE(expanded::ParseRosterSpec("1,2,3,4,5,6,7,8,9,10", roster));

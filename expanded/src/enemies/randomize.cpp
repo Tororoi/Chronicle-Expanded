@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "expanded/core/options.hpp"
+#include "expanded/enemies/species.hpp"
 #include "expanded/enemies/themes.hpp"
 
 namespace expanded {
@@ -18,7 +19,7 @@ constexpr int kDungeons = 7;
                .label = "Randomize Enemies",
                .help = "\"Randomize Enemies\"\nEach floor's monsters\nare drawn from the\nwhole game on every\ndungeon visit."});
 
-// Regular monsters: every 'e' model but the mimics, Wine Keg and the boss-record Gacious.
+// Regular monsters: every 'e' model but the mimics, Wine Keg and the boss-record Gacious, then Expanded's.
 const std::vector<Monster> &Pool() {
     static const std::vector<Monster> pool = [] {
         std::vector<Monster> kinds;
@@ -36,6 +37,7 @@ const std::vector<Monster> &Pool() {
         range(Monster::GEMRON_WIND, Monster::SPACE_GYON_ENHANCED);
         range(Monster::GEMRON_HOLY, Monster::LIVING_ARMOR_ENHANCED);
         kinds.push_back(Monster::GACIOUS_ENHANCED); // Gacious's own chance
+        kinds.push_back(Monster::BOMB_GEMRON);      // Expanded's (expanded/enemies/species.hpp)
         return kinds;
     }();
     return pool;
@@ -133,7 +135,9 @@ Roster RandomMix(int dungeon, int floor, std::mt19937 &random) {
     int                                   size = roster.Size() + RollKindCount(kRosterSize - roster.Size(), random);
     while (roster.Size() < size) {
         Monster kind = pool[pick(random)];
-        roster.Add(kind, SpawnsOnceNatively(kind));
+        if (SpeciesBuilt(No(kind))) {
+            roster.Add(kind, SpawnsOnceNatively(kind));
+        }
     }
     return roster;
 }

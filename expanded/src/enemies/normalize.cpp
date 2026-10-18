@@ -9,6 +9,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/boss_stats.hpp"
+#include "expanded/enemies/species.hpp"
 #include "expanded/enemies/stronger.hpp"
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
@@ -17,7 +18,7 @@ namespace expanded {
 
 namespace {
 
-constexpr int kKinds = 167;
+constexpr int kKinds = kSpeciesCount;
 constexpr int kStats = 6;
 constexpr int kDemonShaft = 6;
 constexpr int kBands = 5;
@@ -54,7 +55,7 @@ const std::vector<std::vector<Monster>> kLookAlikes = {
     {Monster::SAM, Monster::MR_BLARE, Monster::BILLY},
     {Monster::CRABBY_HERMIT, Monster::CRABBY_HERMIT_ENHANCED},
     {Monster::DRAGON, Monster::BLUE_DRAGON, Monster::BLACK_DRAGON},
-    {Monster::GEMRON_FIRE, Monster::GEMRON_ICE, Monster::GEMRON_THUNDER, Monster::GEMRON_WIND, Monster::GEMRON_HOLY},
+    {Monster::GEMRON_FIRE, Monster::GEMRON_ICE, Monster::GEMRON_THUNDER, Monster::GEMRON_WIND, Monster::GEMRON_HOLY, Monster::BOMB_GEMRON},
     {Monster::MASK_OF_PRAJNA, Monster::MASK_OF_PRAJNA_ENHANCED},
     {Monster::ROCKANOFF, Monster::ROCKANOFF_ENHANCED},
     {Monster::YAMMICH, Monster::YAMMICH_ENHANCED},
@@ -114,7 +115,8 @@ bool IsAttack(EnemyStat stat) {
 
 // A regular monster or a mimic; bosses and their parts are never lock-on targets.
 bool IsFloorEnemy(int model_no) {
-    return MonstorTable[model_no].kind != MONSTER_KIND_NO_LOCK_ON;
+    const MONSTOR_MODEL *species = Species(model_no);
+    return species != nullptr && species->kind != MONSTER_KIND_NO_LOCK_ON;
 }
 
 struct Pools {
@@ -144,6 +146,10 @@ Pools Build() {
                 }
             }
         }
+    }
+    // Expanded's kinds are at home where their stand-ins are.
+    for (int kind = kRetailSpecies; kind < kKinds; kind++) {
+        pools.home[kind] = pools.home[SpeciesStandIn(kind)];
     }
     for (int region = 0; region < kEnemyRegions; region++) {
         for (int s = 0; s < kStats; s++) {

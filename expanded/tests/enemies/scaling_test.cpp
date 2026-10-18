@@ -84,7 +84,7 @@ TEST(EnemyScaling, NativeStatsAreTheRecordAndTheScriptsDamage) {
     EXPECT_EQ(werewolf.shot, 0);
     EXPECT_EQ(expanded::NativeStats(kGemronFire).shot, 100);
     EXPECT_EQ(expanded::NativeStats(kFliFli).shot, 26);
-    EXPECT_EQ(expanded::NativeStats(167).hp, 0);
+    EXPECT_EQ(expanded::NativeStats(168).hp, 0);
 }
 
 TEST(EnemyScaling, SpeciesScaleReachesLiveAndLaterMonsters) {

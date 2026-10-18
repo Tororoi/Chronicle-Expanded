@@ -171,6 +171,8 @@ enum class Monster {
     KING_MIMIC_DS_ENHANCED_THRICE = 164,
     BLACK_KNIGHT = 165,
     BLACK_KNIGHT_MOUNT = 166,
+    // Expanded's own (expanded/enemies/species.hpp).
+    BOMB_GEMRON = 167,
 };
 
 // A monster's MonstorTable index, as the game's model_no.

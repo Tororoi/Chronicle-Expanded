@@ -23,5 +23,6 @@
     "options.expanded.randomizer_bosses.help": "\"Jefes aleatorios\"\nJefes con su grupo en\npisos aleatorios: nunca,\nal derrotarlos o\nsiempre.",
     "options.expanded.randomizer_bosses.choice.0": "No",
     "options.expanded.randomizer_bosses.choice.1": "Derrotados",
-    "options.expanded.randomizer_bosses.choice.2": "Todos"
+    "options.expanded.randomizer_bosses.choice.2": "Todos",
+    "dun.message.ww_mes.dunmsd00.3320": "Gemron bomba"
 }
