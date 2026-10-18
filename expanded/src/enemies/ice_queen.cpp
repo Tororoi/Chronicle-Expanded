@@ -6,7 +6,9 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/boss_casts.hpp"
+#include "expanded/enemies/boss_stats.hpp"
 #include "expanded/enemies/bosses.hpp"
+#include "expanded/enemies/normalize.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "mathutil.hpp"
@@ -144,6 +146,9 @@ int Fire(Effect which, float *position, float *target) {
     }
     NowShotEffect->SetUserID2(fight.queen);
     EnemyShotFired(fight.queen);
+    if (UserStatus != nullptr) {
+        effect->damage[slot] = IceQueenPieceDamage(effect->damage[slot], EnemyRegion(selectMapNo, UserStatus->cur_floor));
+    }
     if (effect->effect_data->stationary != 0) {
         effect->velocity[slot][0] = effect->velocity[slot][1] = effect->velocity[slot][2] = 0.0f;
     }

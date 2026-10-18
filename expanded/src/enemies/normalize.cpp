@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "dun/gameloop.hpp"
+#include "expanded/enemies/boss_stats.hpp"
 #include "expanded/enemies/stronger.hpp"
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
@@ -254,6 +255,10 @@ int PoolValue(int model_no, EnemyStat stat, int region, bool stronger) {
 void Normalize(CMonstorUnit &unit, int model_slot, int model_no) {
     int region = UserStatus != nullptr ? EnemyRegion(selectMapNo, UserStatus->cur_floor) : -1;
     if (region < 0) {
+        return;
+    }
+    if (std::optional<EnemyStats> boss = BossRegionStats(model_no, region)) {
+        SetSpeciesStats(unit, model_slot, *boss);
         return;
     }
     EnemyStats stats = NormalizedStats(model_no, region, StrongerEnemies());
