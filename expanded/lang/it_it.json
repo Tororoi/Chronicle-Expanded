@@ -18,5 +18,10 @@
     "options.expanded.randomize_enemies.label": "Nemici casuali",
     "options.expanded.randomize_enemies.help": "\"Nemici casuali\"\nI mostri di ogni piano\nsono estratti a ogni\nvisita.",
     "options.expanded.randomize_enemies.choice.0": "Sì",
-    "options.expanded.randomize_enemies.choice.1": "No"
+    "options.expanded.randomize_enemies.choice.1": "No",
+    "options.expanded.randomizer_bosses.label": "Boss casuali",
+    "options.expanded.randomizer_bosses.help": "\"Boss casuali\"\nBoss con il loro gruppo\nnei piani casuali: mai,\nuna volta sconfitti\no sempre.",
+    "options.expanded.randomizer_bosses.choice.0": "No",
+    "options.expanded.randomizer_bosses.choice.1": "Sconfitti",
+    "options.expanded.randomizer_bosses.choice.2": "Tutti"
 }

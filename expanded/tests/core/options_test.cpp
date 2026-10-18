@@ -87,3 +87,42 @@ TEST(ExpandedOptions, PageShowsAToggleAsARow) {
     options::ResetPage(*page, config);
     EXPECT_EQ(config, Config{});
 }
+
+TEST(ExpandedOptions, AChoiceRoundTripsThroughConfigByName) {
+    ASSERT_TRUE(expanded::AddToggle({.key = "test_choice", .label = "Test Choice", .choices = "Off|Some|All"}));
+
+    Config config = ConfigParse("");
+    EXPECT_EQ(expanded::OptionChoice(config.expanded_options, "test_choice"), 0);
+    EXPECT_FALSE(expanded::OptionOn(config.expanded_options, "test_choice"));
+    EXPECT_FALSE(expanded::SetOption(config.expanded_options, "test_choice", true));
+    EXPECT_FALSE(expanded::SetOptionChoice(config.expanded_options, "test_choice", 3));
+    EXPECT_FALSE(expanded::SetOptionChoice(config.expanded_options, "test_choice", "most"));
+
+    // By name in any case, written as the row names it.
+    ASSERT_TRUE(expanded::SetOptionChoice(config.expanded_options, "test_choice", "some"));
+    EXPECT_EQ(expanded::OptionChoice(config.expanded_options, "test_choice"), 1);
+    EXPECT_TRUE(expanded::OptionOn(config.expanded_options, "test_choice"));
+    EXPECT_NE(ConfigSerialize(config).find(R"("test_choice": "Some")"), std::string::npos);
+    EXPECT_EQ(ConfigParse(ConfigSerialize(config)), config);
+
+    // Back to the default is no change; a boolean is no choice.
+    ASSERT_TRUE(expanded::SetOptionChoice(config.expanded_options, "test_choice", 0));
+    EXPECT_EQ(config, Config{});
+    EXPECT_EQ(ConfigParse(R"({"expanded": {"test_choice": true}})"), Config{});
+}
+
+TEST(ExpandedOptions, PageShowsAChoiceAsARowOfItsNames) {
+    ASSERT_TRUE(expanded::AddToggle({.key = "test_choice", .label = "Test Choice", .choices = "Off|Some|All"}));
+    const options::Page *page = ExpandedPage();
+    ASSERT_NE(page, nullptr);
+    const options::Row &row = page->rows.back();
+    EXPECT_STREQ(row.key, "expanded.test_choice");
+
+    Config config;
+    EXPECT_EQ(options::RowValue(row, config), "Off");
+    EXPECT_TRUE(options::StepRow(row, config, 1, false));
+    EXPECT_EQ(options::RowValue(row, config), "Some");
+    EXPECT_TRUE(options::StepRow(row, config, 1, false));
+    EXPECT_EQ(expanded::OptionChoice(config.expanded_options, "test_choice"), 2);
+    EXPECT_EQ(options::RowValue(row, config), "All");
+}

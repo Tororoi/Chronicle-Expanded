@@ -15,6 +15,9 @@ struct Roster;
 // Globals a cast's mailbox holds, as many as the floor's.
 inline constexpr int kBossMailbox = 10;
 
+// Whether the party lets a cast member's boss be placed (one with the party member who can hurt it).
+bool BossCastAllowed(Monster kind);
+
 // A roster with any of a cast keeps all of it, each spawned once, while the party member the fight needs
 // (the one who can hurt the boss) is in the party; otherwise none of it, as with no room for the rest. A
 // member that may come alone (the Black Knight) stays alone when the roster has none of the rest.

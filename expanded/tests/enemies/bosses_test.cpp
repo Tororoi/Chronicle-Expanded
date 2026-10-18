@@ -250,6 +250,17 @@ TEST_F(OutOfPlaceBoss, BeatenUtanFallsWithHisDeathAndFadesOnItsLastFrame) {
     EXPECT_EQ(unit_->alive_count, 1);
 }
 
+TEST_F(OutOfPlaceBoss, UtanInDivineBeastCaveHasItsStats) {
+    LoadFloor(true, {Monster::MASTER_UTAN, Monster::WEREWOLF});
+    Spawn(0, 0);
+    const MONSTOR &utan = unit_->monster[0];
+    EXPECT_EQ(utan.max_hp, 300);
+    EXPECT_EQ(utan.hp, 300);
+    EXPECT_EQ(utan.exp, 10);
+    EXPECT_EQ(utan.defense, 12);
+    EXPECT_EQ(utan.hardness, 0);
+}
+
 TEST_F(OutOfPlaceBoss, DransArenaIsMeasuredFromWhereHeIsPlaced) {
     LoadFloor(true, {Monster::DRAN, Monster::WEREWOLF});
     unit_->chara[0][0].SetPosition(500.0f, 10.0f, 700.0f);

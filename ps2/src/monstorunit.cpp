@@ -41,6 +41,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/boss_casts.hpp"
+#include "expanded/enemies/boss_record.hpp"
 #include "expanded/enemies/boss_moves.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/faster.hpp"
@@ -1238,6 +1239,7 @@ int CMonstorUnit::CheckDmg() {
                 monster[current_monster].hp = 0;
                 result = MONSTER_DMG_KILLED;
 #ifdef CHRONICLE_EXPANDED
+                expanded::BossRecordKill(*this, current_monster);
                 if (expanded::BossCastCountsKill(current_monster)) {
                     alive_count--;
                     ((CDngStatusData *) UserStatus)->AddKills();
@@ -1676,6 +1678,7 @@ int CMonstorUnit::CheckDmg() {
                         monster[current_monster].hp = 0;
                         result = MONSTER_DMG_KILLED;
 #ifdef CHRONICLE_EXPANDED
+                        expanded::BossRecordKill(*this, current_monster);
                         if (expanded::BossCastCountsKill(current_monster)) {
                             alive_count--;
                             ((CDngStatusData *) UserStatus)->AddKills();

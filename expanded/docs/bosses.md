@@ -12,7 +12,38 @@ A supported boss on a regular floor:
 - raises no event: `_RUN_SCRIPT` and `_STATUS_SET_EVENT` are dropped, so no arena intro or victory scene
   starts;
 - has its sounds: the floor binds the sound set its arena's event loads (`expanded/src/enemies/sounds.cpp`);
-- dies natively instead of through its death label.
+- dies natively instead of through its death label;
+- has the stats set for the region it is in (below).
+
+## Stats
+
+Bosses' stats are set by hand for each region (`expanded/src/enemies/boss_stats.cpp`), in place of the
+normalization regular monsters get: from their own dungeon outwards the bosses' life follows each other in
+fixed shares, their ABS is 10 a dungeon (Divine Beast Cave 10 to the Gallery of Time 60, then 70 to 110 down
+Demon Shaft's five bands), and their melee and shot damage follow the region's strongest regular monster's,
+since the party's life stops growing from the Moon Sea. Defense and hardness are always their own. A boss in
+its own dungeon keeps its stats, but the Black Knight gives 110 ABS (vanilla 5).
+
+In Demon Shaft the floors 81-100 are anchored on the Black Knight: his mount's 50000 life is Dran's, he (or
+the mount) hits as Joe, and his shot is Dran's. The lower bands scale life by the band's regular monsters'
+average life against floors 81-100's; damage climbs in even steps from the Gallery of Time's.
+
+The Ice Queen's damage is her pieces' (shot effects: the arrow and meteors 69, the aura and tornadoes 74),
+replaced as they fire (`IceQueenPieceDamage`). The table's melee and shot replace a boss's strongest; its
+other attacks scale with them.
+
+## Randomizer
+
+Each boss has a theme for the randomizer (`BossThemes`, `expanded/src/enemies/themes.cpp`): the boss and six of
+its company placed whole, the boss and the members marked in the table spawning once, with the dungeon's mimic
+and king mimic in the last two of the nine places. They join the other themes' draw at weight 1 as the
+Randomizer Bosses setting (Off, Defeated, Any) allows: Defeated draws a boss's theme once the save has beaten
+it, Any always. A boss whose cast needs a party member (the Ice Queen, King's Curse) is drawn only with them.
+
+A boss is beaten when its fight-ending monster's life runs out (`BossRecordKill`): Dran, Master Utan, the Ice
+Queen, King's Curse's coffin, Minotaur Joe or the Black Knight, wherever it is, kept in the save's
+`expanded.json` (`bosses.defeated`). A save made before that counts the bosses of every dungeon before the
+latest it has visited; the Black Knight, with none after his, counts only once beaten.
 
 ## Paths
 
@@ -143,7 +174,7 @@ Without his built model he falls with his dismount (motion 7, held by 8). Their 
 
 ## Dran
 
-Dran (`c12a`, Wise Owl Forest's last floor) flies his arena by its own coordinates: perches 200 from its middle,
+Dran (`c12a`, Divine Beast Cave's last floor) flies his arena by its own coordinates: perches 200 from its middle,
 40 up, his fire breath from its middle 50 up, circles round it, landings at five places 30 up, the ground under
 15 and the air over 1. Off his floor his arena is the floor's largest room: he is put in its middle (the nearest
 spot he fits), the anchor his script's points are measured from (`BossPointIn`, `BossPointOut` on the opcodes
