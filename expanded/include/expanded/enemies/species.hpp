@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "expanded/enemies/monsters.hpp"
 
 struct MONSTOR_MODEL;
@@ -16,8 +18,15 @@ struct ExpandedSpecies {
     Monster     stand_in;
     const char *model_file;  // under the data directory
     const char *script_file; // a script dcdata builds, or null for the record's own
-    // The record, from the stand-in's.
-    void (*build)(MONSTOR_MODEL &record);
+    // The record, the stand-in's with these: the model's name, the weight of each element (fire, ice, thunder, wind,
+    // holy; 100 is a normal hit, 0 immune), its ABS, name and steal and rare items. Its shots are its own, entered as
+    // it is set up.
+    const char        *model_name;
+    std::array<int, 5> elements;
+    int                abs;
+    int                name_no;
+    int                steal_item;
+    int                rare_item;
 };
 
 // Registers an Expanded kind, from a static initialiser in its own file.

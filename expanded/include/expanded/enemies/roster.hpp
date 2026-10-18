@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "expanded/enemies/monsters.hpp"
 
 struct BT_ENEMY_FLOOR;
@@ -35,6 +37,9 @@ struct Roster {
 
     bool operator==(const Roster &) const = default;
 };
+
+// Calls visit for each kind the game's own layouts place on a dungeon's floor, front and back, up to each list's end.
+void ForEachLaidOutKind(const std::function<void(int dungeon, int floor, int model_no)> &visit);
 
 // A floor's front and back rosters.
 struct FloorRosters {

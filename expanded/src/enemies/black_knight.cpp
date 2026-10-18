@@ -7,8 +7,8 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/bosses.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/roster.hpp"
-#include "expanded/enemies/scaling.hpp"
 #include "frame.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -84,16 +84,17 @@ void End(CSHOT_EFFECT &effect) {
     light.slot = -1;
 }
 
-void OnModel(CMonstorUnit &, int model_slot, int model_no) {
-    if (model_slot == 0) {
-        light = {};
-    }
+void OnFloor() {
+    light = {};
+}
+
+void OnModel(CMonstorUnit &, int, int model_no) {
     if (model_no == No(Monster::BLACK_KNIGHT) && LoadedRoster() != nullptr && BossSupported(model_no)) {
         light.effect = EnterShotEffect(&light_shot, 1, kLightFile);
     }
 }
 
-[[maybe_unused]] const bool kListening = (AddEnemyModelListener(OnModel), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), AddEnemyModelListener(OnModel), true);
 
 } // namespace
 

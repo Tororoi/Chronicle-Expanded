@@ -1,7 +1,6 @@
 #include "expanded/weapons/abilities.hpp"
 
-#include <random>
-
+#include "expanded/core/random.hpp"
 #include "itemdata.hpp"
 
 namespace expanded {
@@ -36,10 +35,7 @@ constexpr WeaponAbility kAbilities[] = {
 } // namespace
 
 int WeaponAbilities(int weapon_no, int flags) {
-    // Its own generator, so the rolls leave the game's rand() sequence alone.
-    static std::minstd_rand generator(std::random_device{}());
-
-    return WeaponAbilities(weapon_no, flags, static_cast<int>(generator() % 100));
+    return WeaponAbilities(weapon_no, flags, ModRoll(100));
 }
 
 int WeaponAbilities(int weapon_no, int flags, int roll) {

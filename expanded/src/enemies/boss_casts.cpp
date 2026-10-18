@@ -7,8 +7,9 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/bosses.hpp"
+#include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/roster.hpp"
-#include "expanded/enemies/scaling.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -18,7 +19,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kMonsters = 16;
 constexpr int kMembers = 2;
 
 struct Cast {
@@ -85,7 +85,7 @@ bool Find(int monster, int &cast, int &member) {
 }
 
 bool Live(const CMonstorUnit &unit, int monster) {
-    return monster >= 0 && monster < kMonsters && unit.monster[monster].state != -1;
+    return monster >= 0 && monster < kFloorMonsters && unit.monster[monster].state != -1;
 }
 
 // Where the follower of a cast waits: by its partner, or -1 without one.
@@ -103,10 +103,8 @@ bool WaitingPlace(CMonstorUnit &unit, int cast, float *place) {
     return true;
 }
 
-void OnModel(CMonstorUnit &, int model_slot, int) {
-    if (model_slot == 0) {
-        playing = {};
-    }
+void OnFloor() {
+    playing = {};
 }
 
 void OnSpawn(CMonstorUnit &unit, int monster) {
@@ -146,7 +144,7 @@ void OnSpawn(CMonstorUnit &unit, int monster) {
     }
 }
 
-[[maybe_unused]] const bool kListening = (AddEnemyModelListener(OnModel), AddEnemySpawnListener(OnSpawn), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), AddEnemySpawnListener(OnSpawn), true);
 
 } // namespace
 
@@ -321,8 +319,7 @@ void BossCastDefeated(CMonstorUnit &unit, int monster) {
     }
     for (int other : playing[cast].monster) {
         if (other != monster && Live(unit, other)) {
-            unit.monster[other].state = -1;
-            unit.alive_count--;
+            RemoveMonster(unit, other);
         }
     }
 }

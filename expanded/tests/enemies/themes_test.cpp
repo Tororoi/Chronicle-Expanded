@@ -9,6 +9,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/core/options.hpp"
+#include "expanded/core/random.hpp"
 #include "expanded/core/save.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/randomize.hpp"
@@ -227,7 +228,7 @@ TEST(EnemyThemes, ACappedFloorsFillersKeepToTheirCaps) {
         expanded::DungeonMimics mimics = *expanded::MimicsOf(dungeon, floor);
         for (int roll = 0; roll < 20000; roll++) {
             expanded::ThemeOutcome outcome;
-            expanded::Roster       roster = expanded::ThemedRoster(dungeon, floor, expanded::RosterRandom(), &outcome);
+            expanded::Roster       roster = expanded::ThemedRoster(dungeon, floor, expanded::ModRandom(), &outcome);
             if (outcome.fill == Fill::None) {
                 EXPECT_EQ(outcome.fillers, 0);
                 continue;

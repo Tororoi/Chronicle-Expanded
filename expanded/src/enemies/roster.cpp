@@ -1,3 +1,4 @@
+#include "dungeon.h"
 #include "expanded/enemies/roster.hpp"
 
 #include <map>
@@ -13,7 +14,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kDungeons = 7;
 constexpr int kKinds = kSpeciesCount;
 
 // This visit's staged floors, and the roster of the floor side loaded last.
@@ -130,11 +130,26 @@ void RosterVisitBegun() {
     loaded = nullptr;
 }
 
+void ForEachLaidOutKind(const std::function<void(int dungeon, int floor, int model_no)> &visit) {
+    for (int dungeon = 0; dungeon < DUNGEON_COUNT; dungeon++) {
+        for (BT_ENEMY_FLOOR *layout : {BtEnemyLayoutList[dungeon], BtUraEnemyLayoutList[dungeon]}) {
+            for (int floor = 0; floor < maxFloorTbl__3[dungeon]; floor++) {
+                for (const BT_ENEMY_LAYOUT &entry : layout[floor].monster) {
+                    if (entry.monster_no < 0) {
+                        break;
+                    }
+                    visit(dungeon, floor, entry.monster_no);
+                }
+            }
+        }
+    }
+}
+
 BT_ENEMY_FLOOR *RosterFloorLayout(BT_ENEMY_FLOOR *layout, int ura) {
     loaded = nullptr;
     int dungeon = selectMapNo;
     int floor = UserStatus != nullptr ? UserStatus->cur_floor : -1;
-    if (dungeon < 0 || dungeon >= kDungeons || floor < 0 || floor >= maxFloorTbl__3[dungeon]) {
+    if (dungeon < 0 || dungeon >= DUNGEON_COUNT || floor < 0 || floor >= maxFloorTbl__3[dungeon]) {
         return layout;
     }
     for (FloorStager stager : Stagers()) {

@@ -7,15 +7,14 @@
 #include "dungeonmap.hpp"
 #include "expanded/dungeon/navigation.hpp"
 #include "expanded/enemies/bosses.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/roster.hpp"
-#include "expanded/enemies/scaling.hpp"
 #include "monstorunit.hpp"
 
 namespace expanded {
 
 namespace {
 
-constexpr int   kMonsters = 16;
 constexpr float kBodyBuffer = 10.0f; // kept from walls beyond the body's radius
 constexpr int   kReplanSteps = 8;    // a path is planned again this often
 constexpr float kReplanMove = 8.0f;  // or when what it is made for moves this far
@@ -41,7 +40,7 @@ struct Mover {
     int   region = -1; // where an arena boss can reach from its anchor
 };
 
-Mover movers[kMonsters];
+Mover movers[kFloorMonsters];
 
 float Clearance(const CMonstorUnit &unit, int monster) {
     const MONSTOR &live = unit.monster[monster];
@@ -112,7 +111,7 @@ void OnSpawn(CMonstorUnit &unit, int monster) {
 } // namespace
 
 void BossPointIn(CMonstorUnit &unit, int monster, float *point, BossPoint use) {
-    if (monster < 0 || monster >= kMonsters || !movers[monster].arena) {
+    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].arena) {
         return;
     }
     Mover &mover = movers[monster];
@@ -134,11 +133,11 @@ void BossPointIn(CMonstorUnit &unit, int monster, float *point, BossPoint use) {
 }
 
 bool BossInArenaFrame(int monster) {
-    return monster >= 0 && monster < kMonsters && movers[monster].arena;
+    return monster >= 0 && monster < kFloorMonsters && movers[monster].arena;
 }
 
 void BossPointOut(int monster, float *point) {
-    if (monster < 0 || monster >= kMonsters || !movers[monster].arena) {
+    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].arena) {
         return;
     }
     for (int i = 0; i < 3; i++) {
@@ -147,7 +146,7 @@ void BossPointOut(int monster, float *point) {
 }
 
 void BossMoveGoal(int monster, const float *goal) {
-    if (monster < 0 || monster >= kMonsters || !movers[monster].active) {
+    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].active) {
         return;
     }
     std::copy(goal, goal + 3, movers[monster].goal);
@@ -155,7 +154,7 @@ void BossMoveGoal(int monster, const float *goal) {
 }
 
 void BossSteer(CMonstorUnit &unit, int monster) {
-    if (monster < 0 || monster >= kMonsters || !movers[monster].active) {
+    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].active) {
         return;
     }
     Mover   &mover = movers[monster];
@@ -203,7 +202,7 @@ void BossSteer(CMonstorUnit &unit, int monster) {
 }
 
 bool BossLineClear(CMonstorUnit &unit, int monster, const float *to) {
-    if (monster < 0 || monster >= kMonsters || !movers[monster].active) {
+    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].active) {
         return true;
     }
     float at[4];

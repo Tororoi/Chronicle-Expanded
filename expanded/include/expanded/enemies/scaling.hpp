@@ -38,9 +38,6 @@ int ScaleStat(int value, float scale);
 // into the data directory (kScriptDamageFile); no melee or shot when the data lacks that file.
 EnemyStats NativeStats(int model_no);
 
-// The MonstorTable kind set up in a model slot of the floor, or -1.
-int ModelKind(int model_slot);
-
 // A kind's stats on the floor (a model slot), before multipliers: its native stats until set. Setting them
 // reaches its monsters on the floor now and every later spawn; each hit and shot scales by melee and shot
 // over the native strongest. Reset when the slot is set up again.
@@ -61,17 +58,12 @@ EnemyScale MonsterScale(const CMonstorUnit &unit, int monster);
 // A monster's stats now: its life, ABS, defense and hardness, and its kind's damage with its multipliers.
 EnemyStats MonsterStats(const CMonstorUnit &unit, int monster);
 
-// Called once a kind is set up in a model slot (after its stats and scales were reset), and once a monster
-// is set up on the floor, before its script first runs.
-using EnemyModelListener = void (*)(CMonstorUnit &unit, int model_slot, int model_no);
-using EnemySpawnListener = void (*)(CMonstorUnit &unit, int monster);
-void AddEnemyModelListener(EnemyModelListener listener);
-void AddEnemySpawnListener(EnemySpawnListener listener);
+// A kind's stats and multipliers back to its native ones as its model slot is set up, and a monster's
+// multipliers as it spawns (EnemyModelSetUp and EnemySpawned, before their listeners).
+void ResetSpeciesStats(const CMonstorUnit &unit, int model_slot);
+void ResetMonsterScale(CMonstorUnit &unit, int monster);
 
-// Hooks: SetupBaseModel set a kind up, SetupViewMonstor set a monster up, CheckDmg's melee hit and a
-// monster's shot just fired (scales the shot's damage).
-void EnemyModelSetUp(CMonstorUnit &unit, int model_slot, int model_no);
-void EnemySpawned(CMonstorUnit &unit, int monster);
+// Hooks: CheckDmg's melee hit and a monster's shot just fired (scales the shot's damage).
 int  EnemyMeleeDamage(int monster, int damage);
 void EnemyShotFired(int monster);
 

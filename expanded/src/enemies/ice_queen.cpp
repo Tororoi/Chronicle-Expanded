@@ -1,13 +1,14 @@
 #include "expanded/enemies/ice_queen.hpp"
 
 #include <cmath>
-#include <cstdlib>
 
 #include "dun/gameloop.hpp"
+#include "expanded/core/random.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/boss_stats.hpp"
 #include "expanded/enemies/bosses.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/ice_shots.hpp"
 #include "expanded/enemies/normalize.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -23,12 +24,6 @@ namespace expanded {
 
 namespace {
 
-// The port's rand() (retail's 31-bit generator, whatever the host's RAND_MAX) as a fraction in [0, 1).
-float Unit() {
-    return static_cast<float>(std::rand()) / 2147483648.0f;
-}
-
-constexpr int kMonsters = 16;
 
 // Her mailbox, as her script and the companions' use it (values past retail's mark a shot under way).
 enum Mail {
@@ -47,8 +42,6 @@ constexpr int kTornadoes = 3;
 // clang-format off
 BT_SHOT_EFFECT arrow_shot = {"info", 0, 1, {0.0f, 1.2f, 0.0f, 0.0f}, {0.0f, 10.0f, 0.0f, 0.0f}, 360, 69, 0x100, 2, 1,
                              {-1, 0, 1, 1}, 0, {}, 0.0f, 0, {-1, -1, -1, -1}};
-BT_SHOT_EFFECT prison_shot = {"info", 1, 0, {}, {-100.0f, -100.0f, -100.0f, -100.0f}, 1800, 0, 0, 2, 1,
-                              {0, 0, 1, 1}, 0, {}, 0.0f, 0, {-1, -1, -1, -1}};
 BT_SHOT_EFFECT meteor_shot = {"info", 0, 0, {}, {0.0f, 30.0f, 0.0f, 0.0f}, 63, 69, 2, 2, 1,
                               {0, 1, 2, 2}, 0, {}, 0.0f, 0, {-1, -1, -1, -1}};
 BT_SHOT_EFFECT aura_shot = {"info", 1, 0, {}, {60.0f, 0.0f, 0.0f, 0.0f}, -1, 74, 2, 3, 1,
@@ -56,6 +49,7 @@ BT_SHOT_EFFECT aura_shot = {"info", 1, 0, {}, {60.0f, 0.0f, 0.0f, 0.0f}, -1, 74,
 BT_SHOT_EFFECT tornado_shot = {"info", 1, 0, {}, {0.0f, 20.0f, 0.0f, 0.0f}, -1, 74, 2, 3, 1,
                                {0, 1, 2, 2}, 0, {}, 0.0f, 0, {-1, -1, -1, -1}};
 // clang-format on
+BT_SHOT_EFFECT prison_shot = IcePrisonShot();
 
 enum Effect {
     kArrowShot,
@@ -74,8 +68,8 @@ struct EffectSpec {
 };
 
 const EffectSpec kSpecs[kEffects] = {
-    {&arrow_shot,   "dun/monstor/korinoya.chr",   2,          {}                      },
-    {&prison_shot,  "dun/monstor/kori.chr",       2,          {}                      },
+    {&arrow_shot,   kIceArrowFile,                2,          {}                      },
+    {&prison_shot,  kIcePrisonFile,               2,          {}                      },
     {&meteor_shot,  "dun/monstor/i_meteo.chr",    2,          {0.1f}                  },
     {&aura_shot,    "dun/monstor/b3_reiki.chr",   2,          {0.2f}                  },
     {&tornado_shot, "dun/monstor/i_tatumaki.chr", kTornadoes, {0.2f, 0.2f, 0.2f, 0.2f}},
@@ -88,15 +82,12 @@ constexpr int   kArrowSettle = 2; // steps the arrow's hit takes to reach the pl
 constexpr float kMeteorHeight = 50.0f;
 constexpr float kMeteorFall = 1.6f;
 constexpr float kMeteorStrike = 36.0f;
-constexpr float kShatterSpeed = 0.5f;
 constexpr float kTornadoNear = 30.0f;
 constexpr float kTornadoSpread = 80.0f;
 constexpr float kTornadoLift = 2.0f;
 constexpr float kTornadoLeash = 100.0f;
 
-// Her companions' sounds (the arrow's freeze, the prison breaking, the meteor, a tornado rising).
-constexpr int kFreezeSounds[] = {1772, 1777};
-constexpr int kShatterSound = 1776;
+// Her companions' sounds (the meteor, a tornado rising).
 constexpr int kMeteorSound = 1764;
 constexpr int kMeteorHitSound = 1774;
 constexpr int kTornadoSounds[] = {1767, 1766};
@@ -115,10 +106,6 @@ struct Fight {
 
 Fight fight;
 
-bool Here(const CMonstorUnit &unit, int monster, Monster kind) {
-    return monster >= 0 && monster < kMonsters && unit.monster[monster].state != -1 &&
-           ModelKind(unit.monster[monster].base_model) == No(kind);
-}
 
 void Play(int sound) {
     SndSePlay(sound, -1, 0);
@@ -216,9 +203,7 @@ void StepArrow(CMonstorUnit &unit) {
     fight.arrow_landed = 0;
     fight.arrow = -1;
     if (PlayerFrozen()) {
-        for (int sound : kFreezeSounds) {
-            Play(sound);
-        }
+        PlayIceFreeze();
         fight.mailbox[kPrison] = 1;
     } else {
         fight.mailbox[kPhase] = 0;
@@ -233,8 +218,7 @@ void StepPrison() {
     }
     if (fight.mailbox[kPrison] == 1 && !Live(kPrisonShot, fight.prison)) {
         float feet[4];
-        sceVu0CopyVector(feet, CharaMain.pos);
-        feet[3] = 1.0f;
+        PlayerFeet(feet);
         fight.prison = Fire(kPrisonShot, feet, feet);
         if (fight.prison < 0) {
             return;
@@ -260,10 +244,8 @@ void StepPrison() {
         }
     }
     if (fight.mailbox[kPrison] == 2 && effect->phase[slot] < 2) {
-        Play(kShatterSound);
         fight.mailbox[kPrison] = 0;
-        EnterShotPhase(*effect, slot, 2);
-        effect->chara[slot].SetMotionSpeed(kShatterSpeed);
+        ShatterIcePrison(*effect, slot);
     }
 }
 
@@ -340,8 +322,8 @@ void StepTornadoes() {
         int &mail = fight.mailbox[kTornado + i];
         int &slot = fight.tornado[i];
         if (mail == 1 && !Live(kTornadoShot, slot)) {
-            float angle = 2.0f * PI * Unit();
-            float reach = kTornadoNear + kTornadoSpread * Unit();
+            float angle = 2.0f * PI * GameFraction();
+            float reach = kTornadoNear + kTornadoSpread * GameFraction();
             float at[4] = {CharaMain.pos[0] + std::cos(angle) * reach, CharaMain.pos[1] + kTornadoLift,
                            CharaMain.pos[2] + std::sin(angle) * reach, 1.0f};
             slot = Fire(kTornadoShot, at, at);
@@ -378,13 +360,14 @@ void StepTornadoes() {
 bool Fighting(const CMonstorUnit &unit) {
     fight.queen = BossCastMonster(Monster::ICE_QUEEN);
     fight.mailbox = BossCastMailbox(Monster::ICE_QUEEN);
-    return Here(unit, fight.queen, Monster::ICE_QUEEN) && BossOutOfPlace(fight.queen) && unit.monster[fight.queen].hp > 0;
+    return IsKind(unit, fight.queen, Monster::ICE_QUEEN) && BossOutOfPlace(fight.queen) && unit.monster[fight.queen].hp > 0;
 }
 
-void OnModel(CMonstorUnit &, int model_slot, int model_no) {
-    if (model_slot == 0) {
-        fight = {};
-    }
+void OnFloor() {
+    fight = {};
+}
+
+void OnModel(CMonstorUnit &, int, int model_no) {
     if (model_no != No(Monster::ICE_QUEEN) || LoadedRoster() == nullptr || !BossSupported(model_no)) {
         return;
     }
@@ -393,7 +376,7 @@ void OnModel(CMonstorUnit &, int model_slot, int model_no) {
     }
 }
 
-[[maybe_unused]] const bool kListening = (AddEnemyModelListener(OnModel), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), AddEnemyModelListener(OnModel), true);
 
 } // namespace
 

@@ -1,11 +1,11 @@
 #include "expanded/enemies/miniboss_loot.hpp"
 
 #include <algorithm>
-#include <random>
 #include <vector>
 
 #include "btitem.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/random.hpp"
 #include "itemdata.hpp"
 #include "randomitem.hpp"
 #include "userstatus.hpp"
@@ -200,8 +200,8 @@ const SpeciesLoot kLoot[] = {
     {{Monster::HORN_HEAD}, {{ITEM_WEAPON_SATAN_S_AX, DUNGEON_GALLERY_OF_TIME}}, {{ITEM_WEAPON_MATADOR, DUNGEON_MOON_SEA}, {ITEM_WEAPON_STEEL_HAMMER, DUNGEON_WISE_OWL_FOREST}}},
     {{Monster::NIKAPOUS}, {{ITEM_WEAPON_MACHO_SWORD, DUNGEON_DEMON_SHAFT}}, {{ITEM_ATTACH_GARNET}}},
     {{Monster::SILVER_GEAR}, {{ITEM_WEAPON_DESTRUCTION_RING, DUNGEON_GALLERY_OF_TIME}}, {{ITEM_WEAPON_BONE_SLINGSHOT}}},    // Every dungeon
-    {{Monster::KING_MIMIC_DBC, Monster::KING_MIMIC_WOF, Monster::KING_MIMIC_SW, Monster::KING_MIMIC_SMT, Monster::KING_MIMIC_MS, Monster::KING_MIMIC_GOT, Monster::KING_MIMIC_DS, Monster::KING_MIMIC_DS_ENHANCED, Monster::KING_MIMIC_DS_ENHANCED_TWICE, Monster::KING_MIMIC_DS_ENHANCED_THRICE}, {}, kGoldOrGemDrops},
-    {{Monster::MIMIC_DBC, Monster::MIMIC_WOF, Monster::MIMIC_SW, Monster::MIMIC_SMT, Monster::MIMIC_MS, Monster::MIMIC_GOT, Monster::MIMIC_DS, Monster::MIMIC_DS_ENHANCED, Monster::MIMIC_DS_ENHANCED_TWICE, Monster::MIMIC_DS_ENHANCED_THRICE}, {}, kGemDrops},
+    {{std::begin(kKingMimicLine), std::end(kKingMimicLine)}, {}, kGoldOrGemDrops},
+    {{std::begin(kMimicLine), std::end(kMimicLine)}, {}, kGemDrops},
 };
 
 // Enhanced species that take their base's loot.
@@ -286,8 +286,7 @@ int Roll(int n) {
     if (roll_override != nullptr) {
         return roll_override(n);
     }
-    static std::minstd_rand rng{std::random_device{}()};
-    return std::uniform_int_distribution<int>(0, n - 1)(rng);
+    return ModRoll(n);
 }
 
 int Pick(const std::vector<int> &items) {

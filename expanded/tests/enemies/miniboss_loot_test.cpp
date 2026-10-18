@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "dun/gameloop.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/miniboss_loot.hpp"
 #include "expanded/enemies/monsters.hpp"

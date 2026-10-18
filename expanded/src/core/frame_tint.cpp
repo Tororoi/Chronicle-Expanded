@@ -4,6 +4,8 @@
 #include <array>
 #include <vector>
 
+#include "expanded/enemies/enemy_events.hpp"
+
 namespace expanded {
 
 namespace {
@@ -14,6 +16,12 @@ struct Tint {
 };
 
 std::vector<Tint> tints;
+
+void ClearFrameTints() {
+    tints.clear();
+}
+
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(ClearFrameTints), true);
 
 } // namespace
 
@@ -30,10 +38,6 @@ void SetFrameTint(const CFrame *frame, float red, float green, float blue) {
             frame, {red, green, blue}
         });
     }
-}
-
-void ClearFrameTints() {
-    tints.clear();
 }
 
 bool FrameTintBegin(const CFrame *frame, float *ambient, float *saved) {

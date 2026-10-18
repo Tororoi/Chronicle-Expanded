@@ -4,7 +4,8 @@
 #include <vector>
 
 #include "expanded/core/save.hpp"
-#include "expanded/enemies/scaling.hpp"
+#include "expanded/enemies/boss_table.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "monstorunit.hpp"
 #include "savedata.hpp"
 
@@ -14,34 +15,11 @@ namespace {
 
 const SaveValue<std::vector<int>> kDefeated{"bosses.defeated"};
 
-// Each boss and its dungeon; past the Moon Sea none has a dungeon after it to show it beaten.
-struct Boss {
-    Monster kind;
-    int     dungeon;
-};
-
-constexpr Boss kBosses[] = {
-    {Monster::DRAN,               0},
-    {Monster::MASTER_UTAN,        1},
-    {Monster::ICE_QUEEN,          2},
-    {Monster::KINGS_CURSE_COFFIN, 3},
-    {Monster::MINOTAUR_JOE,       4},
-    {Monster::BLACK_KNIGHT,       6},
-};
-
-const Boss *Find(int model_no) {
-    for (const Boss &boss : kBosses) {
-        if (No(boss.kind) == model_no) {
-            return &boss;
-        }
-    }
-    return nullptr;
-}
-
 } // namespace
 
+// Past the Moon Sea no boss has a dungeon after it to show it beaten.
 bool BossDefeated(Monster kind) {
-    const Boss *boss = Find(No(kind));
+    const BossEntry *boss = BossEntryOf(No(kind));
     if (boss == nullptr) {
         return false;
     }
@@ -54,7 +32,7 @@ bool BossDefeated(Monster kind) {
 
 void BossRecordKill(const CMonstorUnit &unit, int monster) {
     int model_no = ModelKind(unit.monster[monster].base_model);
-    if (Find(model_no) == nullptr) {
+    if (BossEntryOf(model_no) == nullptr) {
         return;
     }
     std::vector<int> defeated = kDefeated.Get();

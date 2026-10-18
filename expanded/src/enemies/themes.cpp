@@ -1,3 +1,4 @@
+#include "dungeon.h"
 #include "expanded/enemies/themes.hpp"
 
 #include <algorithm>
@@ -13,8 +14,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int    kDungeons = 7;
-constexpr int    kDemonShaft = 6;
 constexpr double kFarWeight = 0.10;
 constexpr double kHomeBoost = 4.0;
 
@@ -72,11 +71,11 @@ const std::vector<Theme> kThemes = {
     {"Gorgon", {Monster::AUNTIE_MEDU, Monster::STATUE}},
     {"Precious", {Monster::SIL, Monster::GOL, Monster::HELL_POCKLE}, false, -1, 0.5},
     {"Graveyard Shift", {Monster::MASTER_JACKET_ENHANCED, Monster::SKELETON_SOLDIER, Monster::HORN_HEAD, Monster::SILVER_GEAR}, false, -1, 2.0},
-    {"Demon Shaft: Fire", kDemonShaftFire, false, kDemonShaft},
-    {"Demon Shaft: Ice", kDemonShaftIce, false, kDemonShaft},
-    {"Demon Shaft: Thunder", kDemonShaftThunder, false, kDemonShaft},
-    {"Demon Shaft: Wind", kDemonShaftWind, false, kDemonShaft},
-    {"Demon Shaft: Holy", kDemonShaftHoly, false, kDemonShaft},
+    {"Demon Shaft: Fire", kDemonShaftFire, false, DUNGEON_DEMON_SHAFT},
+    {"Demon Shaft: Ice", kDemonShaftIce, false, DUNGEON_DEMON_SHAFT},
+    {"Demon Shaft: Thunder", kDemonShaftThunder, false, DUNGEON_DEMON_SHAFT},
+    {"Demon Shaft: Wind", kDemonShaftWind, false, DUNGEON_DEMON_SHAFT},
+    {"Demon Shaft: Holy", kDemonShaftHoly, false, DUNGEON_DEMON_SHAFT},
 };
 
 // The bosses' themes: '!' members of the user's lists spawn once.
@@ -103,7 +102,7 @@ std::vector<Monster> Join(std::initializer_list<const std::vector<Monster> *> gr
     return kinds;
 }
 
-const std::vector<Monster> kNatives[kDungeons] = {
+const std::vector<Monster> kNatives[DUNGEON_COUNT] = {
     {Monster::SKELETON_SOLDIER, Monster::MASTER_JACKET, Monster::STATUE, Monster::DASHER, Monster::CAVE_BAT,
      Monster::GHOST, Monster::DRAGON, Monster::ROCKANOFF, Monster::STATUE_DOG, Monster::YAMMICH, Monster::OPAR},
     {Monster::CANNIBAL_PLANT, Monster::EARTH_DIGGER, Monster::FLI_FLI, Monster::HORNET, Monster::HALLOWEEN,
@@ -178,14 +177,14 @@ bool BossThemeAvailable(const Theme &theme) {
 
 const std::vector<Monster> &DungeonNatives(int dungeon) {
     static const std::vector<Monster> none;
-    return dungeon >= 0 && dungeon < kDungeons ? kNatives[dungeon] : none;
+    return dungeon >= 0 && dungeon < DUNGEON_COUNT ? kNatives[dungeon] : none;
 }
 
 double ThemeWeight(const Theme &theme, int dungeon) {
     if (theme.home < 0) {
         return theme.weight;
     }
-    double near = 1.0 - std::abs(dungeon - theme.home) / static_cast<double>(kDungeons - 1);
+    double near = 1.0 - std::abs(dungeon - theme.home) / static_cast<double>(DUNGEON_COUNT - 1);
     double pull = kFarWeight + (1.0 - kFarWeight) * near;
     return theme.weight * (dungeon == theme.home ? pull * kHomeBoost : pull);
 }
