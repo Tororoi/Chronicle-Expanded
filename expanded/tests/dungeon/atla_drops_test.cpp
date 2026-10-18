@@ -171,3 +171,13 @@ TEST_F(AtlaDrops, ANewFloorForgetsThem) {
     expanded::AtlaDropsFloorLoaded();
     EXPECT_FALSE(expanded::AtlaDropTaken(atla));
 }
+
+TEST_F(AtlaDrops, OneDrawnOverTheShadowsLeavesTheShadowPassDraw) {
+    float at[4] = {};
+    int   atla = expanded::PlaceAtlaDrop(at, {ITEM_WEAPON_DAGGER, true});
+    EXPECT_FALSE(expanded::AtlaDrawn(map, atla));
+    expanded::DrawAtlaOverShadows(atla, true);
+    EXPECT_TRUE(expanded::AtlaDrawn(map, atla)); // drawn after the shadow pass instead
+    expanded::DrawAtlaOverShadows(atla, false);
+    EXPECT_FALSE(expanded::AtlaDrawn(map, atla));
+}

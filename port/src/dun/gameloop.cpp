@@ -67,6 +67,7 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/status/confuse.hpp"
 #endif
 
@@ -260,6 +261,11 @@ PORT_OVERRIDE void DunMainDraw() {
     }
 
     Draw_MainUnitShadow();
+#ifdef CHRONICLE_EXPANDED
+    if (atraGetStatus == 0) {
+        expanded::AtlaDropsDrawOverShadows(CharaFrame->position);
+    }
+#endif
 
     if (BtActStatus.player_visible != 0 && EdEventInfo.player_draw != 0) {
         Draw_MainUnit();
