@@ -116,6 +116,7 @@ Each section lists this repository's own changes first, then those that come fro
 - Tsukikage "Moonlit Focus": charge attacks build twice as fast (lunge about 0.25 s, whirlwind about 0.75 s), on top of Quick Draw; Heaven's Cloud has both. On Super Steve, a Tsukikage or Heaven's Cloud sphere makes pellets fly twice as fast, plus Quick Draw. [#192](https://github.com/Tororoi/Chronicle-Expanded/pull/192)
 - Shamshir "Swift Strikes": the five combo swings play 4/3 as fast (charge attacks unchanged); the Dusack, 7 Branch Sword, Atlamillia Sword and Chronicle Sword have it too. On Super Steve, any of their spheres or a Partisan's makes the draw play 1.6 times as fast and the shot fire sooner. [#193](https://github.com/Tororoi/Chronicle-Expanded/pull/193)
 - Sax "Fine Fare": while it is out, item chests give Premium Water for water and Premium Chicken for Bread and Cheese. The Dusack also turns Treasure Keys into Gold Bullion; the 7 Branch Sword, Atlamillia Sword and Chronicle Sword also turn one Repair Powder chest in four into Auto Repair Powder. On Super Steve, any of the five swords' spheres gives that sword's fare. [#194](https://github.com/Tororoi/Chronicle-Expanded/pull/194)
+- Dusack / Brave Ark "No Fool's Gold": mimics and king mimics can be hit while they wake; their guard and the short pause after a hit still hold. The Dusack also has Fine Fare at its tier and Swift Strikes. On Super Steve, a Dusack or Brave Ark sphere gives the same. [#195](https://github.com/Tororoi/Chronicle-Expanded/pull/195)
 
 ### Weapon stats and abilities
 
