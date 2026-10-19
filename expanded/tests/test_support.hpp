@@ -96,11 +96,12 @@ private:
 };
 
 // A dungeon floor (off the dungeons by default, so no feature scales what it sets up) with every monster slot empty,
-// the party status a fresh one.
+// the party status a fresh one; the unit is the floor's (NowMonstorUnit).
 class TestFloor {
 public:
-    explicit TestFloor(int dungeon = -1, int floor = 0) : saved_status_(UserStatus), saved_map_(selectMapNo) {
+    explicit TestFloor(int dungeon = -1, int floor = 0) : saved_status_(UserStatus), saved_map_(selectMapNo), saved_unit_(NowMonstorUnit) {
         UserStatus = status_.get();
+        NowMonstorUnit = unit_.get();
         status_->cur_floor = floor;
         selectMapNo = dungeon;
         for (MONSTOR &monster : unit_->monster) {
@@ -111,6 +112,7 @@ public:
     ~TestFloor() {
         UserStatus = saved_status_;
         selectMapNo = saved_map_;
+        NowMonstorUnit = saved_unit_;
     }
 
     TestFloor(const TestFloor &) = delete;
@@ -169,6 +171,7 @@ private:
     FloorRosters                  rosters_;
     CUserStatus                  *saved_status_;
     s32                           saved_map_;
+    CMonstorUnit                 *saved_unit_;
 };
 
 // A fresh save (SaveData) for a test: its dungeon status (the party's weapons) and storage.
