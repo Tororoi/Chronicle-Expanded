@@ -133,6 +133,7 @@
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/stats.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
+#include "expanded/weapons/toan/tsukikage.hpp"
 #endif
 
 /**
@@ -7774,6 +7775,9 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                         if (shots->used[i] == 0) {
                             sceVu0CopyVector(shots->pos[i], world);
                             sceVu0CopyVector(shots->vector[i], vector);
+#ifdef CHRONICLE_EXPANDED
+                            expanded::MoonlitFocusShot(shots->vector[i]);
+#endif
                             shots->life[i] = 0x78;
                             shots->damage[i] = damage;
                             shots->size[i] = 1.0f;
@@ -7813,6 +7817,9 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                         if (shots->used[i] == 0) {
                             sceVu0CopyVector(shots->pos[i], world);
                             sceVu0CopyVector(shots->vector[i], vector);
+#ifdef CHRONICLE_EXPANDED
+                            expanded::MoonlitFocusShot(shots->vector[i]);
+#endif
                             shots->life[i] = 0x78;
                             shots->damage[i] = damage;
                             shots->size[i] = 1.0f;
