@@ -132,6 +132,7 @@
 #include "expanded/enemies/roster.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/stats.hpp"
+#include "expanded/weapons/toan/shamshir.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
 #endif
@@ -5888,6 +5889,9 @@ void motionDrive() {
             CharaMain.motion_type.state.look_at = false;
         }
 
+#ifdef CHRONICLE_EXPANDED
+        expanded::SwiftStrikesMotion(CharaMain, chara);
+#endif
         CharaMain.Step();
 
         if (chara == CHARA_XIAO) {
