@@ -35,10 +35,9 @@ bool InHand() {
     return WeaponWielded(ITEM_WEAPON_BONE_RAPIER) || WeaponWielded(ITEM_WEAPON_BONE_SLINGSHOT);
 }
 
-// The undead whose own death script revives them stay down.
-bool Gravedigger(const CMonstorUnit &unit, int monster_no) {
-    const ReviveSpecies *species = ReviveSpeciesOf(unit.model[unit.monster[monster_no].base_model].script_name);
-    return species != nullptr && species->revival == Revival::kScript && GravediggerActive();
+// Every revival stays down: the revive layer asks only about monsters that can get back up.
+bool Gravedigger(const CMonstorUnit &, int) {
+    return GravediggerActive();
 }
 
 [[maybe_unused]] const bool kGravedigger = (AddStaysDownRule(Gravedigger), true);

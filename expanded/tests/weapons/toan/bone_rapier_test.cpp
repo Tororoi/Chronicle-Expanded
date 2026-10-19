@@ -97,8 +97,19 @@ TEST(BoneRapier, GravediggerKeepsTheUndeadDown) {
     EXPECT_EQ(expanded::ReviveRoll(100, 3), 3);
 }
 
-TEST(BoneRapier, GravediggerLeavesTheGetUpsAlone) {
-    Floor    floor("e03a");
-    Wielding wielding(ITEM_WEAPON_BONE_RAPIER);
+TEST(BoneRapier, GravediggerKeepsHarderAiGetUpsDown) {
+    expanded::test::OptionScope options;
+    ASSERT_TRUE(options.Set("harder_enemy_ai", true));
+    Floor floor("e03a");
+    {
+        Wielding wielding(ITEM_WEAPON_BONE_RAPIER);
+        EXPECT_TRUE(expanded::StaysDown(*floor.unit, 0));
+        for (int i = 0; i < 50; i++) {
+            EXPECT_EQ(expanded::ReviveCheckDmg(*floor.unit, MONSTER_DMG_KILLED), MONSTER_DMG_KILLED);
+        }
+    }
+
+    // Without it some get up.
+    Wielding dagger(ITEM_WEAPON_DAGGER);
     EXPECT_FALSE(expanded::StaysDown(*floor.unit, 0));
 }
