@@ -30,6 +30,10 @@
 #include "userstatus.hpp"
 #include "weaponeffect.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/toan/small_sword.hpp"
+#endif
+
 void sound_play(float from, float to, float now, int se_no) {
     if (now >= from && now <= to) {
         SndSePlay(se_no, -1, 0);
@@ -96,6 +100,9 @@ void ToanKey_On() {
 }
 
 void ToanKey_Play() {
+#ifdef CHRONICLE_EXPANDED
+    expanded::QuickDrawSwing(CharaMain);
+#endif
     float time = CharaMain.motion_type.state.time;
     int   damage = NowWeaponHave->attack;
 

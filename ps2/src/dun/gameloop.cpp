@@ -132,6 +132,7 @@
 #include "expanded/enemies/roster.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/stats.hpp"
+#include "expanded/weapons/toan/small_sword.hpp"
 #endif
 
 /**
@@ -6109,7 +6110,11 @@ void motionDrive() {
             BtActStatus.refill_frames++;
         }
 
+#ifdef CHRONICLE_EXPANDED
+        float gain = (float) expanded::QuickDrawGaugeSpeed(NowWeaponHave->speed) / 30.0f;
+#else
         float gain = (float) NowWeaponHave->speed / 30.0f;
+#endif
 
         if (StatusErrCheck(AILMENT_GOO) != 0) {
             gain /= 2.0f;
@@ -7701,6 +7706,9 @@ void BattleActionOn_Jinn() {
 }
 
 void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
+#ifdef CHRONICLE_EXPANDED
+    expanded::QuickDrawShot(*chara, aimed);
+#endif
     float now = chara->motion_type.state.time;
     int   damage = NowWeaponHave->attack;
     int   i;
