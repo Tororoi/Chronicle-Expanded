@@ -43,6 +43,10 @@
 #include "vector.hpp"
 #include "weaponeffect.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/toan/sax.hpp"
+#endif
+
 // Retail's treasure-box, gate-key and escape presentations and the item-select window. The _Init
 // halves kept the arena addresses of the files they start reading in the int globals itemOpenItemMds,
 // itemOpenItemImg and escape_chr, and the _Loop halves cast them back once the reads finish; only
@@ -321,7 +325,11 @@ PORT_OVERRIDE void BtGetTreasureboxSmall_Init(int dungeon) {
     u_char *mds;
     u_char *img;
     u_char *chr;
+#ifdef CHRONICLE_EXPANDED
+    int item_no = expanded::FineFareItem(*NowDngMap, NowDngMap->events[iventActive].index);
+#else
     int     item_no = NowDngMap->boxes[NowDngMap->events[iventActive].index].item_no;
+#endif
 
     ResetMovePower();
     int refusal = ((CDngStatusData *) UserStatus)->CheckItemGet(item_no);

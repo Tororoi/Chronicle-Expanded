@@ -31,6 +31,7 @@
 #include "weaponeffect.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/toan/kitchen_knife.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
 #endif
@@ -105,7 +106,11 @@ void ToanKey_Play() {
     expanded::QuickDrawSwing(CharaMain);
 #endif
     float time = CharaMain.motion_type.state.time;
+#ifdef CHRONICLE_EXPANDED
+    int damage = expanded::SpringsBlessingAttack(NowWeaponHave->attack);
+#else
     int   damage = NowWeaponHave->attack;
+#endif
 
     if (StatusErrCheck(AILMENT_STAMINA) != 0) {
         damage *= 2;
@@ -971,7 +976,11 @@ void GoroKey_On() {
 
 void GoroKey_Play() {
     float time = CharaMain.motion_type.state.time;
+#ifdef CHRONICLE_EXPANDED
+    int damage = expanded::SpringsBlessingAttack(NowWeaponHave->attack);
+#else
     int   damage = NowWeaponHave->attack;
+#endif
 
     if (StatusErrCheck(AILMENT_STAMINA) != 0) {
         damage *= 2;
