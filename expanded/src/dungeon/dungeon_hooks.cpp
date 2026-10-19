@@ -18,6 +18,7 @@
 #include "expanded/enemies/steve.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 
@@ -49,6 +50,7 @@ void DungeonMonstersCleared(bool drop_stars) {
 void DungeonMonstersTick() {
     MonsterStepClockAdvance();
     ConfuseTick();
+    CurseStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
