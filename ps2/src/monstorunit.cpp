@@ -54,6 +54,7 @@
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/kick_back.hpp"
+#include "expanded/weapons/toan/dusack.hpp"
 #include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/ungaga/charge_shot.hpp"
 #endif
@@ -1269,7 +1270,11 @@ int CMonstorUnit::CheckDmg() {
 #endif
     }
 
+#ifdef CHRONICLE_EXPANDED
+    if (monster[current_monster].invincible_timer > 0 && !expanded::NoFoolsGold(*this, current_monster)) {
+#else
     if (monster[current_monster].invincible_timer > 0) {
+#endif
         return result;
     }
 
