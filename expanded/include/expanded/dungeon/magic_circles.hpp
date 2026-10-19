@@ -10,11 +10,13 @@ namespace expanded {
 // - money up gives it times retail's gain, money down takes 20 % times it;
 // - each WHP and stat roll is multiplied by it, elements' and antis' losses too;
 // - the WHP loss takes WHP to 1;
-// - ABS full and WHP cure also give it - 1 Powerup Powders and Auto Repair Powders.
+// - ABS full and WHP cure reach every party member's equipped weapon at 2, every weapon the party carries at 3.
+// ABS full never lowers a weapon's ABS, so one overtrained past its max (the Macho Sword) keeps it, whatever the
+// strength.
 int CircleMagnitude();
 
-// Hook: Run_TrapCircle, with the circle's kind (a default weapon's stamina already in): runs an amplified circle on
-// the active character's weapon, its sound too; false leaves the circle to retail.
+// Hook: Run_TrapCircle, with the circle's kind (a default weapon's stamina already in): runs an amplified circle, or
+// any ABS full, on the active character's weapon, its sound too; false leaves the circle to retail.
 bool AmplifiedCircle(int kind, WEAPON_HAVE &weapon);
 
 } // namespace expanded

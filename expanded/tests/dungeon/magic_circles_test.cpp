@@ -101,11 +101,62 @@ TEST(MagicCircles, WeaponRollsScaleAndTheQuarterTakesWhpToOne) {
     EXPECT_EQ(circle.weapon->durability_f, 1.0f);
 }
 
-TEST(MagicCircles, FillingCirclesGiveAPowderPerExtraAmplifier) {
-    Circle circle(true, true);
+namespace {
+
+// Xiao's equipped slingshot and the Crysknife in Toan's bag, both empty of ABS and worn.
+void Wear(Circle &circle) {
+    CUserStatus &status = circle.Status();
+    status.equipped_weapon_slot[1] = 0;
+    for (WEAPON_HAVE *weapon : {circle.weapon, &status.chara_weapons[1][0], &status.chara_weapons[0][1]}) {
+        weapon->experience = 0;
+        weapon->durability = 40;
+        weapon->durability_f = 5.0f;
+    }
+    status.chara_weapons[1][0].item_no = ITEM_WEAPON_BANDIT_SLINGSHOT;
+}
+
+} // namespace
+
+TEST(MagicCircles, DoubleFillsReachEveryEquippedWeapon) {
+    Circle circle(true, false);
+    Wear(circle);
+    WEAPON_HAVE &slingshot = circle.Status().chara_weapons[1][0];
+    WEAPON_HAVE &crysknife = circle.Status().chara_weapons[0][1];
+
     ASSERT_TRUE(circle.Run(TRAP_CIRCLE_ABS_FULL));
-    EXPECT_GT(circle.weapon->experience, 0); // filled to its max
-    EXPECT_EQ(circle.Carried(ITEM_POWERUP_POWDER), 2);
+    EXPECT_GT(circle.weapon->experience, 0);
+    EXPECT_GT(slingshot.experience, 0);
+    EXPECT_EQ(crysknife.experience, 0);
+
     ASSERT_TRUE(circle.Run(TRAP_CIRCLE_WHP_CURE));
-    EXPECT_EQ(circle.Carried(ITEM_AUTO_REPAIR_POWDER), 2);
+    EXPECT_EQ(circle.weapon->durability_f, 40.0f);
+    EXPECT_EQ(slingshot.durability_f, 40.0f);
+    EXPECT_EQ(crysknife.durability_f, 5.0f);
+    EXPECT_EQ(circle.Carried(ITEM_POWERUP_POWDER), 0);
+}
+
+TEST(MagicCircles, TripleFillsReachEveryCarriedWeapon) {
+    Circle circle(true, true);
+    Wear(circle);
+    WEAPON_HAVE &crysknife = circle.Status().chara_weapons[0][1];
+
+    ASSERT_TRUE(circle.Run(TRAP_CIRCLE_ABS_FULL));
+    EXPECT_GT(crysknife.experience, 0);
+    ASSERT_TRUE(circle.Run(TRAP_CIRCLE_WHP_CURE));
+    EXPECT_EQ(crysknife.durability_f, 40.0f);
+}
+
+TEST(MagicCircles, AbsFullLeavesAnOvertrainedWeaponAsItIs) {
+    for (bool amplified : {false, true}) {
+        Circle circle(amplified, false);
+        circle.weapon->experience = 0;
+        ASSERT_TRUE(circle.Run(TRAP_CIRCLE_ABS_FULL));
+        s16 max = circle.weapon->experience;
+        ASSERT_GT(max, 0);
+
+        // Past its max: not lowered to it, not raised further.
+        circle.weapon->experience = static_cast<s16>(max + max / 2);
+        ASSERT_TRUE(circle.Run(TRAP_CIRCLE_ABS_FULL));
+        EXPECT_EQ(circle.weapon->experience, max + max / 2);
+    }
 }

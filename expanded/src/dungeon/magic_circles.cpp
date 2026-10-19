@@ -4,13 +4,13 @@
 #include <cstdlib>
 
 #include "battlemenu.hpp"
-#include "dngstatusdata.hpp"
 #include "dun/gameloop.hpp"
 #include "dungeonmap.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/ownership.hpp"
 #include "itemdata.hpp"
 #include "menu_dungeon.hpp"
+#include "menu_inventory.hpp"
 #include "menu_misc.hpp"
 #include "monstorunit.hpp"
 #include "shot_freefuncs.hpp"
@@ -81,9 +81,39 @@ void WhpDown(WEAPON_HAVE &weapon, int m) {
     }
 }
 
-void Give(int item_no, int count) {
-    for (int i = 0; i < count; i++) {
-        static_cast<CDngStatusData *>(UserStatus)->GetItem(item_no, 1);
+constexpr int kMembers = 6;
+constexpr int kCarried = 11;
+
+// A weapon a circle can fill: one in the slot, not a default weapon (retail fills those with nothing).
+bool Fillable(const WEAPON_HAVE &weapon) {
+    return weapon.item_no >= ITEM_WEAPON_START && IsDefaultWeapon(weapon.item_no) < 0;
+}
+
+// The ABS full, never below what a weapon already holds: an overtrained one keeps its surplus.
+void FillAbs(WEAPON_HAVE &weapon) {
+    if (Fillable(weapon)) {
+        weapon.experience = std::max(weapon.experience, static_cast<s16>(GetWeaponMaxExp(&weapon)));
+    }
+}
+
+void CureWhp(WEAPON_HAVE &weapon) {
+    if (Fillable(weapon)) {
+        weapon.durability_f = weapon.durability;
+    }
+}
+
+// The weapons a filling circle reaches past the active one: at 2 every member's equipped weapon, at 3 every
+// weapon the party carries.
+template <typename Fill>
+void FillParty(CUserStatus &status, const WEAPON_HAVE &active, int m, Fill fill) {
+    for (int chara = 0; chara < kMembers; chara++) {
+        int equipped = status.equipped_weapon_slot[chara];
+        for (int slot = 0; slot < kCarried; slot++) {
+            WEAPON_HAVE &weapon = status.chara_weapons[chara][slot];
+            if (&weapon != &active && (m >= 3 || slot == equipped)) {
+                fill(weapon);
+            }
+        }
     }
 }
 
@@ -95,7 +125,7 @@ int CircleMagnitude() {
 
 bool AmplifiedCircle(int kind, WEAPON_HAVE &weapon) {
     int m = CircleMagnitude();
-    if (m == 1 || UserStatus == nullptr) {
+    if (UserStatus == nullptr || (m == 1 && kind != TRAP_CIRCLE_ABS_FULL)) {
         return false;
     }
     CUserStatus &status = *UserStatus;
@@ -113,15 +143,17 @@ bool AmplifiedCircle(int kind, WEAPON_HAVE &weapon) {
             status.money = static_cast<u16>(std::min(kMoneyMax, had + m * (static_cast<int>(had * kMoneyUp) + kMoneyUpAdd)));
             break;
         case TRAP_CIRCLE_ABS_FULL:
-            WeaponDataChangeByRGate(&weapon, RGATE_ABS_FULL);
-            Give(ITEM_POWERUP_POWDER, m - 1);
+            FillAbs(weapon);
+            if (m > 1) {
+                FillParty(status, weapon, m, FillAbs);
+            }
             break;
         case TRAP_CIRCLE_WHP_UP:
             WhpUp(weapon, m);
             break;
         case TRAP_CIRCLE_WHP_CURE:
             WeaponDataChangeByRGate(&weapon, RGATE_WHP_CURE);
-            Give(ITEM_AUTO_REPAIR_POWDER, m - 1);
+            FillParty(status, weapon, m, CureWhp);
             break;
         case TRAP_CIRCLE_ALL_MONSTER_STAMINA:
             if (NowMonstorUnit != nullptr) {
