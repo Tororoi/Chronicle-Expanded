@@ -22,6 +22,7 @@
 #include "platform/config.hpp"
 #include "platform/paths.hpp"
 #include "platform_fixture.hpp"
+#include "savedata.hpp"
 #include "userstatus.hpp"
 
 namespace expanded::test {
@@ -168,6 +169,29 @@ private:
     FloorRosters                  rosters_;
     CUserStatus                  *saved_status_;
     s32                           saved_map_;
+};
+
+// A fresh save (SaveData) for a test: its dungeon status (the party's weapons) and storage.
+class TestSave {
+public:
+    TestSave() { SaveData = &image_->data; }
+
+    ~TestSave() { SaveData = saved_; }
+
+    TestSave(const TestSave &) = delete;
+    TestSave &operator=(const TestSave &) = delete;
+
+    CUserStatus &status() { return *image_->data.GetDngStatus(); }
+
+    CStockItem &stock() { return *image_->data.GetStockItem(); }
+
+private:
+    struct alignas(64) Image {
+        CSaveData data;
+    };
+
+    std::unique_ptr<Image> image_ = std::make_unique<Image>();
+    CSaveData             *saved_ = SaveData;
 };
 
 // The active character's weapon for a test (NowWeaponHave): weapon_no in hand, carrying sphere's SynthSphere when

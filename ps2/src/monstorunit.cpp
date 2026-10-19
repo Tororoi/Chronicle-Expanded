@@ -54,6 +54,7 @@
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/kick_back.hpp"
+#include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/ungaga/charge_shot.hpp"
 #endif
 
@@ -2339,6 +2340,9 @@ void CMonstorUnit::Step(int pause) {
                                 if (weapon->experience <= 0) {
                                     weapon->experience = 0;
                                 }
+#ifdef CHRONICLE_EXPANDED
+                            } else if (expanded::OvertrainingAbs(*weapon, exp, max_exp)) {
+#endif
                             } else if (weapon->experience < max_exp) {
                                 int updated = weapon->experience + exp;
 

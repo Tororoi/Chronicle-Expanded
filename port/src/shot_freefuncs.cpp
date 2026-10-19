@@ -20,6 +20,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/toan/macho_sword.hpp"
 #endif
 
 extern int statusAlarmRate;
@@ -148,7 +149,11 @@ PORT_OVERRIDE void topStatusInfo(int y, int selected_item, int floor) {
     MGFillBox(CRect_i_(0x340, ((y + 0x1F) >> 1) * 16, (width - 1) * 16, 0x10), 0x40, 0x40, 0x40, alpha);
 
     if (weapon->experience > 0) {
+#ifdef CHRONICLE_EXPANDED
+        int filled = (int) ((float) expanded::OvertrainingGaugeAbs(weapon->experience, exp_max) * ((float) width / (float) exp_max));
+#else
         int filled = (int) ((float) weapon->experience * ((float) width / (float) exp_max));
+#endif
         MGFillBox(CRect_i_(0x340, ((y + 0x1F) >> 1) * 16, (filled - 1) * 16, 0x10), 0, 0xA2, 0xFF, alpha);
     }
 
