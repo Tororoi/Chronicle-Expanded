@@ -6,5 +6,8 @@
     "dun.message.ww_mes.dunmsd00.3322": "Atla Gemron",
     "expanded.atla_drop.sphere": "{icon-orb}\"{insert1}\" SynthSphere acquired.",
     "expanded.bone_rapier.door": "You can hear an ominous voice laughing 'Rattle me bones!'",
+    "expanded.kitchen_knife.blessed": "The spring's blessing surges through the Kitchen Knife!",
+    "expanded.kitchen_knife.faded": "The spring's blessing fades from the Kitchen Knife...",
+    "expanded.kitchen_knife.mended": "The spring mends the Kitchen Knife.",
     "expanded.wise_owl.key": "Wise Owl senses the {insert1} nearby..."
 }

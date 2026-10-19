@@ -29,5 +29,8 @@
     "dun.message.ww_mes.dunmsd00.3322": "Atla-Gemron",
     "expanded.atla_drop.sphere": "{icon-orb}SynthSphere \"{insert1}\" erhalten.",
     "expanded.bone_rapier.door": "Eine unheimliche Stimme lacht: 'Klappert, ihr Knochen!'",
+    "expanded.kitchen_knife.blessed": "Der Segen der Quelle durchströmt das Küchenmesser!",
+    "expanded.kitchen_knife.faded": "Der Segen der Quelle weicht vom Küchenmesser...",
+    "expanded.kitchen_knife.mended": "Die Quelle repariert das Küchenmesser.",
     "expanded.wise_owl.key": "Das Eulenschwert spürt {insert1} in der Nähe..."
 }
