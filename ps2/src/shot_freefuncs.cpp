@@ -51,6 +51,10 @@ static int defWeapon[6] = {ITEM_WEAPON_DAGGER_BROKEN, ITEM_WEAPON_WOODENSLINGSHO
 #include "texture.hpp"
 #include "userstatus.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/toan/kitchen_knife.hpp"
+#endif
+
 s32   DebugStatus[21];
 float StatusColor[3];
 
@@ -307,7 +311,14 @@ void HealingWater() {
     int   max_hp;
     int   now_hp;
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::SpringsBlessingStep();
+#endif
+
     if (CheckHealZone() || CheckHealingWater()) {
+#ifdef CHRONICLE_EXPANDED
+        expanded::SpringsBlessingSoak();
+#endif
         if (healingSpeed <= 0) {
             chara = UserStatus->cur_chara;
             UserStatus->AddDrink(chara, 0xFF, 255.0f);
