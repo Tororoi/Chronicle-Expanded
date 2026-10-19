@@ -27,5 +27,6 @@
     "dun.message.ww_mes.dunmsd00.3320": "Gemrond bombe",
     "dun.message.ww_mes.dunmsd00.3321": "Gemrond de cristal",
     "dun.message.ww_mes.dunmsd00.3322": "Gemrond atla",
-    "expanded.atla_drop.sphere": "{icon-orb}Plan synthétique \"{insert1}\" en poche."
+    "expanded.atla_drop.sphere": "{icon-orb}Plan synthétique \"{insert1}\" en poche.",
+    "expanded.wise_owl.key": "L'Épée du hibou sent {insert1} tout près..."
 }

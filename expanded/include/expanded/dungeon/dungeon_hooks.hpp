@@ -16,7 +16,8 @@ void DungeonFloorLoaded(CMonstorUnit &unit);
 // Expanded's shots stop.
 void DungeonMonstersCleared(bool drop_stars);
 
-// A step the monsters take unpaused (before motionDrive): the clocks poison and confusion count by.
+// A step the monsters take unpaused (before motionDrive): the clocks poison and confusion count by, and the Wise Owl
+// Sword's watch for key holders.
 void DungeonMonstersTick();
 
 // A kind's model pack as SetupBaseModel loads it: a boss's built pack or an Expanded kind's own, else as it is.
