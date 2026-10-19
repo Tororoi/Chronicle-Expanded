@@ -54,6 +54,7 @@
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/kick_back.hpp"
+#include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/ungaga/charge_shot.hpp"
 #endif
 
@@ -2319,7 +2320,11 @@ void CMonstorUnit::Step(int pause) {
 
                         if (monster[current_monster].last_attacker == current_chara && no_exp == 0) {
                             int max_exp = GetWeaponMaxExp(weapon);
+#ifdef CHRONICLE_EXPANDED
+                            int exp = expanded::MonsterKillAbs(*this, current_monster, monster[current_monster].exp);
+#else
                             int exp = monster[current_monster].exp;
+#endif
 
                             if (back_dungeon != 0) {
                                 exp *= 2;
@@ -2335,6 +2340,9 @@ void CMonstorUnit::Step(int pause) {
                                 if (weapon->experience <= 0) {
                                     weapon->experience = 0;
                                 }
+#ifdef CHRONICLE_EXPANDED
+                            } else if (expanded::OvertrainingAbs(*weapon, exp, max_exp)) {
+#endif
                             } else if (weapon->experience < max_exp) {
                                 int updated = weapon->experience + exp;
 

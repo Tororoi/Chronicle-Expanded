@@ -29,6 +29,10 @@ void MonsterDrawn(CMonstorUnit &unit, int monster);
 // A monster's life just ran out (CheckDmg): whether the kill counts down the floor and up the player's kills.
 bool MonsterKilled(const CMonstorUnit &unit, int monster);
 
+// The ABS a kill gives the active character's weapon (Step's grant, before the back floor's doubling): abs, the
+// monster's own, as the weapons' effects change it.
+int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs);
+
 // A monster's step (CMonstorUnit::Step): true when a feature stepped it in place of its script.
 bool MonsterStepTaken(CMonstorUnit &unit, int monster);
 

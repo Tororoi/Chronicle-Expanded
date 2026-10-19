@@ -105,6 +105,10 @@ Each section lists this repository's own changes first, then those that come fro
 - New Confuse ability: 5% of hits confuse a non-boss monster for 20 seconds, turning it on other monsters. A weapon's SynthSphere passes it on. [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6)
 - Super Steve shows the weapon icon of the SynthSphere attached to it on the dungeon screen, and a slingshot's sphere makes it fire that slingshot's pellets. [#145](https://github.com/Tororoi/Chronicle-Expanded/pull/145)
 - Baselard "Heavy Hand": every hit throws the monster back about 17 units, and so does every pellet of Super Steve carrying the Baselard's SynthSphere. [#146](https://github.com/Tororoi/Chronicle-Expanded/pull/146)
+- Gladius "Jacket Hunter": a Master Jacket killed with the Gladius in hand gives four times its ABS, and so does one killed by Super Steve carrying the Gladius's SynthSphere. [#184](https://github.com/Tororoi/Chronicle-Expanded/pull/184)
+- Crysknife "Crystal Affinity": thrown elemental gems deal twice their damage while the Crysknife is in hand, or Super Steve carries its SynthSphere. [#185](https://github.com/Tororoi/Chronicle-Expanded/pull/185)
+- Macho Sword "Overtraining": while you own a Macho Sword (in hand, a bag or storage), every weapon's ABS keeps filling past its max, up to twice it, and the surplus carries into the next level (a weapon at 116/100 starts its new level at 16). [#186](https://github.com/Tororoi/Chronicle-Expanded/pull/186)
+- Buster Sword "Buster Boost": anti-monster attachments (Dinoslayer to Mage Slayer) are worth +4 instead of +3 on a Buster Sword, in its stats, its damage, its build-ups and what a level-up absorbs. [#187](https://github.com/Tororoi/Chronicle-Expanded/pull/187)
 
 ### Weapon stats and abilities
 

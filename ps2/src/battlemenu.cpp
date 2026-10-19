@@ -70,8 +70,9 @@ static int GetVisitInfo(int place, int menu_mode);
 #include "vutext.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/status/confuse.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/status/confuse.hpp"
+#include "expanded/weapons/toan/buster_sword.hpp"
 #endif
 
 static void DrawStatusNumberNowAndMax(int *values, int x, int y, int color, int alpha);
@@ -4883,6 +4884,9 @@ static void WepAttachHaveCancel() {
             MenuDataSwap(slot, &WepMenu.board.held_attach);
             BtlHaveItemPt->item_no = item_no;
             slot->item_no = held;
+#ifdef CHRONICLE_EXPANDED
+            expanded::BusterBoostPlaced(BtlHaveItemPt->from_page == WEP_MENU_ATTACH_SOCKETS ? &DngWepHavePt[WepMenu.weapon_slot] : nullptr, *slot);
+#endif
         }
 
         if (BtlHaveItemPt->item_no < ITEM_ATTACH_START) {
@@ -5352,6 +5356,9 @@ static void WeaponMenuAttachWepKey() {
             MenuDataSwap(&WepMenu.board.held_attach, &weapon->attach[hole]);
             BtlHaveItemPt->item_no = item_no;
             weapon->attach[hole].item_no = held;
+#ifdef CHRONICLE_EXPANDED
+            expanded::BusterBoostPlaced(nullptr, WepMenu.board.held_attach);
+#endif
             BtlHaveItemPt->from_slot = WepMenu.board.cursor;
             BtlHaveItemPt->from_page = WEP_MENU_ATTACH_SOCKETS;
             WEAPON_HAVE total;
@@ -5374,6 +5381,9 @@ static void WeaponMenuAttachWepKey() {
         MenuDataSwap(&weapon->attach[hole], &WepMenu.board.held_attach);
         weapon->attach[hole].item_no = held;
         BtlHaveItemPt->item_no = item_no;
+#ifdef CHRONICLE_EXPANDED
+        expanded::BusterBoostSwapped(*weapon, weapon->attach[hole], WepMenu.board.held_attach);
+#endif
         BtlHaveItemPt->from_slot = WepMenu.board.cursor;
         BtlHaveItemPt->from_page = WepMenu.mode;
         WEAPON_HAVE total;
