@@ -1,5 +1,7 @@
 #include "options/rows.hpp"
 
+#include <SDL3/SDL.h>
+
 #include <algorithm>
 #include <cmath>
 #include <deque>
@@ -8,8 +10,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <SDL3/SDL.h>
 
 #include "localize.hpp"
 #include "menu_option.hpp"
@@ -288,6 +288,20 @@ int UiScaleCount(const Config &) {
     return 16;
 }
 
+#if defined(__ANDROID__)
+int RenderScaleChoice(const Config &config) {
+    return std::clamp(static_cast<int>(std::lround(config.render_scale * 10.0f)) - 5, 0, 15);
+}
+
+int RenderScaleCount(const Config &) { return 16; }
+
+void SetRenderScale(Config &config, int choice) { config.render_scale = (choice + 5) / 10.0f; }
+
+std::string RenderScaleText(const Config &config) {
+    return std::format("{}%", static_cast<int>(std::lround(config.render_scale * 100.0f)));
+}
+#endif
+
 int UiScaleChoice(const Config &config) {
     return std::clamp(static_cast<int>(std::lround(config.ui_scale * 10.0f)) - 5, 0, 15);
 }
@@ -299,6 +313,16 @@ void SetUiScale(Config &config, int choice) {
 std::string UiScaleText(const Config &config) {
     return std::format("{:.0f}%", config.ui_scale * 100.0f);
 }
+
+#if defined(__ANDROID__)
+int TouchOpacityCount(const Config &) { return 10; }
+
+int TouchOpacityChoice(const Config &config) { return config.touch_overlay_opacity / 10 - 1; }
+
+void SetTouchOpacity(Config &config, int choice) { config.touch_overlay_opacity = (choice + 1) * 10; }
+
+std::string TouchOpacityText(const Config &config) { return std::format("{}%", config.touch_overlay_opacity); }
+#endif
 
 // 0% to 100% in fives.
 int VolumeCount(const Config &) {
@@ -342,7 +366,7 @@ void RestoreMouseSensitivity(Config &config, const Config &defaults) {
     config.mouse_sensitivity = defaults.mouse_sensitivity;
 }
 
-constexpr float kCameraReturnRates[] = {0.0f, 0.05f, 0.2f, 0.5f, 1.0f};
+constexpr float       kCameraReturnRates[] = {0.0f, 0.05f, 0.2f, 0.5f, 1.0f};
 constexpr const char *kCameraReturnNames[] = {"Off", "Very Slow", "Slow", "Moderate", "Retail"};
 
 int CameraReturnChoice(const Config &config) {
@@ -553,7 +577,8 @@ int Three(const Config &) {
 }
 
 int SoundChoice(const Config &config) {
-    return config.surround ? 2 : config.options.stereo ? 1 : 0;
+    return config.surround ? 2 : config.options.stereo ? 1
+                                                       : 0;
 }
 
 void SetSound(Config &config, int choice) {
@@ -616,6 +641,11 @@ const Row kDisplayRows[] = {
     SettingRow("video.ui_scale", "Interface Size",
                "\"Interface Size\"\nThe size of the HUD\nand menus, from when\nOptions closes.", UiScaleCount,
                UiScaleChoice, SetUiScale, UiScaleText),
+#if defined(__ANDROID__)
+    SettingRow("video.touch_overlay_opacity", "Touch Opacity",
+               "\"Touch Opacity\"\nHow visible the on-screen\nbuttons are.", TouchOpacityCount,
+               TouchOpacityChoice, SetTouchOpacity, TouchOpacityText),
+#endif
     OnOffRow<&Config::interpolation>("video.interpolation", "Smooth Motion",
                                      "\"Smooth Motion\"\nDraws frames between\nthe game's steps."),
     OnOffRow<&Config::show_fps>("video.show_fps", "FPS Counter", "\"FPS Counter\"\nShows the frame rate\nin the corner."),
@@ -626,6 +656,32 @@ const Row kDisplayRows[] = {
                AnisotropyChoice, SetAnisotropy, nullptr, "Off|2x|4x|8x|16x"),
     GameRow<&ConfigGameOptions::soft_focus, true>("video.soft_focus", "Soft Focus", "On|Off", 0x169),
 };
+
+#if defined(__ANDROID__)
+const Row kAndroidDisplayRows[] = {
+    SettingRow("video.render_scale", "Render Resolution",
+               "\"Render Resolution\"\nThe game's internal image\nsize. Lower values improve\nspeed and battery life.",
+               RenderScaleCount, RenderScaleChoice, SetRenderScale, RenderScaleText),
+    kDisplayRows[2],
+    kDisplayRows[3],
+    kDisplayRows[4],
+    kDisplayRows[5],
+    kDisplayRows[6],
+    kDisplayRows[7],
+    kDisplayRows[8],
+    kDisplayRows[9],
+    kDisplayRows[10],
+    kDisplayRows[11],
+};
+#endif
+
+std::span<const Row> DisplayRows() {
+#if defined(__ANDROID__)
+    return kAndroidDisplayRows;
+#else
+    return kDisplayRows;
+#endif
+}
 
 const Row kAudioRows[] = {
     SettingRow("audio.master_volume", "Volume", "\"Volume\"\nHow loud the game is.", VolumeCount, VolumeChoice,
@@ -689,9 +745,6 @@ const Row kTextRows[] = {
     SettingRow("input.glyph_device", "Symbols Shown",
                "\"Symbols Shown\"\nAuto: the device you\nuse. Or always show one\nof the others.", GlyphDeviceCount,
                GlyphDeviceChoice, SetGlyphDevice, nullptr, "Auto|PS3|PS4|PS5|PS5 Colored|Xbox|Switch|Steam Deck|Steam Controller|Keyboard"),
-    NamedRow<&Config::font_sharp>("video.text_font", "Text Font",
-                                  "\"Text Font\"\nSharp: a clear font at\nthe screen's size.\nOriginal: the game's.",
-                                  "Original|Sharp"),
     SettingRow("video.text_shadow", "Text Shadow",
                "\"Text Shadow\"\nHow dark the shadow\nunder the letters is.\n50% is the soft one.", ShadowCount,
                TextShadowChoice, SetTextShadow, TextShadowText),
@@ -724,36 +777,37 @@ std::string ActionName(std::string_view action) {
         std::string_view action;
         const char      *name;
     } kNames[] = {
-        {"up",             "Up"              },
-        {"down",           "Down"            },
-        {"left",           "Left"            },
-        {"right",          "Right"           },
-        {"cross",          "Cross"           },
-        {"circle",         "Circle"          },
-        {"square",         "Square"          },
-        {"triangle",       "Triangle"        },
-        {"l1",             "L1"              },
-        {"r1",             "R1"              },
-        {"l2",             "L2"              },
-        {"r2",             "R2"              },
-        {"l3",             "L3"              },
-        {"r3",             "R3"              },
-        {"start",          "Start"           },
-        {"select",         "Select"          },
-        {"lx-",            "Left Stick Left" },
-        {"lx+",            "Left Stick Right"},
-        {"ly-",            "Left Stick Up"   },
-        {"ly+",            "Left Stick Down" },
-        {"rx-",            "Right Stick Left"},
+        {"up",             "Up"               },
+        {"down",           "Down"             },
+        {"left",           "Left"             },
+        {"right",          "Right"            },
+        {"cross",          "Cross"            },
+        {"circle",         "Circle"           },
+        {"square",         "Square"           },
+        {"triangle",       "Triangle"         },
+        {"l1",             "L1"               },
+        {"r1",             "R1"               },
+        {"l2",             "L2"               },
+        {"r2",             "R2"               },
+        {"l3",             "L3"               },
+        {"r3",             "R3"               },
+        {"start",          "Start"            },
+        {"select",         "Select"           },
+        {"lx-",            "Left Stick Left"  },
+        {"lx+",            "Left Stick Right" },
+        {"ly-",            "Left Stick Up"    },
+        {"ly+",            "Left Stick Down"  },
+        {"rx-",            "Right Stick Left" },
         {"rx+",            "Right Stick Right"},
-        {"ry-",            "Right Stick Up"  },
-        {"ry+",            "Right Stick Down"},
-        {"fps_toggle",     "Toggle FPS"      },
-        {"developer_menu", "Developer Menu"  },
-        {"debug_menu",     "Debug Menu"      },
-        {"gyro_hold",      "Gyro Hold"       },
-        {"zoom_reset",     "Reset Zoom"      },
+        {"ry-",            "Right Stick Up"   },
+        {"ry+",            "Right Stick Down" },
+        {"fps_toggle",     "Toggle FPS"       },
+        {"developer_menu", "Developer Menu"   },
+        {"debug_menu",     "Debug Menu"       },
+        {"gyro_hold",      "Gyro Hold"        },
+        {"zoom_reset",     "Reset Zoom"       },
     };
+
     for (const auto &entry : kNames) {
         if (entry.action == action) {
             return entry.name;
@@ -807,12 +861,12 @@ std::span<const Row> BindingRows() {
 std::span<const Page> Pages() {
     static const std::vector<Page> pages = {
         {"Game",          "\"Game\"\nHow the game plays.",                           kGameRows         },
-        {"Display",       "\"Display\"\nThe window and picture.",                    kDisplayRows      },
+        {"Display",       "\"Display\"\nThe window and picture.",                    DisplayRows()     },
         {"Audio",         "\"Audio\"\nSound and music.",                             kAudioRows        },
         {"Controls",      "\"Controls\"\nMouse, gamepad and gyro.",                  kControlRows      },
         {"Text",          "\"Text\"\nLanguage, lettering and\nsymbols.",             kTextRows         },
         {"Accessibility", "\"Accessibility\"\nHelp with harder parts\nof the game.", kAccessibilityRows},
-        {"Bindings",      "\"Bindings\"\nWhat each key and\nmouse button does.",       BindingRows()     },
+        {"Bindings",      "\"Bindings\"\nWhat each key and\nmouse button does.",     BindingRows()     },
     };
 #ifdef CHRONICLE_EXPANDED
     static const std::vector<Page> with_expanded = expanded::OptionsPages(pages);
@@ -893,9 +947,16 @@ std::string RowValue(const Row &row, const Config &config) {
 }
 
 bool StepRow(const Row &row, Config &config, int direction, bool wrap) {
-    int count = row.count(config);
-    int choice = row.get(config);
-    int next = wrap ? (choice + direction + count) % count : std::clamp(choice + direction, 0, count - 1);
+    if (row.count == nullptr || row.get == nullptr || row.set == nullptr || direction == 0) {
+        return false;
+    }
+    const int count = row.count(config);
+    if (count <= 0) {
+        return false;
+    }
+    const int choice = std::clamp(row.get(config), 0, count - 1);
+    direction = direction > 0 ? 1 : -1;
+    const int next = wrap ? (choice + direction + count) % count : std::clamp(choice + direction, 0, count - 1);
     if (next == choice) {
         return false;
     }
@@ -970,7 +1031,7 @@ void OptionRestoreCameraReturn(Config &config, const Config &defaults) {
 namespace options {
 
 void SetBinding(Config &config, std::string_view action, std::string_view key) {
-    auto binding = std::ranges::find(config.key_bindings, std::string(action), &ConfigKeyBinding::action);
+    auto                     binding = std::ranges::find(config.key_bindings, std::string(action), &ConfigKeyBinding::action);
     std::vector<std::string> keys;
     keys.emplace_back(key);
     if (binding == config.key_bindings.end()) {

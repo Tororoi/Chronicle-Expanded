@@ -1,26 +1,31 @@
-#include "menu_pointer.hpp"
+#include "menu_mouse.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 #include "battlemenu.hpp"
-#include "itemdata.hpp"
+#include "clsmes.hpp"
+#include "dialog_npc.hpp"
 #include "dngstatusdata.hpp"
 #include "editpartsinfo.hpp"
-#include "memcard.hpp"
 #include "gamepad.hpp"
 #include "gametext.hpp"
+#include "itemdata.hpp"
+#include "memcard.hpp"
 #include "menu_draw.hpp"
+#include "menu_event_pointer.hpp"
 #include "menu_inventory.hpp"
+#include "menu_journal_chest.hpp"
 #include "menu_manual.hpp"
-#include "weapon_buildup.hpp"
 #include "menu_misc.hpp"
 #include "menu_option.hpp"
+#include "menu_pointer.hpp"
 #include "menu_save.hpp"
-#include "save_slots.hpp"
-#include "menu_mouse.hpp"
 #include "name_mouse.hpp"
 #include "platform/input.hpp"
+#include "save_slots.hpp"
+#include "weapon_buildup.hpp"
 
 // The mouse in the game's menus. Each tick, ahead of the game's read of the pad, the screen that is
 // open (the Register Name screen, or a page of the pause menu) takes the mouse as a pointer: what
@@ -28,7 +33,7 @@
 // game's code does the rest. A screen with no handler leaves the mouse to the pad as before.
 
 extern bool BattleMenuQuitConfirmActive();
-extern int* BattleMenuQuitConfirmChoicePtr();
+extern int *BattleMenuQuitConfirmChoicePtr();
 
 namespace {
 
@@ -42,9 +47,9 @@ struct Rect {
 };
 
 // Which pause-menu screen is on, drawn since the last tick.
-bool g_battle_drawn = false;
+bool        g_battle_drawn = false;
 MenuPointer g_save;
-bool g_save_open = false;
+bool        g_save_open = false;
 
 MenuPointer g_battle;
 
@@ -53,42 +58,29 @@ int RingIconCount() {
     return BtlMenuMode == BATTLE_MENU_MODE_DUNGEON ? 8 : 9;
 }
 
-// Matches port/src/battlemenu.cpp GetSafeIconPos() so icons >= orig_max have valid hitboxes.
-void GetRingIconPos(int index, float &out_x, float &out_y) {
-    const int orig_max = (BtlMenuMode == BATTLE_MENU_MODE_DUNGEON) ? 7 : 8;
-    if (index < orig_max) {
-        out_x = NorMenuIcon[index].x;
-        out_y = NorMenuIcon[index].y;
-    } else {
-        const int diff = index - (orig_max - 1);
-        out_x = NorMenuIcon[orig_max - 1].x - (16.0f * diff);
-        out_y = NorMenuIcon[orig_max - 1].y + (40.0f * diff);
-    }
-}
-
 // The row of one ring icon: its icon and the label beside it, where the brackets stand.
 Rect RingRow(int icon) {
     float ix = 0.0f, iy = 0.0f;
-    GetRingIconPos(icon, ix, iy);
+    BattleMenuIconPosition(icon, ix, iy);
     int left = static_cast<int>(ix) - 18;
-    int top  = static_cast<int>(iy) - 8;
+    int top = static_cast<int>(iy) - 8;
     return Rect{left, top, left + 250, top + 34};
 }
 
 // Hit-test for UI::ConfirmModal's centered YES / NO BevelButtons (btn_x = 270, w = 100, h = 26).
 int ConfirmModalHit(float px, float py, int btn_y0 = 232) {
-    constexpr int kBtnX = (640 - 100) / 2; // 270
-    constexpr int kBtnW = 100;
-    constexpr int kBtnH = 26;
-    const int     btn_y1 = btn_y0 + kBtnH + 6;
+    constexpr int k_btn_x = (640 - 100) / 2; // 270
+    constexpr int k_btn_w = 100;
+    constexpr int k_btn_h = 26;
+    const int     btn_y1 = btn_y0 + k_btn_h + 6;
 
-    if (px < kBtnX - 14 || px >= kBtnX + kBtnW + 14) {
+    if (px < k_btn_x - 14 || px >= k_btn_x + k_btn_w + 14) {
         return -1;
     }
-    if (py >= btn_y0 - 4 && py < btn_y0 + kBtnH + 2) {
+    if (py >= btn_y0 - 4 && py < btn_y0 + k_btn_h + 2) {
         return 0; // YES
     }
-    if (py >= btn_y1 - 2 && py < btn_y1 + kBtnH + 4) {
+    if (py >= btn_y1 - 2 && py < btn_y1 + k_btn_h + 4) {
         return 1; // NO
     }
     return -1;
@@ -175,7 +167,6 @@ void YesNoMouse(const MenuPointerTake &take, int x, int y, T *answer) {
     }
 }
 
-
 // The scroll bar of the personal board (the item board, the attachments board, the Georama board):
 // arrows at its ends step a row, a press on the track takes hold of the thumb, which follows the
 // pointer while the button is held.
@@ -246,6 +237,7 @@ struct Discard {
     bool active = false;
     int  answer = 1;
 };
+
 Discard g_discard;
 bool    g_item_dragging = false;
 int     g_item_drag_mode = -1;
@@ -329,6 +321,10 @@ void SaveMouse() {
     }
     MenuPointerTake take = g_save.Take(320.0f, 240.0f);
     MenuPointerShow(&g_save);
+    if ((take.clicked & 2) != 0) {
+        MenuPointerPress(SaveMenu.key_no == SAVE_KEY_END_SAVE_ENDING ? kInputCross : kInputCircle);
+        return;
+    }
     bool slots = SaveMenu.key_no == SAVE_KEY_FILE_SELECT;
     if (slots) {
         int count = SaveSlotRows(SaveSlots, SaveMenu.access_kind == SAVE_ACCESS_SAVE);
@@ -341,7 +337,9 @@ void SaveMouse() {
                         SaveMenu.file_no = SaveSlotFileAt(SaveSlots, row);
                         ComMenuSePlay(MENU_SOUND_CURSOR);
                     }
-                    if ((take.clicked & 1) != 0) MenuPointerPress(kInputCross);
+                    if ((take.clicked & 1) != 0) {
+                        MenuPointerPress(kInputCross);
+                    }
                     break;
                 }
             }
@@ -349,12 +347,39 @@ void SaveMouse() {
     } else {
         bool confirm = SaveMenu.key_no == SAVE_KEY_LOAD_DECIDE || SaveMenu.key_no == SAVE_KEY_SAVE_DECIDE ||
                        SaveMenu.key_no == SAVE_KEY_AFTER_ENDING;
-        int x = SaveMenu.key_no == SAVE_KEY_AFTER_ENDING ? 196 : 246;
-        int y = SaveMenu.key_no == SAVE_KEY_AFTER_ENDING ? 140 : 156;
-        int hit = take.pointing ? YesNoHit(x, y, g_save.x, g_save.y) : -1;
-        if (confirm && hit >= 0) {
-            if ((take.clicked & 1) != 0) MenuPointerPress(hit == 0 ? kInputCross : kInputCircle);
-            if ((take.clicked & 2) != 0) MenuPointerPress(kInputCircle);
+        if (!take.pointing || (take.clicked & 1) == 0) {
+            return;
+        }
+        const auto &mes = CommonMenuMes2;
+        if (confirm) {
+            // These are inline Cross/Yes and Circle/No prompts in a centred message,
+            // not the dungeon's vertical yes/no plate. Follow the laid-out glyphs.
+            for (int i = 0; i < mes.win_line_num; ++i) {
+                const auto &line = mes.win_line[i];
+                if (line.code != -0x2F8 && line.code != -0x2FA) {
+                    continue;
+                }
+                float     left = mes.text_x + line.x;
+                const int row_offset = mes.fukidashi == 0 && mes.centre_rows != 0
+                                           ? (mes.char_height * (mes.rows - mes.text_rows)) >> 1
+                                           : 0;
+                float     top = mes.text_y + row_offset + line.y;
+                float     right = mes.text_x + mes.text_width;
+                for (int j = i + 1; j < mes.win_line_num && mes.win_line[j].y == line.y; ++j) {
+                    if (mes.win_line[j].code == -0x2F8 || mes.win_line[j].code == -0x2FA) {
+                        right = mes.text_x + mes.win_line[j].x;
+                        break;
+                    }
+                }
+                if (g_save.x >= left && g_save.x < right && g_save.y >= top && g_save.y < top + mes.char_height) {
+                    MenuPointerPress(line.code == -0x2F8 ? kInputCross : kInputCircle);
+                    break;
+                }
+            }
+        } else if (SaveMenu.key_no == SAVE_KEY_END_SAVE || SaveMenu.key_no == SAVE_KEY_END_SAVE_ENDING ||
+                   SaveMenu.key_no == SAVE_KEY_ALERT) {
+            // Informational messages have no choice: a click anywhere acknowledges them.
+            MenuPointerPress(kInputCross);
         }
     }
 }
@@ -462,8 +487,8 @@ void ItemMouse(const MenuPointerTake &take) {
     if (!take.pointing) {
         return;
     }
-    float x = g_battle.x;
-    float y = g_battle.y;
+    float           x = g_battle.x;
+    float           y = g_battle.y;
     PERSONAL_BOARD &board = ItemMenuMode.board;
     bool            clicked = (take.clicked & 1) != 0;
     bool            act = take.moved || clicked;
@@ -579,7 +604,8 @@ void ItemMouse(const MenuPointerTake &take) {
                 board.cursor_area = PERSONAL_BOARD_AREA_CELLS;
                 board.cursor = board.top_row * 5;
             }
-            int steps = arrow != 0 ? arrow : (tab - board.page + 3) % 3 == 2 ? -1 : (tab - board.page + 3) % 3;
+            int steps = arrow != 0 ? arrow : (tab - board.page + 3) % 3 == 2 ? -1
+                                                                             : (tab - board.page + 3) % 3;
             if (steps > 0) {
                 MenuPointerPress(kInputR1);
             } else if (steps < 0) {
@@ -625,9 +651,9 @@ void AtlaMouse(const MenuPointerTake &take) {
     if (!take.pointing) {
         return;
     }
-    float x = g_battle.x;
-    float y = g_battle.y;
-    bool  clicked = (take.clicked & 1) != 0;
+    float           x = g_battle.x;
+    float           y = g_battle.y;
+    bool            clicked = (take.clicked & 1) != 0;
     MENU_ATORA_SEL &sel = MenuAtoraSel;
     int             mode = -1;
     int             cursor = -1;
@@ -838,9 +864,9 @@ bool WeaponMouse(const MenuPointerTake &take) {
             if (!take.pointing) {
                 return true;
             }
-            int cursors[7];
-            int count = WeaponActionRows(cursors);
-            int hit = -1;
+            static auto cursors = std::make_unique<int[]>(7);
+            int         count = WeaponActionRows(cursors.get());
+            int         hit = -1;
             for (int k = 0; k < count; ++k) {
                 Rect row = {114, 115 + 26 * k, 210, 115 + 26 * k + 26};
                 if (row.Contains(x, y)) {
@@ -989,6 +1015,37 @@ bool WeaponMouse(const MenuPointerTake &take) {
     }
 }
 
+// The new journal categories and tracker use their displayed row positions.
+void JournalMouse(const MenuPointerTake &take) {
+    if ((take.clicked & 2) != 0) {
+        MenuPointerPress(kInputCircle);
+        return;
+    }
+    if (!take.pointing || (take.clicked & 1) == 0) {
+        return;
+    }
+    const float x = g_battle.x, y = g_battle.y;
+    if (ManualMenu.mode == 100) {
+        JournalChest::HandlePointer(x, y);
+    } else if (ManualMenu.mode == MANUAL_MODE_SELECT && ManualMenu.selection_level == -2) {
+        if (x >= 135 && x < 355 && y >= 96 && y < 236) {
+            ManualMenu.category = static_cast<int>((y - 96) / 28);
+            MenuPointerPress(kInputCross);
+        }
+    } else if (ManualMenu.mode == MANUAL_MODE_SELECT && ManualMenu.selection_level == -1) {
+        constexpr int counts[] = {5, 5, 4, 3};
+        const auto   &text = CommonMenuMes3;
+        if (ManualMenu.category >= 0 && ManualMenu.category < 4 && text.char_height > 0 &&
+            x >= text.text_x && x < text.text_x + text.char_width * text.text_columns &&
+            y >= text.text_y && y < text.text_y + counts[ManualMenu.category] * text.char_height) {
+            ManualMenu.entry = static_cast<int>((y - text.text_y) / text.char_height);
+            MenuPointerPress(kInputCross);
+        }
+    } else if (ManualMenu.mode == MANUAL_MODE_READING && x >= 0 && x < 640 && y >= 0 && y < 480) {
+        MenuPointerPress(x < 160 ? kInputLeft : kInputCross);
+    }
+}
+
 void BattleMouse() {
     if (!g_battle.IsOpen()) {
         g_battle.Open();
@@ -1021,6 +1078,13 @@ void BattleMouse() {
         case BTLMENU_STATE_CHARA:
             AlliesMouse(take);
             break;
+        case BTLMENU_STATE_MANUAL:
+        case BTLMENU_STATE_MANUAL_OPEN:
+            // Like Georama, the manual keeps its OPEN state after the slide finishes.
+            if (BtlEffectFlag == BTLEFFECT_NONE) {
+                JournalMouse(take);
+            }
+            break;
         case BTLMENU_STATE_MOVE:
             MoveMouse(take);
             break;
@@ -1046,6 +1110,13 @@ void MenuMouseUpdate() {
     MenuPointerShow(nullptr);
     bool battle = g_battle_drawn;
     g_battle_drawn = false;
+
+    if (EventItemPointerUpdate()) {
+        g_battle.Abandon();
+        g_save.Abandon();
+        g_save_open = false;
+        return;
+    }
 
     bool save = SaveMenu.texture_ready != 0 && SaveMenu.key_no != SAVE_KEY_FADE_OUT;
     if (save) {
@@ -1074,6 +1145,14 @@ void MenuMouseUpdate() {
     }
     NameMouseRelease();
 
+    if (DialogNpcMouseOpen()) {
+        // A villager's conversation through the dialog framework (dialog_npc.cpp).
+        g_battle.Close();
+        DialogNpcMouseUpdate();
+        return;
+    }
+    DialogNpcMouseRelease();
+
     if (battle && BattleMenuFlag != BTLMENU_STATE_EXIT && BattleMenuFlag != BTLMENU_STATE_APPEAR) {
         BattleMouse();
     } else {
@@ -1082,6 +1161,10 @@ void MenuMouseUpdate() {
 }
 
 void MenuMouseDrawOverlay() {
+    if ((BattleMenuFlag == BTLMENU_STATE_MANUAL || BattleMenuFlag == BTLMENU_STATE_MANUAL_OPEN) &&
+        ManualMenu.mode == MANUAL_MODE_READING && g_battle.IsOpen() && g_battle.pointing) {
+        DrawMenuObjectVibe(0, 0, 1, 0x40);
+    }
     if (!g_discard.active) {
         return;
     }

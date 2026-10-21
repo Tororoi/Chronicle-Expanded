@@ -370,11 +370,7 @@ bool Apply(Config &config, std::string_view name, const Json &value) {
         return true;
     }
     if (name == "video.text_font") {
-        if (!value.is_string() || (value.get<std::string>() != "sharp" && value.get<std::string>() != "original")) {
-            return false;
-        }
-        config.font_sharp = value.get<std::string>() == "sharp";
-        return true;
+        return true; // a setting the port no longer has: the text is always Chronicle Sharp
     }
     if (name == "input.glyphs") {
         if (!value.is_string() || (value.get<std::string>() != "new" && value.get<std::string>() != "original")) {
@@ -458,6 +454,17 @@ bool Apply(Config &config, std::string_view name, const Json &value) {
     if (name == "video.interpolation") {
         return ReadBool(value, config.interpolation);
     }
+    if (name == "video.render_thread") {
+        if (!value.is_string()) {
+            return false;
+        }
+        const auto mode = gfx::ParseRenderThreadMode(value.get<std::string>());
+        if (!mode) {
+            return false;
+        }
+        config.render_thread = *mode;
+        return true;
+    }
     if (name == "video.max_fps") {
         double fps = 0.0;
         if (!ReadNumber(value, fps) || !(fps >= 0.0) || !std::isfinite(fps)) {
@@ -496,6 +503,29 @@ bool Apply(Config &config, std::string_view name, const Json &value) {
         config.ui_scale = scale;
         return true;
     }
+#if defined(__ANDROID__)
+    if (name == "video.render_scale") {
+        float scale = 0.0f;
+        if (!ReadNumber(value, scale) || !(scale >= 0.5f && scale <= 2.0f)) {
+            return false;
+        }
+        config.render_scale = scale;
+        return true;
+    }
+#endif
+#if defined(__ANDROID__)
+    if (name == "video.touch_overlay_opacity") {
+        if (!value.is_number_integer()) {
+            return false;
+        }
+        const int opacity = value.get<int>();
+        if (opacity < 10 || opacity > 100 || opacity % 10 != 0) {
+            return false;
+        }
+        config.touch_overlay_opacity = opacity;
+        return true;
+    }
+#endif
     if (name == "video.show_fps") {
         return ReadBool(value, config.show_fps);
     }
@@ -646,7 +676,6 @@ std::string ConfigSerialize(const Config &config) {
     root["game"]["player_damage"] = options.player_damage;
     root["game"]["enemy_hp"] = options.enemy_hp;
     root["game"]["names"] = options.names;
-    root["video"]["text_font"] = config.font_sharp ? "sharp" : "original";
     root["video"]["text_shadow"] = config.text_shadow;
     root["video"]["glyph_shadow"] = config.glyph_shadow;
     root["video"]["name_shadow"] = config.name_shadow;
@@ -654,12 +683,18 @@ std::string ConfigSerialize(const Config &config) {
     root["video"]["boss_shadow"] = config.boss_shadow;
     root["video"]["present_mode"] = PresentModeName(config.present_mode);
     root["video"]["interpolation"] = config.interpolation;
+    root["video"]["render_thread"] = config.render_thread == gfx::RenderThreadMode::Async ? "async" : config.render_thread == gfx::RenderThreadMode::Lockstep ? "lockstep"
+                                                                                                                                                              : "off";
     root["video"]["max_fps"] = config.max_fps;
     root["video"]["width"] = config.window_width;
     root["video"]["height"] = config.window_height;
     root["video"]["fullscreen"] = config.fullscreen;
     root["video"]["aspect"] = config.aspect == ConfigAspect::FourThree ? "4:3" : "auto";
     root["video"]["ui_scale"] = Shortest(config.ui_scale);
+#if defined(__ANDROID__)
+    root["video"]["render_scale"] = Shortest(config.render_scale);
+    root["video"]["touch_overlay_opacity"] = config.touch_overlay_opacity;
+#endif
     root["video"]["show_fps"] = config.show_fps;
     root["video"]["fps_detail"] = FpsDetailName(config.fps_detail);
     root["video"]["detail_distance"] = Shortest(config.detail_distance);
@@ -667,7 +702,8 @@ std::string ConfigSerialize(const Config &config) {
     root["video"]["anisotropy"] = config.anisotropy;
     root["video"]["soft_focus"] = options.soft_focus;
     root["audio"]["master_volume"] = Shortest(config.master_volume);
-    root["audio"]["sound"] = config.surround ? "surround" : options.stereo ? "stereo" : "mono";
+    root["audio"]["sound"] = config.surround ? "surround" : options.stereo ? "stereo"
+                                                                           : "mono";
     root["audio"]["soundtrack"] = config.soundtrack ? "custom" : "ps2";
     root["input"]["mouse_sensitivity"] = Shortest(config.mouse_sensitivity);
     root["input"]["stick_sensitivity"] = Shortest(config.stick_sensitivity);
@@ -766,5 +802,5 @@ bool ConfigChange(const Config &config) {
 }
 
 bool ConfigAppliesOnRestart(std::string_view key) {
-    return key == "game.debug_mode";
+    return key == "game.debug_mode" || key == "video.render_thread";
 }

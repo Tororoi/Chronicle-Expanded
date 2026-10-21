@@ -174,6 +174,12 @@ build.bat <configuration>
 ./run.sh <configuration> [arguments]
 ```
 
+Native runs through `run.bat` or `run.sh` keep runtime files in the ignored
+`port/run/` directory: extracted data in `data/`, saves and settings in `save/`,
+and soundtrack files, icons and relative screenshot output alongside them.
+Relative input and output arguments resolve from `port/run/`; use absolute paths
+for files elsewhere. Build output stays in `port/build/`.
+
 ### Build Configurations
 
 | Configuration         | Platform      | Build                               |
@@ -201,3 +207,41 @@ For example:
 ```bash
 CLEAN=1 JOBS=8 ./build.sh linux-x64-release
 ```
+
+## Android build
+
+This fork builds Chronicle as a native Android app for `arm64-v8a` and `x86_64`, named Chronicle. It
+includes a multi-touch PS2 control overlay with separate movement and camera sticks; unused L3/R3 buttons
+are omitted, touches outside the controls do not send game input, and the overlay hides when a hardware
+controller, keyboard, or mouse is connected. Android settings, controller bindings, Foldable display
+changes, 16 KB page-size compatibility, and renderer/performance work are included. The renderer requires
+Vulkan 1.3 and a compatible GPU. Android support remains experimental and device compatibility varies.
+
+The app does not include Dark Cloud game data. On first launch, select your own PAL disc image; the app
+imports it into private storage. Keep disc images and extracted `DATA.DAT`/`DATA.HD2` files out of this
+repository and APK.
+
+### Build on Windows
+
+Install JDK 17 and Android Studio's SDK platform 35, build tools 35.0.0, NDK 27.0.12077973, and CMake
+3.31.6. Clone this fork with its Kazarov submodule:
+
+```powershell
+git clone --recurse-submodules https://github.com/anxiousintrovert/Chronicle-Android.git
+cd Chronicle-Android\port\android
+.\fetch-deps.ps1
+.\gradlew.bat assembleDebug
+```
+
+The Gradle wrapper pins Gradle 8.13. `fetch-deps.ps1` downloads SDL 3.4.16 and glslang 16.6.0, checking
+their archive SHA-256 values before extraction. The debug APK is written to
+`port/android/app/build/outputs/apk/debug/app-debug.apk`.
+
+For local device testing, `port/android/publish-test-apk.ps1` builds and zips a timestamp-labeled package,
+archives previous Chronicle test packages in `DARKCLOUDBUILDS`, and leaves the current ZIP in the chosen
+destination root. Its default destination is the maintainer's mapped `Z:\` Games share; pass
+`-DestinationRoot` to use another folder.
+
+See [`port/android/README.md`](port/android/README.md) for prerequisites, setup, and build details. Prebuilt test
+packages, when available, are published on the [GitHub Releases page](https://github.com/anxiousintrovert/Chronicle-Android/releases).
+They contain the app only; users must supply their own compatible PAL disc image.

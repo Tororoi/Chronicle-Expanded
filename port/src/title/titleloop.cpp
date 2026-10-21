@@ -14,6 +14,7 @@
 #include "gamepad.hpp"
 #include "main.hpp"
 #include "memcard.hpp"
+#include "menu_pointer.hpp"
 #include "menu_save.hpp"
 #include "mglib.hpp"
 #include "rect.hpp"
@@ -42,6 +43,57 @@ int  OpeningBookKey();
 void OpeningBookDraw();
 void TiPlayVolSE(int group, int no, int voice, float volume);
 
+namespace {
+MenuPointer title_pointer;
+
+struct TitlePointerAction {
+    bool start = false;
+    bool confirm = false;
+    bool back = false;
+    bool moved = false;
+};
+
+TitlePointerAction TakeTitlePointer() {
+    TitlePointerAction action;
+    if (CProcess.no == TITLE_STEP_OPTION_INIT || CProcess.no == TITLE_STEP_OPTION ||
+        CProcess.no == TITLE_STEP_SAVE_INIT || CProcess.no == TITLE_STEP_SAVE) {
+        // The child screen owns pointer capture, including a button held through the fade.
+        title_pointer.Abandon();
+        return action;
+    }
+    if (CProcess.no != TITLE_STEP_LOGO && CProcess.no != TITLE_STEP_MENU) {
+        title_pointer.Close();
+        return action;
+    }
+    if (!title_pointer.IsOpen()) {
+        title_pointer.Open();
+    }
+    auto take = title_pointer.Take(225.0f, CProcess.no == TITLE_STEP_MENU ? CCursol.GetPos() : 312.0f);
+    MenuPointerShow(&title_pointer);
+    if (!take.pointing || !take.moved) {
+        return action;
+    }
+    const float x = title_pointer.x;
+    const float y = title_pointer.y - (SCREEN_HEIGHT - 448) / 2;
+    if (CProcess.no == TITLE_STEP_LOGO) {
+        action.start = (take.clicked & 1) && x >= 64 && x < 576 && y >= 296 && y < 360;
+    } else {
+        action.back = (take.clicked & 2) != 0;
+        if (x >= 193 && x < 449 && y >= 280 && y < 376) {
+            int row = static_cast<int>((y - 280) / 32);
+            if (CCursol.select != row) {
+                CCursol.select = row;
+                TiPlayVolSE(MIDI_PORT_UNK_D, 122, 24, 1.0f);
+            }
+            action.moved = true;
+            action.confirm = (take.clicked & 1) != 0;
+            opcnt = 0;
+        }
+    }
+    return action;
+}
+} // namespace
+
 PORT_OVERRIDE int TitleLoop() {
     sceVu0FVECTOR pos;
     sceVu0FMATRIX matrix;
@@ -52,6 +104,7 @@ PORT_OVERRIDE int TitleLoop() {
     FCamera.GetCameraMatrix(matrix);
     MGSetViewMatrix(matrix, pos);
     Cloud__2.Step();
+    const auto pointer = TakeTitlePointer();
 
     switch (CProcess.no) {
         case TITLE_STEP_FADE_IN:
@@ -84,7 +137,7 @@ PORT_OVERRIDE int TitleLoop() {
                 CProcess.no = TITLE_STEP_LOGO;
             }
 
-            if (GamePad.Down(PAD_START)) {
+            if (GamePad.Down(PAD_START) || pointer.start) {
                 CProcess.no = TITLE_STEP_LOGO;
             }
 
@@ -97,7 +150,7 @@ PORT_OVERRIDE int TitleLoop() {
 
             CSprite.Move();
 
-            if (GamePad.Down(PAD_START)) {
+            if (GamePad.Down(PAD_START) || pointer.start) {
                 Logo.motion_type.state.time = 116.0f;
                 Fade1 = 128;
                 CSprite.x[0] = 700.0f;
@@ -126,7 +179,7 @@ PORT_OVERRIDE int TitleLoop() {
                     CLogo.Move();
                 }
 
-                if (Fade1 > 127 && GamePad.Down(PAD_START)) {
+                if (Fade1 > 127 && (GamePad.Down(PAD_START) || pointer.start)) {
                     TiPlayVolSE(MIDI_PORT_UNK_D, 122, 25, 1.0f);
                     CProcess.no = TITLE_STEP_MENU;
                     opcnt = 0;
@@ -147,7 +200,7 @@ PORT_OVERRIDE int TitleLoop() {
         case TITLE_STEP_MENU:
             CLogo.Move();
 
-            if (CCursol.Move()) {
+            if (CCursol.Move() || pointer.moved || pointer.back) {
                 if (GamePad.Down(PAD_UP)) {
                     CCursol.select--;
                     opcnt = 0;
@@ -180,13 +233,13 @@ PORT_OVERRIDE int TitleLoop() {
                         break;
                 }
 
-                if (GamePad.Down(PAD_START) || GamePad.Down(PAD_CROSS)) {
+                if (GamePad.Down(PAD_START) || GamePad.Down(PAD_CROSS) || pointer.confirm) {
                     TiPlayVolSE(MIDI_PORT_SE_DEFAULT, 38, 20, 1.0f);
                     CProcess.no = TITLE_STEP_MENU_BLINK;
                     opcnt = 0;
                 }
 
-                if (GamePad.Down(PAD_CIRCLE)) {
+                if (GamePad.Down(PAD_CIRCLE) || pointer.back) {
                     Fade1 = Fade2 = Fade3 = Fade4 = 0;
                     CSprite.Init();
                     CLogo.Init();
@@ -259,7 +312,7 @@ PORT_OVERRIDE int TitleLoop() {
             {
                 int book[2] = {2, 60};
 
-                InitOpeningBook((u_long128 *) read_buffer, book);
+                InitOpeningBook(reinterpret_cast<u_long128 *>(read_buffer), book);
             }
             CProcess.no = TITLE_STEP_OPENING_BOOK;
             break;
@@ -272,7 +325,7 @@ PORT_OVERRIDE int TitleLoop() {
             break;
 
         case TITLE_STEP_SAVE_INIT:
-            InitMenuSave(SAVE_MENU_MODE_LOAD, 2, 0);
+            InitMenuSave(SAVE_MENU_MODE_LOAD, 2, nullptr);
             CProcess.no = TITLE_STEP_SAVE;
             break;
 
@@ -285,7 +338,7 @@ PORT_OVERRIDE int TitleLoop() {
                     /* CSaveData::map_no is private and retail reaches it from another
                        translation unit, so this is the offset main.cpp uses rather than
                        a getter the class does not have. */
-                    MapJump(*(s32 *) ((char *) SaveData + 0x1C8), -1);
+                    MapJump(*reinterpret_cast<s32 *>(reinterpret_cast<char *>(SaveData) + 0x1C8), -1);
                     CProcess.no = TITLE_STEP_EXIT;
                     break;
                 case MENU_SAVE_CLOSED:
@@ -298,7 +351,7 @@ PORT_OVERRIDE int TitleLoop() {
             break;
 
         case TITLE_STEP_OPTION_INIT:
-            InitMenuOption(OPTION_OPEN_TITLE, 2, 0);
+            InitMenuOption(OPTION_OPEN_TITLE, 2, nullptr);
             CProcess.no = TITLE_STEP_OPTION;
             break;
 
@@ -353,7 +406,7 @@ PORT_OVERRIDE void TitleDraw() {
     sceVu0FVECTOR ambient = {0.0f, 0.0f, 0.0f, 100.0f};
 
     if (CProcess.no == TITLE_STEP_FADE_IN || (CProcess.no == TITLE_STEP_MENU_FADE_OUT && CCursol.GetSelect() == TITLE_MENU_NEW_GAME) || CProcess.no == TITLE_STEP_ATTRACT_FADE_OUT) {
-        ambient[3] = (float) CFade.Get(128);
+        ambient[3] = static_cast<float>(CFade.Get(128));
     } else {
         ambient[3] = 128.0f;
     }
@@ -385,13 +438,13 @@ PORT_OVERRIDE void TitleDraw() {
         TexManager.ReloadTexture(GetVif1Packet(), 1);
 
         if (CProcess.no == TITLE_STEP_FADE_IN || (CProcess.no == TITLE_STEP_MENU_FADE_OUT && CCursol.GetSelect() == TITLE_MENU_NEW_GAME) || CProcess.no == TITLE_STEP_ATTRACT_FADE_OUT) {
-            ambient[3] = (float) CFade.Get(100);
+            ambient[3] = static_cast<float>(CFade.Get(100));
         } else {
             ambient[3] = 100.0f;
         }
 
         MGSetAmbient(ambient);
-        Cloud__2.SetScale(TitlePortBackdropScale(), 1.0f, 1.0f);
+        Cloud__2.SetScale(TitlePortBackdropScale(), TitlePortBackdropHeightScale(), 1.0f);
         Cloud__2.Draw();
     }
 
@@ -405,22 +458,23 @@ PORT_OVERRIDE void TitleDraw() {
         setbilinear(1);
 
         const TitleFogBand bands[] = {
-            {CRect_i_(0, 0, 640, 85),    CRect_i_(1, 0, 639, 45),   112},
-            {CRect_i_(0, 85, 640, 84),   CRect_i_(1, 42, 639, 45),  114},
-            {CRect_i_(0, 169, 640, 84),  CRect_i_(1, 84, 639, 45),  114},
+            {CRect_i_(0, 0,   640, 85),  CRect_i_(1, 0,   639, 45), 112},
+            {CRect_i_(0, 85,  640, 84),  CRect_i_(1, 42,  639, 45), 114},
+            {CRect_i_(0, 169, 640, 84),  CRect_i_(1, 84,  639, 45), 114},
             {CRect_i_(0, 253, 640, 84),  CRect_i_(1, 126, 639, 45), 114},
             {CRect_i_(0, 336, 640, 105), CRect_i_(1, 167, 639, 57), 114},
             {CRect_i_(0, 441, 640, 39),  CRect_i_(1, 220, 639, 19), 114},
         };
         TitlePortFog(bands);
 
-        MGSetGsTEST(0);
+        MGSetGsTEST(nullptr);
     }
 
     {
         sceGsTex0 tex0;
         sceGsTex0 image;
 
+        TitlePortCaptureFog();
         MGGetFBuffTex(&tex0);
         image = std::bit_cast<sceGsTex0>(TexManager.GetTexture("frame_image", -1)->tex0);
         tex0.PSM = 1;
@@ -443,21 +497,21 @@ PORT_OVERRIDE void TitleDraw() {
             CLogo.Sparkdraw(Logo.motion_type.state.time);
             CLogo.Draw();
 
-            set2DSprite(GetVif1Packet(), TexManager.GetTexture("main", -1), CRect_i_(0, 62, 288, 170), CRect_i_(0, 0, 288, 170), (u_char) CFade.Get(Fade4));
-            set2DSprite(GetVif1Packet(), TexManager.GetTexture("main", -1), CRect_i_(288, 112, 72, 190), CRect_i_(288, 50, 72, 190), (u_char) CFade.Get(Fade4));
-            set2DSprite(GetVif1Packet(), TexManager.GetTexture("main", -1), CRect_i_(360, 142, 412, 160), CRect_i_(360, 80, 412, 160), (u_char) CFade.Get(Fade4));
+            set2DSprite(GetVif1Packet(), TexManager.GetTexture("main", -1), CRect_i_(0, 62, 288, 170), CRect_i_(0, 0, 288, 170), static_cast<u_char>(CFade.Get(Fade4)));
+            set2DSprite(GetVif1Packet(), TexManager.GetTexture("main", -1), CRect_i_(288, 112, 72, 190), CRect_i_(288, 50, 72, 190), static_cast<u_char>(CFade.Get(Fade4)));
+            set2DSprite(GetVif1Packet(), TexManager.GetTexture("main", -1), CRect_i_(360, 142, 412, 160), CRect_i_(360, 80, 412, 160), static_cast<u_char>(CFade.Get(Fade4)));
 
-            ambient[3] = (float) CFade.Get(128);
+            ambient[3] = static_cast<float>(CFade.Get(128));
             MGSetAmbient(ambient);
 
             if (CFade.Get(128) == 128) {
                 CSprite.Draw();
             }
 
-            set2DSprite(GetVif1Packet(), TexManager.GetTexture("start", -1), CRect_i_(64, MENU_Y(362), 512, 64), CRect_i_(0, 64, 512, 64), (u_char) CFade.Get(Fade1));
+            set2DSprite(GetVif1Packet(), TexManager.GetTexture("start", -1), CRect_i_(64, MENU_Y(362), 512, 64), CRect_i_(0, 64, 512, 64), static_cast<u_char>(CFade.Get(Fade1)));
 
             if (CProcess.no == TITLE_STEP_LOGO) {
-                set2DSprite(GetVif1Packet(), TexManager.GetTexture("start", -1), CRect_i_(64, MENU_Y(296), 512, 64), CRect_i_(0, 0, 512, 64), (u_char) CFade.Get(Fade2));
+                set2DSprite(GetVif1Packet(), TexManager.GetTexture("start", -1), CRect_i_(64, MENU_Y(296), 512, 64), CRect_i_(0, 0, 512, 64), static_cast<u_char>(CFade.Get(Fade2)));
             } else {
                 static int br = 128;
 
@@ -473,21 +527,21 @@ PORT_OVERRIDE void TitleDraw() {
 
                 switch (CCursol.GetSelect()) {
                     case TITLE_MENU_NEW_GAME:
-                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(280), 256, 32), CRect_i_(0, 0, 256, 32), (u_char) CFade.Get(br));
-                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(312), 256, 32), CRect_i_(0, 32, 256, 32), (u_char) CFade.Get(32));
-                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(344), 256, 32), CRect_i_(0, 64, 256, 32), (u_char) CFade.Get(32));
+                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(280), 256, 32), CRect_i_(0, 0, 256, 32), static_cast<u_char>(CFade.Get(br)));
+                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(312), 256, 32), CRect_i_(0, 32, 256, 32), static_cast<u_char>(CFade.Get(32)));
+                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(344), 256, 32), CRect_i_(0, 64, 256, 32), static_cast<u_char>(CFade.Get(32)));
                         break;
 
                     case TITLE_MENU_LOAD:
-                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(280), 256, 32), CRect_i_(0, 0, 256, 32), (u_char) CFade.Get(32));
-                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(312), 256, 32), CRect_i_(0, 32, 256, 32), (u_char) CFade.Get(br));
-                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(344), 256, 32), CRect_i_(0, 64, 256, 32), (u_char) CFade.Get(32));
+                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(280), 256, 32), CRect_i_(0, 0, 256, 32), static_cast<u_char>(CFade.Get(32)));
+                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(312), 256, 32), CRect_i_(0, 32, 256, 32), static_cast<u_char>(CFade.Get(br)));
+                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(344), 256, 32), CRect_i_(0, 64, 256, 32), static_cast<u_char>(CFade.Get(32)));
                         break;
 
                     case TITLE_MENU_OPTION:
-                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(280), 256, 32), CRect_i_(0, 0, 256, 32), (u_char) CFade.Get(32));
-                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(312), 256, 32), CRect_i_(0, 32, 256, 32), (u_char) CFade.Get(32));
-                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(344), 256, 32), CRect_i_(0, 64, 256, 32), (u_char) CFade.Get(br));
+                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(280), 256, 32), CRect_i_(0, 0, 256, 32), static_cast<u_char>(CFade.Get(32)));
+                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(312), 256, 32), CRect_i_(0, 32, 256, 32), static_cast<u_char>(CFade.Get(32)));
+                        set2DSprite(GetVif1Packet(), TexManager.GetTexture("start3", -1), CRect_i_(193, MENU_Y(344), 256, 32), CRect_i_(0, 64, 256, 32), static_cast<u_char>(CFade.Get(br)));
                         break;
                 }
 
@@ -497,7 +551,10 @@ PORT_OVERRIDE void TitleDraw() {
 
                     RECT rect = {0, 0, 32, 32};
 
-                    DrawObjectVibe(225, CCursol.GetPos(), TexManager.GetTexture("icon01", -1), rect, 128, CFade.Get(128));
+                    float hand_x = 225;
+                    float hand_y = CCursol.GetPos();
+                    MenuPointerHand(hand_x, hand_y);
+                    DrawObjectVibe(hand_x, hand_y, TexManager.GetTexture("icon01", -1), rect, 128, CFade.Get(128));
                     setbilinear(1);
                 }
             }
@@ -511,7 +568,7 @@ PORT_OVERRIDE void TitleDraw() {
 
         case TITLE_STEP_SAVE:
             TexManager.ReloadTexture(GetVif1Packet(), 2);
-            DrawMenuSave(0);
+            DrawMenuSave(nullptr);
             break;
 
         case TITLE_STEP_OPTION:
@@ -520,5 +577,14 @@ PORT_OVERRIDE void TitleDraw() {
             break;
     }
 
+    if (CProcess.no == TITLE_STEP_LOGO && title_pointer.pointing) {
+        float hand_x = 0, hand_y = 0;
+        if (MenuPointerHand(hand_x, hand_y)) {
+            RECT rect = {0, 0, 32, 32};
+            setbilinear(0);
+            DrawObjectVibe(hand_x, hand_y, TexManager.GetTexture("icon01", -1), rect, 128, 128);
+            setbilinear(1);
+        }
+    }
     TitlePortFeedback(35);
 }
