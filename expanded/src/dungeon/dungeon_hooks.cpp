@@ -20,6 +20,7 @@
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
+#include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 
 namespace expanded {
@@ -75,6 +76,10 @@ void MonsterDrawn(CMonstorUnit &unit, int monster) {
 bool MonsterKilled(const CMonstorUnit &unit, int monster) {
     BossRecordKill(unit, monster);
     return BossCastCountsKill(monster);
+}
+
+int MonsterDropItem(const CMonstorUnit &unit, int monster, int drop_item) {
+    return SolarHarvestDrop(unit, monster, drop_item);
 }
 
 int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs) {

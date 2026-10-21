@@ -30,6 +30,10 @@ void MonsterDrawn(CMonstorUnit &unit, int monster);
 // A monster's life just ran out (CheckDmg): whether the kill counts down the floor and up the player's kills.
 bool MonsterKilled(const CMonstorUnit &unit, int monster);
 
+// The item a killed monster drops, before the game's rare-item roll (CMonstorUnit::Step): drop_item, its set drop or -1,
+// as the weapons' effects change it.
+int MonsterDropItem(const CMonstorUnit &unit, int monster, int drop_item);
+
 // The ABS a kill gives the active character's weapon (Step's grant, before the back floor's doubling): abs, the
 // monster's own, as the weapons' effects change it.
 int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs);

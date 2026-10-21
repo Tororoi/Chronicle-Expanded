@@ -2380,6 +2380,9 @@ void CMonstorUnit::Step(int pause) {
 
                         if (monster[current_monster].kind != MONSTER_KIND_NO_LOCK_ON && monster[current_monster].drops_items != 0) {
                             printf("************ item = %d ************ \n", monster[current_monster].drop_item);
+#ifdef CHRONICLE_EXPANDED
+                            monster[current_monster].drop_item = expanded::MonsterDropItem(*this, current_monster, monster[current_monster].drop_item);
+#endif
 
                             if (monster[current_monster].drop_item == -1 && monster[current_monster].rare_item != -1 && (100.0f * (float) rand() / 2147483648.0f) < 10.0f) {
                                 monster[current_monster].drop_item = monster[current_monster].rare_item;
