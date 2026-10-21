@@ -21,18 +21,21 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # darkcloud is position-independent (DC_LINK_OPTIONS below).
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(KZ_ROOT ${CMAKE_SOURCE_DIR}/tools/kazarov)
+set(KZ_ROOT "${KAZAROV_SOURCE_DIR}")
 if(NOT EXISTS ${KZ_ROOT}/include/kazarov/port.h)
     message(FATAL_ERROR "${KZ_ROOT} is empty: run git submodule update --init tools/kazarov")
 endif()
 
 include(${KZ_ROOT}/cmake/KazarovPort.cmake)
 
-# Python runs ${KZ_ROOT}/scripts/port_override.py.
+# Python runs the port override script from the Kazarov submodule.
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 # Flatpak builds have no network: their single-file libraries are staged in audio_decoders/ and stb_truetype/; others fetch them.
 set(KZ_PORT_VENDOR_DIRS ${CMAKE_SOURCE_DIR}/audio_decoders ${CMAKE_SOURCE_DIR}/stb_truetype)
 kz_port_host_library(dc_host)
+# Chronicle still loads retail HD/BD/SQ audio. These compatibility declarations extend the shared
+# semantic audio API; every host and game unit must see the same class definitions.
+target_include_directories(dc_host BEFORE PRIVATE ${CMAKE_SOURCE_DIR}/port/include)
 
 set(PS2_DIR ${CMAKE_SOURCE_DIR}/ps2/src)
 set(PORT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -59,7 +62,11 @@ list(TRANSFORM PORT_DEFINITIONS PREPEND --define= OUTPUT_VARIABLE port_override_
 # only when it changes, so other edits to port/src rebuild nothing of ps2/src.
 # PORT_OVERRIDE_SOURCES changes when a unit or a stub header comes or goes, which no
 # timestamp shows.
-set(PORT_OVERRIDE_SCRIPT ${KZ_ROOT}/scripts/port_override.py)
+if(EXISTS "${KZ_ROOT}/scripts/build/port_override.py")
+    set(PORT_OVERRIDE_SCRIPT ${KZ_ROOT}/scripts/build/port_override.py)
+else()
+    set(PORT_OVERRIDE_SCRIPT ${KZ_ROOT}/scripts/port_override.py)
+endif()
 set(PORT_OVERRIDES ${CMAKE_BINARY_DIR}/port_overrides.txt)
 set(PORT_OVERRIDE_SOURCES ${CMAKE_BINARY_DIR}/port_override_sources.txt)
 file(GLOB_RECURSE PORT_OVERRIDE_STUBS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/port/include/stubs/*.hpp)
@@ -86,6 +93,10 @@ endif()
 # of ps2/src: it declares what the port defines in place of code PORT leaves
 # out, and supplies or renames what the unit takes from MWCC alone.
 foreach(unit IN LISTS PS2_SOURCES)
+    set(private_overrides "")
+    if(unit STREQUAL "editloop3.cpp")
+        set(private_overrides --private-variables --private-functions)
+    endif()
     set(copy ${CMAKE_BINARY_DIR}/ps2_src/${unit})
     string(REGEX REPLACE "\\.cpp$" ".hpp" header ${CMAKE_SOURCE_DIR}/port/include/stubs/${unit})
     if(EXISTS ${header})
@@ -96,7 +107,7 @@ foreach(unit IN LISTS PS2_SOURCES)
     endif()
     add_custom_command(OUTPUT ${copy}
         COMMAND ${Python3_EXECUTABLE} ${PORT_OVERRIDE_SCRIPT} strip --overrides ${PORT_OVERRIDES} ${stubs}
-            ${port_override_defines} ${PS2_DIR}/${unit} ${copy}
+            ${private_overrides} ${port_override_defines} ${PS2_DIR}/${unit} ${copy}
         DEPENDS ${PS2_DIR}/${unit} ${PORT_OVERRIDES} ${PORT_OVERRIDE_SOURCES} ${PORT_OVERRIDE_SCRIPT} ${header}
         COMMENT "Removing overridden definitions from ps2/src/${unit}"
         VERBATIM)
@@ -112,6 +123,7 @@ endforeach()
 set(PORT_OVERRIDES_CHECKED ${CMAKE_BINARY_DIR}/port_overrides.checked)
 add_custom_command(OUTPUT ${PORT_OVERRIDES_CHECKED}
     COMMAND ${Python3_EXECUTABLE} ${PORT_OVERRIDE_SCRIPT} check --overrides ${PORT_OVERRIDES}
+        --private-variables --private-functions --private-function-unit editloop3.cpp
         --stubs ${CMAKE_SOURCE_DIR}/port/include/stubs ${port_override_defines} ${PS2_DIR}
         -o ${PORT_OVERRIDES_CHECKED}
     DEPENDS ${PS2_ORIGINALS} ${PORT_OVERRIDES} ${PORT_OVERRIDE_SOURCES} ${PORT_OVERRIDE_SCRIPT}
@@ -133,6 +145,10 @@ target_compile_options(dc_options INTERFACE
 # arm64 clang fuses a*b+c into one rounding by default; x86-64 has no FMA in its
 # baseline. Off everywhere so the game's arithmetic rounds the same on both.
 target_compile_options(dc_options INTERFACE -ffp-contract=off)
+if(ANDROID)
+    # PS2's s8 is plain char; arm64 clang otherwise treats its table sentinels as unsigned.
+    target_compile_options(dc_options INTERFACE -fsigned-char)
+endif()
 
 if(WIN32 AND (NOT MINGW OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
     message(FATAL_ERROR "The Windows build requires clang/llvm-mingw")
@@ -169,11 +185,15 @@ target_compile_options(dc_ps2 PRIVATE -Wall -Wno-writable-strings -Wno-unknown-p
     -Wno-void-pointer-to-int-cast -Wno-unused-variable -Wno-unused-but-set-variable
     -Wno-unused-local-typedef -Wno-unused-label -Wno-unused-function -Wno-unused-value
     -Wno-unused-const-variable -Wno-undefined-internal -Wno-self-assign -Wno-deprecated-volatile)
+if(ANDROID)
+    target_compile_options(dc_ps2 PRIVATE -Wno-format-security -Wno-return-type)
+endif()
 
 set(PORT_LIB_SOURCES ${PORT_SOURCES} ${EXPANDED_SOURCES})
 list(FILTER PORT_LIB_SOURCES EXCLUDE REGEX "/tests/|/main\\.cpp$")
 
 set(SHADER_HEADER_DIR ${CMAKE_BINARY_DIR}/generated)
+
 
 # port/icon/chronicle-128.rgba, the window icon's raw 128x128 RGBA pixels, as a byte array.
 set(ICON_RGBA ${CMAKE_SOURCE_DIR}/port/icon/chronicle-128.rgba)
@@ -237,22 +257,35 @@ elseif(APPLE)
     set(DC_LINK_OPTIONS -Wl,-dead_strip -Wl,-alias,_draw_rect_store,_draw_rect
         -Wl,-alias,_WorkBuffer,_WorkBuffer__2)
 else()
-    set(DC_LINK_OPTIONS -fuse-ld=lld -pie -Wl,-z,separate-code -Wl,--gc-sections -Wl,--error-limit=0
+    set(DC_LINK_OPTIONS -fuse-ld=lld -Wl,--gc-sections -Wl,--error-limit=0
         -Wl,--defsym=draw_rect=draw_rect_store -Wl,--defsym=WorkBuffer__2=WorkBuffer)
+    if(ANDROID)
+        list(APPEND DC_LINK_OPTIONS -Wl,-z,max-page-size=16384)
+    else()
+        list(APPEND DC_LINK_OPTIONS -pie -Wl,-z,separate-code)
+    endif()
 endif()
 
 function(dc_link_game target)
-    target_sources(${target} PRIVATE $<TARGET_OBJECTS:dc_port> $<TARGET_OBJECTS:dc_host> $<TARGET_OBJECTS:dc_ps2>)
-    target_link_libraries(${target} PRIVATE dc_options kz_port_headers SDL3::SDL3 Vulkan::Vulkan)
+    target_sources(${target} PRIVATE $<TARGET_OBJECTS:dc_port> $<TARGET_OBJECTS:dc_ps2>)
+    target_link_libraries(${target} PRIVATE dc_options dc_host kz_port_headers SDL3::SDL3 Vulkan::Vulkan fastgltf::fastgltf)
     target_include_directories(${target} PRIVATE ${PORT_DIR})
     target_compile_options(${target} PRIVATE -Wall -Wno-mismatched-tags -Wno-unused-label
         -Wno-overloaded-virtual -Wno-unused-function)
     target_link_options(${target} PRIVATE ${DC_LINK_OPTIONS})
 endfunction()
 
-add_executable(darkcloud ${PORT_DIR}/main.cpp)
-set_target_properties(darkcloud PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-dc_link_game(darkcloud)
+if(ANDROID)
+    add_library(main SHARED ${PORT_DIR}/main.cpp)
+    target_link_libraries(main PRIVATE log)
+    set_target_properties(main PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+    set(darkcloud_target main)
+else()
+    add_executable(darkcloud ${PORT_DIR}/main.cpp)
+    set_target_properties(darkcloud PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+    set(darkcloud_target darkcloud)
+endif()
+dc_link_game(${darkcloud_target})
 if(WIN32)
     target_link_options(darkcloud PRIVATE -municode)
     enable_language(RC)
@@ -260,37 +293,53 @@ if(WIN32)
 endif()
 
 include(GNUInstallDirs)
-install(TARGETS darkcloud RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+if(NOT ANDROID)
+    install(TARGETS darkcloud RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
 
 # The strings the port draws itself, translated (docs/LOCALIZATION.md): lang/ beside the executable, where the
 # game reads its language files.
-add_custom_target(dc_lang
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/lang $<TARGET_FILE_DIR:darkcloud>/lang
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/tools/font/DarkCloudCompendium.ttf
-            $<TARGET_FILE_DIR:darkcloud>/lang/font.ttf
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/tools/font/DarkCloudCompendiumThin.ttf
-            $<TARGET_FILE_DIR:darkcloud>/lang/font_thin.ttf
-    COMMENT "Copying the port's translated strings and message font")
-add_dependencies(darkcloud dc_lang)
-install(DIRECTORY lang/ DESTINATION ${CMAKE_INSTALL_BINDIR}/lang)
-install(FILES ${CMAKE_SOURCE_DIR}/tools/font/DarkCloudCompendium.ttf DESTINATION ${CMAKE_INSTALL_BINDIR}/lang RENAME font.ttf)
-install(FILES ${CMAKE_SOURCE_DIR}/tools/font/DarkCloudCompendiumThin.ttf DESTINATION ${CMAKE_INSTALL_BINDIR}/lang RENAME font_thin.ttf)
+if(ANDROID)
+    set(ANDROID_ASSETS ${CMAKE_SOURCE_DIR}/port/android/app/src/main/assets)
+    file(MAKE_DIRECTORY ${ANDROID_ASSETS}/lang ${ANDROID_ASSETS}/glyphs)
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/lang/ DESTINATION ${ANDROID_ASSETS}/lang)
+    configure_file(${CMAKE_SOURCE_DIR}/tools/font/ChronicleSharp-Bold.ttf ${ANDROID_ASSETS}/lang/font.ttf COPYONLY)
+    configure_file(${CMAKE_SOURCE_DIR}/tools/font/ChronicleSharp-Regular.ttf ${ANDROID_ASSETS}/lang/font_thin.ttf COPYONLY)
+else()
+    add_custom_target(dc_lang
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/lang $<TARGET_FILE_DIR:darkcloud>/lang
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/tools/font/ChronicleSharp-Bold.ttf
+                $<TARGET_FILE_DIR:darkcloud>/lang/font.ttf
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/tools/font/ChronicleSharp-Regular.ttf
+                $<TARGET_FILE_DIR:darkcloud>/lang/font_thin.ttf
+        COMMENT "Copying the port's translated strings and text fonts")
+    add_dependencies(${darkcloud_target} dc_lang)
+    install(DIRECTORY lang/ DESTINATION ${CMAKE_INSTALL_BINDIR}/lang)
+    install(FILES ${CMAKE_SOURCE_DIR}/tools/font/ChronicleSharp-Bold.ttf DESTINATION ${CMAKE_INSTALL_BINDIR}/lang RENAME font.ttf)
+    install(FILES ${CMAKE_SOURCE_DIR}/tools/font/ChronicleSharp-Regular.ttf DESTINATION ${CMAKE_INSTALL_BINDIR}/lang RENAME font_thin.ttf)
+endif()
 # Chronicle-Expanded's icon and strings.
 if(CHRONICLE_EXPANDED)
     include(${EXPANDED_DIR}/cmake/resources.cmake)
 endif()
 
 # The button symbols (docs/GLYPHS.md): glyphs/ beside the executable. Rebuilt from art by tools/glyphs/build_glyphs.py.
-add_custom_target(dc_glyphs
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/glyphs $<TARGET_FILE_DIR:darkcloud>/glyphs
-    COMMENT "Copying the button symbols")
-add_dependencies(darkcloud dc_glyphs)
-install(DIRECTORY glyphs/ DESTINATION ${CMAKE_INSTALL_BINDIR}/glyphs)
+if(ANDROID)
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/glyphs/ DESTINATION ${ANDROID_ASSETS}/glyphs)
+else()
+    add_custom_target(dc_glyphs
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/glyphs $<TARGET_FILE_DIR:darkcloud>/glyphs
+        COMMENT "Copying the button symbols")
+    add_dependencies(${darkcloud_target} dc_glyphs)
+    install(DIRECTORY glyphs/ DESTINATION ${CMAKE_INSTALL_BINDIR}/glyphs)
+endif()
 
 # The tests use an installed GoogleTest, or fetch one at configure time; a build with neither turns them off.
 option(DC_BUILD_TESTS "Build darkcloud_tests" ON)
-if(DC_BUILD_TESTS)
+if(DC_BUILD_TESTS AND NOT ANDROID)
     enable_testing()
     add_subdirectory(src/tests)
 endif()
-add_subdirectory(${CMAKE_SOURCE_DIR}/tools/dcdata ${CMAKE_BINARY_DIR}/tools/dcdata)
+if(NOT ANDROID)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/tools/dcdata ${CMAKE_BINARY_DIR}/tools/dcdata)
+endif()

@@ -8,8 +8,11 @@
 #include "area_card.hpp"
 #include "clsmes.hpp"
 #include "dataread.hpp"
+#include "dialog_framework.hpp"
+#include "gameloop.hpp"
 #include "gamepad.hpp"
 #include "gameutil.hpp"
+#include "gfx/gfx.hpp"
 #include "localize.hpp"
 #include "mainselect.hpp"
 #include "memcard.hpp"
@@ -18,9 +21,11 @@
 #include "platform/display.hpp"
 #include "platform/input.hpp"
 #include "platform/window.hpp"
+#include "quests/quests.hpp"
 #include "snd.hpp"
 #include "sound.hpp"
 #include "texture.hpp"
+#include "ui_framework.hpp"
 
 #define PAD_GLYPH_L1 "{L1}"
 #define PAD_GLYPH_R1 "{R1}"
@@ -35,11 +40,8 @@ Screen g_screen;
 
 namespace {
 
-// Retail's menu auto-repeat: frames a direction is held before it repeats, and between repeats.
 constexpr int kRepeatDelay = 30;
 constexpr int kRepeatStep = 5;
-
-// Frames the scroll bar stays after the list last moved.
 constexpr int kBarFrames = 75;
 
 constexpr int kDisplayNowHelp = 995;
@@ -49,9 +51,8 @@ constexpr int kExitHelp = 999;
 constexpr int kPageHelp = 900;
 constexpr int kRowHelp = 1000;
 
-// The screen's fixed texts in English, with the keys their translations have.
 constexpr const char *kShortcutsText = PAD_GLYPH_SQUARE " Reset page\n" PAD_GLYPH_TRIANGLE " Undo changes\n" PAD_GLYPH_CIRCLE
-                                                         " Close";
+                                                        " Close";
 constexpr const char *kSaveHelpText = "Could not save.\nChanges apply now.\nClose to retry writing\nconfig.json.";
 constexpr const char *kDisplayHelpText = "The display could not\nchange, and kept the\nmode it had. Try\nanother mode or size.";
 constexpr const char *kTurnPageText = PAD_GLYPH_L1 " " PAD_GLYPH_R1 " turn the page.";
@@ -128,6 +129,7 @@ void FollowWindow() {
 
 void Step(const Row &row, int direction, bool wrap) {
     Config config = ConfigGet();
+    g_screen.last_row_dir = (direction < 0) ? -1 : 1;
     if (StepRow(row, config, direction, wrap)) {
         Apply(config);
         ComMenuSePlay(MENU_SOUND_CURSOR);
@@ -181,7 +183,6 @@ void Close() {
     ComMenuSePlay(MENU_SOUND_REFUSE);
 }
 
-// The pad as held: the d-pad, and the left stick as the menus' MenuModeOn(120) reads it.
 std::uint16_t HeldButtons() {
     const InputPadState &pad = InputGetPad(0);
     std::uint16_t        held = pad.buttons;
@@ -219,10 +220,6 @@ int Pressed(std::uint16_t held, int mask, bool repeat) {
     return fired;
 }
 
-// A binding row is waiting for its new key: the cursor stays on it and the rest of the menu ignores
-// input until a key, mouse button or gamepad button arrives, or the player cancels. After a binding
-// the menu keeps ignoring input until the key is let go, so the press that made the binding does not
-// also press the action it was given to.
 void RunBindingCapture() {
     const Row *row = CurrentRow();
     if (row == nullptr || row->action == nullptr) {
@@ -256,7 +253,6 @@ void RunBindingCapture() {
     Config config = ConfigGet();
     SetBinding(config, row->action, key);
     Apply(config);
-    // Show what it became while the source is still down.
     g_screen.binding_prompt = InputBindingLabel(row->action);
     g_screen.binding_wait = key;
     ComMenuSePlay(MENU_SOUND_CONFIRM);
@@ -273,6 +269,11 @@ void BeginBinding(int row) {
 void SetPage(int page) {
     int  count = static_cast<int>(Pages().size());
     bool on_exit = g_screen.row == RowCount(g_screen.page);
+    if (page < g_screen.page) {
+        g_screen.last_tab_dir = -1;
+    } else if (page > g_screen.page) {
+        g_screen.last_tab_dir = 1;
+    }
     g_screen.page = (page + count) % count;
     ShowPageTab();
     if (g_screen.row != kOnTabs) {
@@ -287,13 +288,16 @@ bool Inside(float x, float y, int left, int top, int right, int bottom) {
 
 void RunMouse() {
     InputMenuMouse mouse = InputTakeMenuMouse();
-    std::uint32_t  clicked = mouse.buttons & ~g_screen.mouse_buttons;
-    bool           moved = mouse.dx != 0.0f || mouse.dy != 0.0f;
+#if defined(__ANDROID__)
+    if (InputTouchOverlayVisible()) {
+        mouse.dx = mouse.dy = mouse.wheel = 0.0f;
+    }
+#endif
+    std::uint32_t clicked = mouse.buttons & ~g_screen.mouse_buttons;
+    bool          moved = mouse.dx != 0.0f || mouse.dy != 0.0f;
     g_screen.mouse_buttons = mouse.buttons;
 
     if (g_screen.binding_row >= 0) {
-        // A rebind is waiting for a button: keep the mouse out of the menu, but let its buttons
-        // reach the capture through the input layer.
         return;
     }
     if ((clicked & 2) != 0) {
@@ -342,7 +346,7 @@ void RunMouse() {
         over_row = rows;
     }
     for (int t = g_screen.first_tab; t <= LastVisibleTab(); ++t) {
-        if (Inside(x, y, TabX(t) - 8, kTabY - 6, TabX(t) + GetTexts().tabs[t].Width() + 8, kTabY + 22)) {
+        if (Inside(x, y, TabX(t) - 8, kTabY - 6, TabX(t) + GetTexts().tabs[t].GetWidth() + 8, kTabY + 22)) {
             over_tab = t;
         }
     }
@@ -350,7 +354,7 @@ void RunMouse() {
     Glyph glyph = Glyph::None;
     if (over_tab < 0 && Inside(x, y, L1X() - 4, kTabY - 6, kLabelX + kTabArrow, kTabY + 22)) {
         glyph = Glyph::L1;
-    } else if (over_tab < 0 && Inside(x, y, kTabsRight - kTabArrow, kTabY - 6, R1X() + GetTexts().r1.Width() + 4,
+    } else if (over_tab < 0 && Inside(x, y, kTabsRight - kTabArrow, kTabY - 6, R1X() + GetTexts().r1.GetWidth() + 4,
                                       kTabY + 22)) {
         glyph = Glyph::R1;
     } else if (Scrolls(g_screen.page) && Inside(x, y, kBarX - 6, kRowY - 4, kBarX + 14, kRowY + 14)) {
@@ -391,13 +395,14 @@ void RunMouse() {
             } else if (row.action != nullptr) {
                 BeginBinding(over_row);
             } else if (x < kValueX - 8) {
-                // A setting's label has no action; clicking it only selects the row.
-            } else if (x >= kValueX - 8 && x < kValueX + 24) {
-                Step(row, -1, false);
-            } else if (x >= kValueRight - 16) {
-                Step(row, 1, false);
-            } else if (x >= kValueX) {
-                Step(row, 1, true);
+                // Clicking label selects row
+            } else {
+                int val_center = (kValueX + kValueRight) / 2;
+                if (x < val_center) {
+                    Step(row, -1, false);
+                } else {
+                    Step(row, 1, false);
+                }
             }
         }
     }
@@ -437,7 +442,8 @@ void RunKeys() {
     }
     ScrollToCursor();
 
-    int direction = (moves & PAD_LEFT) != 0 ? -1 : (moves & PAD_RIGHT) != 0 ? 1 : 0;
+    int direction = (moves & PAD_LEFT) != 0 ? -1 : (moves & PAD_RIGHT) != 0 ? 1
+                                                                            : 0;
 
     if ((actions & PAD_CIRCLE) != 0) {
         Close();
@@ -478,30 +484,33 @@ void RunKeys() {
 } // namespace
 
 Texts::Texts() {
-    left.Set("<");
-    right.Set(">");
-    l1.Set(PAD_GLYPH_L1);
-    r1.Set(PAD_GLYPH_R1);
-    shortcuts.Set(LocalizeText("options.shortcuts", kShortcutsText));
-    l1.RefreshGlyphs();
-    r1.RefreshGlyphs();
-    shortcuts.RefreshGlyphs();
+    left.SetText("<");
+    left.SetColor(UI::ColorWhite);
+    right.SetText(">");
+    right.SetColor(UI::ColorWhite);
+    l1.SetText(PAD_GLYPH_L1);
+    l1.SetColor(UI::ColorWhite);
+    r1.SetText(PAD_GLYPH_R1);
+    r1.SetColor(UI::ColorWhite);
+
+    shortcuts.SetText(LocalizeText("options.shortcuts", kShortcutsText));
+    shortcuts.SetColor(UI::ColorWhite);
+
     help.Set(kSaveHelp, LocalizeText("options.help.save_failed", kSaveHelpText));
     help.Set(kDisplayHelp, LocalizeText("options.help.display_kept", kDisplayHelpText));
     help.Set(kExitHelp, LocalizeText("options.help.exit", kExitHelpText));
+
     int index = 0;
     for (int p = 0; p < static_cast<int>(Pages().size()); ++p) {
         const Page &page = Pages()[p];
-        tabs.emplace_back().Set(LocalizeText(PageKey(page.name), page.name));
-        tabs.back().RefreshGlyphs();
+        tabs.emplace_back(LocalizeText(PageKey(page.name), page.name), UI::ColorWhite);
         help.Set(kPageHelp + p, LocalizeText(PageKey(page.name) + ".help", page.help) + "\n" +
                                     LocalizeText("options.help.turn_page", kTurnPageText));
         labels.emplace_back();
         values.emplace_back();
         for (const Row &row : page.rows) {
-            labels.back().emplace_back().Set(LocalizeText("options." + std::string(row.key) + ".label", row.label));
-            labels.back().back().RefreshGlyphs();
-            values.back().emplace_back();
+            labels.back().emplace_back(LocalizeText("options." + std::string(row.key) + ".label", row.label), UI::ColorWhite);
+            values.back().emplace_back("", UI::ColorWhite, UI::Alignment::Center);
             if (row.help != nullptr) {
                 help.Set(kRowHelp + index, LocalizeText("options." + std::string(row.key) + ".help", row.help));
             }
@@ -525,7 +534,6 @@ Texts &GetTexts() {
     return *g_texts;
 }
 
-// The screen's text is laid out for a language; opening the screen in another lays it out again.
 void RefreshTextsForLanguage() {
     if (g_texts && g_texts_language != LanguageCode) {
         g_texts.reset();
@@ -555,7 +563,7 @@ bool Scrolls(int page) {
 int TabX(int tab) {
     int x = kLabelX + kTabArrow;
     for (int t = g_screen.first_tab; t < tab; ++t) {
-        x += GetTexts().tabs[t].Width() + kTabGap;
+        x += GetTexts().tabs[t].GetWidth() + kTabGap;
     }
     return x;
 }
@@ -563,14 +571,14 @@ int TabX(int tab) {
 int LastVisibleTab() {
     int last = g_screen.first_tab;
     int count = static_cast<int>(Pages().size());
-    while (last + 1 < count && TabX(last + 1) + GetTexts().tabs[last + 1].Width() <= kTabsRight - kTabArrow) {
+    while (last + 1 < count && TabX(last + 1) + GetTexts().tabs[last + 1].GetWidth() <= kTabsRight - kTabArrow) {
         ++last;
     }
     return last;
 }
 
 int L1X() {
-    return kLabelX - GetTexts().l1.Width() - 12;
+    return kLabelX - GetTexts().l1.GetWidth() - 12;
 }
 
 int R1X() {
@@ -579,7 +587,7 @@ int R1X() {
 
 int Open(int mode, int block_no, u_long128 *buffer) {
     if (buffer == nullptr) {
-        buffer = (u_long128 *) read_buffer;
+        buffer = reinterpret_cast<u_long128 *>(read_buffer);
     }
 
     u_long128 *data = MenuCalcBufAlignment(buffer);
@@ -607,7 +615,6 @@ int Open(int mode, int block_no, u_long128 *buffer) {
     g_screen.cursor_x = kLabelX - 48.0f;
     g_screen.cursor_y = RowTop(0);
     g_screen.opened = ConfigGet();
-    // A display warning outlives the screen; a save result from before it opened does not.
     DisplayTakePumpSave();
     return 1;
 }
@@ -622,23 +629,22 @@ int Run() {
                 ReadBG();
 
                 if (ReadBGSync() == 0) {
-                    LOADTEXTURE_INFO2 textures[3] = {
-                        {const_cast<char *>("#frame_image_option#640#" SCREEN_HEIGHT_STR "#4"), 0, 0},
-                        {nullptr,                                                               0, 0},
-                        {nullptr,                                                               0, 0}
-                    };
+                    auto textures = std::make_unique<LOADTEXTURE_INFO2[]>(3);
+                    textures[0] = {const_cast<char *>("#frame_image_option#640#" SCREEN_HEIGHT_STR "#4"), 0, 0};
+                    textures[1] = {nullptr, 0, 0};
+                    textures[2] = {nullptr, 0, 0};
                     textures[0].block_no = g_screen.block_no;
                     textures[1].block_no = g_screen.block_no;
                     BG_READ_INFO *file = GetReadBGFile(0);
-                    textures[1].name = (char *) GetPackFile((u_int *) file->buffer, const_cast<char *>("option.img"), nullptr);
+                    textures[1].name = reinterpret_cast<char *>(GetPackFile(reinterpret_cast<u_int *>(file->buffer), const_cast<char *>("option.img"), nullptr));
                     TexManager.DeleteTextureBlock(g_screen.block_no);
                     TexManager.CleanUpTextureList();
-                    TexManager.LoadTextureBlockEX(-1, textures);
+                    TexManager.LoadTextureBlockEX(-1, textures.get());
                     g_screen.texture = TexManager.GetTexture(const_cast<char *>("option2"), -1);
 
                     if (g_screen.mode == OPTION_OPEN_TITLE) {
                         InitMenuMesSet(MENU_MES_SET_ALLMENU,
-                                       (short *) GetPackFile((u_int *) file->buffer, const_cast<char *>("allmenu.mes"), nullptr));
+                                       reinterpret_cast<short *>(GetPackFile(reinterpret_cast<u_int *>(file->buffer), const_cast<char *>("allmenu.mes"), nullptr)));
                     }
 
                     g_screen.game_messages = CommonMenuMes2.buff;
@@ -650,7 +656,6 @@ int Run() {
             if (g_screen.texture_ready && g_screen.step_count > 12) {
                 g_screen.step = OPTION_STEP_RUN;
                 g_screen.step_count = 0;
-                // What is still held from the menu that opened the screen fires only once let go.
                 Pressed(HeldButtons(), 0xFFFF, false);
                 InputSetMenuMouse(true);
                 g_screen.mouse_buttons = InputTakeMenuMouse().buttons;
@@ -692,19 +697,31 @@ int Run() {
 
 std::vector<std::pair<std::string, std::string>> OptionStrings() {
     std::vector<std::pair<std::string, std::string>> out = {
-        {"options.shortcuts",             options::kShortcutsText    },
-        {"options.help.save_failed",      options::kSaveHelpText     },
-        {"options.help.display_kept",     options::kDisplayHelpText  },
-        {"options.help.turn_page",        options::kTurnPageText     },
-        {"options.help.exit",             options::kExitHelpText     },
-        {"options.help.display_now",      options::kDisplayNowText   },
+        {"options.shortcuts",              options::kShortcutsText    },
+        {"options.help.save_failed",       options::kSaveHelpText     },
+        {"options.help.display_kept",      options::kDisplayHelpText  },
+        {"options.help.turn_page",         options::kTurnPageText     },
+        {"options.help.exit",              options::kExitHelpText     },
+        {"options.help.display_now",       options::kDisplayNowText   },
         {"options.display.fullscreen_now", options::kFullscreenNowText},
-        {"options.display.window_now",    options::kWindowNowText    },
+        {"options.display.window_now",     options::kWindowNowText    },
     };
     for (auto &entry : options::RowStrings()) {
         out.push_back(std::move(entry));
     }
     for (auto &entry : areacard::Strings()) {
+        out.push_back(std::move(entry));
+    }
+    for (auto &entry : UI::BattleMenuStrings()) {
+        out.push_back(std::move(entry));
+    }
+    for (auto &entry : UI::JournalStrings()) {
+        out.push_back(std::move(entry));
+    }
+    for (auto &entry : Dialog::Strings()) {
+        out.push_back(std::move(entry));
+    }
+    for (auto &entry : QuestStrings()) {
         out.push_back(std::move(entry));
     }
     return out;

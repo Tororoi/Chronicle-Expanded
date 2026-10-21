@@ -10,7 +10,11 @@
 // Retail halted on a failed assertion. The game prints its own context on stdout first (LoadFile
 // names the file), so stdout is flushed ahead of the message. _Exit, not exit: static destructors
 // would tear down the renderer under a frame the game may have open.
+#if defined(__ANDROID__)
+extern "C" [[noreturn]] void __assert(const char *file, int line, const char *expression) {
+#else
 [[noreturn]] void __assert(const char *file, int line, const char *expression) {
+#endif
     std::fflush(stdout);
     std::fprintf(stderr, "%s:%d: assertion failed: %s\n", file, line, expression);
     std::fflush(nullptr);
@@ -26,7 +30,7 @@ unsigned int g_rand_state = 1;
 }
 
 // glibc declares these noexcept; Apple's libc and the Windows CRT do not.
-#if defined(__APPLE__) || defined(_WIN32)
+#if defined(__APPLE__) || defined(_WIN32) || defined(__ANDROID__)
 #define LIBC_NOEXCEPT
 #else
 #define LIBC_NOEXCEPT noexcept
@@ -41,58 +45,6 @@ extern "C" int rand() LIBC_NOEXCEPT {
     return static_cast<int>(g_rand_state & 0x7FFFFFFFu);
 }
 
-// The host runs the static constructors mwInit would have run.
-PORT_OVERRIDE extern "C" void mwInit(int argc, const char **argv, const char **envp) {}
-
 extern "C" [[noreturn]] void exit__2(int status) {
     std::exit(status);
 }
-
-// TITLE.BIN and DUN.BIN are linked into the executable, so there is no file to load. Retail's
-// loader re-ran an overlay's static constructors whenever a mode needed the other overlay; the
-// port re-runs the title overlay's for the objects it lays out with host classes.
-PORT_OVERRIDE void LoadOverlay(int mode) {
-    enum Overlay { kNone, kTitle, kDungeon };
-    constexpr Overlay kOverlay[] = {kTitle, kTitle, kNone, kDungeon, kDungeon, kTitle, kNone, kNone,
-                                    kDungeon, kDungeon, kNone, kNone, kNone, kNone, kNone};
-    static Overlay loaded = kNone;
-    if (mode < 0 || mode >= static_cast<int>(std::size(kOverlay)) || kOverlay[mode] == kNone ||
-        kOverlay[mode] == loaded) {
-        return;
-    }
-    loaded = kOverlay[mode];
-    if (loaded == kTitle) {
-        TitleOverlayConstruct();
-    }
-}
-
-PORT_OVERRIDE extern "C" int mwLoadOverlay(char *path, void *address) {
-    return 1;
-}
-
-// ps2/src's stand-ins for what the PS2 runtime generated that use names only the PS2 link
-// defines: four constructors MWCC wrote, __unexpected, std::exception's virtual table and the
-// overlay address table. Nothing in the port reaches them, but a COFF link wants every name an
-// object uses defined. These take their place.
-PORT_OVERRIDE extern "C" void *__ct__10CCharacterFv(void *self) {
-    PS2_UNIMPLEMENTED();
-}
-
-PORT_OVERRIDE extern "C" void *__ct__13CTextureAnimeFv(void *self) {
-    PS2_UNIMPLEMENTED();
-}
-
-PORT_OVERRIDE extern "C" void *__ct__7CObjectFv(void *self) {
-    PS2_UNIMPLEMENTED();
-}
-
-PORT_OVERRIDE extern "C" void *__ct__8CHitMarkFv(void *self) {
-    PS2_UNIMPLEMENTED();
-}
-
-PORT_OVERRIDE extern "C" void __unexpected(void *exception_record) {
-    PS2_UNIMPLEMENTED();
-}
-
-PORT_OVERRIDE extern "C" void *__vt__Q23std9exception[4] = {};
-PORT_OVERRIDE void            *_overlay_group_addresses[2] = {};

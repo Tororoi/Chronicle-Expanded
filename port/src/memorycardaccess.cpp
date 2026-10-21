@@ -1,10 +1,12 @@
 #include "memorycardaccess.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <memory>
 #include <system_error>
 #include <vector>
 
@@ -13,6 +15,7 @@
 #include "menu_save.hpp"
 #include "platform/files.hpp"
 #include "platform/save_state.hpp"
+#include "quest_host.hpp"
 #include "save_slots.hpp"
 #include "savedata.hpp"
 
@@ -33,7 +36,12 @@ constexpr int kImageSize = 0x136A7;
 constexpr int kVersionSize = 0x20;
 
 // The whole save, read before any of it reaches SaveData.
-alignas(64) char g_image[kImageSize];
+struct alignas(64) SaveImage {
+    std::array<char, kImageSize> bytes{};
+};
+
+std::unique_ptr<SaveImage> g_image_storage = std::make_unique<SaveImage>();
+char *const                g_image = g_image_storage->bytes.data();
 
 constexpr char kVersion[] = "darkcloudVer1.9";
 
@@ -110,6 +118,45 @@ bool ReadImage(int file_no, const char *version) {
 
 } // namespace
 
+PORT_OVERRIDE void CMemoryCardAccess::MakeMcIconSysInfo() {
+    int bg_color[4][4] = {
+        {0x80, 0,    0x40, 0},
+        {0,    0x80, 0,    0},
+        {0,    0,    0x80, 0},
+        {0x80, 0x80, 0x80, 0},
+    };
+    float light_dir[3][4] = {
+        {0.5f,  0.5f,  0.5f,  0.0f},
+        {0.0f,  -0.4f, -0.1f, 0.0f},
+        {-0.5f, -0.5f, 0.5f,  0.0f},
+    };
+    float light_color[3][4] = {
+        {0.48f, 0.48f, 0.03f, 0.0f},
+        {0.5f,  0.33f, 0.2f,  0.0f},
+        {0.14f, 0.14f, 0.38f, 0.0f},
+    };
+    float ambient[4] = {0.5f, 0.5f, 0.5f, 0.0f};
+
+    memset(&this->icon_sys, 0, sizeof(sceMcIconSys));
+#if defined(__ANDROID__)
+    // The PS2 header is a four-byte identifier, not a null-terminated string.
+    memcpy(this->icon_sys.head, "PS2D", sizeof(this->icon_sys.head));
+#else
+    strcpy(this->icon_sys.head, "PS2D");
+#endif
+    strcpy(reinterpret_cast<char *>(this->icon_sys.title_name), "\x82\x63\x82\x81\x82\x92\x82\x8B\x81\x40\x82\x62\x82\x8C\x82\x8F"
+                                                                "\x82\x95\x82\x84\x81\x40\x82\x63\x82\x81\x82\x94\x82\x81");
+    this->icon_sys.nl_offset = 20;
+    this->icon_sys.trans_rate = 0x60;
+    memcpy(this->icon_sys.bg_color, bg_color, 16);
+    memcpy(this->icon_sys.light_dir, light_dir, 16);
+    memcpy(this->icon_sys.light_color, light_color, 16);
+    memcpy(this->icon_sys.ambient, ambient, 16);
+    strcpy(this->icon_sys.fname_view, this->icon.view.name);
+    strcpy(this->icon_sys.fname_copy, this->icon.copy.name);
+    strcpy(this->icon_sys.fname_del, this->icon.del.name);
+}
+
 PORT_OVERRIDE int CMemoryCardAccess::InitForMC() {
     this->Initialize();
     InitSaveFileInfoTbl();
@@ -118,7 +165,7 @@ PORT_OVERRIDE int CMemoryCardAccess::InitForMC() {
 
 PORT_OVERRIDE void CMemoryCardAccess::SetBuff(char *buffer) {
     buffer = PastNext64(buffer);
-    this->save_buffer = (CSaveData *) buffer;
+    this->save_buffer = reinterpret_cast<CSaveData *>(buffer);
     BuildImage(buffer, this->version);
     this->check_sum = buffer + sizeof(CSaveData) + kVersionSize;
     this->read_buffer = PastNext64(buffer + kImageSize);
@@ -287,6 +334,8 @@ PORT_OVERRIDE int CMemoryCardAccess::SaveToMc(int file_no) {
     this->file_no = file_no;
     ConfigWord(kConfigLastFile) = file_no;
     this->card[this->port].dir_exists = 1;
+    // The quests' progress goes beside the save; a failure is reported, and the save stands.
+    QuestHostSave(SaveSlotDirectory(file_no));
     return SaveStateWrite(SaveStatePath(), CurrentState()) ? 1 : -1;
 }
 
@@ -300,6 +349,7 @@ PORT_OVERRIDE int CMemoryCardAccess::LoadFromMc(int file_no) {
     SaveState state = CurrentState();
     SaveStateRead(SaveStatePath(), state);
     memcpy(SaveData, g_image, sizeof(CSaveData));
+    QuestHostLoad(SaveSlotDirectory(file_no));
 #ifdef CHRONICLE_EXPANDED
     expanded::SaveRead(SaveSlotDirectory(file_no));
 #endif
@@ -336,6 +386,7 @@ PORT_OVERRIDE int CMemoryCardAccess::DeleteFile(int file_no) {
 #ifdef CHRONICLE_EXPANDED
     expanded::SaveRemove(SaveSlotDirectory(file_no));
 #endif
+    QuestHostDelete(SaveSlotDirectory(file_no));
     fs::remove(SaveSlotDirectory(file_no), error);
     return 1;
 }
@@ -352,10 +403,13 @@ bool SaveSlotWriteAutosave() {
         return false;
     }
     BuildImage(g_image, kVersion);
+    if (FilesWrite(SaveSlotPath(kSaveSlotAutosave), g_image, kImageSize, true) != FilesResult::kWritten) {
+        return false;
+    }
+    QuestHostSave(SaveSlotDirectory(kSaveSlotAutosave));
 #ifdef CHRONICLE_EXPANDED
-    return FilesWrite(SaveSlotPath(kSaveSlotAutosave), g_image, kImageSize, true) == FilesResult::kWritten &&
-           expanded::SaveWrite(SaveSlotDirectory(kSaveSlotAutosave));
+    return expanded::SaveWrite(SaveSlotDirectory(kSaveSlotAutosave));
 #else
-    return FilesWrite(SaveSlotPath(kSaveSlotAutosave), g_image, kImageSize, true) == FilesResult::kWritten;
+    return true;
 #endif
 }

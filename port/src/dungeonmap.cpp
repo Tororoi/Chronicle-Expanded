@@ -1,10 +1,14 @@
 #include "dungeonmap.hpp"
+
 #include <libvu0.h>
+
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
+
 #include "camera.hpp"
 #include "character.hpp"
 #include "dataset.hpp"
@@ -26,15 +30,21 @@
 #include "expanded/dungeon/atla_drops.hpp"
 #endif
 
+namespace {
+
+constexpr int kItemFreeAreaCounts[7] = {27, 15, 27, 27, 27, 15, 28};
+
+} // namespace
+
 // Retail's, with the cell picked for a character's key door addressed on the whole pointer.
 
 PORT_OVERRIDE void CDungeonMap::BuildCharaSpecialParts() {
-    int          list[128];
-    int          roll;
-    int          num;
-    int          floor;
-    int          pick;
-    MAP_CELL    *cell;
+    auto           list = std::make_unique<int[]>(2 * 0x40);
+    int            roll;
+    int            num;
+    int            floor;
+    int            pick;
+    MAP_CELL      *cell;
     std::uintptr_t address;
 
     if (selectMapNo < DUNGEON_DEMON_SHAFT) {
@@ -44,7 +54,7 @@ PORT_OVERRIDE void CDungeonMap::BuildCharaSpecialParts() {
         // nothing else.
         if (zone >= 0 && zone < 6) {
             if (zone == RES_LIMIT_ZONE_XIAO) {
-                if ((int) ((100.0f * (float) rand()) / 2147483648.0f) >= 50) {
+                if (static_cast<int>((100.0f * static_cast<float>(rand())) / 2147483648.0f) >= 50) {
                     this->SetCharaDoor(CHARA_TOAN);
                 } else {
                     this->SetCharaDoor(CHARA_TOAN);
@@ -58,36 +68,36 @@ PORT_OVERRIDE void CDungeonMap::BuildCharaSpecialParts() {
         }
 
         // The first floors of the first dungeon never take a special part.
-        roll = (int) ((100.0f * (float) rand()) / 2147483648.0f);
+        roll = static_cast<int>((100.0f * static_cast<float>(rand())) / 2147483648.0f);
 
         if (selectMapNo == DUNGEON_DIVINE_BEAST_CAVE && UserStatus->cur_floor < 8) {
             roll = 0;
         }
 
         if (UserStatus->party_size >= 2 && roll > 0x32) {
-            num = this->CreatPartsList(list, 0x40, 0, -1);
+            num = this->CreatPartsList(list.get(), 0x40, 0, -1);
 
-            if (num > 0) {
-                pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+            if (num > 0 && num <= 0x40) {
+                pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                 this->cells[list[pick * 2] + list[pick * 2 + 1] * 20].parts_no = MAP_PARTS_KEY_XIAO;
             }
         }
 
         // Which special part a floor takes depends on the dungeon, how far the
         // party has come and a roll of the dice.
-        roll = (int) ((100.0f * (float) rand()) / 2147483648.0f);
+        roll = static_cast<int>((100.0f * static_cast<float>(rand())) / 2147483648.0f);
         floor = UserStatus->cur_floor;
 
         switch (selectMapNo) {
             case DUNGEON_WISE_OWL_FOREST:
                 if (UserStatus->party_size >= 3 && roll > 0xA && floor >= 9) {
-                    num = this->CreatPartsList(list, 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
+                    num = this->CreatPartsList(list.get(), 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         address = (list[pick * 2] + list[pick * 2 + 1] * 20) * sizeof(MAP_CELL);
-                        address += (std::uintptr_t) this;
-                        cell = &((CDungeonMap *) address)->cells[0];
+                        address += reinterpret_cast<std::uintptr_t>(this);
+                        cell = &(reinterpret_cast<CDungeonMap *>(address))->cells[0];
                         cell->parts_no += MAP_PARTS_KEY_DOOR_GORO_NORTH - MAP_PARTS_ROOM_DOOR_NORTH;
                         return;
                     }
@@ -96,26 +106,26 @@ PORT_OVERRIDE void CDungeonMap::BuildCharaSpecialParts() {
                 break;
             case DUNGEON_SHIPWRECK:
                 if (UserStatus->party_size >= 3 && roll < 0x28) {
-                    num = this->CreatPartsList(list, 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
+                    num = this->CreatPartsList(list.get(), 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         address = (list[pick * 2] + list[pick * 2 + 1] * 20) * sizeof(MAP_CELL);
-                        address += (std::uintptr_t) this;
-                        cell = &((CDungeonMap *) address)->cells[0];
+                        address += reinterpret_cast<std::uintptr_t>(this);
+                        cell = &(reinterpret_cast<CDungeonMap *>(address))->cells[0];
                         cell->parts_no += MAP_PARTS_KEY_DOOR_GORO_NORTH - MAP_PARTS_ROOM_DOOR_NORTH;
                         return;
                     }
                 }
 
                 if (UserStatus->party_size >= 4 && roll >= 0x28 && floor >= 9) {
-                    num = this->CreatPartsList(list, 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
+                    num = this->CreatPartsList(list.get(), 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         address = (list[pick * 2] + list[pick * 2 + 1] * 20) * sizeof(MAP_CELL);
-                        address += (std::uintptr_t) this;
-                        cell = &((CDungeonMap *) address)->cells[0];
+                        address += reinterpret_cast<std::uintptr_t>(this);
+                        cell = &(reinterpret_cast<CDungeonMap *>(address))->cells[0];
                         cell->parts_no += MAP_PARTS_KEY_DOOR_RUBY_NORTH - MAP_PARTS_ROOM_DOOR_NORTH;
                         return;
                     }
@@ -124,36 +134,36 @@ PORT_OVERRIDE void CDungeonMap::BuildCharaSpecialParts() {
                 break;
             case DUNGEON_SUN_MOON_TEMPLE:
                 if (UserStatus->party_size >= 3 && roll < 0x14) {
-                    num = this->CreatPartsList(list, 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
+                    num = this->CreatPartsList(list.get(), 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         address = (list[pick * 2] + list[pick * 2 + 1] * 20) * sizeof(MAP_CELL);
-                        address += (std::uintptr_t) this;
-                        cell = &((CDungeonMap *) address)->cells[0];
+                        address += reinterpret_cast<std::uintptr_t>(this);
+                        cell = &(reinterpret_cast<CDungeonMap *>(address))->cells[0];
                         cell->parts_no += MAP_PARTS_KEY_DOOR_GORO_NORTH - MAP_PARTS_ROOM_DOOR_NORTH;
                         return;
                     }
                 }
 
                 if (UserStatus->party_size >= 4 && roll < 0x28) {
-                    num = this->CreatPartsList(list, 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
+                    num = this->CreatPartsList(list.get(), 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         address = (list[pick * 2] + list[pick * 2 + 1] * 20) * sizeof(MAP_CELL);
-                        address += (std::uintptr_t) this;
-                        cell = &((CDungeonMap *) address)->cells[0];
+                        address += reinterpret_cast<std::uintptr_t>(this);
+                        cell = &(reinterpret_cast<CDungeonMap *>(address))->cells[0];
                         cell->parts_no += MAP_PARTS_KEY_DOOR_RUBY_NORTH - MAP_PARTS_ROOM_DOOR_NORTH;
                         return;
                     }
                 }
 
                 if (UserStatus->party_size >= 5 && roll >= 0x28 && floor >= 9) {
-                    num = this->CreatPartsList(list, 0x40, 0, -1);
+                    num = this->CreatPartsList(list.get(), 0x40, 0, -1);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         this->cells[list[pick * 2] + list[pick * 2 + 1] * 20].parts_no = MAP_PARTS_KEY_UNGAGA;
                         return;
                     }
@@ -162,46 +172,46 @@ PORT_OVERRIDE void CDungeonMap::BuildCharaSpecialParts() {
                 break;
             case DUNGEON_MOON_SEA:
                 if (UserStatus->party_size >= 3 && roll < 0xA) {
-                    num = this->CreatPartsList(list, 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
+                    num = this->CreatPartsList(list.get(), 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         address = (list[pick * 2] + list[pick * 2 + 1] * 20) * sizeof(MAP_CELL);
-                        address += (std::uintptr_t) this;
-                        cell = &((CDungeonMap *) address)->cells[0];
+                        address += reinterpret_cast<std::uintptr_t>(this);
+                        cell = &(reinterpret_cast<CDungeonMap *>(address))->cells[0];
                         cell->parts_no += MAP_PARTS_KEY_DOOR_GORO_NORTH - MAP_PARTS_ROOM_DOOR_NORTH;
                         return;
                     }
                 }
 
                 if (UserStatus->party_size >= 4 && roll < 0x14) {
-                    num = this->CreatPartsList(list, 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
+                    num = this->CreatPartsList(list.get(), 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         address = (list[pick * 2] + list[pick * 2 + 1] * 20) * sizeof(MAP_CELL);
-                        address += (std::uintptr_t) this;
-                        cell = &((CDungeonMap *) address)->cells[0];
+                        address += reinterpret_cast<std::uintptr_t>(this);
+                        cell = &(reinterpret_cast<CDungeonMap *>(address))->cells[0];
                         cell->parts_no += MAP_PARTS_KEY_DOOR_RUBY_NORTH - MAP_PARTS_ROOM_DOOR_NORTH;
                         return;
                     }
                 }
 
                 if (UserStatus->party_size >= 5 && roll < 0x1E) {
-                    num = this->CreatPartsList(list, 0x40, 0, -1);
+                    num = this->CreatPartsList(list.get(), 0x40, 0, -1);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         this->cells[list[pick * 2] + list[pick * 2 + 1] * 20].parts_no = MAP_PARTS_KEY_UNGAGA;
                         return;
                     }
                 }
 
                 if (UserStatus->party_size >= 6 && roll > 0x28 && floor >= 8) {
-                    num = this->CreatPartsList(list, 0x40, 0, -1);
+                    num = this->CreatPartsList(list.get(), 0x40, 0, -1);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         this->cells[list[pick * 2] + list[pick * 2 + 1] * 20].parts_no = MAP_PARTS_KEY_OSMOND;
                         return;
                     }
@@ -210,46 +220,46 @@ PORT_OVERRIDE void CDungeonMap::BuildCharaSpecialParts() {
                 break;
             case DUNGEON_GALLERY_OF_TIME:
                 if (UserStatus->party_size >= 3 && roll < 0xA) {
-                    num = this->CreatPartsList(list, 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
+                    num = this->CreatPartsList(list.get(), 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         address = (list[pick * 2] + list[pick * 2 + 1] * 20) * sizeof(MAP_CELL);
-                        address += (std::uintptr_t) this;
-                        cell = &((CDungeonMap *) address)->cells[0];
+                        address += reinterpret_cast<std::uintptr_t>(this);
+                        cell = &(reinterpret_cast<CDungeonMap *>(address))->cells[0];
                         cell->parts_no += MAP_PARTS_KEY_DOOR_GORO_NORTH - MAP_PARTS_ROOM_DOOR_NORTH;
                         return;
                     }
                 }
 
                 if (UserStatus->party_size >= 4 && roll < 0x14) {
-                    num = this->CreatPartsList(list, 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
+                    num = this->CreatPartsList(list.get(), 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         address = (list[pick * 2] + list[pick * 2 + 1] * 20) * sizeof(MAP_CELL);
-                        address += (std::uintptr_t) this;
-                        cell = &((CDungeonMap *) address)->cells[0];
+                        address += reinterpret_cast<std::uintptr_t>(this);
+                        cell = &(reinterpret_cast<CDungeonMap *>(address))->cells[0];
                         cell->parts_no += MAP_PARTS_KEY_DOOR_RUBY_NORTH - MAP_PARTS_ROOM_DOOR_NORTH;
                         return;
                     }
                 }
 
                 if (UserStatus->party_size >= 5 && roll < 0x1E) {
-                    num = this->CreatPartsList(list, 0x40, 0, -1);
+                    num = this->CreatPartsList(list.get(), 0x40, 0, -1);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         this->cells[list[pick * 2] + list[pick * 2 + 1] * 20].parts_no = MAP_PARTS_KEY_UNGAGA;
                         return;
                     }
                 }
 
                 if (UserStatus->party_size >= 6 && roll > 0x28) {
-                    num = this->CreatPartsList(list, 0x40, 0, -1);
+                    num = this->CreatPartsList(list.get(), 0x40, 0, -1);
 
-                    if (num > 0) {
-                        pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                    if (num > 0 && num <= 0x40) {
+                        pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                         this->cells[list[pick * 2] + list[pick * 2 + 1] * 20].parts_no = MAP_PARTS_KEY_OSMOND;
                     }
                 }
@@ -260,10 +270,10 @@ PORT_OVERRIDE void CDungeonMap::BuildCharaSpecialParts() {
 }
 
 PORT_OVERRIDE int CDungeonMap::SetCharaDoor(int chara_no) {
-    int          list[128];
-    int          num;
-    int          pick;
-    MAP_CELL    *cell;
+    auto           list = std::make_unique<int[]>(2 * 0x40);
+    int            num;
+    int            pick;
+    MAP_CELL      *cell;
     std::uintptr_t address;
 
     num = 0;
@@ -272,65 +282,65 @@ PORT_OVERRIDE int CDungeonMap::SetCharaDoor(int chara_no) {
     switch (chara_no) {
         case CHARA_TOAN:
             if (UserStatus->party_size >= 2) {
-                num = this->CreatPartsList(list, 0x40, 0, -1);
+                num = this->CreatPartsList(list.get(), 0x40, 0, -1);
 
-                if (num > 0) {
-                    pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+                if (num > 0 && num <= 0x40) {
+                    pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                     this->cells[list[pick * 2] + list[pick * 2 + 1] * 20].parts_no = MAP_PARTS_KEY_XIAO;
                 }
             }
 
             break;
         case CHARA_XIAO:
-            num = this->CreatPartsList(list, 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
+            num = this->CreatPartsList(list.get(), 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
 
-            if (num > 0) {
-                pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+            if (num > 0 && num <= 0x40) {
+                pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                 address = (list[pick * 2] + list[pick * 2 + 1] * 20) * sizeof(MAP_CELL);
-                address += (std::uintptr_t) this;
-                cell = &((CDungeonMap *) address)->cells[0];
+                address += reinterpret_cast<std::uintptr_t>(this);
+                cell = &(reinterpret_cast<CDungeonMap *>(address))->cells[0];
                 cell->parts_no += MAP_PARTS_KEY_DOOR_XIAO_NORTH - MAP_PARTS_ROOM_DOOR_NORTH;
             }
 
             break;
         case CHARA_GORO:
-            num = this->CreatPartsList(list, 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
+            num = this->CreatPartsList(list.get(), 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
 
-            if (num > 0) {
-                pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+            if (num > 0 && num <= 0x40) {
+                pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                 address = (list[pick * 2] + list[pick * 2 + 1] * 20) * sizeof(MAP_CELL);
-                address += (std::uintptr_t) this;
-                cell = &((CDungeonMap *) address)->cells[0];
+                address += reinterpret_cast<std::uintptr_t>(this);
+                cell = &(reinterpret_cast<CDungeonMap *>(address))->cells[0];
                 cell->parts_no += MAP_PARTS_KEY_DOOR_GORO_NORTH - MAP_PARTS_ROOM_DOOR_NORTH;
             }
 
             break;
         case CHARA_RUBY:
-            num = this->CreatPartsList(list, 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
+            num = this->CreatPartsList(list.get(), 0x40, MAP_PARTS_ROOM_DOOR_NORTH, MAP_PARTS_ROOM_DOOR_WEST);
 
-            if (num > 0) {
-                pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+            if (num > 0 && num <= 0x40) {
+                pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                 address = (list[pick * 2] + list[pick * 2 + 1] * 20) * sizeof(MAP_CELL);
-                address += (std::uintptr_t) this;
-                cell = &((CDungeonMap *) address)->cells[0];
+                address += reinterpret_cast<std::uintptr_t>(this);
+                cell = &(reinterpret_cast<CDungeonMap *>(address))->cells[0];
                 cell->parts_no += MAP_PARTS_KEY_DOOR_RUBY_NORTH - MAP_PARTS_ROOM_DOOR_NORTH;
             }
 
             break;
         case CHARA_UNGAGA:
-            num = this->CreatPartsList(list, 0x40, 0, -1);
+            num = this->CreatPartsList(list.get(), 0x40, 0, -1);
 
-            if (num > 0) {
-                pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+            if (num > 0 && num <= 0x40) {
+                pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                 this->cells[list[pick * 2] + list[pick * 2 + 1] * 20].parts_no = MAP_PARTS_KEY_UNGAGA;
             }
 
             break;
         case CHARA_OSMOND:
-            num = this->CreatPartsList(list, 0x40, 0, -1);
+            num = this->CreatPartsList(list.get(), 0x40, 0, -1);
 
-            if (num > 0) {
-                pick = (int) (((float) num * (float) rand()) / 2147483648.0f);
+            if (num > 0 && num <= 0x40) {
+                pick = static_cast<int>((static_cast<float>(num) * static_cast<float>(rand())) / 2147483648.0f);
                 this->cells[list[pick * 2] + list[pick * 2 + 1] * 20].parts_no = MAP_PARTS_KEY_OSMOND;
             }
 
@@ -366,8 +376,12 @@ PORT_OVERRIDE void CDungeonMap::DrawMap(CCameraFollow *camera, CFrameVu1 *player
     int             area_no;
     int             rect_no;
 
-    ((CCamera *) camera)->GetPos(cam_pos);
-    ((CCamera *) camera)->GetRef(cam_ref);
+    if (selectMapNo < 0 || selectMapNo >= 7) {
+        return;
+    }
+
+    (reinterpret_cast<CCamera *>(camera))->GetPos(cam_pos);
+    (reinterpret_cast<CCamera *>(camera))->GetRef(cam_ref);
     view_delta[0] = cam_ref[0] - cam_pos[0];
     view_delta[1] = cam_ref[1] - cam_pos[1];
     view_delta[2] = cam_ref[2] - cam_pos[2];
@@ -394,6 +408,11 @@ PORT_OVERRIDE void CDungeonMap::DrawMap(CCameraFollow *camera, CFrameVu1 *player
             this->cells[cell_no].camera_dist = dist;
 
             if (this->cells[cell_no].parts_no == MAP_PARTS_NONE) {
+                this->cells[cell_no].visible = false;
+                continue;
+            }
+
+            if (this->cells[cell_no].parts_no < 0 || this->cells[cell_no].parts_no >= 72) {
                 this->cells[cell_no].visible = false;
                 continue;
             }
@@ -432,7 +451,7 @@ PORT_OVERRIDE void CDungeonMap::DrawMap(CCameraFollow *camera, CFrameVu1 *player
                     // Fill keeps the game's vertical FOV and reveals more world at the sides.
                     // Treat a cell as in front through the angle from the frame edge to the
                     // visible viewport edge, rather than using the 4:3 center-plane cutoff.
-                    float horizontal_margin = 0.0f;
+                    float            horizontal_margin = 0.0f;
                     gfx::FrameLayout layout = gfx::CurrentFrameLayout();
                     if (layout.aspect == gfx::AspectMode::Fill) {
                         gfx::LogicalRect visible = gfx::VisibleLogicalRect(gfx::kMainTarget);
@@ -440,7 +459,7 @@ PORT_OVERRIDE void CDungeonMap::DrawMap(CCameraFollow *camera, CFrameVu1 *player
                                             kScreenWidth;
                     }
                     float facing_limit = -horizontal_margin / std::hypot(1.0f, horizontal_margin);
-                    int georama = UserStatus->cur_georama;
+                    int   georama = UserStatus->cur_georama;
                     if (georama == 5 && this->cells[cell_no].parts_no == MAP_PARTS_URA_ROAD) {
                         facing = 1.0f;
                     }
@@ -473,7 +492,8 @@ PORT_OVERRIDE void CDungeonMap::DrawMap(CCameraFollow *camera, CFrameVu1 *player
                 if (this->npc[npc_no].parts_no == this->cells[cell_no].parts_no &&
                     this->npc[npc_no].draw_num < 16 &&
                     (dist < 160.0f || view[0] * (delta_x - view_delta[0]) +
-                                            view[2] * (delta_z - view_delta[2]) > 0.0f)) {
+                                              view[2] * (delta_z - view_delta[2]) >
+                                          0.0f)) {
                     this->ReservNPC_Draw(npc_no, world_x, 0.0f, world_z, this->cells[cell_no].direction);
                 }
             }
@@ -502,8 +522,14 @@ PORT_OVERRIDE void CDungeonMap::DrawMap(CCameraFollow *camera, CFrameVu1 *player
             }
 
             if (DebugStatus[6] != 0) {
-                for (area_no = 0; free_area[area_no].parts_no != MAP_PARTS_NONE; area_no++) {
+                for (area_no = 0; area_no < kItemFreeAreaCounts[selectMapNo] &&
+                                  free_area[area_no].parts_no != MAP_PARTS_NONE;
+                     area_no++) {
                     if (free_area[area_no].parts_no != this->cells[cell_no].parts_no) {
+                        continue;
+                    }
+
+                    if (free_area[area_no].rect_num < 0 || free_area[area_no].rect_num > 4) {
                         continue;
                     }
 
@@ -514,7 +540,7 @@ PORT_OVERRIDE void CDungeonMap::DrawMap(CCameraFollow *camera, CFrameVu1 *player
                         int   corner_no;
                         int   rotation;
 
-                        rotation = (int) (float) free_area[area_no].direction;
+                        rotation = static_cast<int>(static_cast<float>(free_area[area_no].direction));
                         rotation = rotation + this->cells[cell_no].direction;
 
                         if (rotation > 3) {
@@ -570,7 +596,7 @@ PORT_OVERRIDE void CDungeonMap::DrawMap(CCameraFollow *camera, CFrameVu1 *player
 PORT_OVERRIDE void CDungeonMap::DrawDummyModel(CCamera *camera) {
     float pos[4];
 
-    if (this->dummy_num == 0) {
+    if (this->dummy_num <= 0 || this->dummy_num > 8 || this->dummy_frame_num < 0 || this->dummy_frame_num > 3) {
         return;
     }
 
@@ -578,7 +604,8 @@ PORT_OVERRIDE void CDungeonMap::DrawDummyModel(CCamera *camera) {
     camera->GetPos(pos);
 
     for (int i = 0; i < this->dummy_num; i++) {
-        if (this->dummy_frame[this->dummy_model[i]] != NULL) {
+        if (this->dummy_model[i] >= 0 && this->dummy_model[i] < this->dummy_frame_num &&
+            this->dummy_frame[this->dummy_model[i]] != nullptr) {
             if (DistVector(this->dummy_pos[i], pos) < 160.0f * (1.0f + this->draw_dist_scale)) {
                 this->dummy_frame[this->dummy_model[i]]->SetPosition(this->dummy_pos[i]);
                 MGDraw(this->dummy_frame[this->dummy_model[i]]);
@@ -591,7 +618,11 @@ PORT_OVERRIDE void CDungeonMap::DrawDummyModel(CCamera *camera) {
 PORT_OVERRIDE void CDungeonMap::DrawAtraBoll(float *pos) {
     float draw_pos[4];
 
-    if (this->atra_model == NULL) {
+    if (this->atra_model == nullptr) {
+        return;
+    }
+
+    if (this->atra_num < 0 || this->atra_num > 8) {
         return;
     }
 

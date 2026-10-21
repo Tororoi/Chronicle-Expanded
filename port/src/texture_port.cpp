@@ -321,8 +321,8 @@ unsigned PortCreateTexture(const PortDecodedTexture &decoded, PortTextureOwner o
     if (decoded.levels.empty()) {
         return 0;
     }
-    unsigned key = AllocateKey(EntryKind::Image, owner);
-    Entry   &entry = Reg().entries[key];
+    unsigned       key = AllocateKey(EntryKind::Image, owner);
+    Entry         &entry = Reg().entries[key];
     entry.width = decoded.width;
     entry.height = decoded.height;
     entry.format = decoded.format;
