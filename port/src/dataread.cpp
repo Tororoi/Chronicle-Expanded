@@ -256,6 +256,10 @@ void DataReadClearPackCapacities() {
     loaded_capacities.clear();
 }
 
+void DataReadTrackPack(const void *pack, std::size_t capacity) {
+    TrackPackCapacity(pack, capacity, pack);
+}
+
 std::vector<s32> DataLanguages() {
     std::vector<s32> languages;
     const fs::path  *file = Lookup(dcdata::kLanguagesFile);
