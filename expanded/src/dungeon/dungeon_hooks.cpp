@@ -21,6 +21,7 @@
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/solar_flash.hpp"
+#include "expanded/weapons/toan/cross_hinder.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
@@ -87,7 +88,15 @@ int MonsterDropItem(const CMonstorUnit &unit, int monster, int drop_item) {
 }
 
 int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs) {
-    return JacketHunterAbs(unit, monster, abs);
+    return SanctifierAbs(unit, monster, JacketHunterAbs(unit, monster, abs));
+}
+
+float MonsterWeaponDamage(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, float damage) {
+    return SanctifierDamage(unit, monster, hit, damage);
+}
+
+float PlayerLockOnRange(float rate) {
+    return HolyReachRate(rate);
 }
 
 bool MonsterStepTaken(CMonstorUnit &unit, int monster) {

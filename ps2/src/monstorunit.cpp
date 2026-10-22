@@ -1629,6 +1629,9 @@ int CMonstorUnit::CheckDmg() {
                     if (effectiveness != NULL) {
                         damage += damage * (0.015f * (float) effectiveness[monster[index].attachment_kind]);
                     }
+#ifdef CHRONICLE_EXPANDED
+                    damage = expanded::MonsterWeaponDamage(*this, index, NowColData->hit[hit], damage);
+#endif
 
                     if (owner != -1) {
                         float old_damage = damage;
