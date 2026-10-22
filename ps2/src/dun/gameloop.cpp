@@ -198,7 +198,11 @@ s32 defWeapon__6[6] = {ITEM_WEAPON_DAGGER_BROKEN, ITEM_WEAPON_WOODENSLINGSHOT_BR
 static inline float CharaRangeRate(CUserStatus *status) {
     float range_rate[6] = {1.2f, 1.4f, 1.1f, 1.5f, 1.0f, 1.8f};
 
+#ifdef CHRONICLE_EXPANDED
+    return expanded::PlayerLockOnRange(range_rate[status->cur_chara]);
+#else
     return range_rate[status->cur_chara];
+#endif
 }
 
 /**
