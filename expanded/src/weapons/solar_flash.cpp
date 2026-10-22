@@ -27,6 +27,7 @@ const SolarProfile kSunSwordFlash = {
     .flash_whp = 5.0f,
     .prime_dim = 0.35f,
     .glow = true,
+    .glow_size = 20.0f,
     .glow_along = 0.0f,
     .glow_axis = 2.0f, // the round emblem on the hilt
     .look = {.ease_frames = kBlindFrames},
@@ -40,6 +41,7 @@ const SolarProfile kSolarShotFlash = {
     .flash_whp = 5.0f,
     .prime_dim = 0.35f,
     .glow = true,
+    .glow_size = 14.0f,
     .glow_along = 0.5f,
     .glow_axis = 0.0f,
     .look = {.ease_frames = kBlindFrames},
@@ -73,8 +75,7 @@ constexpr float kChargeRampPeak = 0.5f;
 constexpr float kPulseSpeed = 15.0f;
 constexpr float kFlashPulseSpeed = 30.0f;
 
-// The glow disc at full charge, and how far toward the camera its depth is tested from.
-constexpr float kGlowDiameter = 14.0f;
+// How far toward the camera the glow disc's depth is tested from.
 constexpr float kGlowPull = 1.0f;
 
 struct State {
@@ -445,7 +446,7 @@ void SolarGlowDraw() {
     } else if (!WeaponGlowPoint(*ActiveProfile(), at)) {
         return;
     }
-    DrawGlowDisc(GlowLook::kGold, at, kGlowDiameter * state.glow, kGlowPull);
+    DrawGlowDisc(GlowLook::kGold, at, ActiveProfile()->glow_size * state.glow, kGlowPull);
 }
 
 } // namespace expanded
