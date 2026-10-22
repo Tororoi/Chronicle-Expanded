@@ -1,0 +1,87 @@
+#pragma once
+
+#include "expanded/dungeon/scene_light.hpp"
+
+class CCharacter;
+class CMonstorUnit;
+class CSHOT;
+
+namespace expanded {
+
+// Solar Flash: hold guard with the sword drawn and the blade whitens as the room darkens; at full charge it is primed,
+// guard or not, and the wielder carries a glow. The next swing carries the charge: as it comes forward the room flashes white
+// and eases back, every monster within kSolarFlashRadius takes a light hit and is shoved away from the flash, and the
+// floor is blinded (status/blind.hpp). The flash bills the weapon's wear. A charge left unused fades away. One flash
+// at a time: no charge while a blinding runs. Super Steve's Solar Shot charges the slingshot the same way, and its next
+// pellet carries the flash to wherever it ends, the monster it struck taking the pellet in place of the light hit.
+// Times are game frames.
+
+inline constexpr int   kSolarChargeFrames = 90;      // guard held this long primes the blade
+inline constexpr int   kSolarShotChargeFrames = 120; // … and Xiao's slingshot
+inline constexpr float kSolarPelletSize = 4.0f;      // the charged pellet's sprite, of a pellet's own
+inline constexpr float kSolarStruckReach = 30.0f;    // a pellet that met a monster struck the nearest within this
+inline constexpr int   kSolarPrimedFrames = 600;     // a primed charge unused this long fades …
+inline constexpr int   kSolarFadeFrames = 30;        // … over this long
+inline constexpr int   kSolarRampFrames = 30;        // the cyan build-up on Toan, the last frames of the charge
+inline constexpr float kSolarFlashRadius = 300.0f;   // the hit's reach from the flash
+inline constexpr float kSolarHitRadius = 25.0f;      // each monster's own hit sphere, centred on it
+inline constexpr int   kSolarHitLife = 3;            // frames each hit sphere tests for
+inline constexpr float kSolarKickSpeed = 2.0f;       // the shove away from the flash
+inline constexpr float kSolarKickDecay = 0.3f;
+inline constexpr float kSolarPrimedWhite = 45.0f; // the white Toan keeps while primed
+inline constexpr float kSolarBladeWhite = 200.0f; // the blade's white at full charge
+inline constexpr int   kSolarGlowGrowFrames = 15; // the glow swells from nothing, starting this early in the charge
+inline constexpr int   kSolarGuardGrace = 10;     // frames out of the guard a charge survives (a blocked hit drops it for a few)
+
+// What differs between the weapons that carry the flash.
+struct SolarProfile {
+    int       weapon_no;
+    int       charge_frames; // guard held this long primes it
+    bool      shot;          // the charge rides the next pellet and flashes where it ends, not on the next swing
+    float     damage_share;  // of the weapon's attack, as each monster's light hit (0 = none)
+    float     flash_whp;     // what the flash bills the weapon, before Endurance
+    float     prime_dim;     // how far the room darkens while charged (0..1)
+    bool      glow;          // Toan carries a glow while primed
+    FlashLook look;
+};
+
+extern const SolarProfile kSunSwordFlash;
+// Super Steve carrying the Sun Sword's SynthSphere: Solar Shot.
+extern const SolarProfile kSolarShotFlash;
+
+// The charge's phase, for the tests and the other swords.
+enum class SolarPhase {
+    kIdle,
+    kCharging,
+    kPrimed,
+    kWindup,  // the primed swing under way
+    kFlying,  // the charged pellet out
+    kLanding, // the pellet ended: the room plunges to black before the flash
+    kFading,
+};
+
+SolarPhase SolarFlashPhase();
+
+// One step of the charge (once a frame the monsters step unpaused).
+void SolarFlashStep();
+// The floor changed or its monsters were put back: everything back as it was.
+void SolarFlashReset();
+
+// The flash from point: the white, the light hits (all but the monster except), the bill and the blinding.
+void SolarFlashAt(const SolarProfile &profile, const float *point, int except = -1);
+
+// The light hit on every monster in reach of point but except: a hit sphere on each, base damage share of attack.
+int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int except = -1);
+
+// Hooks: Xiao fired a pellet into slot of shots, and a pellet ended at point (on a monster when struck): a primed
+// Solar Shot rides the one and flashes where the other ends.
+void SolarShotFired(CSHOT &shots, int slot);
+void SolarShotEnded(const CSHOT &shots, int slot, const float *point, bool struck);
+
+// Hooks: the white a charge puts on its wielder and the weapon, added to ambient; the glow's draw, with the dungeon's
+// effects.
+void SolarFlashLight(const CCharacter &character, float *ambient);
+bool SolarFlashOwnsLight(const CCharacter &character);
+void SolarGlowDraw();
+
+} // namespace expanded

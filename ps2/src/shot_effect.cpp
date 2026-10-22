@@ -6,6 +6,9 @@
 #include "collisiondata.hpp"
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/solar_flash.hpp"
+#endif
 #include "hit_machingun_effect.hpp"
 #include "itembombeffect.hpp"
 #include "itemdata.hpp"
@@ -86,6 +89,9 @@ void CSHOT::step() {
                 attr_col->hit[attr_col->now_hit].flags = GetWeaponElementAttr(weapon_element);
                 NowColData->hit[NowColData->now_hit].weapon_flags = NowWeaponHave->flags;
                 NowColData->hit[NowColData->now_hit].vs_monster = NowWeaponHave->vs_monster;
+#ifdef CHRONICLE_EXPANDED
+                expanded::SolarShotEnded(*this, shot, hit_position, result == SHOT_COLLISION_MONSTER);
+#endif
                 used[shot] = 0;
             }
         }
@@ -93,6 +99,9 @@ void CSHOT::step() {
         life[shot]--;
 
         if (life[shot] <= 0) {
+#ifdef CHRONICLE_EXPANDED
+            expanded::SolarShotEnded(*this, shot, pos[shot], false);
+#endif
             used[shot] = 0;
         }
     }
