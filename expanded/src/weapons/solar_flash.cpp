@@ -27,6 +27,7 @@ const SolarProfile kSunSwordFlash = {
     .flash_whp = 5.0f,
     .prime_dim = 0.35f,
     .glow = true,
+    .glow_along = 0.2f, // low on the blade, near the hilt
     .look = {.ease_frames = kBlindFrames},
 };
 
@@ -38,6 +39,7 @@ const SolarProfile kSolarShotFlash = {
     .flash_whp = 5.0f,
     .prime_dim = 0.35f,
     .glow = true,
+    .glow_along = 0.5f,
     .look = {.ease_frames = kBlindFrames},
 };
 
@@ -192,9 +194,9 @@ void Flash(const SolarProfile &profile) {
     SolarFlashAt(profile, point);
 }
 
-// Where the glow sits on the weapon: the middle of the blade (its first two hit points) when it has them, else the
-// weapon's own origin in the wielder's hand.
-bool WeaponGlowPoint(float *point) {
+// Where the glow sits on the weapon: along between its first two hit points when it has them, else the weapon's own
+// origin in the wielder's hand.
+bool WeaponGlowPoint(float along, float *point) {
     if (NowWeapon == nullptr || NowWeapon->frame == nullptr) {
         return false;
     }
@@ -209,7 +211,7 @@ bool WeaponGlowPoint(float *point) {
     hilt->GetWorldPosition(point, origin);
     tip->GetWorldPosition(end, origin);
     for (int c = 0; c < 3; c++) {
-        point[c] = (point[c] + end[c]) * 0.5f;
+        point[c] += (end[c] - point[c]) * along;
     }
     return true;
 }
@@ -432,7 +434,7 @@ void SolarGlowDraw() {
     sceVu0FVECTOR at;
     if (state.shots != nullptr) {
         sceVu0CopyVector(at, const_cast<float *>(state.shots->pos[state.pellet]));
-    } else if (!WeaponGlowPoint(at)) {
+    } else if (!WeaponGlowPoint(ActiveProfile()->glow_along, at)) {
         return;
     }
     DrawGlowDisc(GlowLook::kGold, at, kGlowDiameter * state.glow, kGlowPull);

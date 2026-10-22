@@ -41,6 +41,7 @@ struct SolarProfile {
     float     flash_whp;     // what the flash bills the weapon, before Endurance
     float     prime_dim;     // how far the room darkens while charged (0..1)
     bool      glow;          // the weapon carries a glow while primed
+    float     glow_along;    // where on the weapon, from its first hit point (0) toward its second (1)
     FlashLook look;
 };
 
