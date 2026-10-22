@@ -1,6 +1,7 @@
 #pragma once
 
 class CMonstorUnit;
+struct COLLISION_HIT;
 
 namespace expanded {
 
@@ -33,6 +34,13 @@ bool MonsterKilled(const CMonstorUnit &unit, int monster);
 // The ABS a kill gives the active character's weapon (Step's grant, before the back floor's doubling): abs, the
 // monster's own, as the weapons' effects change it.
 int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs);
+
+// A weapon hit's damage on a monster (CheckDmg, after the weapon's anti-monster bonus), as the weapons' effects
+// change it.
+float MonsterWeaponDamage(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, float damage);
+
+// The active character's lock-on range scale (SetNearLockOnTarget, setTargetCursor), as the weapons' effects change it.
+float PlayerLockOnRange(float rate);
 
 // A monster's step (CMonstorUnit::Step): true when a feature stepped it in place of its script.
 bool MonsterStepTaken(CMonstorUnit &unit, int monster);
