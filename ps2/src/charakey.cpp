@@ -31,6 +31,7 @@
 #include "weaponeffect.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/kitchen_knife.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
@@ -170,7 +171,11 @@ void ToanKey_Play() {
         NowColData->SetKickBack(chara_pos, 3.0f, 0.3f, 2);
     }
 
+#ifdef CHRONICLE_EXPANDED
+    if (time >= 720.0f && time <= 722 && expanded::WhirlSwordHits()) {
+#else
     if (time >= 720.0f && time <= 722) {
+#endif
         damage *= 1.5;
         NowColData->Set(hit_pos, damage, 1, 12.0f, 0.0f, 2, 2, 0, 0);
         basic_damage(3, 0);
@@ -488,6 +493,9 @@ void ToanKey_Play() {
                     NowMainEffect->SetWait(45);
                     NowMainEffect->SetAttribute(GetWeaponElementAttr(NowWeaponHave->best_elem));
                     SwordDmgCheck1(3.0f, 0);
+#ifdef CHRONICLE_EXPANDED
+                    expanded::WhirlwindStarted();
+#endif
                     BtActStatus.action_no = 0x18;
                     BtActStatus.motion_no = 0x18;
                     driveNoInterpolate = 1;

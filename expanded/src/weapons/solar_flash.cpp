@@ -9,13 +9,18 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/status/blind.hpp"
+#include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/wear.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
+
+extern s32 lockOnTargetNo;
 
 namespace expanded {
 
@@ -47,6 +52,23 @@ const SolarProfile kSolarShotFlash = {
     .look = {.ease_frames = kBlindFrames},
 };
 
+const SolarProfile kBigBangFlash = {
+    .weapon_no = ITEM_WEAPON_BIG_BANG,
+    .charge_frames = kSolarChargeFrames,
+    .shot = false,
+    .damage_share = 0.5f,
+    .flash_whp = 5.0f,
+    .prime_dim = 0.35f,
+    .glow = true,
+    .glow_size = 20.0f,
+    .glow_along = 0.5f,
+    .glow_axis = 0.0f,
+    .look = {.light = {236.0f, 226.0f, 255.0f}, .fog = {242.0f, 236.0f, 255.0f}, .fog_amount = 0.8f, .ease_frames = kBlindFrames},
+    .glow_look = GlowLook::kBlue,
+    .judgement = true,
+    .land_whp = 20.0f,
+};
+
 namespace {
 
 // Toan's swings: the combo's five hits, the lunge and the whirlwind.
@@ -59,6 +81,11 @@ constexpr int kWhirlwind = 0x18;
 struct Swing {
     float start, end, hit;
 };
+
+// The first combo swing's frame the judgement blade is let go on.
+constexpr float kDropFrame = 824.0f;
+// About how long the blade's fall takes, for the room's darkening along it.
+constexpr int kSolarDropFrames = 20;
 
 constexpr Swing kCombo[] = {
     {820.0f, 830.0f, 826.0f},
@@ -77,6 +104,7 @@ constexpr float kFlashPulseSpeed = 30.0f;
 
 // How far toward the camera the glow disc's depth is tested from.
 constexpr float kGlowPull = 1.0f;
+constexpr float kJudgementGlowNearer = 4.0f; // the hanging blade's glow before its hilt, toward the camera
 
 struct State {
     SolarPhase          phase = SolarPhase::kIdle;
@@ -95,6 +123,7 @@ struct State {
 };
 
 State state;
+int   blind_in = 0; // frames until a landing's blinding, once its blast's throw is over
 
 const SolarProfile *ActiveProfile() {
     if (UserStatus == nullptr) {
@@ -102,6 +131,9 @@ const SolarProfile *ActiveProfile() {
     }
     if (UserStatus->cur_chara == CHARA_TOAN && WeaponWielded(ITEM_WEAPON_SUN_SWORD)) {
         return &kSunSwordFlash;
+    }
+    if (UserStatus->cur_chara == CHARA_TOAN && WeaponWielded(ITEM_WEAPON_BIG_BANG)) {
+        return &kBigBangFlash;
     }
     if (UserStatus->cur_chara == CHARA_XIAO && WeaponWielded(ITEM_WEAPON_SUPER_STEVE) && SuperSteveSphere() == ITEM_WEAPON_SUN_SWORD) {
         return &kSolarShotFlash;
@@ -139,6 +171,25 @@ bool Guarding() {
 bool Attacking() {
     int action = BtActStatus.action_no;
     return BtActStatus.action_on != 0 && ((action >= kComboFirst && action <= kComboLast) || action == kLunge || action == kWhirlwind);
+}
+
+// The monster Toan is locked on to, or -1.
+int LockedTarget() {
+    if (lockOnTargetFlag == 0 || lockOnTargetNo < 0 || lockOnTargetNo >= 16 || NowMonstorUnit == nullptr) {
+        return -1;
+    }
+    const MONSTOR &live = NowMonstorUnit->monster[lockOnTargetNo];
+    return live.state != -1 && live.hp > 0 ? lockOnTargetNo : -1;
+}
+
+// The swing lets a hanging judgement blade go: the first combo swing at its drop frame, a lunge or whirlwind at once.
+bool SwingDrops() {
+    int action = BtActStatus.action_no;
+    if (action == kLunge || action == kWhirlwind) {
+        return true;
+    }
+    float time = CharaMain.motion_type.state.time;
+    return action == kComboFirst && time >= kDropFrame && time <= kCombo[0].end;
 }
 
 // The swing has come forward: a lunge or whirlwind at once, a combo hit at its own frame.
@@ -184,10 +235,22 @@ void Clear() {
     if (state.phase != SolarPhase::kIdle) {
         SceneDimEnd();
     }
+    JudgementRelease();
     float glow = state.glow;
     state = {};
     state.glow = glow;
     GlowShrink();
+}
+
+// The judgement blade's landing at point: the blast (the full falloff, its explosion), then the flash from there,
+// billed as the landing.
+void Land(const SolarProfile &profile, const float *point) {
+    state = {};
+    if (NowMonstorUnit != nullptr && NowWeaponHave != nullptr) {
+        PlantBlast(*NowMonstorUnit, point, NowWeaponHave->attack);
+    }
+    DetonationAt(point, kLandingExplosion, kLandingRing);
+    SolarBlastFlash(profile, point, profile.land_whp);
 }
 
 void Flash(const SolarProfile &profile) {
@@ -235,7 +298,7 @@ float SolarGlowSize() {
     return state.glow;
 }
 
-int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int except) {
+int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int except, float spared) {
     if (NowColData == nullptr) {
         return 0;
     }
@@ -247,7 +310,8 @@ int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int 
         }
         sceVu0FVECTOR position;
         unit.chara[monster][0].GetPosition(position);
-        if (std::hypot(position[0] - point[0], position[2] - point[2]) > kSolarFlashRadius) {
+        if (std::hypot(position[0] - point[0], position[2] - point[2]) > kSolarFlashRadius ||
+            (spared > 0.0f && BlastDistance(unit, monster, point) <= spared)) {
             continue;
         }
         if (!HitFree()) {
@@ -269,7 +333,7 @@ int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int 
     return struck;
 }
 
-void SolarFlashAt(const SolarProfile &profile, const float *point, int except) {
+void SolarFlashAt(const SolarProfile &profile, const float *point, int except, float whp) {
     SceneFlash(profile.look);
     setUnitAmbientAnime(kFlashPulseSpeed, 1.0f, profile.look.light[0], profile.look.light[1], profile.look.light[2]);
     if (NowMonstorUnit == nullptr) {
@@ -279,14 +343,36 @@ void SolarFlashAt(const SolarProfile &profile, const float *point, int except) {
         int base = std::max(1, static_cast<int>(std::lround(NowWeaponHave->attack * profile.damage_share)));
         PlantSolarHits(*NowMonstorUnit, point, base, except);
     }
-    WearWeapon(profile.flash_whp);
+    WearWeapon(whp < 0.0f ? profile.flash_whp : whp);
     Blind(*NowMonstorUnit);
 }
 
+void SolarBlastFlash(const SolarProfile &profile, const float *point, float whp) {
+    SceneFlash(profile.look);
+    setUnitAmbientAnime(kFlashPulseSpeed, 1.0f, profile.look.light[0], profile.look.light[1], profile.look.light[2]);
+    if (NowMonstorUnit == nullptr) {
+        return;
+    }
+    if (profile.damage_share > 0.0f && NowWeaponHave != nullptr) {
+        int base = std::max(1, static_cast<int>(std::lround(NowWeaponHave->attack * profile.damage_share)));
+        PlantSolarHits(*NowMonstorUnit, point, base, -1, kBlastFalloff[0].reach);
+    }
+    WearWeapon(whp);
+    blind_in = kBlastThrowFrames;
+}
+
+void ChargeCompleteFlash() {
+    setUnitAmbientAnime(kPulseSpeed, 1.0f, kChargeColour[0], kChargeColour[1], kChargeColour[2]);
+}
+
 void SolarFlashStep() {
+    if (blind_in > 0 && --blind_in == 0 && NowMonstorUnit != nullptr) {
+        Blind(*NowMonstorUnit);
+    }
     BlindTick();
     SceneLightStep();
     GlowStep();
+    JudgementStep();
     const SolarProfile *profile = ActiveProfile();
     if (profile == nullptr || (state.profile != nullptr && state.profile != profile)) {
         Clear();
@@ -327,7 +413,7 @@ void SolarFlashStep() {
             if (s.charged >= full) {
                 s.phase = SolarPhase::kPrimed;
                 s.frames = 0;
-                setUnitAmbientAnime(kPulseSpeed, 1.0f, kChargeColour[0], kChargeColour[1], kChargeColour[2]);
+                ChargeCompleteFlash();
             }
             break;
         }
@@ -337,6 +423,14 @@ void SolarFlashStep() {
             s.blade = 1.0f;
             SceneDim(profile->prime_dim);
             SetWielder(kSolarPrimedWhite, kSolarPrimedWhite, kSolarPrimedWhite);
+            if (profile->judgement) {
+                int target = LockedTarget();
+                if (target >= 0 && NowMonstorUnit != nullptr) {
+                    JudgementHover(*NowMonstorUnit, target);
+                } else {
+                    JudgementRelease();
+                }
+            }
             // A shot's charge waits on the pellet (SolarShotFired).
             if (profile->shot || !Attacking()) {
                 s.phase = SolarPhase::kPrimed;
@@ -348,10 +442,27 @@ void SolarFlashStep() {
                 break;
             }
             s.phase = SolarPhase::kWindup;
+            if (profile->judgement && JudgementHanging() && SwingDrops() && JudgementDrop()) {
+                s.phase = SolarPhase::kDropping;
+                s.frames = 0;
+                break;
+            }
             if (SwingForward()) {
                 Flash(*profile);
             }
             break;
+
+        case SolarPhase::kDropping: {
+            // The room darkens along the fall, from the prime dim to black at the landing.
+            SceneDimRamp(profile->prime_dim, std::min(1.0f, static_cast<float>(s.frames) / kSolarDropFrames));
+            sceVu0FVECTOR point;
+            if (JudgementLanded(point)) {
+                Land(*profile, point);
+            } else if (!JudgementFalling()) {
+                Flash(*profile); // the target went before it landed: the flash, as ever
+            }
+            break;
+        }
 
         case SolarPhase::kFlying:
             // Held to the flash, as a swing's are; a pellet lives 120 frames, so one never seen to end is gone.
@@ -412,6 +523,8 @@ void SolarShotEnded(const CSHOT &shots, int slot, const float *point, bool struc
 
 void SolarFlashReset() {
     state = {};
+    blind_in = 0;
+    JudgementReset();
     BlindEnd();
     SceneLightReset();
 }
@@ -432,11 +545,26 @@ void SolarFlashLight(const CCharacter &character, float *ambient) {
         for (int c = 0; c < 3; c++) {
             ambient[c] += kSolarBladeWhite * state.blade;
         }
+    } else if (JudgementIsCopy(character)) {
+        for (int c = 0; c < 3; c++) {
+            ambient[c] += kSolarBladeWhite * JudgementShown();
+        }
     }
 }
 
 void SolarGlowDraw() {
-    if (state.glow <= 0.0f || ActiveProfile() == nullptr) {
+    const SolarProfile *profile = ActiveProfile();
+    if (profile != nullptr && profile->judgement) {
+        // Its glow is the judgement blade's alone, and goes with it.
+        sceVu0FVECTOR at;
+        if (JudgementGlowPoint(at)) {
+            JudgementDraw();
+            DrawGlowDisc(profile->glow_look, at, profile->glow_size * kJudgementScale * JudgementShown(), kGlowPull,
+                         kJudgementGlowNearer);
+        }
+        return;
+    }
+    if (state.glow <= 0.0f || profile == nullptr) {
         return;
     }
     // On the charged pellet while it flies, else on the weapon.
@@ -446,7 +574,7 @@ void SolarGlowDraw() {
     } else if (!WeaponGlowPoint(*ActiveProfile(), at)) {
         return;
     }
-    DrawGlowDisc(GlowLook::kGold, at, ActiveProfile()->glow_size * state.glow, kGlowPull);
+    DrawGlowDisc(profile->glow_look, at, profile->glow_size * state.glow, kGlowPull);
 }
 
 } // namespace expanded

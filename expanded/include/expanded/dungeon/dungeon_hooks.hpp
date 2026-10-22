@@ -1,6 +1,7 @@
 #pragma once
 
 class CMonstorUnit;
+class CSHOT;
 struct COLLISION_HIT;
 
 namespace expanded {
@@ -49,7 +50,15 @@ float PlayerLockOnRange(float rate);
 // A monster's step (CMonstorUnit::Step): true when a feature stepped it in place of its script.
 bool MonsterStepTaken(CMonstorUnit &unit, int monster);
 
+// Xiao fired a pellet into slot of shots (BattleActionPlay_Jinn), and a pellet ended at point, on a monster when struck
+// (CSHOT::step): the weapons that ride or answer her shots.
+void PelletFired(CSHOT &shots, int slot);
+void PelletEnded(const CSHOT &shots, int slot, const float *point, bool struck);
+
+// Whether the lock-on target's name plate is left off (setTargetCursor): something hangs over the target.
+bool TargetNameHidden();
+
 // Whether a monster's guard windows block the hit that reached it (CheckDmg).
-bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster);
+bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
 
 } // namespace expanded

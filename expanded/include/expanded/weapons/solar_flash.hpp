@@ -1,5 +1,6 @@
 #pragma once
 
+#include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 
 class CCharacter;
@@ -45,9 +46,14 @@ struct SolarProfile {
     float     glow_along;    // where on the weapon, from its first hit point (0) toward its second (1) …
     float     glow_axis;     // … or, when not 0, this far along the model's own length axis (the Sun Sword's hilt emblem)
     FlashLook look;
+    GlowLook  glow_look = GlowLook::kGold;
+    bool      judgement = false; // locked on, the judgement blade hangs over the target and the first swing drops it
+    float     land_whp = 0.0f;   // what the blade's landing bills, in place of the flash's
 };
 
 extern const SolarProfile kSunSwordFlash;
+// Big Bang: twice the Sun Sword's share, a cool white, and the judgement blade (its glow on the blade alone).
+extern const SolarProfile kBigBangFlash;
 // Super Steve carrying the Sun Sword's SynthSphere: Solar Shot.
 extern const SolarProfile kSolarShotFlash;
 
@@ -57,6 +63,7 @@ enum class SolarPhase {
     kCharging,
     kPrimed,
     kWindup,  // the primed swing under way
+    kDropping, // the judgement blade falling
     kFlying,  // the charged pellet out
     kLanding, // the pellet ended: the room plunges to black before the flash
     kFading,
@@ -66,16 +73,24 @@ SolarPhase SolarFlashPhase();
 // The glow's size, 0 (none) to 1 (primed).
 float SolarGlowSize();
 
+// The game's own charge-complete flash on the party (Toan's sword charge, Goro's): a charge is ready.
+void ChargeCompleteFlash();
+
 // One step of the charge (once a frame the monsters step unpaused).
 void SolarFlashStep();
 // The floor changed or its monsters were put back: everything back as it was.
 void SolarFlashReset();
 
-// The flash from point: the white, the light hits (all but the monster except), the bill and the blinding.
-void SolarFlashAt(const SolarProfile &profile, const float *point, int except = -1);
+// The flash from point: the white, the light hits (all but the monster except), the bill (whp, or the profile's
+// below 0) and the blinding.
+void SolarFlashAt(const SolarProfile &profile, const float *point, int except = -1, float whp = -1.0f);
+// The flash where a blast went off: the light hits on all the blast did not reach, and the blinding once its throw
+// is over (kBlastThrowFrames), so the blinding does not stop the throw.
+void SolarBlastFlash(const SolarProfile &profile, const float *point, float whp);
 
-// The light hit on every monster in reach of point but except: a hit sphere on each, base damage share of attack.
-int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int except = -1);
+// The light hit on every monster in reach of point but except and those within spared of it (a blast's reach): a hit
+// sphere on each, base damage share of attack.
+int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int except = -1, float spared = 0.0f);
 
 // Hooks: Xiao fired a pellet into slot of shots, and a pellet ended at point (on a monster when struck): a primed
 // Solar Shot rides the one and flashes where the other ends.

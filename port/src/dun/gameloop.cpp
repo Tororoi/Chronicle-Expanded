@@ -77,7 +77,9 @@
 #include "expanded/enemies/bomb_gemron.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/freeze.hpp"
+#include "expanded/weapons/big_bang_shot.hpp"
 #include "expanded/weapons/solar_flash.hpp"
+#include "expanded/weapons/toan/big_bang.hpp"
 #endif
 
 // The dungeon's MainDraw and LoaderLoop, replaced to drop what the renderer has no use for: the VU1
@@ -404,6 +406,7 @@ PORT_OVERRIDE void DunMainDraw() {
         expanded::ShotEffectsDraw();
         expanded::ConfuseStarsDraw();
         expanded::SolarGlowDraw();
+        expanded::BigBangShotDraw();
 #endif
         NowMainEffect->Draw();
     }
@@ -955,6 +958,11 @@ PORT_OVERRIDE int BtCheckDamageProc() {
         sceVu0CopyVector(pos, CharaMain.pos);
 
         int hit_no = NowColData->CheckHitUser(pos, 1, CharaHeight(UserStatus));
+#ifdef CHRONICLE_EXPANDED
+        if (hit_no != -1 && expanded::PlayerHitSkipped(NowColData->hit[hit_no])) {
+            hit_no = -1;
+        }
+#endif
 
         if (hit_no != -1) {
             taken = 1;

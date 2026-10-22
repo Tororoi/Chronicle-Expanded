@@ -3,6 +3,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/dungeon/navigation.hpp"
+#include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/atla_gemron.hpp"
 #include "expanded/enemies/black_knight.hpp"
@@ -19,7 +20,10 @@
 #include "expanded/status/blind.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/weapons/big_bang_shot.hpp"
+#include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/curse.hpp"
+#include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/toan/cross_hinder.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
@@ -42,6 +46,7 @@ void DungeonFloorLoaded(CMonstorUnit &unit) {
     ShotEffectsFloorLoaded();
     NavigationFloorLoaded();
     MonsterSoundsFloorLoaded(unit);
+    OwnSoundsFloorLoaded();
     SteveLinesFloorLoaded(unit);
     AtlaDropsFloorLoaded();
 }
@@ -50,13 +55,17 @@ void DungeonMonstersCleared(bool drop_stars) {
     ConfuseFloorReset(drop_stars);
     ShotEffectsReset();
     SolarFlashReset();
+    BigBangShotReset();
+    OwnSoundsReset();
 }
 
 void DungeonMonstersTick() {
     MonsterStepClockAdvance();
+    OwnSoundsStep();
     ConfuseTick();
     CurseStep();
     SolarFlashStep();
+    BigBangShotStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
@@ -104,8 +113,22 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
            BlindStep(unit, monster);
 }
 
-bool MonsterGuardBlocks(const CMonstorUnit &, int monster) {
-    return BlindGuardBlocks(monster);
+void PelletFired(CSHOT &shots, int slot) {
+    SolarShotFired(shots, slot);
+    BigBangShotFired(shots, slot);
+}
+
+void PelletEnded(const CSHOT &shots, int slot, const float *point, bool struck) {
+    SolarShotEnded(shots, slot, point, struck);
+    BigBangShotEnded(shots, slot, point);
+}
+
+bool TargetNameHidden() {
+    return JudgementHanging() || JudgementFalling() || BigBangShotHanging();
+}
+
+bool MonsterGuardBlocks(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {
+    return BlindGuardBlocks(monster) && !BlastHit(hit);
 }
 
 } // namespace expanded

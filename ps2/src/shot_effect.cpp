@@ -7,7 +7,7 @@
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/weapons/solar_flash.hpp"
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #endif
 #include "hit_machingun_effect.hpp"
 #include "itembombeffect.hpp"
@@ -90,7 +90,7 @@ void CSHOT::step() {
                 NowColData->hit[NowColData->now_hit].weapon_flags = NowWeaponHave->flags;
                 NowColData->hit[NowColData->now_hit].vs_monster = NowWeaponHave->vs_monster;
 #ifdef CHRONICLE_EXPANDED
-                expanded::SolarShotEnded(*this, shot, hit_position, result == SHOT_COLLISION_MONSTER);
+                expanded::PelletEnded(*this, shot, hit_position, result == SHOT_COLLISION_MONSTER);
 #endif
                 used[shot] = 0;
             }
@@ -100,7 +100,7 @@ void CSHOT::step() {
 
         if (life[shot] <= 0) {
 #ifdef CHRONICLE_EXPANDED
-            expanded::SolarShotEnded(*this, shot, pos[shot], false);
+            expanded::PelletEnded(*this, shot, pos[shot], false);
 #endif
             used[shot] = 0;
         }

@@ -7794,7 +7794,7 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                             shots->start_flag[i] = 0;
                             shots->used[i] = 1;
 #ifdef CHRONICLE_EXPANDED
-                            expanded::SolarShotFired(*shots, i);
+                            expanded::PelletFired(*shots, i);
 #endif
                             break;
                         }
@@ -7839,7 +7839,7 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                             shots->start_flag[i] = 0;
                             shots->used[i] = 1;
 #ifdef CHRONICLE_EXPANDED
-                            expanded::SolarShotFired(*shots, i);
+                            expanded::PelletFired(*shots, i);
 #endif
                             break;
                         }
@@ -9369,6 +9369,11 @@ void setTargetCursor(int on) {
             EnemyLifeGage.x = (screen[0] - 0x6C00) >> 4;
             EnemyLifeGage.y = ((screen[1] - GS_Y_OFFSET) >> 4) + 42;
             SetMonsterNameDrawFlag(1);
+#ifdef CHRONICLE_EXPANDED
+            if (expanded::TargetNameHidden()) {
+                SetMonsterNameDrawFlag(0);
+            }
+#endif
         } else {
             SetMonsterNameDrawFlag(0);
             EnemyLifeGage.on = 0;
