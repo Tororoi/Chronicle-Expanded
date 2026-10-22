@@ -27,7 +27,8 @@ const SolarProfile kSunSwordFlash = {
     .flash_whp = 5.0f,
     .prime_dim = 0.35f,
     .glow = true,
-    .glow_along = 0.2f, // low on the blade, near the hilt
+    .glow_along = 0.0f,
+    .glow_axis = 2.0f, // the round emblem on the hilt
     .look = {.ease_frames = kBlindFrames},
 };
 
@@ -40,6 +41,7 @@ const SolarProfile kSolarShotFlash = {
     .prime_dim = 0.35f,
     .glow = true,
     .glow_along = 0.5f,
+    .glow_axis = 0.0f,
     .look = {.ease_frames = kBlindFrames},
 };
 
@@ -194,12 +196,18 @@ void Flash(const SolarProfile &profile) {
     SolarFlashAt(profile, point);
 }
 
-// Where the glow sits on the weapon: along between its first two hit points when it has them, else the weapon's own
-// origin in the wielder's hand.
-bool WeaponGlowPoint(float along, float *point) {
+// Where a profile's glow sits on the weapon: on its model's length axis, or along between its first two hit points
+// when it has them, else at the weapon's own origin in the wielder's hand.
+bool WeaponGlowPoint(const SolarProfile &profile, float *point) {
     if (NowWeapon == nullptr || NowWeapon->frame == nullptr) {
         return false;
     }
+    if (profile.glow_axis != 0.0f) {
+        sceVu0FVECTOR on_axis = {0.0f, 0.0f, profile.glow_axis, 1.0f};
+        NowWeapon->frame->GetWorldPosition(point, on_axis);
+        return true;
+    }
+    float         along = profile.glow_along;
     sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 0.0f};
     CFrame       *hilt = NowWeapon->frame->SearchFrame(const_cast<char *>("dcol0"));
     CFrame       *tip = NowWeapon->frame->SearchFrame(const_cast<char *>("dcol1"));
@@ -434,7 +442,7 @@ void SolarGlowDraw() {
     sceVu0FVECTOR at;
     if (state.shots != nullptr) {
         sceVu0CopyVector(at, const_cast<float *>(state.shots->pos[state.pellet]));
-    } else if (!WeaponGlowPoint(ActiveProfile()->glow_along, at)) {
+    } else if (!WeaponGlowPoint(*ActiveProfile(), at)) {
         return;
     }
     DrawGlowDisc(GlowLook::kGold, at, kGlowDiameter * state.glow, kGlowPull);
