@@ -151,15 +151,18 @@ void DrawGlowDisc(GlowLook look, const float *at, float diameter, float pull) {
     sceVu0ScaleVector(toward, toward, pull);
     sceVu0CopyVector(world, const_cast<float *>(at));
     world[3] = 1.0f;
-    int top_left[4], bottom_right[4], near_top_left[4], near_bottom_right[4];
-    if (MGRotTransPers3DSprite(top_left, bottom_right, world, diameter, diameter, 1) != 1) {
+    // The sprite's height is in the half-height rows the game's screen is laid out in (the torches ask 18 x 9 of a
+    // round glow).
+    const float height = diameter / 2.0f;
+    int         top_left[4], bottom_right[4], near_top_left[4], near_bottom_right[4];
+    if (MGRotTransPers3DSprite(top_left, bottom_right, world, diameter, height, 1) != 1) {
         return;
     }
     int top_right[4] = {bottom_right[0], top_left[1], top_left[2], top_left[3]};
     int bottom_left[4] = {top_left[0], bottom_right[1], bottom_right[2], bottom_right[3]};
     sceVu0AddVector(world, world, toward);
     world[3] = 1.0f;
-    if (MGRotTransPers3DSprite(near_top_left, near_bottom_right, world, diameter, diameter, 0) == 1) {
+    if (MGRotTransPers3DSprite(near_top_left, near_bottom_right, world, diameter, height, 0) == 1) {
         top_left[2] = top_right[2] = bottom_left[2] = bottom_right[2] = near_top_left[2];
     }
     // As the torches draw their glow: depth tested but not written, added to what is behind.
