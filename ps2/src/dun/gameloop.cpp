@@ -131,6 +131,7 @@
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/weapons/heal.hpp"
+#include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/stats.hpp"
 #include "expanded/weapons/toan/shamshir.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
@@ -7788,6 +7789,9 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                             shots->halted[i] = 0;
                             shots->start_flag[i] = 0;
                             shots->used[i] = 1;
+#ifdef CHRONICLE_EXPANDED
+                            expanded::SolarShotFired(*shots, i);
+#endif
                             break;
                         }
                     }
@@ -7830,6 +7834,9 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                             shots->halted[i] = 0;
                             shots->start_flag[i] = 0;
                             shots->used[i] = 1;
+#ifdef CHRONICLE_EXPANDED
+                            expanded::SolarShotFired(*shots, i);
+#endif
                             break;
                         }
                     }
