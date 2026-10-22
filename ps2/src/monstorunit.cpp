@@ -1322,7 +1322,11 @@ int CMonstorUnit::CheckDmg() {
 
                 if (hit != -1 && rejected == 0) {
                     for (int j = 0; j < 3; j++) {
+#ifdef CHRONICLE_EXPANDED
+                        if (guard[current_monster].active[j] != 0 && expanded::MonsterGuardBlocks(*this, current_monster)) {
+#else
                         if (guard[current_monster].active[j] != 0) {
+#endif
                             float time = chara[current_monster][0].motion_type.state.time;
 
                             if (guard[current_monster].motion_start[j] <= time && !(guard[current_monster].motion_end[j] < time)) {
@@ -2383,6 +2387,9 @@ void CMonstorUnit::Step(int pause) {
 
                         if (monster[current_monster].kind != MONSTER_KIND_NO_LOCK_ON && monster[current_monster].drops_items != 0) {
                             printf("************ item = %d ************ \n", monster[current_monster].drop_item);
+#ifdef CHRONICLE_EXPANDED
+                            monster[current_monster].drop_item = expanded::MonsterDropItem(*this, current_monster, monster[current_monster].drop_item);
+#endif
 
                             if (monster[current_monster].drop_item == -1 && monster[current_monster].rare_item != -1 && (100.0f * (float) rand() / 2147483648.0f) < 10.0f) {
                                 monster[current_monster].drop_item = monster[current_monster].rare_item;

@@ -16,11 +16,14 @@
 #include "expanded/enemies/sounds.hpp"
 #include "expanded/enemies/species.hpp"
 #include "expanded/enemies/steve.hpp"
+#include "expanded/status/blind.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/curse.hpp"
+#include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/toan/cross_hinder.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
+#include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 
 namespace expanded {
@@ -46,12 +49,14 @@ void DungeonFloorLoaded(CMonstorUnit &unit) {
 void DungeonMonstersCleared(bool drop_stars) {
     ConfuseFloorReset(drop_stars);
     ShotEffectsReset();
+    SolarFlashReset();
 }
 
 void DungeonMonstersTick() {
     MonsterStepClockAdvance();
     ConfuseTick();
     CurseStep();
+    SolarFlashStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
@@ -78,6 +83,10 @@ bool MonsterKilled(const CMonstorUnit &unit, int monster) {
     return BossCastCountsKill(monster);
 }
 
+int MonsterDropItem(const CMonstorUnit &unit, int monster, int drop_item) {
+    return SolarHarvestDrop(unit, monster, drop_item);
+}
+
 int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs) {
     return SanctifierAbs(unit, monster, JacketHunterAbs(unit, monster, abs));
 }
@@ -91,7 +100,12 @@ float PlayerLockOnRange(float rate) {
 }
 
 bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
-    return BossDeathStep(unit, monster) || BombGemronStep(unit, monster) || ReviveStep(unit, monster);
+    return BossDeathStep(unit, monster) || BombGemronStep(unit, monster) || ReviveStep(unit, monster) ||
+           BlindStep(unit, monster);
+}
+
+bool MonsterGuardBlocks(const CMonstorUnit &, int monster) {
+    return BlindGuardBlocks(monster);
 }
 
 } // namespace expanded

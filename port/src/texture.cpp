@@ -19,6 +19,7 @@
 #include "tim2.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/status/confuse.hpp"
 #endif
 
@@ -363,6 +364,7 @@ void Enter(CTextureManager &manager, EnterMode mode, int block, char *name, u_ch
         LocalizeTexture(name, decoded);
 #ifdef CHRONICLE_EXPANDED
         expanded::ConfuseIconTexture(name, decoded);
+        expanded::GlowPictureEntered(name, decoded);
 #endif
         caption::PreparePainted(name, decoded);
         MakeGroundPeriodic(name, decoded);

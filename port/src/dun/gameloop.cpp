@@ -73,9 +73,11 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/atla_drops.hpp"
+#include "expanded/dungeon/scene_light.hpp"
 #include "expanded/enemies/bomb_gemron.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/freeze.hpp"
+#include "expanded/weapons/solar_flash.hpp"
 #endif
 
 // The dungeon's MainDraw and LoaderLoop, replaced to drop what the renderer has no use for: the VU1
@@ -229,6 +231,26 @@ PORT_OVERRIDE void DunMainDraw() {
         return;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    {
+        // The floor's light as a weapon's flash changes it, on copies: the floor's own values stay as they are.
+        const bool    sub = lightingMode != 0;
+        sceVu0FMATRIX colours;
+        sceVu0FVECTOR ambient;
+        float         fog_rate[4];
+        u8            fog_colour[3];
+        sceVu0CopyMatrix(colours, sub ? sub_lightcolor : main_lightcolor);
+        sceVu0CopyVector(ambient, sub ? sub_ambientlight : main_ambientlight);
+        std::memcpy(fog_rate, sub ? sub_fogRate : main_fogRate, sizeof(fog_rate));
+        std::memcpy(fog_colour, sub ? sub_fogColor : main_fogColor, sizeof(fog_colour));
+        expanded::SceneLighting(ambient, colours, fog_rate, fog_colour);
+        const u8 *bg = sub ? sub_bgColor : main_bgColor;
+        MGSetPLight(sub ? sub_light : main_light, colours);
+        MGSetAmbient(ambient);
+        MGSetBGColor(bg[0], bg[1], bg[2], 128.0f);
+        MGSetFogParm(fog_rate[0], fog_rate[1], fog_colour[0], fog_colour[1], fog_colour[2], fog_rate[2], fog_rate[3]);
+    }
+#else
     if (lightingMode == 0) {
         MGSetPLight(main_light, main_lightcolor);
         MGSetAmbient(main_ambientlight);
@@ -240,6 +262,7 @@ PORT_OVERRIDE void DunMainDraw() {
         MGSetBGColor(sub_bgColor[0], sub_bgColor[1], sub_bgColor[2], 128.0f);
         MGSetFogParm(sub_fogRate[0], sub_fogRate[1], sub_fogColor[0], sub_fogColor[1], sub_fogColor[2], sub_fogRate[2], sub_fogRate[3]);
     }
+#endif
 
     if (BtItemListCashFlag != 0) {
         TexManager.ReloadTexture(Vif1Packet, 0x28);
@@ -380,6 +403,7 @@ PORT_OVERRIDE void DunMainDraw() {
 #ifdef CHRONICLE_EXPANDED
         expanded::ShotEffectsDraw();
         expanded::ConfuseStarsDraw();
+        expanded::SolarGlowDraw();
 #endif
         NowMainEffect->Draw();
     }
