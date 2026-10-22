@@ -24,6 +24,10 @@ std::vector<uint8_t> RecolourGlow(const uint8_t *rgba, int width, int height, st
 // The texture of a look on this floor, or null before the floor entered the torch picture.
 CTexture *GlowTexture(GlowLook look);
 
+// Draws a look's glow as a steady disc diameter units across, centred on at and facing the camera, added to what is
+// behind it, tested against depth from pull units nearer the camera (so a weapon's own mesh does not cut it).
+void DrawGlowDisc(GlowLook look, const float *at, float diameter, float pull);
+
 // Hook: the texture manager decoded a picture, before it creates it.
 void GlowPictureEntered(const char *name, const PortDecodedTexture &decoded);
 

@@ -9,7 +9,7 @@ class CSHOT;
 namespace expanded {
 
 // Solar Flash: hold guard with the sword drawn and the blade whitens as the room darkens; at full charge it is primed,
-// guard or not, and the weapon carries a glow. The next swing carries the charge: as it comes forward the room flashes white
+// guard or not, and the glow that grew on the weapon through the charge stays. The next swing carries the charge: as it comes forward the room flashes white
 // and eases back, every monster within kSolarFlashRadius takes a light hit and is shoved away from the flash, and the
 // floor is blinded (status/blind.hpp). The flash bills the weapon's wear. A charge left unused fades away. One flash
 // at a time: no charge while a blinding runs. Super Steve's Solar Shot charges the slingshot the same way, and its next
@@ -21,7 +21,7 @@ inline constexpr int   kSolarShotChargeFrames = 120; // … and Xiao's slingshot
 inline constexpr float kSolarPelletSize = 4.0f;      // the charged pellet's sprite, of a pellet's own
 inline constexpr float kSolarStruckReach = 30.0f;    // a pellet that met a monster struck the nearest within this
 inline constexpr int   kSolarPrimedFrames = 600;     // a primed charge unused this long fades …
-inline constexpr int   kSolarFadeFrames = 30;        // … over this long
+inline constexpr int   kSolarFadeFrames = 30;        // … over this long, as does the glow of a charge dropped early
 inline constexpr int   kSolarRampFrames = 30;        // the cyan build-up on Toan, the last frames of the charge
 inline constexpr float kSolarFlashRadius = 300.0f;   // the hit's reach from the flash
 inline constexpr float kSolarHitRadius = 25.0f;      // each monster's own hit sphere, centred on it
@@ -30,7 +30,6 @@ inline constexpr float kSolarKickSpeed = 2.0f;       // the shove away from the 
 inline constexpr float kSolarKickDecay = 0.3f;
 inline constexpr float kSolarPrimedWhite = 45.0f; // the white Toan keeps while primed
 inline constexpr float kSolarBladeWhite = 200.0f; // the blade's white at full charge
-inline constexpr int   kSolarGlowGrowFrames = 15; // the glow swells from nothing, starting this early in the charge
 inline constexpr int   kSolarGuardGrace = 10;     // frames out of the guard a charge survives (a blocked hit drops it for a few)
 
 // What differs between the weapons that carry the flash.
@@ -61,6 +60,8 @@ enum class SolarPhase {
 };
 
 SolarPhase SolarFlashPhase();
+// The glow's size, 0 (none) to 1 (primed).
+float SolarGlowSize();
 
 // One step of the charge (once a frame the monsters step unpaused).
 void SolarFlashStep();

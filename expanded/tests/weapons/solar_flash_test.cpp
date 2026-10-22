@@ -98,6 +98,30 @@ TEST(SolarFlash, GuardHeldPrimesTheBladeAndReleasedEarlyDropsIt) {
     EXPECT_EQ(expanded::SolarFlashPhase(), SolarPhase::kPrimed);
 }
 
+TEST(SolarFlash, TheGlowGrowsWithTheChargeAndShrinksAwayWhenDropped) {
+    Scene scene;
+    scene.Guard(true);
+    scene.Steps(1);
+    scene.Steps(expanded::kSolarChargeFrames / 2);
+    EXPECT_NEAR(expanded::SolarGlowSize(), 0.5f, 0.02f);
+
+    // Dropped half-charged: it shrinks over kSolarFadeFrames rather than going at once.
+    scene.Guard(false);
+    scene.Steps(expanded::kSolarGuardGrace + 1);
+    EXPECT_EQ(expanded::SolarFlashPhase(), SolarPhase::kIdle);
+    EXPECT_GT(expanded::SolarGlowSize(), 0.4f);
+    scene.Steps(expanded::kSolarFadeFrames / 2);
+    EXPECT_NEAR(expanded::SolarGlowSize(), 0.25f, 0.03f);
+    scene.Steps(expanded::kSolarFadeFrames / 2);
+    EXPECT_EQ(expanded::SolarGlowSize(), 0.0f);
+
+    // Full the moment it primes.
+    scene.Guard(true);
+    scene.Steps(expanded::kSolarChargeFrames + 1);
+    EXPECT_EQ(expanded::SolarFlashPhase(), SolarPhase::kPrimed);
+    EXPECT_EQ(expanded::SolarGlowSize(), 1.0f);
+}
+
 TEST(SolarFlash, TheSwingFlashesAtItsHitFrameStrikesThoseInReachAndBlinds) {
     Scene scene;
     scene.Guard(true);

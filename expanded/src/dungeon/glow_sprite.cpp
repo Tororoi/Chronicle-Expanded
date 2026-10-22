@@ -4,6 +4,12 @@
 #include <cmath>
 #include <cstring>
 
+#include "camera.hpp"
+#include "draw2d_port.hpp"
+#include "dun/gameloop.hpp"
+#include "mglib.hpp"
+#include "rect.hpp"
+#include "snd.hpp"
 #include "texture.hpp"
 #include "texture_port.hpp"
 
@@ -129,6 +135,53 @@ void GlowPictureEntered(const char *name, const PortDecodedTexture &decoded) {
         glow.texture.tex0 = static_cast<u_long>(glow.key) | (static_cast<u_long>(std::max(1, (width + 63) / 64)) << 14) |
                             (static_cast<u_long>(Log2(width)) << 26) | (static_cast<u_long>(Log2(height)) << 30) | (1ul << 34);
     }
+}
+
+void DrawGlowDisc(GlowLook look, const float *at, float diameter, float pull) {
+    CTexture *texture = GlowTexture(look);
+    if (texture == nullptr || NowCamera__3 == nullptr || diameter <= 0.0f) {
+        return;
+    }
+    CCamera      *camera = reinterpret_cast<CCamera *>(NowCamera__3);
+    sceVu0FVECTOR toward, ref, world;
+    camera->GetPos(toward);
+    camera->GetRef(ref);
+    sceVu0SubVector(toward, toward, ref);
+    sceVu0Normalize(toward, toward);
+    sceVu0ScaleVector(toward, toward, pull);
+    sceVu0CopyVector(world, const_cast<float *>(at));
+    world[3] = 1.0f;
+    int top_left[4], bottom_right[4], near_top_left[4], near_bottom_right[4];
+    if (MGRotTransPers3DSprite(top_left, bottom_right, world, diameter, diameter, 1) != 1) {
+        return;
+    }
+    int top_right[4] = {bottom_right[0], top_left[1], top_left[2], top_left[3]};
+    int bottom_left[4] = {top_left[0], bottom_right[1], bottom_right[2], bottom_right[3]};
+    sceVu0AddVector(world, world, toward);
+    world[3] = 1.0f;
+    if (MGRotTransPers3DSprite(near_top_left, near_bottom_right, world, diameter, diameter, 0) == 1) {
+        top_left[2] = top_right[2] = bottom_left[2] = bottom_right[2] = near_top_left[2];
+    }
+    // As the torches draw their glow: depth tested but not written, added to what is behind.
+    const draw2d::Services &services = draw2d::Get();
+    sceGsTest               test = mgPixelTest;
+    test.bits.ate = 0;
+    test.bits.zte = 1;
+    services.set_test(&test);
+    sceGsZbuf zbuffer = mgZBuffer;
+    zbuffer.bits.zmsk = 1;
+    services.set_zbuf(&zbuffer);
+    sceGsAlpha alpha = mgAlpha;
+    alpha.bits.a = 0;
+    alpha.bits.b = 2;
+    alpha.bits.c = 0;
+    alpha.bits.d = 1;
+    services.set_alpha(&alpha);
+    set3DSpriteFog(Vif1Packet, texture, CRect_i_(0, 0, texture->width, texture->height), top_left, top_right, bottom_left,
+                   bottom_right, 0x80);
+    services.set_test(nullptr);
+    services.set_zbuf(nullptr);
+    services.set_alpha(nullptr);
 }
 
 } // namespace expanded

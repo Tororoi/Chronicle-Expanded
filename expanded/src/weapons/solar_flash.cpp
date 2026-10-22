@@ -4,7 +4,6 @@
 #include <cmath>
 
 #include "btactstatus.hpp"
-#include "camera.hpp"
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
@@ -12,7 +11,6 @@
 #include "expanded/status/blind.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/wear.hpp"
-#include "fireomni.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -71,12 +69,9 @@ constexpr float kChargeRampPeak = 0.5f;
 constexpr float kPulseSpeed = 15.0f;
 constexpr float kFlashPulseSpeed = 30.0f;
 
-// The glow: the torch's flame sprite alone (45 units wide at 1), sized to the blade and pulled a little toward the
-// camera. The torch routine lifts it 4.6 units for the torches' brackets, which the glow takes back.
-constexpr int   kGlowLayers = 2;
-constexpr float kGlowScale = 0.35f;
+// The glow disc at full charge, and how far toward the camera its depth is tested from.
+constexpr float kGlowDiameter = 14.0f;
 constexpr float kGlowPull = 1.0f;
-constexpr float kGlowTorchLift = 4.6f;
 
 struct State {
     SolarPhase          phase = SolarPhase::kIdle;
@@ -87,7 +82,7 @@ struct State {
     float               blade = 0.0f;    // the blade's white, 0..1
     float               wielder[3] = {}; // the wielder's own tint
     float               glow = 0.0f;     // the glow's size, 0..1
-    bool                glow_on = false; // growing toward full, else shrinking away
+    float               glow_shrink = 0.0f; // what it loses each frame while it shrinks away
     const CSHOT        *shots = nullptr; // the charged pellet's pool and slot while it flies
     int                 pellet = -1;
     sceVu0FVECTOR       landed = {}; // where it ended
@@ -159,11 +154,15 @@ void SetWielder(float red, float green, float blue) {
 }
 
 void GlowStep() {
-    if (state.glow_on) {
-        state.glow = std::min(1.0f, state.glow + 1.0f / kSolarGlowGrowFrames);
-    } else {
-        state.glow = std::max(0.0f, state.glow - 1.0f / kSolarFadeFrames);
+    if (state.glow_shrink > 0.0f) {
+        state.glow = std::max(0.0f, state.glow - state.glow_shrink);
+        state.glow_shrink = state.glow > 0.0f ? state.glow_shrink : 0.0f;
     }
+}
+
+// The glow shrinks away from whatever size it has, over kSolarFadeFrames.
+void GlowShrink() {
+    state.glow_shrink = state.glow / kSolarFadeFrames;
 }
 
 bool HitFree() {
@@ -175,11 +174,15 @@ bool HitFree() {
     return false;
 }
 
+// The charge dropped: the glow shrinks away rather than going at once.
 void Clear() {
     if (state.phase != SolarPhase::kIdle) {
         SceneDimEnd();
     }
+    float glow = state.glow;
     state = {};
+    state.glow = glow;
+    GlowShrink();
 }
 
 void Flash(const SolarProfile &profile) {
@@ -215,6 +218,10 @@ bool WeaponGlowPoint(float *point) {
 
 SolarPhase SolarFlashPhase() {
     return state.phase;
+}
+
+float SolarGlowSize() {
+    return state.glow;
 }
 
 int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int except) {
@@ -303,8 +310,9 @@ void SolarFlashStep() {
             float ramp = std::clamp(1.0f - static_cast<float>(full - s.charged) / kSolarRampFrames, 0.0f, 1.0f);
             SetWielder(kChargeColour[0] * kChargeRampPeak * ramp, kChargeColour[1] * kChargeRampPeak * ramp,
                        kChargeColour[2] * kChargeRampPeak * ramp);
-            // The glow leads the charge, full the moment it primes.
-            s.glow_on = profile->glow && s.charged >= full - kSolarGlowGrowFrames;
+            // The glow grows with the charge, full the moment it primes.
+            s.glow = profile->glow ? k : 0.0f;
+            s.glow_shrink = 0.0f;
             if (s.charged >= full) {
                 s.phase = SolarPhase::kPrimed;
                 s.frames = 0;
@@ -324,7 +332,7 @@ void SolarFlashStep() {
                 if (s.frames >= kSolarPrimedFrames) {
                     s.phase = SolarPhase::kFading;
                     s.frames = 0;
-                    s.glow_on = false;
+                    GlowShrink();
                 }
                 break;
             }
@@ -388,7 +396,6 @@ void SolarShotEnded(const CSHOT &shots, int slot, const float *point, bool struc
     state.frames = 0;
     state.shots = nullptr;
     state.pellet = -1;
-    state.glow_on = false;
     state.glow = 0.0f;
 }
 
@@ -421,22 +428,14 @@ void SolarGlowDraw() {
     if (state.glow <= 0.0f || ActiveProfile() == nullptr) {
         return;
     }
-    CTexture *texture = GlowTexture(GlowLook::kGold);
-    if (texture == nullptr || NowCamera__3 == nullptr) {
-        return;
-    }
-    static CFireOmni fire;
-    fire.SetTexture(texture, texture);
     // On the charged pellet while it flies, else on the weapon.
+    sceVu0FVECTOR at;
     if (state.shots != nullptr) {
-        sceVu0CopyVector(fire.pos, const_cast<float *>(state.shots->pos[state.pellet]));
-    } else if (!WeaponGlowPoint(fire.pos)) {
+        sceVu0CopyVector(at, const_cast<float *>(state.shots->pos[state.pellet]));
+    } else if (!WeaponGlowPoint(at)) {
         return;
     }
-    fire.pos[1] -= kGlowTorchLift;
-    fire.pos[3] = 1.0f;
-    float colour[4] = {128.0f, 128.0f, 128.0f, 128.0f};
-    fire.DrawFire(1, 1, reinterpret_cast<CCamera *>(NowCamera__3), colour, kGlowScale * state.glow, kGlowLayers, kGlowPull);
+    DrawGlowDisc(GlowLook::kGold, at, kGlowDiameter * state.glow, kGlowPull);
 }
 
 } // namespace expanded
