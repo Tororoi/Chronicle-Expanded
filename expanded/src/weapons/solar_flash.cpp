@@ -13,6 +13,7 @@
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/wear.hpp"
 #include "fireomni.hpp"
+#include "frame.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -70,11 +71,12 @@ constexpr float kChargeRampPeak = 0.5f;
 constexpr float kPulseSpeed = 15.0f;
 constexpr float kFlashPulseSpeed = 30.0f;
 
-// The glow: the torch's sprite alone, its size, pulled toward the camera and lifted to the wielder's middle.
+// The glow: the torch's flame sprite alone (45 units wide at 1), sized to the blade and pulled a little toward the
+// camera. The torch routine lifts it 4.6 units for the torches' brackets, which the glow takes back.
 constexpr int   kGlowLayers = 2;
-constexpr float kGlowScale = 1.0f;
-constexpr float kGlowPull = 5.0f;
-constexpr float kGlowLift = 4.0f;
+constexpr float kGlowScale = 0.35f;
+constexpr float kGlowPull = 1.0f;
+constexpr float kGlowTorchLift = 4.6f;
 
 struct State {
     SolarPhase          phase = SolarPhase::kIdle;
@@ -185,6 +187,28 @@ void Flash(const SolarProfile &profile) {
     sceVu0CopyVector(point, CharaMain.pos);
     state = {};
     SolarFlashAt(profile, point);
+}
+
+// Where the glow sits on the weapon: the middle of the blade (its first two hit points) when it has them, else the
+// weapon's own origin in the wielder's hand.
+bool WeaponGlowPoint(float *point) {
+    if (NowWeapon == nullptr || NowWeapon->frame == nullptr) {
+        return false;
+    }
+    sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 0.0f};
+    CFrame       *hilt = NowWeapon->frame->SearchFrame(const_cast<char *>("dcol0"));
+    CFrame       *tip = NowWeapon->frame->SearchFrame(const_cast<char *>("dcol1"));
+    if (hilt == nullptr || tip == nullptr) {
+        NowWeapon->frame->GetWorldPosition(point, origin);
+        return true;
+    }
+    sceVu0FVECTOR end;
+    hilt->GetWorldPosition(point, origin);
+    tip->GetWorldPosition(end, origin);
+    for (int c = 0; c < 3; c++) {
+        point[c] = (point[c] + end[c]) * 0.5f;
+    }
+    return true;
 }
 
 } // namespace
@@ -403,14 +427,13 @@ void SolarGlowDraw() {
     }
     static CFireOmni fire;
     fire.SetTexture(texture, texture);
-    // On the charged pellet while it flies, else on the wielder.
+    // On the charged pellet while it flies, else on the weapon.
     if (state.shots != nullptr) {
         sceVu0CopyVector(fire.pos, const_cast<float *>(state.shots->pos[state.pellet]));
-        fire.pos[1] -= 4.6f; // the sprite's own lift, which a pellet has no use for
-    } else {
-        sceVu0CopyVector(fire.pos, CharaMain.pos);
-        fire.pos[1] += kGlowLift;
+    } else if (!WeaponGlowPoint(fire.pos)) {
+        return;
     }
+    fire.pos[1] -= kGlowTorchLift;
     fire.pos[3] = 1.0f;
     float colour[4] = {128.0f, 128.0f, 128.0f, 128.0f};
     fire.DrawFire(1, 1, reinterpret_cast<CCamera *>(NowCamera__3), colour, kGlowScale * state.glow, kGlowLayers, kGlowPull);

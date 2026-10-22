@@ -9,7 +9,7 @@ class CSHOT;
 namespace expanded {
 
 // Solar Flash: hold guard with the sword drawn and the blade whitens as the room darkens; at full charge it is primed,
-// guard or not, and the wielder carries a glow. The next swing carries the charge: as it comes forward the room flashes white
+// guard or not, and the weapon carries a glow. The next swing carries the charge: as it comes forward the room flashes white
 // and eases back, every monster within kSolarFlashRadius takes a light hit and is shoved away from the flash, and the
 // floor is blinded (status/blind.hpp). The flash bills the weapon's wear. A charge left unused fades away. One flash
 // at a time: no charge while a blinding runs. Super Steve's Solar Shot charges the slingshot the same way, and its next
@@ -41,7 +41,7 @@ struct SolarProfile {
     float     damage_share;  // of the weapon's attack, as each monster's light hit (0 = none)
     float     flash_whp;     // what the flash bills the weapon, before Endurance
     float     prime_dim;     // how far the room darkens while charged (0..1)
-    bool      glow;          // Toan carries a glow while primed
+    bool      glow;          // the weapon carries a glow while primed
     FlashLook look;
 };
 
