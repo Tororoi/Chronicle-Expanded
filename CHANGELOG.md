@@ -82,6 +82,8 @@ Each section lists this repository's own changes first, then those that come fro
 
 ## Fixes
 
+- The Bomb Gemron throws its bombs again, and Expanded's other shot effects load again: since the last upstream update the game could not look inside the effect files Expanded reads for itself. [#202](https://github.com/Tororoi/Chronicle-Expanded/pull/202)
+
 ### From Chronicle
 
 - Treasure chests weight items by the dungeon's own rate list, so the Flapping Duster, Goddess Ring and Aga's Sword can drop. [Chronicle#76](https://github.com/TheMoonPeople/Chronicle/pull/76)
