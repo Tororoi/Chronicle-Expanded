@@ -12,6 +12,8 @@ Each section lists this repository's own changes first, then those that come fro
 - Plays from your own PAL or NTSC disc image: the first start asks for it and extracts the game's files. [Chronicle#61](https://github.com/TheMoonPeople/Chronicle/pull/61)
 - Linux Flatpak package. [adf65d80](https://github.com/TheMoonPeople/Chronicle/commit/adf65d80)
 - Game icons for every platform. [Chronicle#77](https://github.com/TheMoonPeople/Chronicle/pull/77)
+- Once your disc is extracted, the window shows the memory card's lamp icon from it, and Windows gets a Dark Cloud shortcut with that icon. [Chronicle#190](https://github.com/TheMoonPeople/Chronicle/pull/190), [Chronicle#208](https://github.com/TheMoonPeople/Chronicle/pull/208)
+- Nintendo Switch port (homebrew, Vulkan). [9b3ff321](https://github.com/TheMoonPeople/Chronicle/commit/9b3ff321), [0c9c0ee6](https://github.com/TheMoonPeople/Chronicle/commit/0c9c0ee6)
 - Discord Rich Presence showing the character and the town or dungeon floor, with a toggle. [Chronicle#68](https://github.com/TheMoonPeople/Chronicle/pull/68), [Chronicle#69](https://github.com/TheMoonPeople/Chronicle/pull/69)
 
 ## Display and graphics
