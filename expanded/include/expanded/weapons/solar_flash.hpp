@@ -49,6 +49,10 @@ struct SolarProfile {
     GlowLook  glow_look = GlowLook::kGold;
     bool      judgement = false; // locked on, the judgement blade hangs over the target and the first swing drops it
     float     land_whp = 0.0f;   // what the blade's landing bills, in place of the flash's
+    bool      primed_white = true; // the wielder keeps a slight white while primed
+    int       drop_frames = 0;     // the judgement blade's fall, paced to land in this many frames (0 = under gravity) …
+    bool      to_the_hilt = false; // … and into the ground to the hilt
+    bool      bolts = false;       // the Sword of Zeus: the swing calls its lightning (sword_of_zeus.hpp)
 };
 
 extern const SolarProfile kSunSwordFlash;
@@ -56,6 +60,12 @@ extern const SolarProfile kSunSwordFlash;
 extern const SolarProfile kBigBangFlash;
 // Super Steve carrying the Sun Sword's SynthSphere: Solar Shot.
 extern const SolarProfile kSolarShotFlash;
+// The Sword of Zeus: no hit of its own and an electric white eased away in two seconds; primed, the swing calls its
+// lightning. Locked on, the judgement blade (a red ring for its glow) falls to the hilt on the first swing, paced to
+// land as it comes forward, the bolt on the target; each later swing of the combo darkens the room as it winds up and
+// brings another bolt down as it comes forward, until the combo ends or the lock goes. Not locked on, the swing is a
+// volley.
+extern const SolarProfile kZeusFlash;
 
 // The charge's phase, for the tests and the other swords.
 enum class SolarPhase {
@@ -64,6 +74,7 @@ enum class SolarPhase {
     kPrimed,
     kWindup,  // the primed swing under way
     kDropping, // the judgement blade falling
+    kChain,    // the Sword of Zeus's combo, a bolt on each swing
     kFlying,  // the charged pellet out
     kLanding, // the pellet ended: the room plunges to black before the flash
     kFading,

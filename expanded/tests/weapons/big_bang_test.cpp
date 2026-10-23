@@ -156,6 +156,31 @@ TEST(BigBangShot, SuperSteveGuardsThreeSecondsThenHerShotFlashes) {
     expanded::SolarFlashReset();
 }
 
+TEST(BigBangShot, AGuardStopsTheChargedShotsBlast) {
+    Floor floor;
+    floor.floor.status().cur_chara = CHARA_XIAO;
+    expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_BIG_BANG);
+    // Held drawn a second, then let go.
+    BtActStatus.action_on = 1;
+    BtActStatus.action_no = 12; // Xiao drawing the slingshot back
+    for (int i = 0; i < expanded::kChargedShotFrames; i++) {
+        expanded::BigBangShotStep();
+    }
+    BtActStatus.action_on = 0;
+    expanded::BigBangShotStep();
+    static CSHOT shots;
+    shots.size[0] = 1.0f;
+    shots.damage[0] = 10;
+    expanded::BigBangShotFired(shots, 0);
+    EXPECT_EQ(shots.damage[0], 0);
+    const float landed[4] = {0.0f, 0.0f, 95.0f, 1.0f};
+    expanded::BigBangShotEnded(shots, 0, landed);
+    const COLLISION_HIT &hit = floor.hits->hit[0];
+    EXPECT_GT(hit.damage, 0);
+    EXPECT_FALSE(expanded::BlastHit(hit));
+    EXPECT_TRUE(expanded::MonsterGuardBlocks(floor.floor.unit(), 0, hit));
+}
+
 TEST(BigBang, ALandingBlindsOnlyOnceItsThrowIsOver) {
     Floor floor;
     floor.floor.status().cur_chara = CHARA_TOAN;

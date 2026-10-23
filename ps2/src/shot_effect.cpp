@@ -82,13 +82,19 @@ void CSHOT::step() {
                 pos[shot][1] += vector[shot][1];
                 pos[shot][2] += vector[shot][2];
             } else {
-                NowColData->Set(pos[shot], damage[shot], 1, 3.0f, 0.0f, 2, 2, 0, 0);
-                NowColData->SetUserID(1, 0);
-                s8              weapon_element = NowWeaponHave->best_elem;
-                CCollisionData *attr_col = NowColData;
-                attr_col->hit[attr_col->now_hit].flags = GetWeaponElementAttr(weapon_element);
-                NowColData->hit[NowColData->now_hit].weapon_flags = NowWeaponHave->flags;
-                NowColData->hit[NowColData->now_hit].vs_monster = NowWeaponHave->vs_monster;
+#ifdef CHRONICLE_EXPANDED
+                if (expanded::PelletHurts(*this, shot)) {
+#endif
+                    NowColData->Set(pos[shot], damage[shot], 1, 3.0f, 0.0f, 2, 2, 0, 0);
+                    NowColData->SetUserID(1, 0);
+                    s8              weapon_element = NowWeaponHave->best_elem;
+                    CCollisionData *attr_col = NowColData;
+                    attr_col->hit[attr_col->now_hit].flags = GetWeaponElementAttr(weapon_element);
+                    NowColData->hit[NowColData->now_hit].weapon_flags = NowWeaponHave->flags;
+                    NowColData->hit[NowColData->now_hit].vs_monster = NowWeaponHave->vs_monster;
+#ifdef CHRONICLE_EXPANDED
+                }
+#endif
 #ifdef CHRONICLE_EXPANDED
                 expanded::PelletEnded(*this, shot, hit_position, result == SHOT_COLLISION_MONSTER);
 #endif

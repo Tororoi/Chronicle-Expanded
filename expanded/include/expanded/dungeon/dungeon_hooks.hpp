@@ -54,6 +54,8 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster);
 // (CSHOT::step): the weapons that ride or answer her shots.
 void PelletFired(CSHOT &shots, int slot);
 void PelletEnded(const CSHOT &shots, int slot, const float *point, bool struck);
+// Whether a pellet ending lands its own hit: not one whose hit is a bolt or a bomb's blast.
+bool PelletHurts(const CSHOT &shots, int slot);
 
 // Whether the lock-on target's name plate is left off (setTargetCursor): something hangs over the target.
 bool TargetNameHidden();

@@ -8,9 +8,9 @@ struct COLLISION_HIT;
 namespace expanded {
 
 // The falloff blast: one hit sphere on each live monster in reach, its damage the weapon's attack times the step for
-// that monster's distance from the blast (to the nearest edge of its body spheres), no element, the weapon's own
-// abilities, a throw away from the blast, and no guard to stop it. Big Bang's whirlwind and judgement blade and Super
-// Steve's bombs plant it.
+// that monster's distance from the blast (to the nearest edge of its body spheres), no element unless asked, the weapon's own
+// abilities, a throw away from the blast, and no guard to stop it unless asked. Big Bang's whirlwind and judgement
+// blade, Super Steve's bombs and the Sword of Zeus's bolts plant it.
 
 struct BlastStep {
     float reach;
@@ -27,6 +27,8 @@ inline constexpr BlastStep kBlastFalloff[] = {
 // About 50 units at full strength (speed^2 / (2 decay)).
 inline constexpr KickBack kBlastKick = {3.5f, 0.12f};
 inline constexpr int      kBlastHitLife = 3;
+// A monster this near the blast's centre, across the floor, is thrown a random way.
+inline constexpr float kBlastCentred = 1.0f;
 // The frames a full throw takes to slow to a stop.
 inline constexpr int kBlastThrowFrames = static_cast<int>(kBlastKick.speed / kBlastKick.decay) + 1;
 
@@ -34,13 +36,23 @@ struct BlastOptions {
     float damage = 1.0f; // of the steps
     float reach = 1.0f;  // of the step reaches
     float kick = 1.0f;   // of the throw's speed
-    int   except = -1;   // a monster the blast leaves alone
+    int   except = -1;   // a monster the blast leaves alone …
+    int   spared = 0;    // … and these, one bit each
+    int   element = -1;  // the element the hit carries (WEAPON_ELEMENT_*), the weapon's own strength in it; -1 for none
     int   still = -1;    // a monster that takes the hit where it stands
+    bool  guardable = false; // a monster's guard stops it, as any hit's
 };
 
-// The blast at point with attack: how many monsters it reached.
+// The blast at point with attack, felt as the knockdown rumble: how many monsters it reached.
 int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOptions &options = {});
 
+// How a blast is felt in the hands: the rumble of a knockdown blow to the player (a blast that hurts), or a lighter
+// hit's (a shot's small burst). Both on the big motor, and only when the player has vibration on.
+enum class BlastRumble {
+    kKnockdown,
+    kLight,
+};
+void RumbleBlast(BlastRumble rumble);
 // The distance from point to the nearest edge of a monster's body spheres, across the floor (no height).
 float BlastDistance(const CMonstorUnit &unit, int monster, const float *point);
 
@@ -63,7 +75,7 @@ bool ExplosionAt(const float *point, float scale, float ring = 0.0f, BlastSound 
 // The game's shock ring at point growing out to ring, over the frames the game's bomb of scale takes (15 × scale).
 void ShockRingAt(const float *point, float ring, float scale);
 
-// Whether a hit is a blast's, which no guard stops.
+// Whether a hit is an unguardable blast's, which no guard stops.
 bool BlastHit(const COLLISION_HIT &hit);
 
 } // namespace expanded

@@ -6,13 +6,26 @@ namespace expanded {
 // rest of the game's sounds can be ducked under one: they drop to kDuckLevel as it goes off, hold kDuckHold frames,
 // then come back up as it fades out over its frames. Times are game frames.
 
-// A note of a program in the bank named bank inside the pack at path, sounding for frames.
+// A stretch of a note's sound: [from, to) seconds into it, faded out over its last fade seconds.
+struct OwnCut {
+    int   note;
+    float from;
+    float to;
+    float fade;
+};
+
+// A note of a program in the bank named bank inside the pack at path, sounding for frames; with variants, one of that
+// many notes from it picked at random each time (as the game picks among the storm's thunders). With cuts, it is one
+// of those stretches of the program's notes, at one of variants pitches a semitone apart about it.
 struct OwnSound {
-    const char *path;
-    const char *bank;
-    int         program;
-    int         note;
-    int         frames;
+    const char   *path;
+    const char   *bank;
+    int           program;
+    int           note;
+    int           frames;
+    int           variants = 1;
+    const OwnCut *cuts = nullptr;
+    int           cut_count = 0;
 };
 
 inline constexpr int   kOwnSoundPort = 9;
@@ -24,9 +37,9 @@ inline constexpr int   kDuckHold = 15;
 void RegisterOwnSound(const OwnSound &sound);
 // Reads, decodes and binds a sound's bank now; false when it is not on the disc.
 bool LoadOwnSound(const OwnSound &sound);
-// Plays a loaded sound at full volume, centred, ducking the game's other sounds under it with duck; false when its
-// bank is not loaded.
-bool PlayOwnSound(const OwnSound &sound, bool duck);
+// Plays a loaded sound at full volume, centred, ducking the game's other sounds under it with duck (of a sound with
+// cuts, the cut at that index, or one at random); false when its bank is not loaded.
+bool PlayOwnSound(const OwnSound &sound, bool duck, int cut = -1);
 // How far the game's other sounds are ducked now: 1 when they are not.
 float OwnSoundDuck();
 

@@ -125,11 +125,34 @@ struct Layer {
     int              vel_curve;
 };
 
+// A stretch of another bank's sample to make a bank of: the layer a key-on of note resolved to, [from, to) of its
+// samples in seconds, faded out over its last fade seconds.
+struct BankSlice {
+    Layer layer;
+    int   note = 60;
+    float from = 0.0f;
+    float to = 0.0f;
+    float fade = 0.0f;
+};
+
+// The note slice i sounds at in a bank of slices (program 0) as its source's note did; a note either side shifts it a
+// semitone, as the source's neighbours did.
+constexpr int kSliceNoteSpacing = 12;
+
+constexpr int SliceNote(int slice) {
+    return kSliceNoteSpacing * (slice + 1);
+}
+
 /**
  * Owns semantic instrument tables and PCM samples ready for allocation-free synthesis.
  */
 class Bank {
 public:
+    /**
+     * A bank of stretches of other banks' samples (BankSlice), each on program 0 at SliceNote, keeping its source's
+     * rate, volume and envelope.
+     */
+    static std::shared_ptr<Bank> CreateSlices(std::span<const BankSlice> slices);
     /**
      * Owns retail HD instruments and decodes their BD samples before playback starts.
      */

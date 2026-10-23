@@ -13,6 +13,7 @@
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
+#include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/wear.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
@@ -71,6 +72,37 @@ const SolarProfile kBigBangFlash = {
 
 namespace {
 
+// The first combo swing's frame the judgement blade is let go on, and the frame it comes forward on: the Sword of
+// Zeus's blade is paced to land between them, at the swing's own step (0.3 a frame).
+constexpr float kZeusDropFrom = 824.0f;
+constexpr float kZeusLandAt = 828.0f;
+constexpr float kSwingStep = 0.3f;
+
+} // namespace
+
+const SolarProfile kZeusFlash = {
+    .weapon_no = ITEM_WEAPON_SWORD_OF_ZEUS,
+    .charge_frames = kSolarChargeFrames,
+    .shot = false,
+    .damage_share = 0.0f,
+    .flash_whp = 0.0f, // each bolt bills its own
+    .prime_dim = 0.5f,
+    .glow = true,
+    .glow_size = 20.0f,
+    .glow_along = 0.5f,
+    .glow_axis = 0.0f,
+    .look = {.light = {228.0f, 240.0f, 255.0f}, .fog = {238.0f, 246.0f, 255.0f}, .fog_amount = 0.8f, .ease_frames = 120},
+    .glow_look = GlowLook::kRing,
+    .judgement = true,
+    .land_whp = 0.0f,
+    .primed_white = false,
+    .drop_frames = static_cast<int>((kZeusLandAt - kZeusDropFrom) / kSwingStep + 0.999f),
+    .to_the_hilt = true,
+    .bolts = true,
+};
+
+namespace {
+
 // Toan's swings: the combo's five hits, the lunge and the whirlwind.
 constexpr int kComboFirst = 0x24;
 constexpr int kComboLast = 0x28;
@@ -120,6 +152,8 @@ struct State {
     int                 pellet = -1;
     sceVu0FVECTOR       landed = {}; // where it ended
     int                 struck = -1; // the monster it struck there, or -1
+    int                 chain_action = -1;   // the Sword of Zeus's combo: the swing that last came forward …
+    bool                chain_fired = false; // … and whether its bolt came down
 };
 
 State state;
@@ -134,6 +168,9 @@ const SolarProfile *ActiveProfile() {
     }
     if (UserStatus->cur_chara == CHARA_TOAN && WeaponWielded(ITEM_WEAPON_BIG_BANG)) {
         return &kBigBangFlash;
+    }
+    if (UserStatus->cur_chara == CHARA_TOAN && WeaponWielded(ITEM_WEAPON_SWORD_OF_ZEUS)) {
+        return &kZeusFlash;
     }
     if (UserStatus->cur_chara == CHARA_XIAO && WeaponWielded(ITEM_WEAPON_SUPER_STEVE) && SuperSteveSphere() == ITEM_WEAPON_SUN_SWORD) {
         return &kSolarShotFlash;
@@ -203,6 +240,16 @@ bool SwingForward() {
     return time >= swing.hit && time <= swing.end;
 }
 
+bool Combo(int action) {
+    return BtActStatus.action_on != 0 && action >= kComboFirst && action <= kComboLast;
+}
+
+// A combo swing winding up: how far it is from its start to coming forward (0..1).
+float WindUp(int action) {
+    const Swing &swing = kCombo[action - kComboFirst];
+    return std::clamp((CharaMain.motion_type.state.time - swing.start) / (swing.hit - swing.start), 0.0f, 1.0f);
+}
+
 void SetWielder(float red, float green, float blue) {
     state.wielder[0] = red;
     state.wielder[1] = green;
@@ -258,6 +305,36 @@ void Flash(const SolarProfile &profile) {
     sceVu0CopyVector(point, CharaMain.pos);
     state = {};
     SolarFlashAt(profile, point);
+}
+
+// The Sword of Zeus's flash: no hit of its own, the blinding once the bolts' throws are over.
+void BoltFlash(const SolarProfile &profile, const float *point) {
+    SolarBlastFlash(profile, point, profile.flash_whp);
+}
+
+// The bolt on the locked target, its flash, and the combo chained from this swing: true when it came down.
+bool ChainFrom(const SolarProfile &profile, int target) {
+    if (target < 0 || !BoltOn(target)) {
+        return false;
+    }
+    BoltFlash(profile, CharaMain.pos);
+    state.phase = SolarPhase::kChain;
+    state.frames = 0;
+    state.chain_action = BtActStatus.action_no;
+    state.chain_fired = true;
+    return true;
+}
+
+// A primed Sword of Zeus swing come forward: locked on, the bolt and the chain; else the volley.
+void BoltSwing(const SolarProfile &profile) {
+    if (ChainFrom(profile, LockedTarget())) {
+        return;
+    }
+    sceVu0FVECTOR point;
+    sceVu0CopyVector(point, CharaMain.pos);
+    state = {};
+    BoltVolley(point);
+    BoltFlash(profile, point);
 }
 
 // Where a profile's glow sits on the weapon: on its model's length axis, or along between its first two hit points
@@ -422,7 +499,11 @@ void SolarFlashStep() {
         case SolarPhase::kWindup:
             s.blade = 1.0f;
             SceneDim(profile->prime_dim);
-            SetWielder(kSolarPrimedWhite, kSolarPrimedWhite, kSolarPrimedWhite);
+            if (profile->primed_white) {
+                SetWielder(kSolarPrimedWhite, kSolarPrimedWhite, kSolarPrimedWhite);
+            } else {
+                SetWielder(0.0f, 0.0f, 0.0f);
+            }
             if (profile->judgement) {
                 int target = LockedTarget();
                 if (target >= 0 && NowMonstorUnit != nullptr) {
@@ -442,24 +523,75 @@ void SolarFlashStep() {
                 break;
             }
             s.phase = SolarPhase::kWindup;
-            if (profile->judgement && JudgementHanging() && SwingDrops() && JudgementDrop()) {
+            if (profile->judgement && JudgementHanging() && SwingDrops() && JudgementDrop(profile->drop_frames, profile->to_the_hilt)) {
                 s.phase = SolarPhase::kDropping;
                 s.frames = 0;
                 break;
             }
             if (SwingForward()) {
-                Flash(*profile);
+                if (profile->bolts) {
+                    BoltSwing(*profile);
+                } else {
+                    Flash(*profile);
+                }
+            } else if (profile->bolts && Combo(BtActStatus.action_no)) {
+                // The room plunges to black along the swing, the bolt as it comes forward.
+                SceneDimRamp(profile->prime_dim, WindUp(BtActStatus.action_no));
             }
             break;
 
         case SolarPhase::kDropping: {
             // The room darkens along the fall, from the prime dim to black at the landing.
-            SceneDimRamp(profile->prime_dim, std::min(1.0f, static_cast<float>(s.frames) / kSolarDropFrames));
+            int fall = profile->drop_frames > 0 ? profile->drop_frames : kSolarDropFrames;
+            SceneDimRamp(profile->prime_dim, std::min(1.0f, static_cast<float>(s.frames) / fall));
             sceVu0FVECTOR point;
+            if (profile->bolts) {
+                // In the ground to the hilt as the swing comes forward: gone, and the bolt comes down on the target.
+                if (JudgementLanded(point) || !JudgementFalling()) {
+                    BoltSwing(*profile);
+                }
+                break;
+            }
             if (JudgementLanded(point)) {
                 Land(*profile, point);
             } else if (!JudgementFalling()) {
                 Flash(*profile); // the target went before it landed: the flash, as ever
+            }
+            break;
+        }
+
+        case SolarPhase::kChain: {
+            // The combo carries the charge: each swing darkens the room as it winds up and brings a bolt down on the
+            // target as it comes forward. A swing outside the combo, a new combo (an earlier swing, or the same one
+            // back before its hit frame) or the lock let go spends it.
+            int  action = BtActStatus.action_no;
+            bool swinging = Combo(action);
+            bool restarted = swinging && (action < s.chain_action ||
+                                          (action == s.chain_action && s.chain_fired &&
+                                           CharaMain.motion_type.state.time < kCombo[action - kComboFirst].hit - 1.0f));
+            int  target = LockedTarget();
+            if (!swinging || restarted || target < 0) {
+                if (!SceneFlashing()) {
+                    SceneDimEnd();
+                }
+                state = {};
+                break;
+            }
+            s.blade = 1.0f;
+            if (action != s.chain_action) {
+                s.chain_action = action;
+                s.chain_fired = false;
+            }
+            if (s.chain_fired) {
+                break;
+            }
+            if (!SwingForward()) {
+                SceneDimRamp(profile->prime_dim, WindUp(action));
+                break;
+            }
+            s.chain_fired = true;
+            if (BoltOn(target, true, Thunder::kCombo)) {
+                BoltFlash(*profile, CharaMain.pos);
             }
             break;
         }

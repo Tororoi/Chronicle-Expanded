@@ -16,6 +16,7 @@ enum class GlowLook {
     kGold, // a pale gold core out to a deeper gold edge
     kBlue, // a cyan core out to a deep blue edge
     kFire, // a warm core out to a deep red-orange edge
+    kRing, // nothing at the core out to a deep red edge: a red ring
     kCount,
 };
 

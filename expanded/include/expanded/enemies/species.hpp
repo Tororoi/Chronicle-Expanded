@@ -4,6 +4,7 @@
 
 #include "expanded/enemies/monsters.hpp"
 
+class CMonstorUnit;
 struct MONSTOR_MODEL;
 
 namespace expanded {
@@ -40,6 +41,13 @@ bool SpeciesBuilt(int model_no);
 
 // The retail kind an Expanded one is built on; a retail kind itself.
 int SpeciesStandIn(int model_no);
+
+// A kind's height above its root, authored kind by kind (begun as the top of its highest hurt sphere in the bind pose,
+// then corrected by eye): what a judgement blade or a hanging bomb clears. kSpeciesHeightFallback past the table.
+inline constexpr float kSpeciesHeightFallback = 20.0f;
+float                  SpeciesHeight(int model_no);
+// A floor monster's height above its root: its kind's, grown with a grown monster.
+float MonsterHeight(const CMonstorUnit &unit, int monster);
 
 // Hooks: SetupBaseModel's record, and the model and script files it loads.
 MONSTOR_MODEL *SpeciesRecord(int model_no);
