@@ -12,6 +12,7 @@
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/species.hpp"
 #include "expanded/status/blind.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/solar_flash.hpp"
@@ -164,6 +165,7 @@ void Explode(const float *point, float explosion, float blast, float ring, float
     if (NowMonstorUnit != nullptr && NowWeaponHave != nullptr && blast > 0.0f) {
         BlastOptions options;
         options.damage = options.reach = options.kick = blast;
+        options.guardable = true; // only the drop's blast passes a guard
         PlantBlast(*NowMonstorUnit, point, NowWeaponHave->attack, options);
     }
     ExplosionAt(point, explosion, ring, BlastSound::kSteve);
@@ -176,7 +178,7 @@ void HoverOver(int target) {
     NowMonstorUnit->chara[target][0].GetPosition(at);
     state.ground = at[1];
     state.hover_pos[0] = at[0];
-    state.hover_pos[1] = at[1] + NowMonstorUnit->chara[target][0].body_height + kHoverMargin + kBombHeight * kHoverBomb;
+    state.hover_pos[1] = at[1] + MonsterHeight(*NowMonstorUnit, target) + kHoverMargin + kBombHeight * kHoverBomb;
     state.hover_pos[2] = at[2];
     state.hover_pos[3] = 1.0f;
 }
@@ -367,6 +369,7 @@ void BigBangShotEnded(const CSHOT &shots, int slot, const float *point) {
         Explode(point, kChargedExplosion, kChargedBlast, kChargedRing, kChargedShotWhp);
     } else {
         ExplosionAt(point, kPlainExplosion);
+        RumbleBlast(BlastRumble::kLight);
     }
     flight = {};
 }
@@ -399,6 +402,14 @@ void BigBangShotDraw() {
         return;
     }
     DrawGlowDisc(GlowLook::kFire, state.hover_pos, kBombGlowSize * state.shown, kBombGlowPull);
+}
+
+bool BigBangShotBlasts(const CSHOT &shots, int slot) {
+    if (slot < 0 || slot >= 12) {
+        return false;
+    }
+    const Flight &flight = state.flights[slot];
+    return flight.shots == &shots && flight.pellet == slot && flight.charged;
 }
 
 } // namespace expanded

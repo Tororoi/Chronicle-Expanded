@@ -86,6 +86,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/enemies/miniboss_loot.hpp"
+#include "expanded/weapons/toan/sword_of_zeus.hpp"
 #endif
 
 // Defined by ps2/src/dun/gameloop.cpp without a header declaration.
@@ -1275,7 +1276,11 @@ PORT_OVERRIDE void DunMoveChara() {
                                                                 velo__2[0] += BtActStatus.jump_velocity_x;
                                                                 velo__2[1] += BtActStatus.jump_velocity_y;
                                                                 velo__2[2] += BtActStatus.jump_velocity_z;
+#ifdef CHRONICLE_EXPANDED
+                                                                BtActStatus.jump_velocity_y -= expanded::LungeGravity(0.1f);
+#else
                                                                 BtActStatus.jump_velocity_y -= 0.1f;
+#endif
                                                             }
 
                                                             if (BtActStatus.move_power > 0.0f) {
@@ -1695,6 +1700,10 @@ PORT_OVERRIDE void DunMoveChara() {
                                                                         to_target[1] = 0.0f;
                                                                         NowCamera__3->SetFollow(pos[0] + to_target[0], BtActStatus.camera_shake_offset + (to_target[1] + (6.0f + pos[1] + reference[1])), pos[2] + to_target[2]);
                                                                     }
+
+#ifdef CHRONICLE_EXPANDED
+                                                                    expanded::ZeusCameraHold(*NowCamera__3);
+#endif
 
                                                                     extern float camera_up_near_dist;
                                                                     float        normal_near = camera_up_near_dist;

@@ -5,10 +5,13 @@
 
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/random.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
+#include "gamepad.hpp"
 #include "itembombeffect.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
+#include "motionmodel.hpp"
 #include "snd.hpp"
 #include "userstatus.hpp"
 
@@ -16,8 +19,15 @@ namespace expanded {
 
 namespace {
 
-// A blast's hit carries this bit in its weapon flags, above the ones a weapon's record has.
+// An unguardable blast's hit carries this bit in its weapon flags, above the ones a weapon's record has.
 constexpr int kBlastMark = 0x40000000;
+
+// The game's own rumbles on the big motor, as BtCheckDamageProc gives the player: a knockdown blow, and a lighter hit.
+constexpr int kRumbleMotor = 1;
+constexpr int kKnockdownStrength = 0xE6;
+constexpr int kKnockdownFrames = 22;
+constexpr int kLightStrength = 0xDC;
+constexpr int kLightFrames = 12;
 
 bool HitFree() {
     for (int i = 0; i < 96; i++) {
@@ -51,14 +61,24 @@ float BlastDistance(const CMonstorUnit &unit, int monster, const float *point) {
     return std::hypot(position[0] - point[0], position[2] - point[2]);
 }
 
+void RumbleBlast(BlastRumble rumble) {
+    if (rumble == BlastRumble::kKnockdown) {
+        GamePad.SetVibration(kRumbleMotor, kKnockdownStrength, kKnockdownFrames);
+    } else {
+        GamePad.SetVibration(kRumbleMotor, kLightStrength, kLightFrames);
+    }
+}
+
 int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOptions &options) {
     if (NowColData == nullptr) {
         return 0;
     }
+    RumbleBlast(BlastRumble::kKnockdown);
     int reached = 0;
     for (int monster = 0; monster < 16; monster++) {
         const MONSTOR &live = unit.monster[monster];
-        if (monster == options.except || live.state == -1 || live.hp <= 0 || live.revealed != -1) {
+        if (monster == options.except || (options.spared >> monster & 1) != 0 || live.state == -1 || live.hp <= 0 ||
+            live.revealed != -1) {
             continue;
         }
         float distance = BlastDistance(unit, monster, point);
@@ -79,14 +99,27 @@ int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOp
         COLLISION_HIT &record = NowColData->hit[hit];
         record.owner = UserStatus != nullptr ? UserStatus->cur_chara : 0;
         record.attack_no = 0;
-        record.weapon_flags = kBlastMark;
+        record.weapon_flags = options.guardable ? 0 : kBlastMark;
         if (NowWeaponHave != nullptr) {
             record.vs_monster = NowWeaponHave->vs_monster;
             record.weapon_flags |= NowWeaponHave->flags;
         }
+        if (options.element >= 0) {
+            // CheckDmg takes the hit's element, with the weapon's strength in that one, whichever is selected.
+            record.flags = GetWeaponElementAttr(options.element);
+        }
         bool  still = monster == options.still || live.knockback[2] <= 0.0f;
         float speed = still ? 0.0f : kBlastKick.speed * options.kick;
-        NowColData->SetKickBack(const_cast<float *>(point), speed, kBlastKick.decay, 2);
+        // The throw is away from the blast; one centred on the monster itself has no away, so it goes a random way.
+        sceVu0FVECTOR origin = {point[0], point[1], point[2], 1.0f};
+        sceVu0FVECTOR at;
+        unit.chara[monster][0].GetPosition(at);
+        if (std::hypot(at[0] - point[0], at[2] - point[2]) < kBlastCentred) {
+            float angle = static_cast<float>(ModRoll(360)) * static_cast<float>(M_PI) / 180.0f;
+            origin[0] = at[0] - std::sin(angle);
+            origin[2] = at[2] - std::cos(angle);
+        }
+        NowColData->SetKickBack(origin, speed, kBlastKick.decay, 2);
         reached++;
     }
     return reached;

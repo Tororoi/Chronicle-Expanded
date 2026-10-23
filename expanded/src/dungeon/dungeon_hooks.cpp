@@ -28,7 +28,9 @@
 #include "expanded/weapons/toan/cross_hinder.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
 #include "expanded/weapons/toan/sun_sword.hpp"
+#include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
+#include "expanded/weapons/zeus_shot.hpp"
 
 namespace expanded {
 
@@ -56,6 +58,8 @@ void DungeonMonstersCleared(bool drop_stars) {
     ShotEffectsReset();
     SolarFlashReset();
     BigBangShotReset();
+    ZeusChargeReset();
+    ZeusShotReset();
     OwnSoundsReset();
 }
 
@@ -66,6 +70,8 @@ void DungeonMonstersTick() {
     CurseStep();
     SolarFlashStep();
     BigBangShotStep();
+    ZeusChargeStep();
+    ZeusShotStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
@@ -116,11 +122,17 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
 void PelletFired(CSHOT &shots, int slot) {
     SolarShotFired(shots, slot);
     BigBangShotFired(shots, slot);
+    ZeusShotFired(shots, slot);
 }
 
 void PelletEnded(const CSHOT &shots, int slot, const float *point, bool struck) {
     SolarShotEnded(shots, slot, point, struck);
     BigBangShotEnded(shots, slot, point);
+    ZeusShotEnded(shots, slot, point, struck);
+}
+
+bool PelletHurts(const CSHOT &shots, int slot) {
+    return !ZeusShotCallsBolt(shots, slot) && !BigBangShotBlasts(shots, slot);
 }
 
 bool TargetNameHidden() {

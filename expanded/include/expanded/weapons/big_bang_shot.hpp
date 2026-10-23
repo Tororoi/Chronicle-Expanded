@@ -8,10 +8,10 @@ namespace expanded {
 // Super Steve carrying Big Bang's SynthSphere: "Detonate" from Xiao's slingshot. Locked on, a guard hangs a kHoverBomb
 // times bomb over the target from its first frame, fading in red with a red-orange glow beside it over the
 // kBombChargeFrames the charge takes; charged, it pulses red to black once a second and the slingshot whitens. Her
-// next shot drops it for the blast, the explosion and Big Bang's flash and blinding (kBombDropWhp); with nothing
+// next shot drops it for the blast (which no guard stops), the explosion and Big Bang's flash and blinding (kBombDropWhp); with nothing
 // hanging, that shot is the flash alone from where she stands. Every pellet flies as a bomb: one held
-// kChargedShotFrames before it is let go is a kChargedBomb times bomb whose blast is half the drop's
-// (kChargedShotWhp); a plain one is a bomb at its own size that bursts where it lands, its own hit its damage. A
+// kChargedShotFrames before it is let go is a kChargedBomb times bomb whose blast is half the drop's, and a guard
+// stops it (kChargedShotWhp); a plain one is a bomb at its own size that bursts where it lands, its own hit its damage. A
 // charge unused for kBombPrimedFrames is spent. Times are game frames.
 
 inline constexpr int   kBombChargeFrames = 180;
@@ -42,5 +42,7 @@ void BigBangShotDraw();
 void BigBangShotFired(CSHOT &shots, int slot);
 void BigBangShotEnded(const CSHOT &shots, int slot, const float *point);
 void BigBangShotLight(const CCharacter &character, float *ambient);
+// Whether a pellet out is a charged bomb (its blast is its hit, so it hurts nothing itself).
+bool BigBangShotBlasts(const CSHOT &shots, int slot);
 
 } // namespace expanded

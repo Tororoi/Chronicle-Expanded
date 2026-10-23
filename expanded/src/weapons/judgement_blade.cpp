@@ -7,6 +7,7 @@
 #include "character.hpp"
 #include "dataalloc.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/enemies/species.hpp"
 #include "frame.hpp"
 #include "mds.hpp"
 #include "mglib.hpp"
@@ -39,6 +40,11 @@ struct Blade {
     float         speed = 0.0f; // falling, units a frame
     float         yaw = 0.0f;
     bool          copied = false;
+    bool          at_point = false; // hung over a point, no monster under it
+    int           paced = 0;        // frames left in a paced fall; 0 under gravity
+    bool          to_the_hilt = false;
+    float         length = kJudgementLength; // the copied sword's reach from its grip, at its own size
+    const CFrame *source = nullptr;          // the sword in hand it was copied from
 };
 
 Blade      blade;
@@ -65,23 +71,36 @@ bool Copy() {
     copy.frame->parent = nullptr;
     copy.SetScale(kJudgementScale, kJudgementScale, kJudgementScale);
     blade.copied = true;
+    blade.source = MainWeapon.frame;
+    // Its reach: grip to its tip's hit point (dcol1), as the sword in hand has it.
+    CFrame *tip = MainWeapon.frame->SearchFrame(const_cast<char *>("dcol1"));
+    if (tip != nullptr) {
+        sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, grip, end;
+        MainWeapon.frame->GetWorldPosition(grip, origin);
+        tip->GetWorldPosition(end, origin);
+        float length = std::hypot(end[0] - grip[0], end[1] - grip[1], end[2] - grip[2]);
+        blade.length = length > 1.0f ? length : kJudgementLength;
+    }
     return true;
 }
 
 bool Alive(const Blade &b) {
+    if (b.at_point) {
+        return true;
+    }
     return b.unit != nullptr && b.monster >= 0 && b.unit->monster[b.monster].state != -1 && b.unit->monster[b.monster].hp > 0;
 }
 
 float Reach() {
-    return kJudgementLength * kJudgementScale;
+    return blade.length * kJudgementScale;
 }
 
-// The grip's height over the monster: its tip kJudgementMargin over the monster's head.
+// The grip's height over the monster: its tip kJudgementMargin over the kind's height (grown with a grown monster).
 void PlaceOver(Blade &b) {
     sceVu0FVECTOR at;
     b.unit->chara[b.monster][0].GetPosition(at);
     b.grip[0] = at[0];
-    b.grip[1] = at[1] + b.unit->chara[b.monster][0].body_height + kJudgementMargin + Reach();
+    b.grip[1] = at[1] + MonsterHeight(*b.unit, b.monster) + kJudgementMargin + Reach();
     b.grip[2] = at[2];
     b.ground = at[1];
     b.yaw = CharaMain.rotation.y;
@@ -93,7 +112,7 @@ void JudgementHover(CMonstorUnit &unit, int monster) {
     if (blade.phase == Phase::kFalling || blade.phase == Phase::kLanded) {
         return;
     }
-    if (!blade.copied) {
+    if (!blade.copied || blade.source != MainWeapon.frame) {
         Copy(); // without a sword to copy it hangs unseen
     }
     if (blade.monster != monster || blade.unit != &unit) {
@@ -101,10 +120,30 @@ void JudgementHover(CMonstorUnit &unit, int monster) {
     }
     blade.unit = &unit;
     blade.monster = monster;
+    blade.at_point = false;
     blade.phase = Phase::kHanging;
     if (Alive(blade)) {
         PlaceOver(blade);
     }
+}
+
+void JudgementHoverAt(const float *point, float height, float shown) {
+    if (blade.phase == Phase::kFalling || blade.phase == Phase::kLanded) {
+        return;
+    }
+    if (!blade.copied || blade.source != MainWeapon.frame) {
+        Copy();
+    }
+    blade.unit = nullptr;
+    blade.monster = -1;
+    blade.at_point = true;
+    blade.phase = Phase::kHanging;
+    blade.grip[0] = point[0];
+    blade.grip[1] = point[1] + height;
+    blade.grip[2] = point[2];
+    blade.ground = point[1];
+    blade.yaw = CharaMain.rotation.y;
+    blade.shown = std::clamp(shown, 0.0f, 1.0f);
 }
 
 void JudgementRelease() {
@@ -113,12 +152,14 @@ void JudgementRelease() {
     }
 }
 
-bool JudgementDrop() {
+bool JudgementDrop(int frames, bool to_the_hilt) {
     if (blade.phase != Phase::kHanging || !Alive(blade)) {
         return false;
     }
     blade.phase = Phase::kFalling;
     blade.speed = 0.0f;
+    blade.paced = std::max(0, frames);
+    blade.to_the_hilt = to_the_hilt;
     return true;
 }
 
@@ -141,6 +182,7 @@ bool JudgementLanded(float *point) {
     blade.phase = Phase::kNone;
     blade.shown = 0.0f;
     blade.monster = -1;
+    blade.at_point = false;
     return true;
 }
 
@@ -170,7 +212,9 @@ float JudgementShown() {
 void JudgementStep() {
     switch (blade.phase) {
         case Phase::kHanging:
-            blade.shown = std::min(1.0f, blade.shown + 1.0f / kJudgementFadeFrames);
+            if (!blade.at_point) { // a point's hover is shown as its owner says
+                blade.shown = std::min(1.0f, blade.shown + 1.0f / kJudgementFadeFrames);
+            }
             if (!Alive(blade)) {
                 blade.phase = Phase::kFading;
             }
@@ -185,16 +229,21 @@ void JudgementStep() {
         case Phase::kFalling: {
             // A blade let go still fading in finishes on the way down.
             blade.shown = std::min(1.0f, blade.shown + 1.0f / kJudgementFadeFrames);
-            if (Alive(blade)) {
+            if (!blade.at_point && Alive(blade)) {
                 sceVu0FVECTOR at;
                 blade.unit->chara[blade.monster][0].GetPosition(at);
                 blade.grip[0] = at[0];
                 blade.grip[2] = at[2];
                 blade.ground = at[1];
             }
-            blade.speed += kJudgementGravity * kFrameSeconds * kFrameSeconds;
-            blade.grip[1] -= blade.speed;
-            float stop = blade.ground + Reach();
+            float stop = blade.ground + (blade.to_the_hilt ? 0.0f : Reach());
+            if (blade.paced > 0) {
+                // The rest of the way in the frames left, evenly.
+                blade.grip[1] -= (blade.grip[1] - stop) / static_cast<float>(blade.paced--);
+            } else {
+                blade.speed += kJudgementGravity * kFrameSeconds * kFrameSeconds;
+                blade.grip[1] -= blade.speed;
+            }
             if (blade.grip[1] <= stop) {
                 blade.grip[1] = stop;
                 blade.phase = Phase::kLanded;

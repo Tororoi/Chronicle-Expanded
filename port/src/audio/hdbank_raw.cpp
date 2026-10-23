@@ -199,4 +199,44 @@ std::shared_ptr<Bank> Bank::Create(std::span<const std::uint8_t> hd, std::span<c
     return bank;
 }
 
+std::shared_ptr<Bank> Bank::CreateSlices(std::span<const BankSlice> slices) {
+    auto       bank = std::make_shared<Bank>();
+    HdProgram &program = bank->header_.programs.emplace_back();
+    program.present = true;
+    for (std::size_t i = 0; i < slices.size(); i++) {
+        const BankSlice &slice = slices[i];
+        if (slice.layer.split == nullptr || slice.layer.sample == nullptr || slice.layer.vag == nullptr) {
+            return nullptr;
+        }
+        const int note = SliceNote(static_cast<int>(i));
+        HdSplit   split = *slice.layer.split;
+        split.sample_set = static_cast<int>(i);
+        split.key_low = static_cast<std::uint8_t>(note - 2);
+        split.key_high = static_cast<std::uint8_t>(note + 2);
+        program.splits.push_back(split);
+        HdSampleSet &set = bank->header_.sample_sets.emplace_back();
+        set.vel_curve = static_cast<std::uint8_t>(slice.layer.vel_curve);
+        set.samples.push_back(static_cast<int>(i));
+        // Its pitch at its note is its source's at slice.note.
+        HdSample sample = *slice.layer.sample;
+        sample.vag = static_cast<int>(i);
+        sample.base_note = static_cast<std::uint8_t>(std::clamp(sample.base_note + note - slice.note, 0, 127));
+        bank->header_.samples.push_back(sample);
+        HdVagInfo &info = bank->header_.vags.emplace_back();
+        info.rate = slice.layer.rate;
+        // The stretch, faded out to its end.
+        const std::vector<std::int16_t> &pcm = slice.layer.vag->pcm;
+        const std::size_t                from = std::min(pcm.size(), static_cast<std::size_t>(std::max(0.0f, slice.from) * slice.layer.rate));
+        const std::size_t                to = std::clamp(static_cast<std::size_t>(std::max(0.0f, slice.to) * slice.layer.rate), from, pcm.size());
+        VagSample                       &cut = bank->decoded_.emplace_back();
+        cut.pcm.assign(pcm.begin() + static_cast<std::ptrdiff_t>(from), pcm.begin() + static_cast<std::ptrdiff_t>(to));
+        const std::size_t fade = std::min(cut.pcm.size(), static_cast<std::size_t>(std::max(0.0f, slice.fade) * slice.layer.rate));
+        for (std::size_t k = 0; k < fade; k++) {
+            std::size_t at = cut.pcm.size() - fade + k;
+            cut.pcm[at] = static_cast<std::int16_t>(cut.pcm[at] * static_cast<float>(fade - k) / static_cast<float>(fade));
+        }
+    }
+    return bank;
+}
+
 } // namespace audio

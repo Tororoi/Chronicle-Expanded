@@ -34,6 +34,7 @@
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/kitchen_knife.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
+#include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
 #endif
 
@@ -457,7 +458,11 @@ void ToanKey_Play() {
             setUnitAmbientAnime(15.0f, 1.0f, 0.0f, 122.0f, 208.0f);
         }
 
+#ifdef CHRONICLE_EXPANDED
+        if (UserStatus->skill_owned[0] != 0 && expanded::WhirlwindAllowed() && BtActStatus.charge_time >= 2.5f && BtActStatus.charge_level == 1) {
+#else
         if (UserStatus->skill_owned[0] != 0 && BtActStatus.charge_time >= 2.5f && BtActStatus.charge_level == 1) {
+#endif
             BtActStatus.charge_level = 2;
             setUnitAmbientAnime(15.0f, 1.0f, 0.0f, 122.0f, 208.0f);
         }
@@ -466,7 +471,11 @@ void ToanKey_Play() {
             if (BtActStatus.charge_time >= 1.5f) {
                 int charged = 0;
 
+#ifdef CHRONICLE_EXPANDED
+                if (UserStatus->skill_owned[0] != 0 && expanded::WhirlwindAllowed() && BtActStatus.charge_time >= 2.5f) {
+#else
                 if (UserStatus->skill_owned[0] != 0 && BtActStatus.charge_time >= 2.5f) {
+#endif
                     charged = 1;
                 }
 
@@ -556,7 +565,11 @@ void ToanKey_Play() {
             shot_to[1] = shot_from[1];
             shot_to[2] += shot_from[2];
             BtActStatus.jumping = 1;
+#ifdef CHRONICLE_EXPANDED
+            ParabolicInitialVector(&BtActStatus.jump_velocity_x, shot_from, shot_to, expanded::LungeGravity(0.1f), 40.0f);
+#else
             ParabolicInitialVector(&BtActStatus.jump_velocity_x, shot_from, shot_to, 0.1f, 40.0f);
+#endif
             BtActStatus.jump_velocity_z = 0.0f;
             BtActStatus.jump_velocity_x = 0.0f;
         }

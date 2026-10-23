@@ -11,17 +11,20 @@ namespace expanded {
 // are game frames.
 
 inline constexpr float kJudgementScale = 2.0f;
-inline constexpr float kJudgementMargin = 6.0f;    // the tip over the monster's height
+inline constexpr float kJudgementMargin = 2.0f;    // the tip over the monster's height
 inline constexpr float kJudgementLength = 10.1f;   // the sword's reach from its grip, at its own size
 inline constexpr float kJudgementGravity = 500.0f; // units a second squared
 inline constexpr int   kJudgementFadeFrames = 15;
 
 // Hangs the copy over monster (fading in; a new monster takes it over at once).
 void JudgementHover(CMonstorUnit &unit, int monster);
+// Hangs the copy with its grip height over point, shown that much (0..1), with no monster under it.
+void JudgementHoverAt(const float *point, float height, float shown);
 // Lets the hanging copy fade away.
 void JudgementRelease();
-// Lets the hanging copy fall: false when none hangs.
-bool JudgementDrop();
+// Lets the hanging copy fall: false when none hangs. Paced, it comes down in frames at an even speed rather than under
+// gravity; to the hilt, until its grip is at the ground (the blade in it) rather than its tip.
+bool JudgementDrop(int frames = 0, bool to_the_hilt = false);
 bool JudgementHanging();
 bool JudgementFalling();
 // The landing, once: true with where it struck (the monster's feet).
