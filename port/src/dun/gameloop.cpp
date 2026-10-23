@@ -950,7 +950,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
     if (DebugStatus[20] == 2) {
         CUserStatus *status = UserStatus;
 
-        status->hp[status->cur_chara] = status->max_hp[status->cur_chara];
+        status->hp[static_cast<int>(status->cur_chara)] = status->max_hp[static_cast<int>(status->cur_chara)];
         return 0;
     }
 
@@ -994,7 +994,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
             }
 
             int            damage = NowColData->Get(hit_no)->damage;
-            int            guard = UserStatus->defense[UserStatus->cur_chara];
+            int            guard = UserStatus->defense[static_cast<int>(UserStatus->cur_chara)];
             int            monster;
             int            roll;
             COLLISION_HIT *hit = &NowColData->hit[hit_no];
@@ -1079,7 +1079,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
                 }
             }
 
-            if ((hit->flags & 0x200) && roll < 0x41 && (UserStatus->ailments[UserStatus->cur_chara] & AILMENT_POISON) == 0) {
+            if ((hit->flags & 0x200) && roll < 0x41 && (UserStatus->ailments[static_cast<int>(UserStatus->cur_chara)] & AILMENT_POISON) == 0) {
                 int slot = (static_cast<CDngStatusData *>(UserStatus))->CheckActItemSlot(ITEM_ANTIDOTE_AMULET);
 
                 if (slot == -1) {
@@ -1104,7 +1104,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
                 }
             }
 
-            if ((hit->flags & 0x400) && roll < 0x41 && (UserStatus->ailments[UserStatus->cur_chara] & AILMENT_CURSE) == 0) {
+            if ((hit->flags & 0x400) && roll < 0x41 && (UserStatus->ailments[static_cast<int>(UserStatus->cur_chara)] & AILMENT_CURSE) == 0) {
                 int slot = (static_cast<CDngStatusData *>(UserStatus))->CheckActItemSlot(ITEM_ANTICURSEAMULET);
 
                 if (slot == -1) {
@@ -1129,7 +1129,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
                 }
             }
 
-            if ((hit->flags & 0x800) && roll < 0x41 && (UserStatus->ailments[UserStatus->cur_chara] & AILMENT_GOO) == 0) {
+            if ((hit->flags & 0x800) && roll < 0x41 && (UserStatus->ailments[static_cast<int>(UserStatus->cur_chara)] & AILMENT_GOO) == 0) {
                 int slot = (static_cast<CDngStatusData *>(UserStatus))->CheckActItemSlot(ITEM_ANTIGOO_AMULET);
 
                 if (slot == -1) {
@@ -1156,7 +1156,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
 
             // A hit that halves takes half of what the player can hold.
             if (hit->flags & 0x80000) {
-                damage = UserStatus->max_hp[UserStatus->cur_chara] >> 1;
+                damage = UserStatus->max_hp[static_cast<int>(UserStatus->cur_chara)] >> 1;
             }
 
             if (NowColData->hit[hit_no].kind == 3) {
@@ -1195,7 +1195,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
                         NowColData->active[hit_no] = 0;
                     }
 
-                    if (damage < UserStatus->hp[UserStatus->cur_chara]) {
+                    if (damage < UserStatus->hp[static_cast<int>(UserStatus->cur_chara)]) {
                         BtActStatus.action_on = 5;
                         BtActStatus.motion_no = 6;
                         CharaMain.motion_type.state.time = static_cast<float>(CharaMain.motion_type.motion_info[6].start);
@@ -1305,7 +1305,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
     if (DebugStatus[20] > 0) {
         CUserStatus *status = UserStatus;
 
-        status->hp[status->cur_chara] = status->max_hp[status->cur_chara];
+        status->hp[static_cast<int>(status->cur_chara)] = status->max_hp[static_cast<int>(status->cur_chara)];
     }
 
     return taken;

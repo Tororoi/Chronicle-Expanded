@@ -267,6 +267,7 @@ int GetMenuCommonPutXY(ClsMes *mes, int x) {
     mes->NeedMesWinWH(mes->mes_made, size);
     put_x -= size[2] >> 1;
     mes->text_x = put_x;
+    PORT_RETURN(put_x);
 }
 
 /**
@@ -2650,6 +2651,7 @@ int SeitonAttachBoard(ATTACH_LIST *attachments) {
             asort_top_type = 0;
         }
     }
+    PORT_RETURN(1);
 }
 
 int WhatIsKindofItem(int item_no) {
