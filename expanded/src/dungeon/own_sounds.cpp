@@ -1,0 +1,148 @@
+#include "expanded/dungeon/own_sounds.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "audio/hdbank.hpp"
+#include "audio/mixer.hpp"
+#include "dataread.hpp"
+#include "dataread_port.hpp"
+#include "sound_port.hpp"
+
+namespace expanded {
+
+namespace {
+
+struct OwnBank {
+    std::shared_ptr<const audio::Bank> bank;
+    int                                select = 0; // its CC 0 on the port, bound once
+};
+
+std::map<std::pair<std::string, std::string>, OwnBank> own_banks;
+
+// The sounds read as a floor loads.
+std::vector<OwnSound> &OwnSounds() {
+    static std::vector<OwnSound> sounds;
+    return sounds;
+}
+
+struct Duck {
+    int frames = 0; // since the sound went off
+    int length = 0; // the sound's frames; 0 for no duck
+};
+
+Duck duck;
+
+void Send(std::array<std::uint8_t, 8> message) {
+    audio::DefaultMixer().HsMessage(kOwnSoundPort, message);
+}
+
+} // namespace
+
+void RegisterOwnSound(const OwnSound &sound) {
+    OwnSounds().push_back(sound);
+}
+
+bool LoadOwnSound(const OwnSound &sound) {
+    auto key = std::make_pair(std::string(sound.path), std::string(sound.bank));
+    if (auto found = own_banks.find(key); found != own_banks.end()) {
+        return found->second.bank != nullptr;
+    }
+    std::shared_ptr<const audio::Bank> bank;
+    std::uintmax_t                     size = DataFileSize(sound.path);
+    if (size > 0) {
+        // A buffer of its own (read_buffer may hold the floor's data), whole sectors long.
+        std::vector<u_int> pack((size + 2 * 2048) / sizeof(u_int));
+        char               path[128];
+        std::snprintf(path, sizeof(path), "%s", sound.path);
+        if (LoadFile2(path, pack.data(), nullptr, 0) != 0) {
+            char body[64];
+            std::snprintf(body, sizeof(body), "%s", sound.bank);
+            int   header_size = 0, body_size = 0;
+            auto *hd = reinterpret_cast<const std::uint8_t *>(GetPackFile(pack.data(), body, &header_size));
+            if (char *dot = std::strrchr(body, '.'); dot != nullptr) {
+                std::strcpy(dot, ".bd");
+            }
+            auto *bd = reinterpret_cast<const std::uint8_t *>(GetPackFile(pack.data(), body, &body_size));
+            if (hd != nullptr && bd != nullptr) {
+                bank = audio::Bank::Create({hd, static_cast<std::size_t>(header_size)}, {bd, static_cast<std::size_t>(body_size)});
+            }
+        }
+        DataReadForgetPack(pack.data());
+    }
+    // Each bank keeps a CC 0 of its own: binding over a bound bank silences the port.
+    int select = static_cast<int>(own_banks.size());
+    if (bank != nullptr && select < kOwnSoundBanks) {
+        audio::DefaultMixer().BindBank(kOwnSoundPort, select, bank);
+        SetPortVolume(kOwnSoundPort, audio::kFullPortVolume);
+    } else {
+        bank = nullptr;
+    }
+    own_banks.emplace(key, OwnBank{bank, select});
+    return bank != nullptr;
+}
+
+bool PlayOwnSound(const OwnSound &sound, bool ducked) {
+    auto found = own_banks.find({sound.path, sound.bank});
+    if (found == own_banks.end() || found->second.bank == nullptr) {
+        return false;
+    }
+    // As CSound::SE_Play sends an effect: the program, the bank, the volume and pan, then the key-on.
+    audio::Mixer &mixer = audio::DefaultMixer();
+    mixer.ShortMessage(kOwnSoundPort, static_cast<std::uint32_t>(((sound.program & 0x7F) << 8) | 0xC0));
+    mixer.ShortMessage(kOwnSoundPort, static_cast<std::uint32_t>(0xB0 | (found->second.select << 16)));
+    Send({0xF9, 0, 0, 0x7F, 0});
+    Send({0xF9, 1, 0, 0x40, 0});
+    Send({0xFD, 0x10, 0, static_cast<std::uint8_t>(sound.note), 0, 0x7F, 0});
+    if (ducked) {
+        duck = {0, std::max(sound.frames, kDuckHold + 1)};
+        DuckPorts(kDuckLevel, kOwnSoundPort);
+    }
+    return true;
+}
+
+float OwnSoundDuck() {
+    if (duck.length == 0) {
+        return 1.0f;
+    }
+    if (duck.frames <= kDuckHold) {
+        return kDuckLevel;
+    }
+    float k = static_cast<float>(duck.frames - kDuckHold) / static_cast<float>(duck.length - kDuckHold);
+    return std::min(1.0f, kDuckLevel + (1.0f - kDuckLevel) * k);
+}
+
+void OwnSoundsFloorLoaded() {
+    for (const OwnSound &sound : OwnSounds()) {
+        LoadOwnSound(sound);
+    }
+}
+
+void OwnSoundsStep() {
+    if (duck.length == 0) {
+        return;
+    }
+    duck.frames++;
+    float level = OwnSoundDuck();
+    if (level >= 1.0f) {
+        duck = {};
+    }
+    DuckPorts(level, kOwnSoundPort);
+}
+
+void OwnSoundsReset() {
+    if (duck.length != 0) {
+        duck = {};
+        DuckPorts(1.0f, kOwnSoundPort);
+    }
+}
+
+} // namespace expanded

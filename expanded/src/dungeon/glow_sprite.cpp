@@ -27,6 +27,8 @@ struct Ramp {
 
 constexpr Ramp kRamps[] = {
     {{255, 238, 180}, {255, 176, 40}}, // kGold
+    {{15, 219, 255},  {60, 67, 255} }, // kBlue
+    {{128, 118, 52},  {200, 5, 0}   }, // kFire
 };
 static_assert(std::size(kRamps) == static_cast<std::size_t>(GlowLook::kCount));
 
@@ -137,7 +139,7 @@ void GlowPictureEntered(const char *name, const PortDecodedTexture &decoded) {
     }
 }
 
-void DrawGlowDisc(GlowLook look, const float *at, float diameter, float pull) {
+void DrawGlowDisc(GlowLook look, const float *at, float diameter, float pull, float nearer) {
     CTexture *texture = GlowTexture(look);
     if (texture == nullptr || NowCamera__3 == nullptr || diameter <= 0.0f) {
         return;
@@ -148,9 +150,12 @@ void DrawGlowDisc(GlowLook look, const float *at, float diameter, float pull) {
     camera->GetRef(ref);
     sceVu0SubVector(toward, toward, ref);
     sceVu0Normalize(toward, toward);
-    sceVu0ScaleVector(toward, toward, pull);
     sceVu0CopyVector(world, const_cast<float *>(at));
+    for (int c = 0; c < 3; c++) {
+        world[c] += toward[c] * nearer;
+    }
     world[3] = 1.0f;
+    sceVu0ScaleVector(toward, toward, pull);
     // The sprite's height is in the half-height rows the game's screen is laid out in (the torches ask 18 x 9 of a
     // round glow).
     const float height = diameter / 2.0f;

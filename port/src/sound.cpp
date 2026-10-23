@@ -1,6 +1,7 @@
 #include "sound.hpp"
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -16,6 +17,7 @@
 #include "dataread.hpp"
 #include "platform/audio.hpp"
 #include "platform/config.hpp"
+#include "sound_port.hpp"
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/enemies/sounds.hpp"
@@ -76,6 +78,17 @@ constexpr FadeRoute kFadeRoutes[] = {
 
 audio::Mixer &Player() {
     return audio::DefaultMixer();
+}
+
+std::array<int, audio::kPorts>   g_port_volumes = {};
+std::array<float, audio::kPorts> g_port_ducks = [] {
+    std::array<float, audio::kPorts> ducks;
+    ducks.fill(1.0f);
+    return ducks;
+}();
+
+void ApplyPortVolume(int port) {
+    Player().SetVolume(port, static_cast<int>(std::lround(g_port_volumes[port] * g_port_ducks[port])));
 }
 
 void RenderOutput(void *, float *out, int frames) {
@@ -153,7 +166,7 @@ void TakeBank(int slot) {
 void BindPort(int slot, int port, int attribute) {
     Player().BindBank(port, g_slot_banks[slot]);
     Player().SetAttribute(port, attribute);
-    Player().SetVolume(port, 0);
+    SetPortVolume(port, 0);
 }
 
 int LoadSlotA(const std::uint8_t *hd, int hd_size, const std::uint8_t *bd, int bd_size) {
@@ -296,7 +309,7 @@ void StartSequence(int port, int seq_no, const int *volume) {
     Player().SetSequence(port, g_slot_sequences[slot][seq_no]);
     // The soundtrack option: a recording named for this sequence plays in its place.
     Player().SetStream(port, audio::SoundtrackFor(std::string_view(state.sequence[seq_no]->name, strnlen(state.sequence[seq_no]->name, 9))));
-    Player().SetVolume(port, volume != nullptr ? *volume : state.sequence[seq_no]->volume);
+    SetPortVolume(port, volume != nullptr ? *volume : state.sequence[seq_no]->volume);
     Player().Rewind(port, 0);
     Player().Play(port);
 }
@@ -598,7 +611,7 @@ PORT_OVERRIDE void CSound::Fade(int port, float step, int volume) {
             fade.active = true;
             fade.target_volume = volume;
             fade.step = step;
-            fade.volume = Player().Volume(port);
+            fade.volume = PortVolume(port);
             return;
         }
     }
@@ -638,10 +651,10 @@ PORT_OVERRIDE void CSound::Stop(int port) {
 }
 
 PORT_OVERRIDE void CSound::SetVol(int port, int volume) {
-    if (Player().Volume(port) != volume) {
+    if (PortVolume(port) != volume) {
         audio::Trace("SetVol port %d volume %d", port, volume);
     }
-    Player().SetVolume(port, volume);
+    SetPortVolume(port, volume);
 }
 
 // The stereo option is config.json's audio.sound, not the one the load screen reads out of a save.
@@ -694,4 +707,26 @@ PORT_OVERRIDE int CSound::LoadSeq_E(int, int) {
 
 PORT_OVERRIDE int CSound::LoadSeq_I(int, int) {
     return -1;
+}
+
+int PortVolume(int port) {
+    return port >= 0 && port < audio::kPorts ? g_port_volumes[port] : 0;
+}
+
+void SetPortVolume(int port, int volume) {
+    if (port < 0 || port >= audio::kPorts) {
+        return;
+    }
+    g_port_volumes[port] = volume;
+    ApplyPortVolume(port);
+}
+
+void DuckPorts(float gain, int except) {
+    for (int port = 0; port < audio::kPorts; port++) {
+        float duck = port == except ? 1.0f : gain;
+        if (g_port_ducks[port] != duck) {
+            g_port_ducks[port] = duck;
+            ApplyPortVolume(port);
+        }
+    }
 }

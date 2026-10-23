@@ -5,6 +5,7 @@
 
 #include "audio/mixer.hpp"
 #include "audio/trace.hpp"
+#include "sound_port.hpp"
 
 // The EZMIDI RPC as the port's mixer answers it. CSound (port/src/sound.cpp) talks to the mixer
 // directly and never comes here; this keeps the command table answerable for anything else.
@@ -38,7 +39,7 @@ PORT_OVERRIDE int ezMidi(int command, int argument) {
             mixer.SetAttribute(port, argument);
             return 0;
         case 0xB0:
-            mixer.SetVolume(port, argument);
+            SetPortVolume(port, argument);
             return 0;
         case 0xC0:
             mixer.SetStereo(argument != 0);
@@ -46,7 +47,7 @@ PORT_OVERRIDE int ezMidi(int command, int argument) {
         case 0x8090:
             return mixer.IsPlaying(port) ? 1 : 0;
         case 0x80E0:
-            return mixer.Volume(port);
+            return PortVolume(port);
         default:
             // The rest carry IOP addresses, which the port has no equivalent of.
             std::fprintf(stderr, "ezMidi: command 0x%X takes an IOP address; ignored\n", command);

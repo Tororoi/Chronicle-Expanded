@@ -2,6 +2,7 @@
 
 #include "common.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string_view>
 #include <vector>
@@ -23,3 +24,9 @@ std::uintmax_t DataFileSize(std::string_view path);
  *
  */
 void DataReadClearPackCapacities();
+
+// Lets GetPackFile look inside a pack the loaders did not read: one copied into a buffer of its own,
+// capacity bytes long.
+void DataReadTrackPack(const void *pack, std::size_t capacity);
+// Stops GetPackFile looking inside a buffer read or tracked before, which is about to be freed.
+void DataReadForgetPack(const void *pack);

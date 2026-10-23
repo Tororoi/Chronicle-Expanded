@@ -1323,7 +1323,7 @@ int CMonstorUnit::CheckDmg() {
                 if (hit != -1 && rejected == 0) {
                     for (int j = 0; j < 3; j++) {
 #ifdef CHRONICLE_EXPANDED
-                        if (guard[current_monster].active[j] != 0 && expanded::MonsterGuardBlocks(*this, current_monster)) {
+                        if (guard[current_monster].active[j] != 0 && expanded::MonsterGuardBlocks(*this, current_monster, NowColData->hit[hit])) {
 #else
                         if (guard[current_monster].active[j] != 0) {
 #endif

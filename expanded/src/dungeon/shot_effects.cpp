@@ -13,6 +13,7 @@
 #include "collisiondata.hpp"
 #include "dataalloc.hpp"
 #include "dataread.hpp"
+#include "dataread_port.hpp"
 #include "dataset.hpp"
 #include "dun/gameloop.hpp"
 #include "itembombeffect.hpp"
@@ -158,6 +159,7 @@ bool DiscLoad(CSHOT_EFFECT &effect, CDataAlloc2<1> &arena, BT_SHOT_EFFECT *descr
     arena.used = 0;
     auto *pack = reinterpret_cast<u_int *>(arena.Alloc64(static_cast<int>(pack_bytes / 16)));
     std::memcpy(pack, bytes->data(), bytes->size());
+    DataReadTrackPack(pack, bytes->size());
 
     TextureNeed need = NeedOf(pack);
     int         free = FreeTextures() - kTextureReserve;

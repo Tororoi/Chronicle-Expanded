@@ -1,7 +1,9 @@
 #include "expanded/core/character_light.hpp"
 
 #include "expanded/dungeon/scene_light.hpp"
+#include "expanded/weapons/big_bang_shot.hpp"
 #include "expanded/weapons/solar_flash.hpp"
+#include "expanded/weapons/toan/big_bang.hpp"
 
 namespace expanded {
 
@@ -11,6 +13,8 @@ void CharacterLight(const CCharacter &character, float *ambient) {
         SceneCharacterLight(character, ambient);
     }
     SolarFlashLight(character, ambient);
+    DetonateChargeLight(character, ambient);
+    BigBangShotLight(character, ambient);
 }
 
 } // namespace expanded

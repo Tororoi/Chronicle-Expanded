@@ -271,6 +271,22 @@ TEST(DataRead, PackLookupOnHost) {
     fs::remove_all(dir);
 }
 
+TEST(DataRead, PackLookupInACopyOnceTracked) {
+    File                   pack = PackFile();
+    std::vector<u_long128> copy((pack.data.size() + sizeof(u_long128) - 1) / sizeof(u_long128));
+    std::memcpy(copy.data(), pack.data.data(), pack.data.size());
+    u_int *pack_data = reinterpret_cast<u_int *>(copy.data());
+    int    size = -1;
+
+    ASSERT_EQ(GetPackFile(pack_data, Mutable("chara/MODEL.mds"), &size), nullptr);
+    DataReadTrackPack(pack_data, pack.data.size());
+    u_int *model = GetPackFile(pack_data, Mutable("chara/MODEL.mds"), &size);
+    ASSERT_TRUE(model && size == 300 && Equals(model, Pattern(300, 2)));
+    char *name = nullptr;
+    ASSERT_NE(GetPackFile(pack_data, 2, &name, &size), nullptr);
+    DataReadClearPackCapacities();
+}
+
 TEST(DataRead, NestedPackLookupUsesEachMembersExactCapacity) {
     fs::path dir = InstallStandardData("read_nested_pack");
     Bytes    info = Pattern(37, 21);
