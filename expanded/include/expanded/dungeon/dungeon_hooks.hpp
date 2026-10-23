@@ -44,6 +44,10 @@ int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs);
 // change it.
 float MonsterWeaponDamage(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, float damage);
 
+// A character's defense against a monster's hit (BtCheckDamageProc) and in the dungeon menu's status, defense their
+// own, as the weapons' effects change it.
+int PlayerDefense(int chara, int defense);
+
 // The active character's lock-on range scale (SetNearLockOnTarget, setTargetCursor), as the weapons' effects change it.
 float PlayerLockOnRange(float rate);
 

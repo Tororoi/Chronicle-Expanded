@@ -73,6 +73,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/atla_drops.hpp"
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/enemies/bomb_gemron.hpp"
 #include "expanded/status/confuse.hpp"
@@ -1001,6 +1002,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
 
 #ifdef CHRONICLE_EXPANDED
             expanded::BreakFreeze(hit);
+            guard = expanded::PlayerDefense(UserStatus->cur_chara, guard);
 #endif
 
             if (StatusErrCheck(AILMENT_STAMINA) != 0) {
