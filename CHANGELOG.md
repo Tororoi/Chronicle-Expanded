@@ -126,6 +126,7 @@ Each section lists this repository's own changes first, then those that come fro
 - Dusack / Brave Ark "No Fool's Gold": mimics and king mimics can be hit while they wake; their guard and the short pause after a hit still hold. The Dusack also has Fine Fare at its tier and Swift Strikes. On Super Steve, a Dusack or Brave Ark sphere gives the same. [#195](https://github.com/Tororoi/Chronicle-Expanded/pull/195)
 - Kitchen Knife "Spring's Blessing": stepping into a healing spring blesses the knife for 60 seconds, tripling its blade (and reach) and doubling its attack; standing in the spring keeps the blessing fresh, and each step into it mends the knife's WHP to full. [#196](https://github.com/Tororoi/Chronicle-Expanded/pull/196)
 - Evilcise "Jealous Soul": Toan is cursed while it is equipped (from the pause menu too) and takes no other harmful ailment; lifting the curse with holy water poisons him and leaves him 1 HP. The curse returns on every floor and after a revival, and lifts when it is unequipped or he leaves the dungeon. On Super Steve, its sphere curses Xiao the same way. [#197](https://github.com/Tororoi/Chronicle-Expanded/pull/197)
+- Aga's Sword "Defensive Legacy": Toan has 15 more defense while it is equipped, on top of what food has raised it to, and the menus show it. Super Steve carrying its SynthSphere gives Xiao the same. [#206](https://github.com/Tororoi/Chronicle-Expanded/pull/206)
 
 ### Weapon stats and abilities
 

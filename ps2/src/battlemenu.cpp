@@ -70,6 +70,7 @@ static int GetVisitInfo(int place, int menu_mode);
 #include "vutext.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/toan/buster_sword.hpp"
@@ -776,7 +777,11 @@ void DrawSelCharaStatus(float x, float y, int chara, int alpha, int face_size, i
 
     DrawMenu2DSprite(texture, CRect_i_(px, py - 1, 0x100, 0x88), CRect_i_(0, 0, 0x100, 0x88), alpha);
     RECT digits = {0x40, 0x88, 0xC, 0xE};
+#ifdef CHRONICLE_EXPANDED
+    DrawMenuNumber(expanded::PlayerDefense(chara, BtlMenuStatusPt->defense[chara]), px + 0x5E, py + 0x72, texture, digits, 1, alpha);
+#else
     DrawMenuNumber((int) BtlMenuStatusPt->defense[chara], px + 0x5E, py + 0x72, texture, digits, 1, alpha);
+#endif
 
     px = (int) (x - 132.0f);
     py = (int) (10.0f + y);
@@ -8399,7 +8404,11 @@ void ItemMenuCharaStatusDraw(int x, int y, int chara, int alpha) {
     if (CharaStatus != NULL) {
         MenuTextureReload(ItemMenuWeaponIconReadBlock);
         DrawMenu2DSprite(CharaStatus, CRect_i_(x, y + 1, 0xFC, 0x85), CRect_i_(0, 0x50, 0xFC, 0x86), alpha);
+#ifdef CHRONICLE_EXPANDED
+        int level = expanded::PlayerDefense(chara, BtlMenuStatusPt->defense[chara]);
+#else
         int  level = BtlMenuStatusPt->defense[chara];
+#endif
         RECT number_rect = {0x100, 0x60, 0xC, 0xE};
         DrawMenuNumber(level, x + 0x64, y + 0x24, CharaStatus, number_rect, 1, alpha);
 
