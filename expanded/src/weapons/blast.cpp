@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
@@ -115,7 +116,7 @@ int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOp
         sceVu0FVECTOR at;
         unit.chara[monster][0].GetPosition(at);
         if (std::hypot(at[0] - point[0], at[2] - point[2]) < kBlastCentred) {
-            float angle = static_cast<float>(ModRoll(360)) * static_cast<float>(M_PI) / 180.0f;
+            float angle = static_cast<float>(ModRoll(360)) * std::numbers::pi_v<float> / 180.0f;
             origin[0] = at[0] - std::sin(angle);
             origin[2] = at[2] - std::cos(angle);
         }

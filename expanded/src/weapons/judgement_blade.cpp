@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 #include <cstdint>
 
 #include "character.hpp"
@@ -261,7 +262,7 @@ void JudgementDraw() {
     }
     // Point-down over the grip, its flat the way Toan faces.
     copy.SetPosition(blade.grip[0], blade.grip[1], blade.grip[2]);
-    copy.SetRotation(static_cast<float>(M_PI) * 0.5f, blade.yaw, 0.0f);
+    copy.SetRotation(std::numbers::pi_v<float> * 0.5f, blade.yaw, 0.0f);
     copy.ambient_offset[3] = 128.0f * blade.shown;
     TexManager.ReloadTexture(Vif1Packet, kWeaponTextureBlock);
     copy.Draw();
