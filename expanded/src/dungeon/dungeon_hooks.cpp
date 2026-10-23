@@ -27,6 +27,7 @@
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/toan/agas_sword.hpp"
 #include "expanded/weapons/toan/cross_hinder.hpp"
+#include "expanded/weapons/toan/dark_cloud.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
@@ -145,7 +146,7 @@ bool TargetNameHidden() {
 }
 
 bool MonsterGuardBlocks(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {
-    return BlindGuardBlocks(monster) && !BlastHit(hit);
+    return BlindGuardBlocks(monster) && !BlastHit(hit) && !GuardCrushActive();
 }
 
 } // namespace expanded
