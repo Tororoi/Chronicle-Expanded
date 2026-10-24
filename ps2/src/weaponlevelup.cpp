@@ -29,6 +29,7 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/seven_branch_sword.hpp"
+#include "expanded/weapons/xiao/steel_slingshot.hpp"
 #endif
 
 CDataAlloc2<1> MenuEffectCashBuffer(-1);
@@ -139,7 +140,11 @@ void WeaponLevelUpValueCalc(WEAPON_HAVE *src, WEAPON_HAVE *dst, int levels, int 
             dst->attack = weapon_data->attack_max;
         }
 
+#ifdef CHRONICLE_EXPANDED
+        dst->endurance += total.status[1] + expanded::EnduranceUpEndurance(*src, 1);
+#else
         dst->endurance += total.status[1] + 1;
+#endif
 
         if (dst->endurance >= 99) {
             dst->endurance = 99;
@@ -177,7 +182,11 @@ void WeaponLevelUpValueCalc(WEAPON_HAVE *src, WEAPON_HAVE *dst, int levels, int 
             }
         }
 
+#ifdef CHRONICLE_EXPANDED
+        dst->durability = src->durability + expanded::EnduranceUpDurability(*src, 1 + rand() % 3);
+#else
         dst->durability = src->durability + 1 + rand() % 3;
+#endif
 
         if (dst->durability > 99) {
             dst->durability = 99;
@@ -424,7 +433,11 @@ void CWeaponLevelUp::SetLevelUpWeaponData() {
         weapon->attack = weapon_data->attack_max;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    weapon->endurance = weapon->endurance + expanded::EnduranceUpEndurance(*weapon, 1);
+#else
     weapon->endurance = weapon->endurance + 1;
+#endif
 
     if (weapon->endurance > 99) {
         weapon->endurance = 99;
@@ -442,7 +455,11 @@ void CWeaponLevelUp::SetLevelUpWeaponData() {
         weapon->magic = weapon_data->magic_max;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    weapon->durability = weapon->durability + expanded::EnduranceUpDurability(*weapon, 1 + rand() % 3);
+#else
     weapon->durability = weapon->durability + 1 + rand() % 3;
+#endif
 
     if (weapon->durability > 99) {
         weapon->durability = 99;

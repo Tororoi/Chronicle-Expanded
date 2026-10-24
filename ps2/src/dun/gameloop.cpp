@@ -136,6 +136,7 @@
 #include "expanded/weapons/toan/shamshir.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
+#include "expanded/weapons/xiao/steel_slingshot.hpp"
 #endif
 
 /**
@@ -7803,7 +7804,11 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                     BtActStatus.frames_since_attack = 0;
                 }
 
+#ifdef CHRONICLE_EXPANDED
+                SwordDmgCheck1(expanded::EnduranceUpShotWear(1.0f), 0);
+#else
                 SwordDmgCheck1(1.0f, 0);
+#endif
             }
         } else {
 #ifdef PAL_TIMING
@@ -7848,7 +7853,11 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                     BtActStatus.frames_since_attack = 0;
                 }
 
+#ifdef CHRONICLE_EXPANDED
+                SwordDmgCheck1(expanded::EnduranceUpShotWear(1.0f), 0);
+#else
                 SwordDmgCheck1(1.0f, 0);
+#endif
             }
         }
 
