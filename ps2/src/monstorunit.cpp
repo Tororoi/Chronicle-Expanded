@@ -57,6 +57,7 @@
 #include "expanded/weapons/toan/dusack.hpp"
 #include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/ungaga/charge_shot.hpp"
+#include "expanded/weapons/xiao/bandit_slingshot.hpp"
 #endif
 
 int           hitCnt;
@@ -1413,6 +1414,9 @@ int CMonstorUnit::CheckDmg() {
                         steal_position[1] += 12.0f;
                         StealItem.Set(steal_position, monster[current_monster].steal_item);
                         monster[current_monster].steal_item = -1;
+#ifdef CHRONICLE_EXPANDED
+                        expanded::StealShotTaken(*this, current_monster, item);
+#endif
                     }
 
                     int attacker = NowColData->hit[hit].owner;

@@ -38,6 +38,7 @@
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
+#include "expanded/weapons/xiao/bandit_slingshot.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 
 namespace expanded {
@@ -143,6 +144,7 @@ void PelletFired(CSHOT &shots, int slot) {
     BigBangShotFired(shots, slot);
     ZeusShotFired(shots, slot);
     TyphoonShotFired(shots, slot);
+    StealShotFired(shots, slot);
 }
 
 void PelletEnded(const CSHOT &shots, int slot, const float *point, bool struck) {

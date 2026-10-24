@@ -35,5 +35,9 @@
     "expanded.seven_branch.break_confirm": "{alert} Sigilla nella sfera \n77% delle caratt. arma.\n(Da fare senza accessorio.)\nCambia stato?",
     "expanded.seven_branch.break_hint": "\"Cambia Stato\"\nDa +7, tiene\nil 77% nella sfera.",
     "expanded.seven_branch.break_refused": "La Spada 7Rami\nrifiuta il cambio stato\nsotto +7.",
+    "expanded.bandit_slingshot.acquired.10": "{icon-sword}\"{insert1}{value1}\" acquisito.",
+    "expanded.bandit_slingshot.acquired.20": "{icon-orb}\"{insert1}{value1}\" acquisito.",
+    "expanded.bandit_slingshot.acquired.30": "{icon-jar}\"{insert1}\" acquisito.",
+    "expanded.bandit_slingshot.stolen": "Il proiettile di [monster] ora è tuo",
     "expanded.wise_owl.key": "La Spada Gufo Saggio percepisce {insert1} qui vicino..."
 }

@@ -140,6 +140,7 @@ public:
         live.defense = model.defense;
         live.hardness = model.hardness;
         live.exp = model.exp;
+        live.name_no = model.name_no;
         live.palette_alpha = 128.0f;
         EnemySpawned(*unit_, monster);
         unit_->alive_count++;

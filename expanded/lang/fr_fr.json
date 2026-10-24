@@ -35,5 +35,9 @@
     "expanded.seven_branch.break_confirm": "{alert}Enfermer 77% des facultés\nde l'arme dans la sphère\n(Effectuer sans accessoire)\nEffectuer la mutation ?",
     "expanded.seven_branch.break_hint": "\"Muter\"\nDès +7, garde\n77% dans la sphère.",
     "expanded.seven_branch.break_refused": "L'épée 7 branches\nrefuse la mutation\navant +7.",
+    "expanded.bandit_slingshot.acquired.10": "{icon-sword}\"{insert1}{value1}\" en poche.",
+    "expanded.bandit_slingshot.acquired.20": "{icon-orb}\"{insert1}{value1}\" en poche.",
+    "expanded.bandit_slingshot.acquired.30": "{icon-jar}\"{insert1}\" en poche.",
+    "expanded.bandit_slingshot.stolen": "Le projectile de [monster] est désormais à toi",
     "expanded.wise_owl.key": "L'Épée du hibou sent {insert1} tout près..."
 }
