@@ -57,7 +57,9 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster);
 // Xiao fired a pellet into slot of shots (BattleActionPlay_Jinn), and a pellet ended at point, on a monster when struck
 // (CSHOT::step): the weapons that ride or answer her shots.
 void PelletFired(CSHOT &shots, int slot);
-void PelletEnded(const CSHOT &shots, int slot, const float *point, bool struck);
+void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck);
+// A pellet about to be stepped (CSHOT::step).
+void PelletStepping(CSHOT &shots, int slot);
 // Whether a pellet ending lands its own hit: not one whose hit is a bolt or a bomb's blast.
 bool PelletHurts(const CSHOT &shots, int slot);
 

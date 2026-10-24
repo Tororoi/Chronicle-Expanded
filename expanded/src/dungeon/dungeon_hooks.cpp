@@ -40,6 +40,7 @@
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
+#include "expanded/weapons/xiao/hardshooter.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 
 namespace expanded {
@@ -146,13 +147,19 @@ void PelletFired(CSHOT &shots, int slot) {
     ZeusShotFired(shots, slot);
     TyphoonShotFired(shots, slot);
     StealShotFired(shots, slot);
+    RicochetShotFired(slot);
 }
 
-void PelletEnded(const CSHOT &shots, int slot, const float *point, bool struck) {
+void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
     SolarShotEnded(shots, slot, point, struck);
     BigBangShotEnded(shots, slot, point);
     ZeusShotEnded(shots, slot, point, struck);
     TyphoonShotEnded(shots, slot, point, struck);
+    RicochetShotEnded(shots, slot, point, struck);
+}
+
+void PelletStepping(CSHOT &shots, int slot) {
+    RicochetStep(shots, slot);
 }
 
 bool PelletHurts(const CSHOT &shots, int slot) {
