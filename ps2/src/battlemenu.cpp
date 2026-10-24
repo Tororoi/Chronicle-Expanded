@@ -74,6 +74,7 @@ static int GetVisitInfo(int place, int menu_mode);
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/toan/buster_sword.hpp"
+#include "expanded/weapons/toan/chronicle_two.hpp"
 #include "expanded/weapons/toan/seven_branch_sword.hpp"
 #endif
 
@@ -2410,7 +2411,12 @@ void DrawWepVolumeDisplay(int x, int y, WEAPON_HAVE *weapon, int alpha) {
     values[2] = total.speed;
     values[3] = total.magic;
     float rate = GetNowWeaponRate(&total);
+#ifdef CHRONICLE_EXPANDED
+    int limit[4] = {expanded::ChronicleTwoLimit(*weapon, expanded::kStatAttack, data->attack_max), 99, 99,
+                    expanded::ChronicleTwoLimit(*weapon, expanded::kStatMagic, data->magic_max)};
+#else
     int   limit[4] = {data->attack_max, 99, 99, data->magic_max};
+#endif
     limit[0] = (int) ((float) limit[0] * rate);
     limit[3] = (int) ((float) limit[3] * rate);
 
