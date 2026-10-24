@@ -26,6 +26,7 @@
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/toan/agas_sword.hpp"
+#include "expanded/weapons/toan/atlamillia_sword.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
 #include "expanded/weapons/toan/claymore.hpp"
 #include "expanded/weapons/toan/cross_hinder.hpp"
@@ -56,6 +57,7 @@ void DungeonFloorLoaded(CMonstorUnit &unit) {
     OwnSoundsFloorLoaded();
     SteveLinesFloorLoaded(unit);
     AtlaDropsFloorLoaded();
+    AtlamilliaFloorLoaded();
 }
 
 void DungeonMonstersCleared(bool drop_stars) {
@@ -73,6 +75,7 @@ void DungeonMonstersTick() {
     OwnSoundsStep();
     ConfuseTick();
     CurseStep();
+    AtlamilliaStep();
     BloodPriceStep();
     GreatswordStep();
     HerosCourageStep();
