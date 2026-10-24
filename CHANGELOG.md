@@ -134,6 +134,7 @@ Each section lists this repository's own changes first, then those that come fro
 - Brave Ark "Hero's Courage": while it is equipped, Toan cannot be frozen, poisoned, cursed or gooed. A monster's hit carrying one does nothing (and uses up no amulet), and one he already has, or gets from an item, is gone at once. Super Steve carrying its SynthSphere does the same for Xiao. [#210](https://github.com/Tororoi/Chronicle-Expanded/pull/210)
 - Claymore "Greatsword": in Toan's hand the Claymore is 1.8 times its size and reaches that much farther, still hitting what the normal blade would, and every hit throws the monster back as the Baselard's do. Super Steve carrying its SynthSphere throws monsters back too. [#211](https://github.com/Tororoi/Chronicle-Expanded/pull/211)
 - Maneater "Blood Price": Toan is cursed while it is equipped, again on every floor, but holy water lifts the curse with no penalty. While its WHP is low enough for the gauge to blink, it feeds on him: 1 HP a second to mend 1 WHP, never leaving him below 1 HP. Super Steve carrying its SynthSphere curses Xiao the same way and mends itself from her. [#212](https://github.com/Tororoi/Chronicle-Expanded/pull/212)
+- 7 Branch Sword "Sevenfold Rite": it refuses a Status Break below +7, and from +7 its SynthSphere keeps 77% of its stats, elements and anti-monster values instead of 60%; the weapon menu's Status Break hint and confirmation say so. [#213](https://github.com/Tororoi/Chronicle-Expanded/pull/213)
 
 ### Weapon stats and abilities
 

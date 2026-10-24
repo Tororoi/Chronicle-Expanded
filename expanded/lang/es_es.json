@@ -32,5 +32,8 @@
     "expanded.kitchen_knife.blessed": "¡La bendición del manantial recorre el Cuchillo de cocina!",
     "expanded.kitchen_knife.faded": "La bendición del manantial abandona el Cuchillo de cocina...",
     "expanded.kitchen_knife.mended": "El manantial repara el Cuchillo de cocina.",
+    "expanded.seven_branch.break_confirm": "{alert}Sellar 77% habilidad\ndel arma en esfera.\n(Hacer sin accesorio.)\n ¿Cambio de estado?",
+    "expanded.seven_branch.break_hint": "\"Cambio de Estado\"\nDesde +7, guarda\n77% en la esfera.",
+    "expanded.seven_branch.break_refused": "La Espada 7 brazos\nrechaza el cambio de\nestado antes de +7.",
     "expanded.wise_owl.key": "La Espada Búho percibe {insert1} cerca..."
 }
