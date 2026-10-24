@@ -158,3 +158,16 @@ TEST(Blast, IsFeltAsAKnockdown) {
     GamePad.StopVibration();
     RumbleAfterStep();
 }
+
+TEST(Blast, AFlatOneTakesTheSameFromAllAndThrowsThemToItsEdge) {
+    Floor                  floor({2.0f, 30.0f});
+    expanded::BlastOptions options;
+    options.flat = true;
+    options.throw_to = 60.0f;
+    expanded::PlantBlast(floor.floor.unit(), kOrigin, 10, options);
+    EXPECT_EQ(floor.Damage(0), 10);
+    EXPECT_EQ(floor.Damage(1), 10);
+    // The nearer is thrown the harder, each to the edge.
+    EXPECT_GT(floor.hits->hit[0].knockback_speed, floor.hits->hit[1].knockback_speed);
+    EXPECT_FLOAT_EQ(expanded::BlastThrowSpeed(60.0f, 60.0f), 0.0f);
+}

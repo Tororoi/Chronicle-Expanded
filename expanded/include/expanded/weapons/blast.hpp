@@ -41,7 +41,14 @@ struct BlastOptions {
     int   element = -1;  // the element the hit carries (WEAPON_ELEMENT_*), the weapon's own strength in it; -1 for none
     int   still = -1;    // a monster that takes the hit where it stands
     bool  guardable = false; // a monster's guard stops it, as any hit's
+    bool  flat = false;      // every monster in reach takes the outermost step's share, however near
+    float throw_to = 0.0f;   // each monster thrown out to this far from the blast, instead of kBlastKick
 };
+
+// A throw_to throw: from a monster's distance to the blast, the speed that carries it to the edge (decay as
+// kBlastKick's: it slides speed^2 / (2 decay)), capped at kBlastThrowMost.
+inline constexpr float kBlastThrowMost = 6.0f;
+float                  BlastThrowSpeed(float distance, float edge);
 
 // The blast at point with attack, felt as the knockdown rumble: how many monsters it reached.
 int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOptions &options = {});
