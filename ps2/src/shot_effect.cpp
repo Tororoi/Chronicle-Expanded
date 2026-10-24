@@ -74,6 +74,10 @@ void CSHOT::step() {
             continue;
         }
 
+#ifdef CHRONICLE_EXPANDED
+        expanded::PelletStepping(*this, shot);
+#endif
+
         if (halted[shot] == 0) {
             SHOT_COLLISION_RESULT result = checkCollision(hit_position, pos[shot], vector[shot], 2, 2.0f);
 
