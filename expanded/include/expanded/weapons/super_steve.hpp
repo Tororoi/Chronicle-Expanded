@@ -19,7 +19,8 @@ bool WeaponWielded(int weapon_no);
 // Whether weapon_no's effect is on: wielded, or channelled by Super Steve's sphere.
 bool WeaponActive(int weapon_no);
 
-// The weapon whose cell of basefx01 the player's pellets are drawn with: a slingshot sphere's, else the wielded one's.
+// The weapon whose cell of basefx01 the player's pellets are drawn with: the Steel Slingshot's stone for Double Impact's
+// pairs, a slingshot sphere's, else the wielded one's.
 int PelletWeapon();
 
 // Copies the equipped Super Steve's sphere icon from the weapon icon sheet into itempack's spare cell.

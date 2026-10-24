@@ -1,6 +1,7 @@
 #include "expanded/weapons/super_steve.hpp"
 
 #include "dun/gameloop.hpp"
+#include "expanded/weapons/xiao/double_impact.hpp"
 #include "itemdata.hpp"
 #include "mglib.hpp"
 #include "rect.hpp"
@@ -68,6 +69,10 @@ bool WeaponActive(int weapon_no) {
 
 // basefx01 has a cell for each slingshot, Wooden Slingshot to Angel Gear.
 int PelletWeapon() {
+    if (DoubleImpactActive()) {
+        return ITEM_WEAPON_STEEL_SLINGSHOT; // a single stone, two of them
+    }
+
     int sphere = SuperSteveSphere();
 
     if (sphere >= ITEM_WEAPON_WOODEN_SLINGSHOT && sphere <= ITEM_WEAPON_ANGE_GEAR) {
