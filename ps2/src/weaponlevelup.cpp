@@ -28,6 +28,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/weapons/toan/macho_sword.hpp"
+#include "expanded/weapons/toan/seven_branch_sword.hpp"
 #endif
 
 CDataAlloc2<1> MenuEffectCashBuffer(-1);
@@ -488,11 +489,17 @@ void CWeaponLevelUp::SetStatusBreak(WEAPON_HAVE *have, CCharacter *character, CW
     base_stats[2] = weapon->speed;
     base_stats[3] = weapon->magic;
 
+#ifdef CHRONICLE_EXPANDED
+    const float share = expanded::StatusBreakShare(*weapon);
+#else
+    const float share = 0.6f;
+#endif
+
     for (i = 0; i < 4; i++) {
-        status_stats[i] = 0.6f * (float) base_stats[i];
+        status_stats[i] = share * (float) base_stats[i];
     }
 
-    scale = 0.6f;
+    scale = share;
 
     for (i = 0; i < 5; i++) {
         status_elements[i] = weapon->elem[i] * scale;

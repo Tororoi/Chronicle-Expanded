@@ -74,6 +74,7 @@ static int GetVisitInfo(int place, int menu_mode);
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/toan/buster_sword.hpp"
+#include "expanded/weapons/toan/seven_branch_sword.hpp"
 #endif
 
 static void DrawStatusNumberNowAndMax(int *values, int x, int y, int color, int alpha);
@@ -4070,7 +4071,11 @@ void WeaponMenuSelect() {
 
     if (WepMenu.state == WEP_STATE_WARNING) {
         s16 warnings[10] = {0xA1, 0xA2, 0xA3, 0x19B, 0x19C, 0x19D, 0xA8, 0xAA, 0xA9, 0xAB};
+#ifdef CHRONICLE_EXPANDED
+        help_no = WepMenu.warning_no == expanded::kSevenfoldWarning ? expanded::kSevenfoldRefusedMessage : warnings[WepMenu.warning_no];
+#else
         help_no = warnings[WepMenu.warning_no];
+#endif
     }
 
     if (WepMenu.state == WEP_STATE_SCRAP_CONFIRM) {
@@ -4578,6 +4583,15 @@ static int WeaponSelectKey() {
                         int             i;
                         DNG_CONSUMABLE *items = BtlMenuStatusPt->consumable_items;
                         count = 0;
+
+#ifdef CHRONICLE_EXPANDED
+                        if (expanded::SevenfoldRefuses(*weapon)) {
+                            WepMenu.state = WEP_STATE_WARNING;
+                            WepMenu.warning_no = expanded::kSevenfoldWarning;
+                            ComMenuSePlay(MENU_SOUND_REFUSE);
+                            break;
+                        }
+#endif
 
                         for (i = 0; i < 40; i++) {
                             if (items[i].id >= ITEM_ATTACH_START) {
