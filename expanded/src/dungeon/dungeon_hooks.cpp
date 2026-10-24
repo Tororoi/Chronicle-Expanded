@@ -23,6 +23,7 @@
 #include "expanded/weapons/big_bang_shot.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/curse.hpp"
+#include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/toan/agas_sword.hpp"
@@ -32,6 +33,7 @@
 #include "expanded/weapons/toan/cross_hinder.hpp"
 #include "expanded/weapons/toan/dark_cloud.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
+#include "expanded/weapons/toan/heavens_cloud.hpp"
 #include "expanded/weapons/toan/maneater.hpp"
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
@@ -78,11 +80,13 @@ void DungeonMonstersTick() {
     AtlamilliaStep();
     BloodPriceStep();
     GreatswordStep();
+    TyphoonStep();
     HerosCourageStep();
     SolarFlashStep();
     BigBangShotStep();
     ZeusChargeStep();
     ZeusShotStep();
+    TyphoonShotStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
@@ -138,12 +142,14 @@ void PelletFired(CSHOT &shots, int slot) {
     SolarShotFired(shots, slot);
     BigBangShotFired(shots, slot);
     ZeusShotFired(shots, slot);
+    TyphoonShotFired(shots, slot);
 }
 
 void PelletEnded(const CSHOT &shots, int slot, const float *point, bool struck) {
     SolarShotEnded(shots, slot, point, struck);
     BigBangShotEnded(shots, slot, point);
     ZeusShotEnded(shots, slot, point, struck);
+    TyphoonShotEnded(shots, slot, point, struck);
 }
 
 bool PelletHurts(const CSHOT &shots, int slot) {

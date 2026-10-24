@@ -70,6 +70,11 @@ void RumbleBlast(BlastRumble rumble) {
     }
 }
 
+float BlastThrowSpeed(float distance, float edge) {
+    float left = std::max(0.0f, edge - distance);
+    return std::min(kBlastThrowMost, std::sqrt(2.0f * kBlastKick.decay * left));
+}
+
 int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOptions &options) {
     if (NowColData == nullptr) {
         return 0;
@@ -88,6 +93,9 @@ int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOp
             if (distance <= step.reach * options.reach) {
                 times = step.times;
             }
+        }
+        if (options.flat && times > 0.0f) {
+            times = kBlastFalloff[0].times;
         }
         if (times <= 0.0f || !HitFree()) {
             continue;
@@ -111,6 +119,9 @@ int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOp
         }
         bool  still = monster == options.still || live.knockback[2] <= 0.0f;
         float speed = still ? 0.0f : kBlastKick.speed * options.kick;
+        if (!still && options.throw_to > 0.0f) {
+            speed = BlastThrowSpeed(distance, options.throw_to);
+        }
         // The throw is away from the blast; one centred on the monster itself has no away, so it goes a random way.
         sceVu0FVECTOR origin = {point[0], point[1], point[2], 1.0f};
         sceVu0FVECTOR at;
