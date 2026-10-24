@@ -87,6 +87,7 @@
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/enemies/miniboss_loot.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
+#include "expanded/weapons/xiao/bandit_slingshot.hpp"
 #endif
 
 // Defined by ps2/src/dun/gameloop.cpp without a header declaration.
@@ -756,7 +757,13 @@ PORT_OVERRIDE void DunMoveChara() {
                                         int stolen = StealItem.checkEvent();
 
                                         if (stolen != -1) {
+#ifdef CHRONICLE_EXPANDED
+                                            expanded::StealShotNotice(true, stolen);
                                             BtGetAttach_Init(selectMapNo, stolen);
+                                            expanded::StealShotNotice(false, stolen);
+#else
+                                            BtGetAttach_Init(selectMapNo, stolen);
+#endif
                                             DngMessMan.hide_timer = 0x78;
                                             SndSePlay(SE_ITEM_GET, -1, 0);
                                             autoCamTrial();

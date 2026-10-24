@@ -35,5 +35,9 @@
     "expanded.seven_branch.break_confirm": "{alert}Sellar 77% habilidad\ndel arma en esfera.\n(Hacer sin accesorio.)\n ¿Cambio de estado?",
     "expanded.seven_branch.break_hint": "\"Cambio de Estado\"\nDesde +7, guarda\n77% en la esfera.",
     "expanded.seven_branch.break_refused": "La Espada 7 brazos\nrechaza el cambio de\nestado antes de +7.",
+    "expanded.bandit_slingshot.acquired.10": "{icon-sword}\"{insert1}{value1}\" adquirido.",
+    "expanded.bandit_slingshot.acquired.20": "{icon-orb}\"{insert1}{value1}\" adquirido.",
+    "expanded.bandit_slingshot.acquired.30": "{icon-jar}\"{insert1}\" adquirido.",
+    "expanded.bandit_slingshot.stolen": "El proyectil de [monster] ahora es tuyo",
     "expanded.wise_owl.key": "La Espada Búho percibe {insert1} cerca..."
 }
