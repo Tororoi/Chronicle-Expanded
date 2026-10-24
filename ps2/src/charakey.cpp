@@ -32,6 +32,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/weapons/toan/big_bang.hpp"
+#include "expanded/weapons/toan/claymore.hpp"
 #include "expanded/weapons/toan/kitchen_knife.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
@@ -182,6 +183,10 @@ void ToanKey_Play() {
         basic_damage(3, 0);
         NowColData->SetKickBack(chara_pos, 3.0f, 0.3f, 2);
     }
+
+#ifdef CHRONICLE_EXPANDED
+    expanded::GreatswordHits(hit_pos);
+#endif
 
     int swing_motions[4] = {0x25, 0x26, 0x27, 0x28};
 
