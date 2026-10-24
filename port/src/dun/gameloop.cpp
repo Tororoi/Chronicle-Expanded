@@ -81,6 +81,7 @@
 #include "expanded/weapons/big_bang_shot.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
+#include "expanded/weapons/toan/seventh_heaven.hpp"
 #endif
 
 // The dungeon's MainDraw and LoaderLoop, replaced to drop what the renderer has no use for: the VU1
@@ -1002,6 +1003,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
 
 #ifdef CHRONICLE_EXPANDED
             expanded::BreakFreeze(hit);
+            expanded::DivineGuardHit(*hit);
             guard = expanded::PlayerDefense(UserStatus->cur_chara, guard);
 #endif
 
@@ -1301,6 +1303,10 @@ PORT_OVERRIDE int BtCheckDamageProc() {
                     }
                 }
             }
+
+#ifdef CHRONICLE_EXPANDED
+            expanded::DivineGuardBlocked(blown != 0 && (kind == 2 || kind == 4));
+#endif
         }
     }
 
