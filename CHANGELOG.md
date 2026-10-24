@@ -131,6 +131,7 @@ Each section lists this repository's own changes first, then those that come fro
 - Aga's Sword "Defensive Legacy": Toan has 15 more defense while it is equipped, on top of what food has raised it to, and the menus show it. Super Steve carrying its SynthSphere gives Xiao the same. [#206](https://github.com/Tororoi/Chronicle-Expanded/pull/206)
 - Dark Cloud "Guard Crush": with the Dark Cloud or the 7th Heaven in hand, no monster's guard stops Toan's hits; the monster still raises its guard, but the hit lands. Super Steve carrying either's SynthSphere does the same for Xiao's shots. [#207](https://github.com/Tororoi/Chronicle-Expanded/pull/207)
 - 7th Heaven "Divine Guard": while it is in hand, Toan's guard blocks every monster attack and shot, even the heavy blows that normally break through a guard and knock him down, and his guard stays up through each block instead of being raised again; unguarded, those blows now throw him back instead of knocking him down. It also has the Dark Cloud's Guard Crush. Super Steve carrying its SynthSphere gives Xiao the same guard. [#209](https://github.com/Tororoi/Chronicle-Expanded/pull/209)
+- Brave Ark "Hero's Courage": while it is equipped, Toan cannot be frozen, poisoned, cursed or gooed. A monster's hit carrying one does nothing (and uses up no amulet), and one he already has, or gets from an item, is gone at once. Super Steve carrying its SynthSphere does the same for Xiao. [#210](https://github.com/Tororoi/Chronicle-Expanded/pull/210)
 
 ### Weapon stats and abilities
 

@@ -81,6 +81,7 @@
 #include "expanded/weapons/big_bang_shot.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
+#include "expanded/weapons/toan/brave_ark.hpp"
 #include "expanded/weapons/toan/seventh_heaven.hpp"
 #endif
 
@@ -1004,6 +1005,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
 #ifdef CHRONICLE_EXPANDED
             expanded::BreakFreeze(hit);
             expanded::DivineGuardHit(*hit);
+            expanded::HerosCourageHit(*hit);
             guard = expanded::PlayerDefense(UserStatus->cur_chara, guard);
 #endif
 
