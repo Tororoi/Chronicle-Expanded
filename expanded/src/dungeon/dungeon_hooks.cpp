@@ -31,6 +31,7 @@
 #include "expanded/weapons/toan/cross_hinder.hpp"
 #include "expanded/weapons/toan/dark_cloud.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
+#include "expanded/weapons/toan/maneater.hpp"
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
@@ -72,6 +73,7 @@ void DungeonMonstersTick() {
     OwnSoundsStep();
     ConfuseTick();
     CurseStep();
+    BloodPriceStep();
     GreatswordStep();
     HerosCourageStep();
     SolarFlashStep();
