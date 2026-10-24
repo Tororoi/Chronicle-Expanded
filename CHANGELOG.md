@@ -143,6 +143,7 @@ Each section lists this repository's own changes first, then those that come fro
 - Flamingo "Lock-On Distance": monsters can be locked on from twice as far with the Flamingo in hand, or a slingshot built from it (Dragon's Y, Divine Beast Title, Angel Shooter, Angel Gear), or Super Steve carrying any of their SynthSpheres. [#219](https://github.com/Tororoi/Chronicle-Expanded/pull/219)
 - Flamingo "Bait Flamboyance": while you own a Flamingo (in any bag or the storage), every bait is noticed by fish from 10 units further, for each Flamingo owned up to three. [#219](https://github.com/Tororoi/Chronicle-Expanded/pull/219)
 - Hardshooter "Ricochet": a pellet that lands on a monster sends a second pellet from it at the nearest other monster (within 120), aimed at its largest hurt sphere taking hits at the time, or in a random direction when none is that near. The second pellet has the first's damage, never comes back at the monster struck and does not ricochet again; a wall hit sends none. Super Steve carrying its SynthSphere does the same. [#220](https://github.com/Tororoi/Chronicle-Expanded/pull/220)
+- Double Impact: every shot is two pellets side by side, each at three quarters of the attack and each rolling the weapon's abilities on its own, both drawn as the Steel Slingshot's stone. Both ricochet as the Hardshooter's do, at different monsters. Super Steve carrying its SynthSphere does the same. [#221](https://github.com/Tororoi/Chronicle-Expanded/pull/221)
 
 ### Weapon stats and abilities
 

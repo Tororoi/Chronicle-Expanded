@@ -39,6 +39,7 @@
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
+#include "expanded/weapons/xiao/double_impact.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
@@ -148,6 +149,7 @@ void PelletFired(CSHOT &shots, int slot) {
     TyphoonShotFired(shots, slot);
     StealShotFired(shots, slot);
     RicochetShotFired(slot);
+    DoubleImpactFired(shots, slot);
 }
 
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {

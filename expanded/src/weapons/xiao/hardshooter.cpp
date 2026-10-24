@@ -26,11 +26,19 @@ constexpr int kDepartTicks = 30; // the most frames a ricochet is stepped clear 
 bool ricochet[kShots] = {};
 int  departing[kShots] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // the monster a ricochet is leaving
 int  departed[kShots] = {};
+int  partner[kShots] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // the other pellet of a pair
+int  claimed[kShots] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // the monster the partner's ricochet took
+
+void Unpair(int slot) {
+    partner[slot] = -1;
+    claimed[slot] = -1;
+}
 
 void OnFloor() {
     for (int slot = 0; slot < kShots; slot++) {
         ricochet[slot] = false;
         departing[slot] = -1;
+        Unpair(slot);
     }
 }
 
@@ -79,17 +87,19 @@ bool Inside(const CMonstorUnit &unit, int monster, const float *point, float mar
     return false;
 }
 
-// The largest live hurt sphere of the monster nearest struck (other than it, within kRicochetRange), or nullptr.
-const float *NextTarget(const CMonstorUnit &unit, int struck, const float *point) {
-    const float *target = nullptr;
-    float        best = kRicochetRange;
+// The monster nearest struck (other than it and avoid, within kRicochetRange) with a hurt sphere taking hits now, or -1;
+// aim is its largest such sphere.
+int NextTarget(const CMonstorUnit &unit, int struck, int avoid, const float *point, const float **aim) {
+    int   target = -1;
+    float best = kRicochetRange;
     for (int monster = 0; monster < kMonsters; monster++) {
-        if (monster == struck || !Hittable(unit, monster) || unit.monster[monster].hp <= 0) {
+        if (monster == struck || monster == avoid || !Hittable(unit, monster) || unit.monster[monster].hp <= 0) {
             continue;
         }
         const float *sphere = LargestSphere(unit, monster);
         if (sphere != nullptr && Distance(sphere, point) <= best) {
-            target = sphere;
+            target = monster;
+            *aim = sphere;
             best = Distance(sphere, point);
         }
     }
@@ -99,7 +109,8 @@ const float *NextTarget(const CMonstorUnit &unit, int struck, const float *point
 } // namespace
 
 bool RicochetActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && WeaponActive(ITEM_WEAPON_HARDSHOOTER);
+    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO &&
+           (WeaponActive(ITEM_WEAPON_HARDSHOOTER) || WeaponActive(ITEM_WEAPON_DOUBLE_IMPACT));
 }
 
 bool Ricochet(int slot) {
@@ -122,10 +133,21 @@ int RicochetStruck(const CMonstorUnit &unit, const float *point) {
     return -1;
 }
 
+void RicochetPair(int first, int second) {
+    if (first < 0 || first >= kShots || second < 0 || second >= kShots) {
+        return;
+    }
+    Unpair(first);
+    Unpair(second);
+    partner[first] = second;
+    partner[second] = first;
+}
+
 void RicochetShotFired(int slot) {
     if (slot >= 0 && slot < kShots) {
         ricochet[slot] = false;
         departing[slot] = -1;
+        Unpair(slot);
     }
 }
 
@@ -158,8 +180,11 @@ int RicochetShotEnded(CSHOT &shots, int slot, const float *point, bool struck) {
         return -1;
     }
     bool bounced = ricochet[slot];
+    int  pair = partner[slot];
+    int  avoid = claimed[slot];
     ricochet[slot] = false;
     departing[slot] = -1;
+    Unpair(slot);
     if (!struck || bounced || NowMonstorUnit == nullptr || !RicochetActive()) {
         return -1;
     }
@@ -183,9 +208,11 @@ int RicochetShotEnded(CSHOT &shots, int slot, const float *point, bool struck) {
     float        speed = std::sqrt(shots.vector[slot][0] * shots.vector[slot][0] + shots.vector[slot][1] * shots.vector[slot][1] +
                                    shots.vector[slot][2] * shots.vector[slot][2]);
     float        way[3];
-    if (const float *target = NextTarget(unit, from, point)) {
+    const float *aim = nullptr;
+    int          target = NextTarget(unit, from, avoid, point, &aim);
+    if (target >= 0) {
         for (int i = 0; i < 3; i++) {
-            way[i] = target[i] - start[i];
+            way[i] = aim[i] - start[i];
         }
     } else {
         float angle = static_cast<float>(ModRoll(3600)) * kTwoPi / 3600.0f;
@@ -220,6 +247,10 @@ int RicochetShotEnded(CSHOT &shots, int slot, const float *point, bool struck) {
     ricochet[free] = true;
     departing[free] = from;
     departed[free] = 0;
+    // The other pellet of the pair takes another monster.
+    if (target >= 0 && pair >= 0 && partner[pair] == slot) {
+        claimed[pair] = target;
+    }
     return free;
 }
 
