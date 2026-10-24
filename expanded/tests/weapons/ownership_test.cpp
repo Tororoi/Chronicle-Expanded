@@ -35,3 +35,16 @@ TEST(WeaponOwnership, IgnoresTheWaitingSlotAndEmptyIds) {
     EXPECT_FALSE(expanded::WeaponOwned(status, stock, ITEM_WEAPON_FLAMINGO));
     EXPECT_FALSE(expanded::WeaponOwned(status, stock, 0));
 }
+
+TEST(WeaponOwnership, CountsEveryCopy) {
+    alignas(64) static CSaveData counted;
+    CUserStatus                 *status = counted.GetDngStatus();
+    CStockItem                  *stock = counted.GetStockItem();
+
+    EXPECT_EQ(expanded::WeaponsOwned(status, stock, ITEM_WEAPON_FLAMINGO), 0);
+    status->chara_weapons[1][0].item_no = ITEM_WEAPON_FLAMINGO;
+    status->chara_weapons[1][4].item_no = ITEM_WEAPON_FLAMINGO;
+    stock->weapons[3].item_no = ITEM_WEAPON_FLAMINGO;
+    status->chara_weapons[1][10].item_no = ITEM_WEAPON_FLAMINGO;
+    EXPECT_EQ(expanded::WeaponsOwned(status, stock, ITEM_WEAPON_FLAMINGO), 3);
+}

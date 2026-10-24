@@ -15,33 +15,42 @@ constexpr int kBagSlots = 10;
 } // namespace
 
 bool WeaponOwned(int weapon_no) {
-    if (SaveData == nullptr) {
-        return false;
-    }
-
-    return WeaponOwned(SaveData->GetDngStatus(), SaveData->GetStockItem(), weapon_no);
+    return WeaponsOwned(weapon_no) > 0;
 }
 
 bool WeaponOwned(const CUserStatus *status, const CStockItem *stock, int weapon_no) {
-    if (weapon_no <= 0) {
-        return false;
+    return WeaponsOwned(status, stock, weapon_no) > 0;
+}
+
+int WeaponsOwned(int weapon_no) {
+    if (SaveData == nullptr) {
+        return 0;
     }
 
+    return WeaponsOwned(SaveData->GetDngStatus(), SaveData->GetStockItem(), weapon_no);
+}
+
+int WeaponsOwned(const CUserStatus *status, const CStockItem *stock, int weapon_no) {
+    if (weapon_no <= 0) {
+        return 0;
+    }
+
+    int owned = 0;
     for (int chara = 0; chara < 6; chara++) {
         for (int slot = 0; slot < kBagSlots; slot++) {
             if (status->chara_weapons[chara][slot].item_no == weapon_no) {
-                return true;
+                owned++;
             }
         }
     }
 
     for (const WEAPON_HAVE &weapon : stock->weapons) {
         if (weapon.item_no == weapon_no) {
-            return true;
+            owned++;
         }
     }
 
-    return false;
+    return owned;
 }
 
 } // namespace expanded

@@ -39,6 +39,7 @@
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
+#include "expanded/weapons/xiao/flamingo.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 
 namespace expanded {
@@ -131,7 +132,7 @@ int PlayerDefense(int chara, int defense) {
 }
 
 float PlayerLockOnRange(float rate) {
-    return HolyReachRate(rate);
+    return LockOnDistanceRate(HolyReachRate(rate));
 }
 
 bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
