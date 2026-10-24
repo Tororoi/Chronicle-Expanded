@@ -27,6 +27,7 @@
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/toan/agas_sword.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
+#include "expanded/weapons/toan/claymore.hpp"
 #include "expanded/weapons/toan/cross_hinder.hpp"
 #include "expanded/weapons/toan/dark_cloud.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
@@ -71,6 +72,7 @@ void DungeonMonstersTick() {
     OwnSoundsStep();
     ConfuseTick();
     CurseStep();
+    GreatswordStep();
     HerosCourageStep();
     SolarFlashStep();
     BigBangShotStep();

@@ -16,10 +16,11 @@ constexpr int kXiao = 1;
 
 bool HeavyHandHit(const COLLISION_HIT &record) {
     if (record.owner == kToan) {
-        return WeaponWielded(ITEM_WEAPON_BASELARD);
+        return WeaponWielded(ITEM_WEAPON_BASELARD) || WeaponWielded(ITEM_WEAPON_CLAYMORE);
     }
 
-    return record.owner == kXiao && record.attack_no == 0 && SuperSteveSphere() == ITEM_WEAPON_BASELARD;
+    int sphere = SuperSteveSphere();
+    return record.owner == kXiao && record.attack_no == 0 && (sphere == ITEM_WEAPON_BASELARD || sphere == ITEM_WEAPON_CLAYMORE);
 }
 
 } // namespace expanded
