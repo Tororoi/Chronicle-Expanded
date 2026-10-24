@@ -93,8 +93,10 @@ s16 Sixth(int value) {
     return static_cast<s16>(std::ceil(value / kSphereShare));
 }
 
-// A weapon's SynthSphere onto the attachment board; false with the board full.
-bool GiveSphere(int weapon) {
+// A weapon's SynthSphere onto the attachment board, with the drop's own values if it has them; false with the
+// board full.
+bool GiveSphere(const AtlaDrop &drop) {
+    int             weapon = drop.weapon;
     WEAPON_DATA    *data = GetWeaponData(weapon);
     CDngStatusData *status = static_cast<CDngStatusData *>(UserStatus);
     int             slot = data != nullptr ? status->GetItem(ITEM_ATTACH_SYNTHESIS_SPHERE, 1) : -1;
@@ -105,6 +107,14 @@ bool GiveSphere(int weapon) {
     std::memset(&sphere, 0, sizeof(sphere));
     sphere.item_no = ITEM_ATTACH_SYNTHESIS_SPHERE;
     sphere.sphere_weapon_no = static_cast<s16>(weapon);
+    if (drop.own_values) {
+        std::copy_n(drop.status, 4, sphere.status);
+        std::copy_n(drop.elem, 5, sphere.elem);
+        std::copy_n(drop.vs_monster, 10, sphere.vs_monster);
+        sphere.sphere_flags = drop.flags;
+        sphere.sphere_level = drop.level;
+        return true;
+    }
     sphere.sphere_flags = static_cast<s16>(WeaponAbilities(weapon, data->flags));
     const s16 stats[] = {data->attack, data->endurance, data->speed, data->magic};
     for (int i = 0; i < 4; i++) {
@@ -126,7 +136,7 @@ AtlaDrop Deliver(AtlaDrop drop) {
         return drop;
     }
     drop.sphere = true;
-    if (!GiveSphere(drop.weapon)) {
+    if (!GiveSphere(drop)) {
         drop.weapon = 0; // the board full: lost
     }
     return drop;
@@ -327,6 +337,9 @@ bool AtlaDropTaken(int atla) {
     if (carried) {
         named = Deliver(placed[atla].drop);
         naming = true;
+        if (placed[atla].drop.taken != nullptr) {
+            placed[atla].drop.taken(placed[atla].drop.tag);
+        }
     }
     placed[atla] = {};
     return carried;

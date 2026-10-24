@@ -1,5 +1,7 @@
 #pragma once
 
+#include "types.h"
+
 class CDungeonMap;
 
 namespace expanded {
@@ -12,6 +14,16 @@ namespace expanded {
 struct AtlaDrop {
     int  weapon = 0;
     bool sphere = false; // the weapon's SynthSphere, else the weapon itself
+    // A SynthSphere with these values (and the weapon's level), not a sixth of its weapon's base ones.
+    bool own_values = false;
+    s16  status[4] = {};
+    s8   elem[5] = {};
+    s8   vs_monster[10] = {};
+    s16  flags = 0;
+    s8   level = 0;
+    // Told once the drop has been picked up and handed over, with tag.
+    void (*taken)(int tag) = nullptr;
+    int tag = 0;
 };
 
 // An atla's way into place: from a pose (its turn q0, w first, its scale and where its frame stands) to a real
