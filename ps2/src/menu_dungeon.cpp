@@ -40,6 +40,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/toan/chronicle_two.hpp"
 #endif
 
 /**
@@ -305,7 +306,12 @@ void WeaponAllValueSet(WEAPON_HAVE *weapon, WEAPON_HAVE *result, int full) {
     }
 
     result->flags = CheckWeaponOptionStatus(flags);
+#ifdef CHRONICLE_EXPANDED
+    int limit[4] = {expanded::ChronicleTwoLimit(*weapon, expanded::kStatAttack, data->attack_max), 99, 99,
+                    expanded::ChronicleTwoLimit(*weapon, expanded::kStatMagic, data->magic_max)};
+#else
     int limit[4] = {data->attack_max, 99, 99, data->magic_max};
+#endif
     limit[0] *= rate;
     limit[3] *= rate;
     value = result->attack + total.status[0];
