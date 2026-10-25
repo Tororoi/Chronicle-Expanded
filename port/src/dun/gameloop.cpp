@@ -83,6 +83,7 @@
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
 #include "expanded/weapons/toan/seventh_heaven.hpp"
+#include "expanded/weapons/xiao/matador.hpp"
 #endif
 
 // The dungeon's MainDraw and LoaderLoop, replaced to drop what the renderer has no use for: the VU1
@@ -410,6 +411,7 @@ PORT_OVERRIDE void DunMainDraw() {
         expanded::ConfuseStarsDraw();
         expanded::SolarGlowDraw();
         expanded::BigBangShotDraw();
+        expanded::ChargingBullDraw();
 #endif
         NowMainEffect->Draw();
     }
