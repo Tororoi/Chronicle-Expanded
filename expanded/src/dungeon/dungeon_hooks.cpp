@@ -40,6 +40,7 @@
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
 #include "expanded/weapons/xiao/double_impact.hpp"
+#include "expanded/weapons/xiao/dragons_y.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
@@ -93,6 +94,7 @@ void DungeonMonstersTick() {
     ZeusShotStep();
     TyphoonShotStep();
     ChargingBullStep();
+    DragonShotStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
@@ -153,6 +155,7 @@ void PelletFired(CSHOT &shots, int slot) {
     RicochetShotFired(slot);
     DoubleImpactFired(shots, slot);
     ChargingBullFired(shots, slot);
+    DragonShotFired(shots, slot);
 }
 
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
@@ -168,6 +171,10 @@ void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     ChargingBullHit(shots, slot, hit);
 }
 
+void ShotEffectHitSet(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
+    DragonShotHit(effect, slot, hit);
+}
+
 void PelletStepping(CSHOT &shots, int slot) {
     RicochetStep(shots, slot);
 }
@@ -178,6 +185,10 @@ bool PelletHurts(const CSHOT &shots, int slot) {
 
 bool TargetNameHidden() {
     return JudgementHanging() || JudgementFalling() || BigBangShotHanging();
+}
+
+bool MonsterHitRefused(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {
+    return DragonShotRefused(monster, hit);
 }
 
 bool MonsterGuardBlocks(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {

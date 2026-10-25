@@ -1321,6 +1321,12 @@ int CMonstorUnit::CheckDmg() {
                     }
                 }
 
+#ifdef CHRONICLE_EXPANDED
+                if (hit != -1 && rejected == 0 && expanded::MonsterHitRefused(*this, current_monster, NowColData->hit[hit])) {
+                    rejected = 1;
+                }
+#endif
+
                 if (hit != -1 && rejected == 0) {
                     for (int j = 0; j < 3; j++) {
 #ifdef CHRONICLE_EXPANDED

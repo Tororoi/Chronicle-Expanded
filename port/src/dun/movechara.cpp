@@ -88,6 +88,7 @@
 #include "expanded/enemies/miniboss_loot.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
+#include "expanded/weapons/xiao/dragons_y.hpp"
 #endif
 
 // Defined by ps2/src/dun/gameloop.cpp without a header declaration.
@@ -338,6 +339,10 @@ PORT_OVERRIDE void DunMoveChara() {
                 if (lockOnTargetFlag != 0) {
                     velo__2[0] = move_x;
                     velo__2[2] = move_z;
+#ifdef CHRONICLE_EXPANDED
+                    velo__2[0] *= expanded::LockOnMoveScale();
+                    velo__2[2] *= expanded::LockOnMoveScale();
+#endif
 
                     if (BtActStatus.fast_camera_frames > 0) {
                         NowCamera__3->SetSpeed(32.0f);

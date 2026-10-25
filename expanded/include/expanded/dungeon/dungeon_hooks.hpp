@@ -2,6 +2,7 @@
 
 class CMonstorUnit;
 class CSHOT;
+class CSHOT_EFFECT;
 struct COLLISION_HIT;
 
 namespace expanded {
@@ -60,6 +61,8 @@ void PelletFired(CSHOT &shots, int slot);
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck);
 // A pellet's hit just planted (CSHOT::step).
 void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit);
+// A shot effect's hit just planted (CSHOT_EFFECT::Step).
+void ShotEffectHitSet(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit);
 // A pellet about to be stepped (CSHOT::step).
 void PelletStepping(CSHOT &shots, int slot);
 // Whether a pellet ending lands its own hit: not one whose hit is a bolt or a bomb's blast.
@@ -67,6 +70,9 @@ bool PelletHurts(const CSHOT &shots, int slot);
 
 // Whether the lock-on target's name plate is left off (setTargetCursor): something hangs over the target.
 bool TargetNameHidden();
+
+// Whether a monster refuses a hit it would take (CheckDmg): one the hit's source has landed on it already.
+bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
 
 // Whether a monster's guard windows block the hit that reached it (CheckDmg).
 bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
