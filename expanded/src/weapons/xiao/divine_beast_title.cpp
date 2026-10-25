@@ -41,7 +41,7 @@ constexpr float kFloatToFall = 1.0f / 16.0f; // the float-up's slower fade into 
 constexpr float kRootTouch = 2.0f;           // the touch point's height over the root, with no head to touch with
 constexpr float kProbeUp = 8.0f, kProbeDown = 40.0f;
 constexpr float kClearance = 4.0f;
-constexpr float kTallScale = 1.25f; // a monster drawn this large or larger gets the higher arc
+constexpr float kTallScale = 1.25f;                      // a monster drawn this large or larger gets the higher arc
 constexpr float kProbeAhead = 3.0f, kProbeBehind = 2.0f; // the floor's extra casts along the cat: it stands on the highest
 // Flyers, hoverers and the tall or large: the higher arc.
 constexpr Monster kTallLeapers[] = {
@@ -184,16 +184,34 @@ bool Hittable(int monster) {
     return live.state != -1 && live.revealed != 0 && live.hp > 0;
 }
 
+// Whether the monster is a mimic not yet out of its chest and in play.
+bool Dormant(int monster) {
+    if (NowMonstorUnit == nullptr || monster < 0 || monster >= 16) {
+        return false;
+    }
+    const MONSTOR &live = NowMonstorUnit->monster[monster];
+    bool           mimic = live.kind == MONSTER_KIND_MIMIC_SMALL || live.kind == MONSTER_KIND_MIMIC_LARGE;
+    return mimic && live.state != -1 && (live.revealed == 0 || live.state != 2) && live.hp > 0;
+}
+
+// Whether the cat goes after the monster: one in play, or a mimic still in its chest, which it waits by.
+bool Targetable(int monster) {
+    return Hittable(monster) || Dormant(monster);
+}
+
 const CCharacter &Body(int monster) {
     return NowMonstorUnit->chara[monster][0];
 }
 
 // Where the cat walks and leaps to: the centre of the monster's largest hurt sphere Xiao's hits damage (else its largest
-// in use), the furthest forward of equals; with none, its feet.
+// in use), the furthest forward of equals; with none, or a mimic still in its chest, its feet.
 void AimPoint(int monster, float *out) {
     const CCharacter           &body = Body(monster);
     const MONSTOR_EFFECT_STATE &effect = NowMonstorUnit->effect[monster];
     out[0] = body.pos[0], out[1] = body.pos[1], out[2] = body.pos[2], out[3] = 1.0f;
+    if (Dormant(monster)) {
+        return; // its spheres are not set up until it wakes: the chest's place
+    }
     float fx = std::sin(body.rotation.y), fz = std::cos(body.rotation.y);
     float best = -1.0f, best_forward = -INFINITY;
     for (int pass = 0; pass < 2 && best < 0; pass++) {
@@ -233,7 +251,7 @@ int PickTarget() {
     int   best = -1;
     float nearest = kSpiritBeastSight;
     for (int monster = 0; monster < 16; monster++) {
-        if (Hittable(monster) && Flat(Body(monster).pos, CharaMain.pos) <= nearest) {
+        if (Targetable(monster) && Flat(Body(monster).pos, CharaMain.pos) <= nearest) {
             best = monster;
             nearest = Flat(Body(monster).pos, CharaMain.pos);
         }
@@ -343,7 +361,7 @@ void Retarget() {
     if (cat.phase_age % kRetarget == 0 && lockOnTargetFlag != 0 && Hittable(lockOnTargetNo)) {
         cat.target = lockOnTargetNo;
     }
-    if (!Hittable(cat.target)) {
+    if (!Targetable(cat.target)) {
         cat.target = PickTarget();
     }
 }
@@ -386,7 +404,7 @@ void Walk() {
 void Aim(bool launch) {
     float goal[4];
     AimPoint(cat.target, goal);
-    float        left = static_cast<float>(std::max(1, cat.leap_frames - cat.phase_age));
+    float left = static_cast<float>(std::max(1, cat.leap_frames - cat.phase_age));
     cat.vel[0] = (goal[0] - cat.pos[0]) / left;
     cat.vel[2] = (goal[2] - cat.pos[2]) / left;
     if (launch) {
@@ -492,9 +510,18 @@ void SpiritBeastStep() {
         cat.phase = SpiritBeastPhase::kNone;
         return;
     }
+    // Another character or weapon in hand: the cat is gone at once, a pellet it still holds let go on its way.
+    if (!active) {
+        if (cat.phase == SpiritBeastPhase::kRiding && cat.shots != nullptr && cat.shots->used[cat.slot] != 0) {
+            cat.shots->halted[cat.slot] = 0;
+            cat.shots->size[cat.slot] = 1.0f;
+        }
+        cat.phase = SpiritBeastPhase::kNone;
+        return;
+    }
     // Its time up, it fades where it stands.
     bool standing = cat.fade >= 0 && !cat.hit;
-    if (!standing && (cat.age >= kSpiritBeastLifeFrames || !active)) {
+    if (!standing && cat.age >= kSpiritBeastLifeFrames) {
         StartFade();
         standing = true;
     }
@@ -563,8 +590,8 @@ void SpiritBeastStep() {
                 float goal[4];
                 AimPoint(cat.target, goal);
                 Face(goal);
-                // Held crouched while the monster cannot be hit.
-                if (cat.phase_age >= kSpiritBeastReadyFrames && NowMonstorUnit->monster[cat.target].invincible_timer <= 0) {
+                // Held crouched while the monster cannot be hit: a mimic still in its chest, or one in its untouchable frames.
+                if (cat.phase_age >= kSpiritBeastReadyFrames && !Dormant(cat.target) && NowMonstorUnit->monster[cat.target].invincible_timer <= 0) {
                     if (Flat(goal, cat.pos) > 2.0f * kSpiritBeastPounce) {
                         Walk();
                     } else {

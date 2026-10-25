@@ -318,3 +318,56 @@ TEST_F(SpiritBeast, ALargeMonsterGetsTheHigherArc) {
     EXPECT_GT(low, 0);
     EXPECT_EQ(high - low, expanded::kSpiritBeastLeapFramesTall - expanded::kSpiritBeastLeapFrames);
 }
+
+TEST_F(SpiritBeast, ItWaitsCrouchedByAShutMimicAndPouncesOnceItIsOut) {
+    Stand(0, 0.0f, 160.0f);
+    MONSTOR &mimic = floor_.unit().monster[0];
+    mimic.kind = MONSTER_KIND_MIMIC_SMALL;
+    mimic.revealed = 0; // in its chest
+    mimic.state = 1;
+    floor_.unit().effect[0].timer[0] = 0;
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    ASSERT_GT(StepsUntil(SpiritBeastPhase::kReady), 0);
+    EXPECT_LE(160.0f - expanded::SpiritBeastPosition()[2], expanded::kSpiritBeastPounce);
+    EXPECT_NEAR(expanded::SpiritBeastPosition()[0], 0.0f, 0.5f); // at the chest, not off after a sphere
+    Steps(expanded::kSpiritBeastReadyFrames * 4);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kReady);
+
+    // Opened, not yet in play: still waited for.
+    mimic.revealed = 1;
+    floor_.unit().effect[0].timer[0] = 1;
+    floor_.unit().effect[0].position[0][0] = 300.0f; // a sphere left from another monster: not aimed at
+    Steps(1);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kReady);
+    floor_.unit().effect[0].position[0][0] = 0.0f;
+    // Out and in play, untouchable a while as it wakes.
+    mimic.revealed = -1;
+    mimic.state = 2;
+    mimic.invincible_timer = 100;
+    floor_.unit().effect[0].timer[0] = 1;
+    Steps(50);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kReady);
+    mimic.invincible_timer = 0;
+    floor_.unit().effect[0].timer[0] = 1;
+    EXPECT_GT(StepsUntil(SpiritBeastPhase::kWindUp, 5), 0);
+}
+
+TEST_F(SpiritBeast, AnotherCharacterTakesTheCatAwayAtOnce) {
+    Stand(0, 0.0f, 160.0f);
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    ASSERT_GT(StepsUntil(SpiritBeastPhase::kWalking), 0);
+    floor_.status().cur_chara = CHARA_TOAN;
+    Steps(1);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kNone);
+}
+
+TEST_F(SpiritBeast, TakenAwayOnThePelletItLetsThePelletGo) {
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    ASSERT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kRiding);
+    floor_.status().cur_chara = CHARA_TOAN;
+    Steps(1);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kNone);
+    EXPECT_EQ(shots_->used[0], 1);
+    EXPECT_EQ(shots_->halted[0], 0);
+    EXPECT_FLOAT_EQ(shots_->size[0], 1.0f);
+}

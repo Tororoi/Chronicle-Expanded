@@ -13,13 +13,15 @@ namespace expanded {
 // with the pellet's velocity and falls (kSpiritBeastGravity, as every flight of the cat does) to the floor; the land clip starts kSpiritBeastLandLead frames before
 // the touchdown, its momentum stops as the paws touch, and kSpiritBeastLandFrames after the clip began it walks
 // (kSpiritBeastWalk units a frame) at the monster she is locked on to, else the nearest to her within kSpiritBeastSight;
-// with none it sits. Within kSpiritBeastPounce it crouches (kSpiritBeastReadyFrames), held while the monster cannot be
-// hit, then winds up in the float-up and leaps: an arc reaching the height of the monster's aim point in kSpiritBeastLeapFrames
+// with none it sits. A mimic still in its chest is a target too: the cat walks to the chest. Within kSpiritBeastPounce it
+// crouches (kSpiritBeastReadyFrames), held while the monster cannot be hit (a mimic until it is out and its untouchable
+// frames are over), then winds up in the float-up and leaps: an arc reaching the height of the monster's aim point in kSpiritBeastLeapFrames
 // (kSpiritBeastLeapFramesTall for a large one), its horizontal speed re-aimed at it until the apex. Falling or landing,
 // the first monster its head touches (as a pellet does) takes one hit: the pellet's damage plus the weapon's attack, in the weapon's
 // element, through a guard, staggering it and shoving it (kSpiritBeastKickSpeed, kSpiritBeastKickDecay) away from the cat.
 // The cat then fades over kSpiritBeastFadeFrames as it goes on; kSpiritBeastLifeFrames after it was let go it fades where
-// it stands. It glows blue. Times are game frames, distances units.
+// it stands. Another character or weapon in hand takes it away at once. It glows blue. Times are game frames, distances
+// units.
 inline constexpr int   kSpiritBeastFrames = 30;
 inline constexpr int   kSpiritBeastGrowFrames = 6;
 inline constexpr float kSpiritBeastGravity = 0.08f;
