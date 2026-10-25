@@ -35,6 +35,7 @@ constexpr int   kArenaQuads = 0x4000; // 256 KB for the copy's frames
 constexpr float kGlowPull = 6.0f;
 constexpr float kHalfPi = 1.57079632679f;
 constexpr char  kPouch[] = "null24"; // the elastic's pouch bone
+constexpr float kCupNudge[2] = {-0.3f, -0.3f}; // from the pouch bone to its cup: up, and along the flight
 constexpr float kOrange[3] = {120.0f, 45.0f, 0.0f};
 
 struct State {
@@ -224,7 +225,11 @@ void ChargingBullDraw() {
             if (CFrame *pouch = copy.frame->SearchFrame(const_cast<char *>(kPouch))) {
                 sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, on;
                 pouch->GetWorldPosition(on, origin);
-                copy.SetPosition(2.0f * at[0] - on[0], 2.0f * at[1] - on[1], 2.0f * at[2] - on[2]);
+                // The pouch bone sits a little over and ahead of the cup the pellet shows in.
+                float flat = std::hypot(v[0], v[2]);
+                float back = flat > 0.0f ? kCupNudge[1] / flat : 0.0f;
+                copy.SetPosition(2.0f * at[0] - on[0] + v[0] * back, 2.0f * at[1] - on[1] + kCupNudge[0],
+                                 2.0f * at[2] - on[2] + v[2] * back);
             }
             for (Pose &pose : poses) {
                 float *vertices = reinterpret_cast<float *>(pose.vertices);
