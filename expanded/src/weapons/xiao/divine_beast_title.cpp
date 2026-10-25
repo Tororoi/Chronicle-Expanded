@@ -19,6 +19,7 @@
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
+#include "expanded/weapons/xiao/spirit_cape.hpp"
 #include "frame.hpp"
 #include "gameutil.hpp"
 #include "itemdata.hpp"
@@ -92,13 +93,65 @@ constexpr Monster kTallLeapers[] = {
     Monster::DRAGON,
     Monster::OPAR,
 };
-constexpr int   kMark = 0x08000000; // in a hit's weapon flags: the cat's
-constexpr int   kMonsters = 2;
-constexpr int   kHitKind = 2;   // the reaction kind a pellet's entry carries
-constexpr int   kGlowDelay = 4; // the torch flame's first draws are empty
-constexpr float kGlowSize = 22.5f, kGlowPull = 5.0f;
-constexpr float kTint[3] = {12.0f, 24.0f, 48.0f};
-constexpr float kHeadFallback[3] = {0.0f, 6.0f, 0.0f};
+constexpr int         kMark = 0x08000000; // in a hit's weapon flags: the cat's
+constexpr int         kMonsters = 2;
+constexpr int         kHitKind = 2;   // the reaction kind a pellet's entry carries
+constexpr int         kGlowDelay = 4; // the torch flame's first draws are empty
+constexpr float       kGlowSize = 22.5f, kGlowPull = 5.0f;
+constexpr float       kHeadFallback[3] = {0.0f, 6.0f, 0.0f};
+constexpr const char *kHeadFrame = "cat_kao";
+constexpr const char *kHipsFrame = "cat_kosibone", *kSpineFrame = "cat_sebone2";
+constexpr const char *kWingFrames[] = {"cat_rwingm", "cat_lwingm"};
+constexpr int         kSkippedByParent = 4; // CFrameAttr::draw_on: the parent's draw passes over it
+
+// A weapon's cat: whether it wears the wings or the cape and mask, its glow (the cape's is the element's) and the
+// ambient it adds, its pounce range, whether it steers past the apex, its size.
+struct Look {
+    bool     wings;
+    bool     cape;
+    GlowLook glow;
+    float    tint[3];
+    float    range;
+    bool     steers;
+    float    scale;
+};
+
+constexpr Look kTitleLook = {
+    false, false, GlowLook::kBlue, {12.0f, 24.0f, 48.0f},
+       kSpiritBeastPounce, false, 1.0f
+};
+constexpr Look kShooterLook = {
+    true, false, GlowLook::kWhite, {20.0f, 20.0f, 20.0f},
+       kSpiritBeastPounceWinged, true, kAngelShooterCatScale
+};
+constexpr Look kShooterCapeLook = {
+    false, true, GlowLook::kNoElement, {20.0f, 20.0f, 20.0f},
+       kSpiritBeastPounceWinged, true, kAngelShooterCatScale
+};
+constexpr GlowLook kElementGlows[6] = {GlowLook::kFire, GlowLook::kIce, GlowLook::kThunder, GlowLook::kWind, GlowLook::kHoly, GlowLook::kNoElement};
+
+// The look of the cat the weapon in Xiao's hand lets go, or null for none.
+const Look *LookNow() {
+    if (WeaponWielded(ITEM_WEAPON_DIVINEBEASTTITLE)) {
+        return &kTitleLook;
+    }
+    if (WeaponWielded(ITEM_WEAPON_ANGEL_SHOOTER)) {
+        return &kShooterLook;
+    }
+    switch (SuperSteveSphere()) {
+        case ITEM_WEAPON_DIVINEBEASTTITLE:
+            return &kTitleLook;
+        case ITEM_WEAPON_ANGEL_SHOOTER:
+            return &kShooterCapeLook;
+        default:
+            return nullptr;
+    }
+}
+
+// The element selected on Xiao's weapon (0 Fire to 4 Holy), else 5.
+int Element() {
+    return NowWeaponHave != nullptr && NowWeaponHave->best_elem >= 0 && NowWeaponHave->best_elem < 5 ? NowWeaponHave->best_elem : 5;
+}
 
 struct Cat {
     SpiritBeastPhase phase = SpiritBeastPhase::kNone;
@@ -128,6 +181,7 @@ struct Cat {
     int              damage = 0;
     CSHOT           *shots = nullptr;
     int              slot = -1;
+    const Look      *look = &kTitleLook;
 };
 
 Cat                 cat;
@@ -135,6 +189,7 @@ ShotCharge          charge{kSpiritBeastFrames};
 CSHOT              *pending_shots = nullptr; // a charged pellet, bound once it has stepped
 int                 pending_slot = -1;
 CCharacter         *model = nullptr;
+CFrame             *wings[2] = {};
 bool                failed = false;
 float               head[3] = {kHeadFallback[0], kHeadFallback[1], kHeadFallback[2]};
 std::vector<CCPoly> polys(8192);
@@ -299,9 +354,9 @@ bool TallLeap(int monster) {
     return IsMiniboss(monster) || Body(monster).scale[0] >= kTallScale;
 }
 
-// How near the cat crouches by its target.
+// How near the cat crouches by its target: its look's reach, but kSpiritBeastPounce by a mimic still in its chest.
 float Range() {
-    return kSpiritBeastPounce;
+    return Dormant(cat.target) ? kSpiritBeastPounce : cat.look->range;
 }
 
 // Whether the target cannot be hit: a mimic in its chest, or a monster in its untouchable frames.
@@ -387,7 +442,7 @@ void Watch() {
 // The cat's touch point: its head as last posed, else its root.
 void HeadPoint(float *point) {
     point[0] = cat.pos[0], point[1] = cat.pos[1] + kRootTouch, point[2] = cat.pos[2], point[3] = 1.0f;
-    CFrame *kao = model != nullptr && model->frame != nullptr ? model->frame->SearchFrame(const_cast<char *>("kao")) : nullptr;
+    CFrame *kao = model != nullptr && model->frame != nullptr ? model->frame->SearchFrame(const_cast<char *>(kHeadFrame)) : nullptr;
     if (kao != nullptr) {
         sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, at;
         kao->GetWorldPosition(at, origin);
@@ -504,8 +559,13 @@ void Falling() {
         if (!(kSpiritBeastLandLead < t)) {
             StartLand();
         } else if (cat.pounce) {
-            // Re-aimed at the target while it rises, over the frames still to fly.
-            if (cat.vel[1] > 0.0f && cat.aimed) {
+            // Re-aimed at the target while it rises, over the frames still to fly; a steering cat on until it has fallen
+            // halfway from the apex to the floor.
+            bool rising = cat.vel[1] > 0.0f;
+            if (rising && cat.look->steers) {
+                cat.apex = cat.pos[1];
+            }
+            if ((rising || (cat.look->steers && cat.apex + cat.floor < 2.0f * cat.pos[1])) && cat.aimed) {
                 cat.vel[0] = (cat.aim[0] - cat.pos[0]) / t;
                 cat.vel[2] = (cat.aim[2] - cat.pos[2]) / t;
                 FaceAim();
@@ -542,6 +602,15 @@ bool Landing() {
         }
     }
     if (airborne || frame < kSpiritBeastLandTouch) {
+        // A steering cat's pounce re-aimed on while above halfway, until kSpiritBeastCommitHorizon frames out.
+        if (airborne && cat.look->steers && cat.pounce && cat.aimed && cat.apex + cat.floor < 2.0f * cat.pos[1]) {
+            float t = Horizon();
+            if (!(t < kSpiritBeastCommitHorizon)) {
+                cat.vel[0] = (cat.aim[0] - cat.pos[0]) / t;
+                cat.vel[2] = (cat.aim[2] - cat.pos[2]) / t;
+                FaceAim();
+            }
+        }
         cat.pos[0] += cat.vel[0];
         cat.pos[2] += cat.vel[2];
     }
@@ -576,7 +645,7 @@ void Walking() {
             return;
         }
     }
-    float move[2] = {cat.dir[0] * kSpiritBeastWalk, cat.dir[1] * kSpiritBeastWalk};
+    float walk = kSpiritBeastWalk * cat.look->scale, move[2] = {cat.dir[0] * walk, cat.dir[1] * walk};
     cat.blocked = WallAhead(move);
     if (cat.blocked) {
         Key(kCatStand);
@@ -645,12 +714,12 @@ void WindUp() {
 void Riding() {
     if (cat.shots == nullptr || cat.shots->used[cat.slot] == 0) {
         cat.ended = true; // full size where it was, fading
-        cat.scale = 1.0f;
+        cat.scale = cat.look->scale;
         StartFade();
         return;
     }
     const float *at = cat.shots->pos[cat.slot], *v = cat.shots->vector[cat.slot];
-    float        k = std::min(1.0f, static_cast<float>(cat.grown) / kSpiritBeastGrowFrames);
+    float        k = std::min(1.0f, static_cast<float>(cat.grown) / kSpiritBeastGrowFrames) * cat.look->scale;
     float        h = std::sqrt(v[0] * v[0] + v[2] * v[2]), off[2] = {};
     if (h > 0.0f) {
         off[0] = (head[0] * v[2] + head[2] * v[0]) / h;
@@ -661,7 +730,7 @@ void Riding() {
     cat.pos[2] = at[2] - k * off[1];
     cat.scale = k;
     Key(kCatLeap);
-    cat.shots->size[cat.slot] = 1.0f - k;
+    cat.shots->size[cat.slot] = 1.0f - k / cat.look->scale;
     if (cat.grown++ < kSpiritBeastGrowFrames) {
         return;
     }
@@ -689,13 +758,18 @@ void Place() {
     model->SetRotation(0.0f, cat.yaw, 0.0f);
     model->SetScale(cat.scale, cat.scale, cat.scale);
     model->ambient_offset[3] = 128.0f * std::max(0.0f, shown);
+    for (CFrame *wing : wings) {
+        if (wing != nullptr) {
+            wing->attr.draw_on = cat.look->wings ? wing->attr.draw_on & ~kSkippedByParent : wing->attr.draw_on | kSkippedByParent;
+        }
+    }
     model->Step();
 }
 
 // Where the head rests in the cat's own space: its rest pose's matrices up to the root.
 void FindHead() {
     head[0] = kHeadFallback[0], head[1] = kHeadFallback[1], head[2] = kHeadFallback[2];
-    CFrame *kao = model != nullptr && model->frame != nullptr ? model->frame->SearchFrame(const_cast<char *>("kao")) : nullptr;
+    CFrame *kao = model != nullptr && model->frame != nullptr ? model->frame->SearchFrame(const_cast<char *>(kHeadFrame)) : nullptr;
     if (kao == nullptr) {
         return;
     }
@@ -719,6 +793,7 @@ void Bind() {
         return;
     }
     cat = Cat{};
+    cat.look = LookNow();
     cat.shots = shots;
     cat.slot = slot;
     shots->halted[slot] = 1; // held, through everything: the cat's touch is the hit
@@ -745,7 +820,19 @@ void TakeAway() {
 } // namespace
 
 bool SpiritBeastActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && BtEventMode == 0 && WeaponActive(ITEM_WEAPON_DIVINEBEASTTITLE);
+    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && BtEventMode == 0 && LookNow() != nullptr;
+}
+
+float SpiritBeastScale() {
+    return cat.look->scale;
+}
+
+bool SpiritBeastWinged() {
+    return cat.look->wings;
+}
+
+bool SpiritBeastCaped() {
+    return cat.look->cape;
 }
 
 SpiritBeastPhase SpiritBeastPhaseNow() {
@@ -767,9 +854,11 @@ CCharacter *SpiritBeastModel() {
 void SpiritBeastReset() {
     cat = Cat{};
     model = nullptr;
+    wings[0] = wings[1] = nullptr;
     failed = false;
     pending_shots = nullptr;
     charge.Reset();
+    SpiritCapeReset();
 }
 
 void SpiritBeastStep() {
@@ -782,6 +871,10 @@ void SpiritBeastStep() {
         if (model != nullptr) {
             FindHead();
             Key(kCatLeap);
+            for (int i = 0; i < 2; i++) {
+                wings[i] = model->frame != nullptr ? model->frame->SearchFrame(const_cast<char *>(kWingFrames[i])) : nullptr;
+            }
+            SpiritCapeTake(*model); // off the cat's own cloth list, its mask out of the cat's draw: only a caped cat wears them
         }
     }
     // Another character or weapon in hand, or an event: the cat is gone at once.
@@ -790,12 +883,14 @@ void SpiritBeastStep() {
         pending_shots = nullptr;
         return;
     }
-    // A charged shot let go takes away the cat that is out.
-    if (holding && !charge.Holding() && charge.Ready()) {
+    // A charged shot let go takes away the cat that is out, and so does a change of look.
+    if ((holding && !charge.Holding() && charge.Ready()) || (cat.phase != SpiritBeastPhase::kNone && LookNow() != cat.look)) {
         TakeAway();
     }
+    bool bound = false;
     if (pending_shots != nullptr) {
         Bind();
+        bound = cat.phase == SpiritBeastPhase::kRiding;
     }
     if (cat.phase == SpiritBeastPhase::kNone || NowMonstorUnit == nullptr) {
         return;
@@ -846,6 +941,12 @@ void SpiritBeastStep() {
     }
     cat.age++;
     Place();
+    if (cat.look->cape && bound) {
+        SpiritCapeSize(cat.look->scale);
+        SpiritCapeReseed();
+    } else if (cat.look->cape && cat.phase != SpiritBeastPhase::kNone) {
+        SpiritCapeStep(cat.yaw, cat.floor, cat.look->scale);
+    }
 }
 
 void SpiritBeastFired(CSHOT &shots, int slot) {
@@ -862,13 +963,16 @@ void SpiritBeastDraw() {
     }
     TexManager.ReloadTexture(Vif1Packet, kFloorCharacterBlock);
     model->Draw();
+    float shown = cat.fade < 0 ? 1.0f : 1.0f - static_cast<float>(cat.fade) / kSpiritBeastFadeFrames;
+    if (cat.look->cape) {
+        SpiritCapeDraw(*model, Element(), std::max(0.0f, shown));
+    }
     if (cat.age <= kGlowDelay) {
         return;
     }
-    float   shown = cat.fade < 0 ? 1.0f : 1.0f - static_cast<float>(cat.fade) / kSpiritBeastFadeFrames;
     float   middle[4] = {cat.pos[0], cat.pos[1] + kRootTouch, cat.pos[2], 1.0f};
-    CFrame *hips = model->frame->SearchFrame(const_cast<char *>("kosibone"));
-    CFrame *spine = model->frame->SearchFrame(const_cast<char *>("sebone2"));
+    CFrame *hips = model->frame->SearchFrame(const_cast<char *>(kHipsFrame));
+    CFrame *spine = model->frame->SearchFrame(const_cast<char *>(kSpineFrame));
     if (hips != nullptr && spine != nullptr) {
         sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, a, b;
         hips->GetWorldPosition(a, origin);
@@ -877,7 +981,7 @@ void SpiritBeastDraw() {
             middle[i] = 0.5f * (a[i] + b[i]);
         }
     }
-    DrawGlowDisc(GlowLook::kBlue, middle, kGlowSize * std::max(0.0f, shown), kGlowPull);
+    DrawGlowDisc(cat.look->cape ? kElementGlows[Element()] : cat.look->glow, middle, kGlowSize * cat.look->scale * std::max(0.0f, shown), kGlowPull);
 }
 
 void SpiritBeastLight(const CCharacter &character, float *ambient) {
@@ -886,7 +990,7 @@ void SpiritBeastLight(const CCharacter &character, float *ambient) {
     }
     float shown = cat.fade < 0 ? 1.0f : std::max(0.0f, 1.0f - static_cast<float>(cat.fade) / kSpiritBeastFadeFrames);
     for (int i = 0; i < 3; i++) {
-        ambient[i] += kTint[i] * shown;
+        ambient[i] += cat.look->tint[i] * shown;
     }
 }
 

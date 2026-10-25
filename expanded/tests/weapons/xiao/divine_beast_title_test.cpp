@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -217,13 +218,45 @@ protected:
 
 class SpiritBeastWithAnotherWeapon : public SpiritBeast {
 protected:
-    SpiritBeastWithAnotherWeapon() : SpiritBeast(ITEM_WEAPON_ANGEL_SHOOTER) {}
+    SpiritBeastWithAnotherWeapon() : SpiritBeast(ITEM_WEAPON_MATADOR) {}
 };
 
 class SpiritBeastBySuperSteve : public SpiritBeast {
 protected:
     SpiritBeastBySuperSteve() : SpiritBeast(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_DIVINEBEASTTITLE) {}
 };
+
+class SpiritBeastByAngelShooter : public SpiritBeast {
+protected:
+    SpiritBeastByAngelShooter() : SpiritBeast(ITEM_WEAPON_ANGEL_SHOOTER) {}
+};
+
+class SpiritBeastBySuperSteveWithTheAngelShooter : public SpiritBeast {
+protected:
+    SpiritBeastBySuperSteveWithTheAngelShooter() : SpiritBeast(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_ANGEL_SHOOTER) {}
+};
+
+// Where a cat lands when its target steps aside just past the leap's apex.
+float LandingAfterASidestep(SpiritBeast &test, std::function<void(int)> steps, std::function<int(SpiritBeastPhase, int)> until,
+                            CMonstorUnit &unit) {
+    (void) test;
+    until(SpiritBeastPhase::kLeaping, 2000);
+    float height = expanded::SpiritBeastPosition()[1];
+    while (true) {
+        steps(1);
+        if (expanded::SpiritBeastPosition()[1] < height) {
+            break;
+        }
+        height = expanded::SpiritBeastPosition()[1];
+    }
+    unit.chara[0][0].pos[0] += 20.0f;
+    unit.effect[0].position[0][0] += 20.0f;
+    until(SpiritBeastPhase::kLanding, 200);
+    while (expanded::SpiritBeastPhaseNow() == SpiritBeastPhase::kLanding) {
+        steps(1);
+    }
+    return expanded::SpiritBeastPosition()[0];
+}
 
 } // namespace
 
@@ -565,4 +598,76 @@ TEST_F(SpiritBeast, ASphereNamingTheCatsKickTakesItsOwnPercentage) {
     EXPECT_EQ(expanded::MonsterSpherePercent(floor_.unit(), 0, 0, CHARA_XIAO, cat, 0), 100);
     EXPECT_EQ(expanded::MonsterSpherePercent(floor_.unit(), 0, 0, CHARA_XIAO, pellet, 0), 0);
     EXPECT_EQ(expanded::MonsterSpherePercent(floor_.unit(), 0, 0, CHARA_TOAN, cat, 30), 30);
+}
+
+TEST_F(SpiritBeast, TheTitlesCatIsPlainAndItsOwnSize) {
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    EXPECT_FALSE(expanded::SpiritBeastWinged());
+    EXPECT_FALSE(expanded::SpiritBeastCaped());
+    EXPECT_FLOAT_EQ(expanded::SpiritBeastScale(), 1.0f);
+}
+
+TEST_F(SpiritBeastByAngelShooter, LetsAWingedCatGoALittleLarger) {
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kRiding);
+    EXPECT_TRUE(expanded::SpiritBeastWinged());
+    EXPECT_FALSE(expanded::SpiritBeastCaped());
+    EXPECT_FLOAT_EQ(expanded::SpiritBeastScale(), expanded::kAngelShooterCatScale);
+}
+
+TEST_F(SpiritBeastByAngelShooter, ItWalksAsItsSizeAndCrouchesFromFarther) {
+    Stand(0, 0.0f, 160.0f);
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    ASSERT_GT(StepsUntil(SpiritBeastPhase::kWalking), 0);
+    float z = expanded::SpiritBeastPosition()[2];
+    Steps(1);
+    EXPECT_NEAR(expanded::SpiritBeastPosition()[2] - z, expanded::kSpiritBeastWalk * expanded::kAngelShooterCatScale, 1e-4f);
+    ASSERT_GT(StepsUntil(SpiritBeastPhase::kReady), 0);
+    float distance = 160.0f - expanded::SpiritBeastPosition()[2];
+    EXPECT_LE(distance, expanded::kSpiritBeastPounceWinged);
+    EXPECT_GT(distance, expanded::kSpiritBeastPounce);
+}
+
+TEST_F(SpiritBeastByAngelShooter, ByAShutMimicItCrouchesFromThePlainReach) {
+    Stand(0, 0.0f, 160.0f);
+    MONSTOR &mimic = floor_.unit().monster[0];
+    mimic.kind = MONSTER_KIND_MIMIC_SMALL;
+    mimic.revealed = 0; // in its chest
+    mimic.state = 1;
+    floor_.unit().effect[0].timer[0] = 0;
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    ASSERT_GT(StepsUntil(SpiritBeastPhase::kReady), 0);
+    EXPECT_LE(160.0f - expanded::SpiritBeastPosition()[2], expanded::kSpiritBeastPounce);
+}
+
+TEST_F(SpiritBeastByAngelShooter, ItSteersPastTheApex) {
+    Stand(0, 0.0f, 160.0f);
+    floor_.unit().effect[0].timer[0] = 0; // nothing to touch: it lands
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    float winged = LandingAfterASidestep(*this, [&](int n) { Steps(n); }, [&](SpiritBeastPhase p, int n) { return StepsUntil(p, n); }, floor_.unit());
+    EXPECT_GT(winged, 8.0f);
+}
+
+TEST_F(SpiritBeast, ItsPounceIsSetAtTheApex) {
+    Stand(0, 0.0f, 160.0f);
+    floor_.unit().effect[0].timer[0] = 0; // nothing to touch: it lands
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    float plain = LandingAfterASidestep(*this, [&](int n) { Steps(n); }, [&](SpiritBeastPhase p, int n) { return StepsUntil(p, n); }, floor_.unit());
+    EXPECT_LT(plain, 2.0f);
+}
+
+TEST_F(SpiritBeastBySuperSteveWithTheAngelShooter, LetsACapedCatGo) {
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kRiding);
+    EXPECT_TRUE(expanded::SpiritBeastCaped());
+    EXPECT_FALSE(expanded::SpiritBeastWinged());
+    EXPECT_FLOAT_EQ(expanded::SpiritBeastScale(), expanded::kAngelShooterCatScale);
+}
+
+TEST_F(SpiritBeastByAngelShooter, AChangeOfLookTakesTheCatAway) {
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    ASSERT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kRiding);
+    wielding_.weapon().item_no = ITEM_WEAPON_DIVINEBEASTTITLE;
+    Steps(1);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kNone);
 }

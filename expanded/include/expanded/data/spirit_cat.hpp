@@ -1,12 +1,15 @@
 #pragma once
 
-// The Divine Beast Title's spirit cat, built from the disc at extraction as the mod bakes it: the s86 town cat with the
-// e01 town cat's float-up grafted into its motion, and the mod's motion keys. Includes no game header, so dcdata can
-// build with it.
+// The Divine Beast Title's spirit cat, built from the disc at extraction byte for byte as the PS2 mod bakes it
+// (CatPackBakes): the s86 town cat, its nodes named catroot / cat_*, its clips trimmed to its keys with the e01 town cat's
+// float-up grafted in, Dran's wings, the Super Steve cape (a cloth) and mask, a flat white wing texture, the cape's and
+// the element glow disc. Each weapon's cat shows what it wears. Includes no game header, so dcdata can build with it.
 
 #include <cstdio>
 #include <filesystem>
+#include <functional>
 #include <span>
+#include <string>
 
 #include "expanded/data/bytes.hpp"
 
@@ -16,6 +19,7 @@ namespace expanded {
 inline constexpr const char *kSpiritCatModelFile = "expanded/chara/spirit_cat.chr";
 inline constexpr const char *kSpiritCatSource = "gedit/s86/chara/c04cat.chr";
 inline constexpr const char *kSpiritCatFloatSource = "gedit/e01/chara/e04c04cat.chr";
+inline constexpr const char *kSpiritCatWingSource = "dun/monstor/c12a.chr"; // Dran
 inline constexpr const char *kSpiritCatCfg = "info.cfg";
 
 // The float-up: the e01 cat's frames 160-169 (its KEY 5's start), grafted by joint name into 285-294, where the s86
@@ -36,9 +40,9 @@ enum SpiritCatKey {
     kCatSit,        // 30-40 at 0.1
 };
 
-// The s86 pack (cat) with the e01 pack's (town) float-up grafted in and its cfg as the mod writes it: its own model,
-// skin and motion with no shadow model, and the keys above.
-Bytes BuildSpiritCatModel(std::span<const unsigned char> cat, std::span<const unsigned char> town);
+// The pack from the s86 cat, the e01 cat, Dran and the glow disc's source pack; log hears the bake's notes.
+Bytes BuildSpiritCatModel(std::span<const unsigned char> cat, std::span<const unsigned char> town, std::span<const unsigned char> dran,
+                          std::span<const unsigned char> glow_pack, const std::function<void(const std::string &)> &log = {});
 
 // Builds it into the data directory; 1 when it could not be built.
 int BuildSpiritCatModels(const std::filesystem::path &data, std::FILE *log);

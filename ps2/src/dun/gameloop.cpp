@@ -137,6 +137,7 @@
 #include "expanded/weapons/toan/shamshir.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
+#include "expanded/weapons/xiao/angel_shooter.hpp"
 #include "expanded/weapons/xiao/dragons_y.hpp"
 #include "expanded/weapons/xiao/steel_slingshot.hpp"
 #endif
@@ -6224,11 +6225,13 @@ void motionDrive() {
     heal_counter++;
 
 #ifdef CHRONICLE_EXPANDED
+    heal_counter = expanded::GuardianGraceCounter(heal_counter, expanded::kHealPeriod);
     if (!(heal_counter < expanded::kHealPeriod)) {
+        if (((NowWeaponHave->flags & 0x800) || expanded::GuardianGraceHeals()) && status->hp[*healed_ref] > 0) {
 #else
     if (!(heal_counter < 240)) {
-#endif
         if ((NowWeaponHave->flags & 0x800) && status->hp[*healed_ref] > 0) {
+#endif
             status->AddNowLife((s8) *healed_ref, 1, 255.0f);
         }
 

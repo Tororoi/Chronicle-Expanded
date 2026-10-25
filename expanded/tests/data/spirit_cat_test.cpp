@@ -1,159 +1,146 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
+#include <cstdlib>
 #include <filesystem>
-#include <stdexcept>
 #include <string>
-#include <utility>
 #include <vector>
 
+#include "expanded/data/cat_rig.hpp"
 #include "expanded/data/chr_pack.hpp"
+#include "expanded/data/data_build.hpp"
 #include "expanded/data/spirit_cat.hpp"
 #include "test_support.hpp"
 
 using namespace expanded;
+using namespace expanded::rig;
 
 namespace {
 
 namespace fs = std::filesystem;
 
-struct Track {
-    std::uint32_t                                joint;
-    std::uint32_t                                channel;
-    std::vector<std::pair<std::uint32_t, float>> keys;
-};
-
-std::string Str(const Bytes &bytes) {
-    return std::string(bytes.begin(), bytes.end());
-}
-
-std::string Mds(const std::vector<std::string> &frames) {
-    Bytes mds(0x18 + frames.size() * 0x70);
-    Set32(mds, 0x08, static_cast<std::uint32_t>(frames.size()));
-    Set32(mds, 0x14, 0x70);
-    for (std::size_t i = 0; i < frames.size(); i++) {
-        std::copy(frames[i].begin(), frames[i].end(), mds.begin() + 0x18 + i * 0x70);
-    }
-    return Str(mds);
-}
-
-std::string Mot(const std::vector<Track> &tracks) {
-    MotFile mot;
-    for (const Track &track : tracks) {
-        MotTrack &added = mot.tracks.emplace_back(MotTrack{.w0 = track.joint, .w2 = track.channel, .w3 = 0x20});
-        for (auto [frame, value] : track.keys) {
-            MotKeyframe &key = added.keys.emplace_back();
-            key.SetFrame(frame);
-            key.SetValue(0, value);
-        }
-    }
-    return Str(mot.BuildPayload());
-}
-
-Bytes Pack(const std::vector<std::pair<std::string, std::string>> &records) {
-    ChrPack pack;
-    for (const auto &[name, payload] : records) {
-        pack.records.push_back(ChrRecord::Make(name, Bytes(payload.begin(), payload.end())));
-    }
-    pack.trailer.assign(0x50, 0);
-    return pack.Rebuild();
-}
-
-// The s86 cat: its head joint keyed through its clips, up to frame 230, and a shadow model.
-Bytes Cat() {
-    return Pack({
-        {"c04cat.bbp",  "bind"                                                                                 },
-        {"c04cat.img",  "pictures"                                                                             },
-        {"c04cat.mds",  Mds({"root", "kosibone", "kao"})                                                       },
-        {"c04cat.mot",  Mot({{0, 0, {{1, 1.0f}, {230, 1.0f}}}, {2, 0, {{1, 2.0f}, {100, 3.0f}, {230, 2.0f}}}}) },
-        {"c04cat.wgt",  "weights"                                                                              },
-        {"c04cats.mds", Mds({"root"})                                                                          },
-        {"c04cats.mot", Mot({{0, 0, {{1, 1.0f}}}})                                                             },
-        {"info.cfg",    "MODEL \"c04cat.mds\"\r\nSHADOW_MODEL \"c04cats.mds\"\r\nKEY_START 0\r\nMOTION_END\r\n"},
-    });
-}
-
-// The e01 cat: its joints in another order, the head keyed over its float-up (160-169) and either side of it.
-Bytes Town() {
-    return Pack({
-        {"e04c04cat.mds", Mds({"dummy", "kao", "kosibone"})                                                             },
-        {"e04c04cat.mot", Mot({{1, 0, {{150, 7.0f}, {160, 8.0f}, {165, 9.0f}, {169, 10.0f}, {175, 11.0f}}}, {2, 2, {}}})},
-    });
-}
-
-std::vector<std::pair<std::uint32_t, float>> KeysOf(const ChrPack &pack, std::uint32_t joint) {
-    std::vector<std::pair<std::uint32_t, float>> keys;
-    for (const MotKeyframe &key : MotFile::FromRecord(pack.Require("c04cat.mot")).TrackBy(joint, 0)->keys) {
-        keys.emplace_back(key.Frame(), key.Value(0));
-    }
-    return keys;
-}
-
 } // namespace
 
-TEST(SpiritCatModel, GraftsTheFloatUpByJointNameAt285) {
-    ChrPack cat = ChrPack::Parse(BuildSpiritCatModel(Cat(), Town()));
-    EXPECT_EQ(KeysOf(cat, 2), (std::vector<std::pair<std::uint32_t, float>>{
-                                  {1,   2.0f },
-                                  {100, 3.0f },
-                                  {230, 2.0f },
-                                  {285, 8.0f },
-                                  {290, 9.0f },
-                                  {294, 10.0f}
-    }));
-    EXPECT_EQ(KeysOf(cat, 0), (std::vector<std::pair<std::uint32_t, float>>{
-                                  {1,   1.0f},
-                                  {230, 1.0f}
-    }));
+// The numbers the cat was authored with are Python's, so the bake's are too (the values below are CPython 3.12's).
+TEST(CatRig, SumsAsPythonDoes) {
+    EXPECT_EQ(Sum({1e100, 1.0, -1e100}), 1.0);
+    EXPECT_EQ(Sum(std::vector<double>(10, 0.1)), 1.0);
+    EXPECT_EQ(Sum(std::vector<double>{}), 0.0);
 }
 
-TEST(SpiritCatModel, KeepsTheCatWithoutItsShadowAndGivesTheModsKeys) {
-    ChrPack                  source = ChrPack::Parse(Cat());
-    ChrPack                  cat = ChrPack::Parse(BuildSpiritCatModel(Cat(), Town()));
-    std::vector<std::string> names;
-    for (const ChrRecord &record : cat.records) {
-        names.push_back(record.name);
-    }
-    EXPECT_EQ(names, (std::vector<std::string>{"info.cfg", "c04cat.mds", "c04cat.img", "c04cat.bbp", "c04cat.wgt", "c04cat.mot"}));
-    for (const char *name : {"c04cat.mds", "c04cat.img", "c04cat.bbp", "c04cat.wgt"}) {
-        EXPECT_EQ(cat.Require(name).Payload(), source.Require(name).Payload()) << name;
-    }
-    EXPECT_EQ(Str(cat.Require(kSpiritCatCfg).Payload()), "//Divine Beast Title spirit cat\r\n"
-                                                         "IMG 0,\"c04cat.img\"\r\n"
-                                                         "IMG_END\r\n"
-                                                         "MATERIAL_ANIME 0\r\n"
-                                                         "VERTEX_ANIME 1\r\n"
-                                                         "SHADOW_VERTEX_ANIME 0\r\n"
-                                                         "\r\n"
-                                                         "ALLOC_DBUFF \"skin\"\r\n"
-                                                         "MODEL \"c04cat.mds\"\r\n"
-                                                         "BODY_SIZE 3,7,60\r\n"
-                                                         "\r\n"
-                                                         "MOTION 0, \"c04cat.mot\", \"c04cat.bbp\", \"c04cat.wgt\"\r\n"
-                                                         "KEY_START 64\r\n"
-                                                         "\tKEY\t10,\t20,\t0.1,\t\t//64 cat stand\r\n"
-                                                         "\tKEY\t95,\t105,\t0.4,\t\t//65 cat ready\r\n"
-                                                         "\tKEY\t120,\t136,\t0.5,\t\t//66 cat run\r\n"
-                                                         "\tKEY\t190,\t204,\t0.5,\t\t//67 cat take-off\r\n"
-                                                         "\tKEY\t205,\t214,\t0.5,\t\t//68 cat leap\r\n"
-                                                         "\tKEY\t215,\t227,\t0.36,\t\t//69 cat land\r\n"
-                                                         "\tKEY\t60,\t80,\t1.0,\t\t//70 cat walk\r\n"
-                                                         "\tKEY\t285,\t294,\t0.75,\t\t//71 cat float-up\r\n"
-                                                         "\tKEY\t30,\t40,\t0.1,\t\t//72 cat sit\r\n"
-                                                         "MOTION_END\r\n");
-    EXPECT_EQ(kCatFloat, 71);
-    EXPECT_EQ(kCatSit, 72);
+TEST(CatRig, RoundsAsPythonDoes) {
+    EXPECT_EQ(Round(2.5, 0), 2.0);
+    EXPECT_EQ(Round(3.5, 0), 4.0);
+    EXPECT_EQ(Round(0.125, 2), 0.12);
+    EXPECT_EQ(Round(0.135, 2), 0.14);
+    EXPECT_EQ(Round(2.675, 2), 2.67);
+    EXPECT_EQ(Round(1.0000005, 6), 1.000001);
+    EXPECT_TRUE(std::signbit(Round(-0.4, 0)));
 }
 
-TEST(SpiritCatModel, RefusesAFloatUpThatGraftsNothing) {
-    Bytes town = Pack({
-        {"e04c04cat.mds", Mds({"dummy", "tail"})                   },
-        {"e04c04cat.mot", Mot({{1, 0, {{160, 1.0f}, {169, 1.0f}}}})},
-    });
-    EXPECT_THROW(BuildSpiritCatModel(Cat(), town), std::runtime_error);
+TEST(CatRig, MeasuresAsPythonDoes) {
+    std::vector<double> p = {1.5, 2.25}, q = {0.1, 7.7};
+    EXPECT_EQ(Dist(p, q), 5.626944108483752);
+    EXPECT_EQ(Hypot({1e-3, 3.3, 7.1}), 7.8294317162869485);
+    EXPECT_EQ(FMod(-1.0, 3.0), 2.0);
+    EXPECT_EQ(FMod(7.5, -2.0), -0.5);
+    EXPECT_EQ(Mod(-1, 3), 2);
+}
+
+TEST(CatRig, RotationsRoundTrip) {
+    M3 r = RotAbout({0.3, 1.0, -0.2}, 37.0);
+    M3 back = QuatToMat(MatToQuat(r));
+    for (std::size_t i = 0; i < 3; i++) {
+        for (std::size_t j = 0; j < 3; j++) {
+            EXPECT_NEAR(back[i][j], r[i][j], 1e-12);
+        }
+    }
+    M4 m = MatFromRT(r, {4.0, -2.0, 9.0});
+    M4 identity = MatMul(m, RigidInv(m));
+    for (std::size_t i = 0; i < 4; i++) {
+        for (std::size_t j = 0; j < 4; j++) {
+            EXPECT_NEAR(identity[i][j], i == j ? 1.0 : 0.0, 1e-12);
+        }
+    }
+    V3 p = XformPt(m, {1.0, 2.0, 3.0});
+    V3 local = XformPt(RigidInv(m), p);
+    EXPECT_NEAR(local[0], 1.0, 1e-12);
+    EXPECT_NEAR(local[2], 3.0, 1e-12);
+}
+
+TEST(CatRig, FitsATwoBoneVertexToTwoPoses) {
+    ColumnPose a0 = Col(MatFromRT(RotAbout({0, 1, 0}, 0), {0, 0, 0})), a1 = Col(MatFromRT(RotAbout({0, 1, 0}, 30), {1, 0, 0}));
+    ColumnPose b0 = Col(MatFromRT(RotAbout({1, 0, 0}, 20), {0, 2, 0})), b1 = Col(MatFromRT(RotAbout({0, 0, 1}, -40), {0, 0, 3}));
+    V3         p0 = {0.5, 1.0, -0.25}, p1 = {-0.75, 0.2, 0.6};
+    double     w = 0.7;
+    V3         ta = Blend(w, a0, a1, p0, p1), tb = Blend(w, b0, b1, p0, p1);
+    auto       fit = TwoPoseFit(w, {a0, a1}, {b0, b1}, ta, tb);
+    ASSERT_TRUE(fit.has_value());
+    V3 fa = Blend(w, a0, a1, fit->first, fit->second), fb = Blend(w, b0, b1, fit->first, fit->second);
+    for (std::size_t i = 0; i < 3; i++) {
+        EXPECT_NEAR(fa[i], ta[i], 1e-6);
+        EXPECT_NEAR(fb[i], tb[i], 1e-6);
+    }
+}
+
+TEST(CatRig, FindsAPlanesNormal) {
+    std::vector<V3> points = {
+        {0, 0, 0},
+        {1, 0, 0},
+        {0, 0, 1},
+        {1, 0, 1},
+        {2, 0, 3}
+    };
+    V3 n = PcaNormal(points, {0.8, 0.0, 1.0});
+    EXPECT_NEAR(std::fabs(n[1]), 1.0, 1e-9);
+}
+
+TEST(CatRig, TriangulatesAndTestsPolygons) {
+    std::vector<V2> square = {
+        {0, 0},
+        {1, 0},
+        {1, 1},
+        {0, 1}
+    };
+    std::vector<Tri> tris = Delaunay(square);
+    ASSERT_EQ(tris.size(), 2u);
+    for (const Tri &t : tris) {
+        const V2 &a = square[std::size_t(t[0])], &b = square[std::size_t(t[1])], &c = square[std::size_t(t[2])];
+        EXPECT_GT((b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1]), 0.0) << "counter-clockwise";
+    }
+    EXPECT_TRUE(PtInRing({0.5, 0.5}, square));
+    EXPECT_FALSE(PtInRing({1.5, 0.5}, square));
 }
 
 TEST(SpiritCatModel, SkipsDataWithoutTheCats) {
     expanded::test::ScratchDir dir("spirit_cat");
     EXPECT_EQ(BuildSpiritCatModels(dir.path(), nullptr), 0);
     EXPECT_FALSE(fs::exists(dir.path() / "expanded"));
+}
+
+// DC_TEST_DATA, an extracted data directory: the cat built from it has the mod's rig, wings, mask and cape. (Its bytes
+// are checked whole with the other built files.)
+TEST(SpiritCatModel, BuildsTheModsCatFromTheDisc) {
+    const char *data = std::getenv("DC_TEST_DATA");
+    if (data == nullptr) {
+        GTEST_SKIP() << "DC_TEST_DATA is not set";
+    }
+    auto                     read = [&](const char *path) { return ReadDataFile(fs::path(data) / path); };
+    ChrPack                  pack = ChrPack::Parse(BuildSpiritCatModel(read(kSpiritCatSource), read(kSpiritCatFloatSource), read(kSpiritCatWingSource),
+                                                                       read("dun/mpd_pack/d06main_a.mpd")));
+    std::vector<std::string> records;
+    for (const ChrRecord &record : pack.records) {
+        records.push_back(record.name);
+    }
+    EXPECT_EQ(records, (std::vector<std::string>{"info.cfg", "dbcat.mds", "dbcat.img", "dbcat.mot", "dbcat.bbp", "dbcat.wgt", "catcape.clo"}));
+    std::vector<std::string> frames = ReadMdsFrames(pack.Require("dbcat.mds").Payload());
+    ASSERT_EQ(frames.size(), 49u);
+    EXPECT_EQ(frames[0], "catroot");
+    EXPECT_EQ(std::vector<std::string>(frames.end() - 12, frames.end()),
+              (std::vector<std::string>{"cat_rwing1", "cat_rwing2", "cat_rwing3", "cat_rwing4", "cat_lwing1", "cat_lwing2", "cat_lwing3", "cat_lwing4",
+                                        "cat_rwingm", "cat_lwingm", "cat_mask", "cat_cape"}));
+    Bytes       payload = pack.Require(kSpiritCatCfg).Payload();
+    std::string cfg(payload.begin(), payload.end());
+    EXPECT_NE(cfg.find("CLOTH \"catcape.clo\""), std::string::npos);
+    EXPECT_NE(cfg.find("\tKEY\t285,\t294,\t0.75,\t\t//71 cat float-up"), std::string::npos);
 }
