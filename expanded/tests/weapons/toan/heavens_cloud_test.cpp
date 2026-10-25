@@ -8,10 +8,12 @@
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/weapons/blade_scale.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "expanded/weapons/toan/heavens_cloud.hpp"
+#include "expanded/weapons/xiao/shot_charge.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -135,6 +137,7 @@ TEST(HeavensCloudShot, AFullChargeGrowsThePelletAndBlowsTheMonstersAway) {
     expanded::TyphoonShotFired(shots, 0);
     EXPECT_FLOAT_EQ(shots.size[0], expanded::kTyphoonPellet);
     EXPECT_EQ(shots.damage[0], 60);
+    EXPECT_FLOAT_EQ(expanded::XiaoShotWear(1.0f), expanded::kChargedShotWear); // an empowered shot wears as a charged one
 
     const float landed[4] = {25.0f, 0.0f, 0.0f, 1.0f};
     expanded::TyphoonShotEnded(shots, 0, landed, true);

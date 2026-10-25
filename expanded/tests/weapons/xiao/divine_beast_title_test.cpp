@@ -671,3 +671,23 @@ TEST_F(SpiritBeastByAngelShooter, AChangeOfLookTakesTheCatAway) {
     Steps(1);
     EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kNone);
 }
+
+TEST_F(SpiritBeast, ItKeepsItsTintAsItFades) {
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    CCharacter *cat = expanded::SpiritBeastModel();
+    ASSERT_NE(cat, nullptr);
+    float lit[3] = {};
+    expanded::SpiritBeastLight(*cat, lit);
+    EXPECT_GT(lit[2], 0.0f);
+    // Its time up, it fades where it stands, its tint whole.
+    for (int frame = 0; frame < 2 * expanded::kSpiritBeastLifeFrames && !expanded::SpiritBeastFading(); frame++) {
+        Steps(1);
+    }
+    ASSERT_TRUE(expanded::SpiritBeastFading());
+    Steps(expanded::kSpiritBeastFadeFrames / 2);
+    float fading[3] = {};
+    expanded::SpiritBeastLight(*cat, fading);
+    for (int i = 0; i < 3; i++) {
+        EXPECT_FLOAT_EQ(fading[i], lit[i]);
+    }
+}

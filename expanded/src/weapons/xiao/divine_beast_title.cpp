@@ -988,9 +988,8 @@ void SpiritBeastLight(const CCharacter &character, float *ambient) {
     if (model == nullptr || &character != model || cat.phase == SpiritBeastPhase::kNone) {
         return;
     }
-    float shown = cat.fade < 0 ? 1.0f : std::max(0.0f, 1.0f - static_cast<float>(cat.fade) / kSpiritBeastFadeFrames);
     for (int i = 0; i < 3; i++) {
-        ambient[i] += cat.look->tint[i] * shown;
+        ambient[i] += cat.look->tint[i]; // kept through its fade
     }
 }
 

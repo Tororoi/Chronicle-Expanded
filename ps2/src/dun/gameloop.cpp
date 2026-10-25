@@ -139,7 +139,6 @@
 #include "expanded/weapons/toan/tsukikage.hpp"
 #include "expanded/weapons/xiao/angel_shooter.hpp"
 #include "expanded/weapons/xiao/dragons_y.hpp"
-#include "expanded/weapons/xiao/steel_slingshot.hpp"
 #endif
 
 /**
@@ -7816,7 +7815,7 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                 }
 
 #ifdef CHRONICLE_EXPANDED
-                SwordDmgCheck1(expanded::EnduranceUpShotWear(1.0f), 0);
+                SwordDmgCheck1(expanded::XiaoShotWear(1.0f), 0);
 #else
                 SwordDmgCheck1(1.0f, 0);
 #endif
@@ -7865,7 +7864,7 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                 }
 
 #ifdef CHRONICLE_EXPANDED
-                SwordDmgCheck1(expanded::EnduranceUpShotWear(1.0f), 0);
+                SwordDmgCheck1(expanded::XiaoShotWear(1.0f), 0);
 #else
                 SwordDmgCheck1(1.0f, 0);
 #endif
