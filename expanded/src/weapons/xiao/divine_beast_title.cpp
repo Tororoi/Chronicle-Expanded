@@ -188,8 +188,8 @@ const CCharacter &Body(int monster) {
     return NowMonstorUnit->chara[monster][0];
 }
 
-// Where the cat walks and leaps to: across, the centre of the monster's largest hurt sphere Xiao's hits damage (else
-// its largest in use), the furthest forward of equals; its feet's height.
+// Where the cat walks and leaps to: the centre of the monster's largest hurt sphere Xiao's hits damage (else its largest
+// in use), the furthest forward of equals; with none, its feet.
 void AimPoint(int monster, float *out) {
     const CCharacter           &body = Body(monster);
     const MONSTOR_EFFECT_STATE &effect = NowMonstorUnit->effect[monster];
@@ -206,7 +206,7 @@ void AimPoint(int monster, float *out) {
             if (r > best + 0.01f || (std::fabs(r - best) <= 0.01f && forward > best_forward)) {
                 best = r;
                 best_forward = forward;
-                out[0] = c[0], out[2] = c[2];
+                out[0] = c[0], out[1] = c[1], out[2] = c[2];
             }
         }
     }
@@ -391,7 +391,7 @@ void Aim(bool launch) {
     cat.vel[2] = (goal[2] - cat.pos[2]) / left;
     if (launch) {
         float t = static_cast<float>(cat.leap_frames);
-        cat.vel[1] = (goal[1] - cat.pos[1]) / t + 0.5f * kSpiritBeastGravity * t;
+        cat.vel[1] = (goal[1] - cat.floor) / t + 0.5f * kSpiritBeastGravity * t; // through the aim point's height at t
     }
     Face(goal);
 }
@@ -525,7 +525,7 @@ void SpiritBeastStep() {
                 if (cat.phase == SpiritBeastPhase::kLeaping && cat.rising && Hittable(cat.target)) {
                     Aim(false); // re-aimed until the apex
                 }
-                if (cat.rising && cat.vel[1] - (cat.phase == SpiritBeastPhase::kLeaping ? kSpiritBeastGravity : kSpiritBeastFall) <= 0.0f) {
+                if (cat.rising && cat.vel[1] - kSpiritBeastGravity <= 0.0f) {
                     cat.rising = false;
                     if (model != nullptr) {
                         model->motion_type.state.blend_step = kFloatToFall;
@@ -533,7 +533,7 @@ void SpiritBeastStep() {
                     Motion(kCatLeap);
                 }
                 Touched();
-                if (Fall(cat.phase == SpiritBeastPhase::kLeaping ? kSpiritBeastGravity : kSpiritBeastFall)) {
+                if (Fall(kSpiritBeastGravity)) {
                     Phase(SpiritBeastPhase::kLanding);
                     Walk();
                 } else if (cat.landing && cat.phase != SpiritBeastPhase::kLanding) {
@@ -542,7 +542,7 @@ void SpiritBeastStep() {
                 break;
             case SpiritBeastPhase::kLanding:
                 Touched();
-                if (Fall(kSpiritBeastFall)) {
+                if (Fall(kSpiritBeastGravity)) {
                     Walk();
                 }
                 break;

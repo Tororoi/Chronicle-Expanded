@@ -266,3 +266,55 @@ TEST(SpiritBeastHits, AnotherHitNeitherPassesAGuardNorStaggers) {
     EXPECT_FALSE(expanded::SpiritBeastHit(plain));
     EXPECT_FALSE(expanded::PlayerHitStaggers(plain));
 }
+
+TEST_F(SpiritBeast, ItHeadsForTheLargestSphereXiaosHitsDamage) {
+    Stand(0, 0.0f, 160.0f);
+    MONSTOR_EFFECT_STATE &effect = floor_.unit().effect[0];
+    effect.position[0][0] = 40.0f; // a small sphere her hits damage, off to one side
+    effect.parameter[0][CHARA_XIAO] = 100;
+    effect.position[1][0] = -40.0f; // a larger one they do not
+    effect.position[1][1] = 6.0f;
+    effect.position[1][2] = 160.0f;
+    effect.radius[1] = 8.0f;
+    effect.timer[1] = 1;
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    ASSERT_GT(StepsUntil(SpiritBeastPhase::kWalking), 0);
+    float x = expanded::SpiritBeastPosition()[0];
+    Steps(30);
+    EXPECT_GT(expanded::SpiritBeastPosition()[0], x);
+}
+
+TEST_F(SpiritBeast, ItLeapsThroughTheSpheresHeightAsTheMod) {
+    // A sphere 6 up: a 32-frame arc through it, 1.4675 a frame up at the launch (6 / 32 + 0.08 * 16), its apex ~12.7.
+    Stand(0, 0.0f, 160.0f);
+    floor_.unit().effect[0].radius[0] = 0.5f;
+    floor_.unit().effect[0].position[0][0] = 60.0f; // beside the walk, so the cat leaps rather than touching it on foot
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    ASSERT_GT(StepsUntil(SpiritBeastPhase::kLeaping), 0);
+    float apex = 0.0f;
+    for (int frame = 0; frame < 40 && expanded::SpiritBeastPhaseNow() == SpiritBeastPhase::kLeaping; frame++) {
+        Steps(1);
+        apex = std::max(apex, expanded::SpiritBeastPosition()[1]);
+    }
+    EXPECT_NEAR(apex, 12.74f, 0.1f);
+}
+
+TEST_F(SpiritBeast, ALargeMonsterGetsTheHigherArc) {
+    auto leap = [&](float scale) {
+        expanded::SpiritBeastReset();
+        Stand(0, 0.0f, 160.0f);
+        floor_.unit().chara[0][0].scale[0] = scale;
+        floor_.unit().effect[0].timer[0] = 0; // no sphere to aim at or touch: it lands at the feet
+        *shots_ = CSHOT{};
+        shots_->used[0] = 1;
+        shots_->pos[0][1] = 10.0f;
+        shots_->vector[0][2] = 4.0f;
+        shots_->damage[0] = 50;
+        HoldAndFire(expanded::kSpiritBeastFrames);
+        EXPECT_GT(StepsUntil(SpiritBeastPhase::kLeaping), 0);
+        return StepsUntil(SpiritBeastPhase::kLanding, 200);
+    };
+    int low = leap(1.0f), high = leap(1.5f);
+    EXPECT_GT(low, 0);
+    EXPECT_EQ(high - low, expanded::kSpiritBeastLeapFramesTall - expanded::kSpiritBeastLeapFrames);
+}

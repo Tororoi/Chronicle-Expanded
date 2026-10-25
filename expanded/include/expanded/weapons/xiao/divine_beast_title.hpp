@@ -10,11 +10,11 @@ namespace expanded {
 // SynthSphere, a shot held drawn kSpiritBeastFrames (the charge-complete flash) lets Xiao's cat (the model built at
 // extraction, data/spirit_cat.hpp) go with its pellet. The pellet is held where it was fired, passing through everything,
 // and shrinks away as the cat grows over kSpiritBeastGrowFrames with its head on it; at full size the cat breaks away
-// with the pellet's velocity and falls (kSpiritBeastFall) to the floor; the land clip starts kSpiritBeastLandLead frames before
+// with the pellet's velocity and falls (kSpiritBeastGravity, as every flight of the cat does) to the floor; the land clip starts kSpiritBeastLandLead frames before
 // the touchdown, its momentum stops as the paws touch, and kSpiritBeastLandFrames after the clip began it walks
 // (kSpiritBeastWalk units a frame) at the monster she is locked on to, else the nearest to her within kSpiritBeastSight;
 // with none it sits. Within kSpiritBeastPounce it crouches (kSpiritBeastReadyFrames), held while the monster cannot be
-// hit, then winds up in the float-up and leaps: an arc (kSpiritBeastGravity) reaching the monster in kSpiritBeastLeapFrames
+// hit, then winds up in the float-up and leaps: an arc reaching the height of the monster's aim point in kSpiritBeastLeapFrames
 // (kSpiritBeastLeapFramesTall for a large one), its horizontal speed re-aimed at it until the apex. Falling or landing,
 // the first monster its head touches (as a pellet does) takes one hit: the pellet's damage plus the weapon's attack, in the weapon's
 // element, through a guard, staggering it and shoving it (kSpiritBeastKickSpeed, kSpiritBeastKickDecay) away from the cat.
@@ -22,8 +22,7 @@ namespace expanded {
 // it stands. It glows blue. Times are game frames, distances units.
 inline constexpr int   kSpiritBeastFrames = 30;
 inline constexpr int   kSpiritBeastGrowFrames = 6;
-inline constexpr float kSpiritBeastFall = 0.08f;
-inline constexpr float kSpiritBeastGravity = 0.05f;
+inline constexpr float kSpiritBeastGravity = 0.08f;
 inline constexpr float kSpiritBeastLandLead = 11.1f; // the land clip's frames to the paws' touch: (219 - 215) / 0.36
 inline constexpr int   kSpiritBeastLandFrames = 27;
 inline constexpr float kSpiritBeastWalk = 0.7f;
