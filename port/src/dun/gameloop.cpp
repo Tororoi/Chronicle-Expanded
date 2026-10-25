@@ -83,6 +83,7 @@
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
 #include "expanded/weapons/toan/seventh_heaven.hpp"
+#include "expanded/weapons/xiao/divine_beast_title.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
 #endif
 
@@ -412,6 +413,7 @@ PORT_OVERRIDE void DunMainDraw() {
         expanded::SolarGlowDraw();
         expanded::BigBangShotDraw();
         expanded::ChargingBullDraw();
+        expanded::SpiritBeastDraw();
 #endif
         NowMainEffect->Draw();
     }

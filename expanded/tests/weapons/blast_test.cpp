@@ -73,8 +73,8 @@ TEST(Blast, IsElementlessThrowsAwayAndPassesGuards) {
     EXPECT_EQ(hit.knockback_mode, 2);
     EXPECT_FLOAT_EQ(hit.knockback_speed, expanded::kBlastKick.speed);
     EXPECT_TRUE(expanded::BlastHit(hit));
-    EXPECT_TRUE(expanded::MonsterGuardBlocks(floor.floor.unit(), 0, COLLISION_HIT{}));
-    EXPECT_FALSE(expanded::MonsterGuardBlocks(floor.floor.unit(), 0, hit));
+    EXPECT_TRUE(expanded::MonsterGuardBlocks(floor.floor.unit(), 0, 0, COLLISION_HIT{}));
+    EXPECT_FALSE(expanded::MonsterGuardBlocks(floor.floor.unit(), 0, 0, hit));
 }
 
 TEST(Blast, AGuardStopsAGuardableOne) {
@@ -84,7 +84,7 @@ TEST(Blast, AGuardStopsAGuardableOne) {
     expanded::PlantBlast(floor.floor.unit(), kOrigin, 10, options);
     const COLLISION_HIT &hit = floor.hits->hit[0];
     EXPECT_FALSE(expanded::BlastHit(hit));
-    EXPECT_TRUE(expanded::MonsterGuardBlocks(floor.floor.unit(), 0, hit));
+    EXPECT_TRUE(expanded::MonsterGuardBlocks(floor.floor.unit(), 0, 0, hit));
 }
 
 TEST(Blast, ScalesAndSparesAsAsked) {
@@ -109,7 +109,7 @@ TEST(Blast, AMonsterAtItsCentreIsThrownARandomWay) {
 }
 
 TEST(Blast, LeavesTheSparedAlone) {
-    Floor floor({5.0f, 20.0f});
+    Floor                  floor({5.0f, 20.0f});
     expanded::BlastOptions options;
     options.spared = 1 << 0;
     EXPECT_EQ(expanded::PlantBlast(floor.floor.unit(), kOrigin, 10, options), 1);

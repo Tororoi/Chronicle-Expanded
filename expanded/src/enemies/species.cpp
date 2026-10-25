@@ -4,8 +4,12 @@
 #include <filesystem>
 #include <iterator>
 #include <optional>
+#include <string>
+#include <string_view>
 #include <vector>
 
+#include "dataread_port.hpp"
+#include "expanded/data/monster_scripts.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "monstorunit.hpp"
 #include "platform/paths.hpp"
@@ -216,7 +220,7 @@ bool AddSpecies(const ExpandedSpecies &species) {
     if (model_no < kRetailSpecies || model_no >= kSpeciesCount || Find(model_no) != nullptr) {
         return false;
     }
-    Entry entry{species, MonstorTable[No(species.stand_in)]};
+    Entry          entry{species, MonstorTable[No(species.stand_in)]};
     MONSTOR_MODEL &record = entry.record;
     std::memset(record.model_name[0], 0, sizeof(record.model_name[0]));
     std::strncpy(record.model_name[0], species.model_name, sizeof(record.model_name[0]) - 1);
@@ -275,6 +279,16 @@ void SpeciesPackFile(char *filename, int model_no) {
 void SpeciesScriptFile(char *filename, int model_no) {
     if (Entry *entry = Find(model_no); entry != nullptr && entry->species.script_file != nullptr) {
         std::strcpy(filename, entry->species.script_file);
+        return;
+    }
+    // A script the mod's bake rebuilt loads as dcdata built it.
+    std::string_view file(filename), folder("dun/monstor/"), suffix(".stb");
+    if (file.starts_with(folder) && file.ends_with(suffix)) {
+        std::string_view script = file.substr(folder.size(), file.size() - folder.size() - suffix.size());
+        std::string      baked = BakedScriptFile(script);
+        if (ScriptIsBaked(script) && DataFileSize(baked) > 0) {
+            std::strcpy(filename, baked.c_str());
+        }
     }
 }
 

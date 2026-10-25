@@ -12,7 +12,7 @@ namespace {
 bool Blocks(int weapon_no, int sphere = 0) {
     expanded::test::TestFloor floor;
     expanded::test::Wielding  wielding(weapon_no, sphere);
-    return expanded::MonsterGuardBlocks(floor.unit(), 0, COLLISION_HIT{});
+    return expanded::MonsterGuardBlocks(floor.unit(), 0, 0, COLLISION_HIT{});
 }
 
 } // namespace

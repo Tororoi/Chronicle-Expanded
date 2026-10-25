@@ -16,9 +16,6 @@ inline constexpr int kRetailShotEffects = 5;
 // Texture block Expanded's shot effects are entered into.
 inline constexpr int kShotEffectBlock = 0x34;
 
-// Free texture table entries kept back for what the dungeon enters after a load (menus, item models).
-inline constexpr int kTextureReserve = 48;
-
 // Pack indices in use: retail's five, then Expanded's loaded ones.
 int ShotEffectCount();
 

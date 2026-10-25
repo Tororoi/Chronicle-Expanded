@@ -32,6 +32,7 @@
 #include "expanded/weapons/toan/claymore.hpp"
 #include "expanded/weapons/toan/cross_hinder.hpp"
 #include "expanded/weapons/toan/dark_cloud.hpp"
+#include "expanded/weapons/toan/dusack.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
 #include "expanded/weapons/toan/heavens_cloud.hpp"
 #include "expanded/weapons/toan/maneater.hpp"
@@ -39,12 +40,14 @@
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
+#include "expanded/weapons/xiao/divine_beast_title.hpp"
 #include "expanded/weapons/xiao/double_impact.hpp"
 #include "expanded/weapons/xiao/dragons_y.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
+#include "monstorunit.hpp"
 
 namespace expanded {
 
@@ -98,6 +101,10 @@ void DungeonMonstersTick() {
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
+}
+
+void PlayerShotsStepped() {
+    SpiritBeastStep();
 }
 
 void MonsterPackFile(char *filename, int model_no) {
@@ -156,6 +163,7 @@ void PelletFired(CSHOT &shots, int slot) {
     DoubleImpactFired(shots, slot);
     ChargingBullFired(shots, slot);
     DragonShotFired(shots, slot);
+    SpiritBeastFired(shots, slot);
 }
 
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
@@ -191,8 +199,21 @@ bool MonsterHitRefused(const CMonstorUnit &, int monster, const COLLISION_HIT &h
     return DragonShotRefused(monster, hit);
 }
 
-bool MonsterGuardBlocks(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {
-    return BlindGuardBlocks(monster) && !BlastHit(hit) && !ChargingBullHit(hit) && !GuardCrushActive();
+void MonsterHitTaken(const CMonstorUnit &, int, const COLLISION_HIT &hit) {
+    SpiritBeastHitTaken(hit);
+}
+
+int MonsterSpherePercent(const CMonstorUnit &unit, int monster, int sphere, int owner, const COLLISION_HIT &hit, int percent) {
+    return SpiritBeastSpherePercent(unit.effect[monster], sphere, owner, hit, percent);
+}
+
+bool PlayerHitStaggers(const COLLISION_HIT &hit) {
+    return SpiritBeastHit(hit);
+}
+
+bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, int window, const COLLISION_HIT &hit) {
+    return BlindGuardBlocks(monster) && !BlastHit(hit) && !ChargingBullHit(hit) && !SpiritBeastHit(hit) && !GuardCrushActive() &&
+           !NoFoolsGoldOpens(unit, monster, window);
 }
 
 } // namespace expanded

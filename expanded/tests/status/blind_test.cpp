@@ -62,7 +62,7 @@ TEST(Blind, HoldsTheGuardLowersItBeforeTheEndAndGivesTheScriptBack) {
     EXPECT_TRUE(expanded::Blinded(0));
     EXPECT_EQ(unit.script_state[0], 0);
     EXPECT_EQ(Requested(unit, 0), 6);
-    EXPECT_FALSE(expanded::MonsterGuardBlocks(unit, 0, COLLISION_HIT{}));
+    EXPECT_FALSE(expanded::MonsterGuardBlocks(unit, 0, 0, COLLISION_HIT{}));
     EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
     EXPECT_EQ(unit.monster[0].movement_speed, 0.0f);
 
@@ -81,7 +81,7 @@ TEST(Blind, HoldsTheGuardLowersItBeforeTheEndAndGivesTheScriptBack) {
     }
     EXPECT_FALSE(expanded::Blinded(0));
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    EXPECT_TRUE(expanded::MonsterGuardBlocks(unit, 0, COLLISION_HIT{}));
+    EXPECT_TRUE(expanded::MonsterGuardBlocks(unit, 0, 0, COLLISION_HIT{}));
 }
 
 TEST(Blind, AHitStaggersThenTheGuardComesBack) {

@@ -27,7 +27,6 @@
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
 #include "expanded/status/confuse.hpp"
-#include "expanded/weapons/toan/dusack.hpp"
 #endif
 
 /** A monster number a script names: in Expanded, a boss cast member's for its cast's. */
@@ -562,9 +561,6 @@ int _STATUS_SET_MUTEKI(RS_STACKDATA *stack, int argc) {
     }
 
     NowMonstorUnit->monster[monster_no].invincible_timer = invincible;
-#ifdef CHRONICLE_EXPANDED
-    expanded::NoFoolsGoldInvincible(monster_no, invincible);
-#endif
     return 1;
 }
 

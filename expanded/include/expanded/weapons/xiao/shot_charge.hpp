@@ -18,6 +18,9 @@ public:
 
     bool Ready() const { return Held() >= frames_; }
 
+    // Whether it is held drawn now.
+    bool Holding() const { return hold_ > 0; }
+
     void Reset() { hold_ = held_ = 0; }
 
 private:

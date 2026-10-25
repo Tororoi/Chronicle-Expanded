@@ -178,7 +178,7 @@ TEST(BigBangShot, AGuardStopsTheChargedShotsBlast) {
     const COLLISION_HIT &hit = floor.hits->hit[0];
     EXPECT_GT(hit.damage, 0);
     EXPECT_FALSE(expanded::BlastHit(hit));
-    EXPECT_TRUE(expanded::MonsterGuardBlocks(floor.floor.unit(), 0, hit));
+    EXPECT_TRUE(expanded::MonsterGuardBlocks(floor.floor.unit(), 0, 0, hit));
 }
 
 TEST(BigBang, ALandingBlindsOnlyOnceItsThrowIsOver) {

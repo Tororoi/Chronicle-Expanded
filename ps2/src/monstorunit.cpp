@@ -54,7 +54,6 @@
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/kick_back.hpp"
-#include "expanded/weapons/toan/dusack.hpp"
 #include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/ungaga/charge_shot.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
@@ -1271,11 +1270,7 @@ int CMonstorUnit::CheckDmg() {
 #endif
     }
 
-#ifdef CHRONICLE_EXPANDED
-    if (monster[current_monster].invincible_timer > 0 && !expanded::NoFoolsGold(*this, current_monster)) {
-#else
     if (monster[current_monster].invincible_timer > 0) {
-#endif
         return result;
     }
 
@@ -1330,7 +1325,7 @@ int CMonstorUnit::CheckDmg() {
                 if (hit != -1 && rejected == 0) {
                     for (int j = 0; j < 3; j++) {
 #ifdef CHRONICLE_EXPANDED
-                        if (guard[current_monster].active[j] != 0 && expanded::MonsterGuardBlocks(*this, current_monster, NowColData->hit[hit])) {
+                        if (guard[current_monster].active[j] != 0 && expanded::MonsterGuardBlocks(*this, current_monster, j, NowColData->hit[hit])) {
 #else
                         if (guard[current_monster].active[j] != 0) {
 #endif
@@ -1375,6 +1370,9 @@ int CMonstorUnit::CheckDmg() {
                 if (hit != -1 && rejected == 0) {
                     COLLISION_HIT *original_record = &(*NowColData->Get(hit));
                     effect[current_monster].hit_slot = i;
+#ifdef CHRONICLE_EXPANDED
+                    expanded::MonsterHitTaken(*this, current_monster, NowColData->hit[hit]);
+#endif
                     int attack = NowColData->hit[hit].attack_no;
                     owner = NowColData->GetUserID(hit);
 
@@ -1451,7 +1449,11 @@ int CMonstorUnit::CheckDmg() {
                             result = MONSTER_DMG_NONE;
                         }
 
+#ifdef CHRONICLE_EXPANDED
+                        if (owner == 1 && !expanded::PlayerHitStaggers(NowColData->hit[hit])) {
+#else
                         if (owner == 1) {
+#endif
                             result = MONSTER_DMG_NONE;
                         }
                     }
@@ -1646,6 +1648,9 @@ int CMonstorUnit::CheckDmg() {
                     if (owner != -1) {
                         float old_damage = damage;
                         int   multiplier = effect[index].parameter[i][owner];
+#ifdef CHRONICLE_EXPANDED
+                        multiplier = expanded::MonsterSpherePercent(*this, index, i, owner, NowColData->hit[hit], multiplier);
+#endif
                         float damage_scale = (float) multiplier;
                         damage = damage / 100.0f * damage_scale;
 
