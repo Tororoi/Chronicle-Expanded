@@ -49,7 +49,8 @@ float                  SpeciesHeight(int model_no);
 // A floor monster's height above its root: its kind's, grown with a grown monster.
 float MonsterHeight(const CMonstorUnit &unit, int monster);
 
-// Hooks: SetupBaseModel's record, and the model and script files it loads.
+// Hooks: SetupBaseModel's record, and the model and script files it loads (a script the mod's bake rebuilt, its
+// rebuilt copy: data/monster_scripts.hpp).
 MONSTOR_MODEL *SpeciesRecord(int model_no);
 void           SpeciesPackFile(char *filename, int model_no);
 void           SpeciesScriptFile(char *filename, int model_no);

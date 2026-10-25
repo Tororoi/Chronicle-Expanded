@@ -23,6 +23,9 @@ void DungeonMonstersCleared(bool drop_stars);
 // curses, the Solar Flash's charge and blinding, and the Wise Owl Sword's watch for key holders.
 void DungeonMonstersTick();
 
+// A step after the player's pellets have stepped (motionDrive), as the mod's pellet catcher runs: the Divine Beast cat.
+void PlayerShotsStepped();
+
 // A kind's model pack as SetupBaseModel loads it: a boss's built pack or an Expanded kind's own, else as it is.
 void MonsterPackFile(char *filename, int model_no);
 
@@ -77,7 +80,13 @@ bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HI
 // Whether a hit of Xiao's makes the monster flinch (CheckDmg; retail's never do): a blow of one of her weapons' own.
 bool PlayerHitStaggers(const COLLISION_HIT &hit);
 
-// Whether a monster's guard windows block the hit that reached it (CheckDmg).
-bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
+// A monster took the hit that reached it, past its guard and invincibility (CheckDmg).
+void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
+
+// The percentage of the hit's damage a monster's sphere takes from owner (CheckDmg).
+int MonsterSpherePercent(const CMonstorUnit &unit, int monster, int sphere, int owner, const COLLISION_HIT &hit, int percent);
+
+// Whether a monster's guard window blocks the hit that reached it (CheckDmg).
+bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, int window, const COLLISION_HIT &hit);
 
 } // namespace expanded

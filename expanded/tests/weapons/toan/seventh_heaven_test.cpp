@@ -35,7 +35,7 @@ TEST(SeventhHeaven, SuperStevesSphereGuardsXiaoTheSameWay) {
 TEST(SeventhHeaven, InheritsGuardCrush) {
     expanded::test::TestFloor floor;
     expanded::test::Wielding  wielding(ITEM_WEAPON_7THHEAVEN);
-    EXPECT_FALSE(expanded::MonsterGuardBlocks(floor.unit(), 0, COLLISION_HIT{}));
+    EXPECT_FALSE(expanded::MonsterGuardBlocks(floor.unit(), 0, 0, COLLISION_HIT{}));
 }
 
 TEST(SeventhHeaven, ABlockedHitLeavesTheGuardHeld) {

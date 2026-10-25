@@ -5,6 +5,7 @@
 
 #include "expanded/data/boss_model.hpp"
 #include "expanded/data/gemron_models.hpp"
+#include "expanded/data/monster_scripts.hpp"
 #include "expanded/data/script_damage.hpp"
 #include "expanded/data/spirit_cat.hpp"
 #include "expanded/data/town_model.hpp"
@@ -13,7 +14,7 @@ namespace expanded {
 
 int BuildExpandedData(const std::filesystem::path &data, std::FILE *log) {
     return BuildTownModels(data, log) + BuildBossModels(data, log) + BuildGemronModels(data, log) + BuildSpiritCatModels(data, log) +
-           BuildScriptDamage(data, log);
+           BuildMonsterScripts(data, log) + BuildScriptDamage(data, log);
 }
 
 int RebuildExpandedData(const std::filesystem::path &data, std::FILE *log) {

@@ -6347,6 +6347,9 @@ void motionDrive() {
     OzumondShotEffect.Step();
     NowMainEffect->Step();
     NowShotData->step();
+#ifdef CHRONICLE_EXPANDED
+    expanded::PlayerShotsStepped();
+#endif
     HealEffect.Step();
 }
 

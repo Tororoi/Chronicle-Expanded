@@ -107,8 +107,8 @@ TEST_F(ChargingBull, ItsHitGoesThroughAGuardAndShovesAlongItsFlight) {
 
     EXPECT_TRUE(expanded::ChargingBullHit(hit));
     EXPECT_FALSE(expanded::ChargingBullHit(plain));
-    EXPECT_FALSE(expanded::MonsterGuardBlocks(floor_.unit(), 0, hit));
-    EXPECT_TRUE(expanded::MonsterGuardBlocks(floor_.unit(), 0, plain));
+    EXPECT_FALSE(expanded::MonsterGuardBlocks(floor_.unit(), 0, 0, hit));
+    EXPECT_TRUE(expanded::MonsterGuardBlocks(floor_.unit(), 0, 0, plain));
     EXPECT_EQ(hit.knockback_mode, 2);
     EXPECT_FLOAT_EQ(hit.knockback_speed, expanded::kChargingBullKickSpeed);
     EXPECT_FLOAT_EQ(hit.knockback_decay, expanded::kChargingBullKickDecay);
