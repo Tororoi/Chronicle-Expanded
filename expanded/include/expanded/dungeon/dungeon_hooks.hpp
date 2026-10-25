@@ -2,6 +2,7 @@
 
 class CMonstorUnit;
 class CSHOT;
+class CSHOT_EFFECT;
 struct COLLISION_HIT;
 
 namespace expanded {
@@ -60,6 +61,8 @@ void PelletFired(CSHOT &shots, int slot);
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck);
 // A pellet's hit just planted (CSHOT::step).
 void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit);
+// A shot effect's hit just planted (CSHOT_EFFECT::Step).
+void ShotEffectHitSet(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit);
 // A pellet about to be stepped (CSHOT::step).
 void PelletStepping(CSHOT &shots, int slot);
 // Whether a pellet ending lands its own hit: not one whose hit is a bolt or a bomb's blast.

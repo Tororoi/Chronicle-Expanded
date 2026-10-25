@@ -236,6 +236,9 @@ void CSHOT_EFFECT::Step() {
                         }
                     }
 
+#ifdef CHRONICLE_EXPANDED
+                    expanded::ShotEffectHitSet(*this, slot, NowColData->hit[hit]);
+#endif
                     wait_state[slot] = wait[slot];
                 }
             } else {
