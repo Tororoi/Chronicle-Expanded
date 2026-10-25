@@ -168,10 +168,6 @@ void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     ChargingBullHit(shots, slot, hit);
 }
 
-bool PelletShown(const CSHOT &shots, int slot) {
-    return !ChargingBullHidden(shots, slot);
-}
-
 void PelletStepping(CSHOT &shots, int slot) {
     RicochetStep(shots, slot);
 }

@@ -1,6 +1,8 @@
 #include "expanded/weapons/xiao/matador.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <vector>
 
 #include "character.hpp"
 #include "collisiondata.hpp"
@@ -11,12 +13,16 @@
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
 #include "frame.hpp"
+#include "framevu1.hpp"
+#include "gameutil.hpp"
 #include "itemdata.hpp"
 #include "mds.hpp"
+#include "mdt.hpp"
 #include "mglib.hpp"
 #include "shot_effect.hpp"
 #include "texture.hpp"
 #include "userstatus.hpp"
+#include "visualvu1.hpp"
 
 namespace expanded {
 
@@ -28,6 +34,7 @@ constexpr int   kWeaponTextureBlock = 0x1D;
 constexpr int   kArenaQuads = 0x4000; // 256 KB for the copy's frames
 constexpr float kGlowPull = 6.0f;
 constexpr float kHalfPi = 1.57079632679f;
+constexpr char  kPouch[] = "null24"; // the elastic's pouch bone
 constexpr float kOrange[3] = {120.0f, 45.0f, 0.0f};
 
 struct State {
@@ -38,8 +45,18 @@ struct State {
     const CFrame *source = nullptr; // the slingshot in hand it was copied from
 };
 
-State      state;
-CCharacter copy;
+// A mesh of the copy the elastic deforms: its vertices in the catch pose, swapped in only while the copy draws (the
+// mesh is the slingshot in hand's own).
+struct Pose {
+    CFrameVu1         *frame = nullptr;
+    sceVu0FVECTOR     *vertices = nullptr;
+    std::vector<float> taut;
+    std::vector<float> own; // the slingshot in hand's, while the copy draws
+};
+
+State             state;
+CCharacter        copy;
+std::vector<Pose> poses;
 
 alignas(64) u_long128 arena_store[kArenaQuads];
 CDataAlloc2<1> arena;
@@ -53,6 +70,45 @@ void OnFloor() {
 }
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
+
+void CollectMeshes(CFrame *frame) {
+    for (; frame != nullptr; frame = frame->brother) {
+        CVisualVu1 *visual = reinterpret_cast<CFrameVu1 *>(frame)->GetVisual();
+        u_int      *data = visual != nullptr ? visual->GetMDTDataAddress() : nullptr;
+        if (data != nullptr) {
+            MDT_HEADER *mdt = reinterpret_cast<MDT_HEADER *>(data);
+            Pose        pose;
+            pose.frame = reinterpret_cast<CFrameVu1 *>(frame);
+            pose.vertices = reinterpret_cast<sceVu0FVECTOR *>(reinterpret_cast<u_char *>(mdt) + mdt->vertex_ofs);
+            pose.taut.assign(reinterpret_cast<float *>(pose.vertices), reinterpret_cast<float *>(pose.vertices + mdt->vertex_num));
+            poses.push_back(std::move(pose));
+        }
+        CollectMeshes(frame->child);
+    }
+}
+
+// The copy posed at the catch: its bones at kChargingBullPose of the weapon's motion, and the elastic's vertices as
+// that pose deforms them, the slingshot in hand's own put back.
+void PoseCatch() {
+    poses.clear();
+    int             index = -1;
+    tagMOTION_TYPE *source = NowWeapon->GetMotionParam(NowWeapon->motion_no, &index, nullptr, nullptr, nullptr);
+    if (source == nullptr || source->motion_info == nullptr || index < 0) {
+        return;
+    }
+    CollectMeshes(copy.frame);
+    tagMOTION_TYPE motion = *source;
+    motion.state.motion_no = motion.state.playing_no = index;
+    motion.state.blending = false;
+    motion.state.time = kChargingBullPose;
+    SetMotionEX(copy.frame, &motion, motion.motion_info, &motion.state, motion.frame_info);
+    for (Pose &pose : poses) {
+        // The vertices now hold the catch; the slingshot in hand's own were kept in taut.
+        std::vector<float> own = std::move(pose.taut);
+        pose.taut.assign(reinterpret_cast<float *>(pose.vertices), reinterpret_cast<float *>(pose.vertices) + own.size());
+        std::copy(own.begin(), own.end(), reinterpret_cast<float *>(pose.vertices));
+    }
+}
 
 // The slingshot in hand, copied: the same model and textures, a frame tree of its own.
 bool Copy() {
@@ -75,6 +131,7 @@ bool Copy() {
     copy.frame->DeleteReference();
     copy.frame->parent = nullptr;
     copy.SetScale(1.0f, 1.0f, 1.0f);
+    PoseCatch();
     state.copied = true;
     state.source = NowWeapon->frame;
     return true;
@@ -141,10 +198,6 @@ void ChargingBullEnded(const CSHOT &shots, int slot) {
     }
 }
 
-bool ChargingBullHidden(const CSHOT &shots, int slot) {
-    return Ours(shots, slot) && state.copied;
-}
-
 bool ChargingBullHit(const COLLISION_HIT &hit) {
     return (hit.weapon_flags & kMark) != 0;
 }
@@ -165,11 +218,26 @@ void ChargingBullDraw() {
         sceVu0CopyVector(at, const_cast<float *>(state.shots->pos[slot]));
         if (state.copied && state.source == (NowWeapon != nullptr ? NowWeapon->frame : nullptr)) {
             const float *v = state.shots->vector[slot];
+            // Upright, fork up, its face turned along its flight as it is held; then slid so its pouch is on the pellet.
             copy.SetPosition(at[0], at[1], at[2]);
-            // Upright, fork up, its face turned along its flight as it is held.
             copy.SetRotation(-kHalfPi, std::atan2(v[0], v[2]) + kHalfPi, 0.0f);
+            if (CFrame *pouch = copy.frame->SearchFrame(const_cast<char *>(kPouch))) {
+                sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, on;
+                pouch->GetWorldPosition(on, origin);
+                copy.SetPosition(2.0f * at[0] - on[0], 2.0f * at[1] - on[1], 2.0f * at[2] - on[2]);
+            }
+            for (Pose &pose : poses) {
+                float *vertices = reinterpret_cast<float *>(pose.vertices);
+                pose.own.assign(vertices, vertices + pose.taut.size());
+                std::copy(pose.taut.begin(), pose.taut.end(), vertices);
+                pose.frame->attr.remake_pending = 1;
+            }
             TexManager.ReloadTexture(Vif1Packet, kWeaponTextureBlock);
             copy.Draw();
+            // The slingshot in hand's own back (its motion rebuilds its mesh from them each step).
+            for (Pose &pose : poses) {
+                std::copy(pose.own.begin(), pose.own.end(), reinterpret_cast<float *>(pose.vertices));
+            }
         }
         DrawGlowDisc(GlowLook::kFire, at, kChargingBullGlow, kGlowPull);
     }

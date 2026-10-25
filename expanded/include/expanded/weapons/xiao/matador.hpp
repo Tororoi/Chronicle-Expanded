@@ -9,24 +9,25 @@ namespace expanded {
 // Matador "Charging Bull": with the Matador in hand, or Super Steve carrying its SynthSphere, a shot held drawn
 // kChargingBullFrames (the game's charge-complete flash) lets go a charged pellet: kChargingBullDamage times the
 // damage, through a guard, and a shove along its flight as Goro's hammer swing gives (kChargingBullKick, from
-// kChargingBullBehind units back down its line). It flies as an orange copy of the slingshot in hand in a fire glow, the
-// pellet hidden inside it, upright as it is held. Times are game frames.
+// kChargingBullBehind units back down its line). It flies as an orange copy of the slingshot in hand in a fire glow,
+// upright as it is held, its elastic taut in the catch pose (the weapon's motion frame kChargingBullPose) and its pouch on
+// the pellet. Times are game frames.
 inline constexpr int   kChargingBullFrames = 60;
 inline constexpr float kChargingBullDamage = 1.5f;
 inline constexpr float kChargingBullKickSpeed = 2.5f;
 inline constexpr float kChargingBullKickDecay = 0.1f;
 inline constexpr float kChargingBullBehind = 30.0f;
 inline constexpr float kChargingBullGlow = 14.0f; // the glow's diameter
+inline constexpr float kChargingBullPose = 254.0f; // the snap's end: the pouch forward and the elastic taut
 
 bool ChargingBullActive();
 
-// Hooks: a dungeon step; a pellet let go into slot; its hit planted (CSHOT::step); a pellet ended; whether a pellet's own
-// sprite is left undrawn (CSHOT::draw); the copies' draw; the copy's orange (CCharacter::Draw).
+// Hooks: a dungeon step; a pellet let go into slot; its hit planted (CSHOT::step); a pellet ended; the copies' draw; the
+// copy's orange (CCharacter::Draw).
 void ChargingBullStep();
 void ChargingBullFired(CSHOT &shots, int slot);
 void ChargingBullHit(const CSHOT &shots, int slot, COLLISION_HIT &hit);
 void ChargingBullEnded(const CSHOT &shots, int slot);
-bool ChargingBullHidden(const CSHOT &shots, int slot);
 void ChargingBullDraw();
 void ChargingBullLight(const CCharacter &character, float *ambient);
 

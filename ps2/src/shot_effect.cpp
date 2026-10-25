@@ -40,11 +40,6 @@ int GetWeaponElementAttr(int element);
  */
 void CSHOT::draw() {
     for (int shot = 0; shot < 12; shot++) {
-#ifdef CHRONICLE_EXPANDED
-        if (used[shot] != 0 && !expanded::PelletShown(*this, shot)) {
-            continue;
-        }
-#endif
         if (used[shot] != 0) {
 #ifdef CHRONICLE_EXPANDED
             int texture_cell = expanded::PelletWeapon() - 299;
