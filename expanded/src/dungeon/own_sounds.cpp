@@ -118,7 +118,7 @@ bool PlayOwnSound(const OwnSound &sound, bool ducked, int cut) {
     int           program = sound.cuts != nullptr ? 0 : sound.program;
     mixer.ShortMessage(kOwnSoundPort, static_cast<std::uint32_t>(((program & 0x7F) << 8) | 0xC0));
     mixer.ShortMessage(kOwnSoundPort, static_cast<std::uint32_t>(0xB0 | (found->second.select << 16)));
-    Send({0xF9, 0, 0, 0x7F, 0});
+    Send({0xF9, 0, 0, static_cast<std::uint8_t>(sound.volume & 0x7F), 0});
     Send({0xF9, 1, 0, 0x40, 0});
     int note = sound.note + (sound.variants > 1 ? ModRoll(sound.variants) : 0);
     if (sound.cuts != nullptr) {

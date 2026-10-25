@@ -66,8 +66,9 @@ inline constexpr float kSpiritBeastKickDecay = 0.3f;
 inline constexpr int   kSpiritBeastFadeFrames = 30;
 inline constexpr int   kSpiritBeastLifeFrames = 1200;
 
-// Norune's cat sound (its SE 387).
-inline constexpr OwnSound kSpiritBeastSitSound = {"sound/set/snd0.snd", "e01a_g.hd", 44, 87, 72};
+// Norune's cat sound (its SE 387), at about half the game's full volume.
+inline constexpr OwnSound kSpiritBeastSitSound = {
+    .path = "sound/set/snd0.snd", .bank = "e01a_g.hd", .program = 44, .note = 87, .frames = 72, .volume = 60};
 
 // The Angel Shooter's cat (and Super Steve's with its sphere) at this size.
 inline constexpr float kAngelShooterCatScale = 1.1f;
