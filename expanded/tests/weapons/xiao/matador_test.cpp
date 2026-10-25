@@ -85,6 +85,41 @@ TEST(ShotCharge, IsReadyOnceHeldItsFrames) {
     BtActStatus = {};
 }
 
+TEST(ShotCharge, CountsFromTheDraw) {
+    BtActStatus = {};
+    expanded::ShotCharge charge(10);
+    BtActStatus.action_on = 1;
+    BtActStatus.action_no = 11; // drawing it back
+    for (int frame = 0; frame < 6; frame++) {
+        charge.Step(true);
+    }
+    EXPECT_TRUE(charge.Holding());
+    BtActStatus.action_no = 12; // holding it drawn
+    for (int frame = 0; frame < 4; frame++) {
+        charge.Step(true);
+    }
+    EXPECT_TRUE(charge.Ready());
+    BtActStatus = {};
+}
+
+TEST(ShotCharge, AChargedShotWearsTwice) {
+    BtActStatus = {};
+    expanded::ShotCharge charge(10);
+    BtActStatus.action_on = 1;
+    BtActStatus.action_no = 12;
+    for (int frame = 0; frame < 10; frame++) {
+        charge.Step(true);
+    }
+    BtActStatus.action_on = 0;
+    charge.Step(true);
+    ASSERT_TRUE(charge.TakeCharged());
+    EXPECT_FLOAT_EQ(expanded::ChargedShotWear(1.0f), expanded::kChargedShotWear);
+    EXPECT_FLOAT_EQ(expanded::ChargedShotWear(1.0f), 1.0f); // the next, ordinary
+    EXPECT_FALSE(charge.TakeCharged());
+    EXPECT_FLOAT_EQ(expanded::ChargedShotWear(1.0f), 1.0f);
+    BtActStatus = {};
+}
+
 TEST_F(ChargingBull, AFullHoldFiresAChargedPellet) {
     HoldAndFire(expanded::kChargingBullFrames);
 

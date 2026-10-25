@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "expanded/dungeon/dungeon_hooks.hpp"
+#include "expanded/weapons/xiao/shot_charge.hpp"
 #include "expanded/weapons/xiao/steel_slingshot.hpp"
 #include "itemdata.hpp"
 #include "test_support.hpp"
@@ -41,6 +43,13 @@ TEST(SteelSlingshot, AtLowWhpAShotCostsHalf) {
     }
     Holding steve(ITEM_WEAPON_SUPER_STEVE, 4.0f, ITEM_WEAPON_STEEL_SLINGSHOT);
     EXPECT_FLOAT_EQ(expanded::EnduranceUpShotWear(1.0f), 0.5f);
+}
+
+TEST(SteelSlingshot, AChargedShotAtLowWhpCostsTwiceItsHalf) {
+    Holding steel(ITEM_WEAPON_STEEL_SLINGSHOT, 4.0f);
+    expanded::ChargedShotLetGo();
+    EXPECT_FLOAT_EQ(expanded::XiaoShotWear(1.0f), 0.5f * expanded::kChargedShotWear);
+    EXPECT_FLOAT_EQ(expanded::XiaoShotWear(1.0f), 0.5f);
 }
 
 TEST(SteelSlingshot, ALevelUpAddsTwoEnduranceAndTwiceTheWhpRoll) {

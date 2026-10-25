@@ -22,7 +22,8 @@ namespace expanded {
 
 namespace {
 
-constexpr int kHoldAction = 12; // Xiao drawing the slingshot back
+constexpr int kDrawAction = 11; // Xiao drawing the slingshot back
+constexpr int kHoldAction = 12; // and holding it drawn
 
 enum class Charge {
     kIdle,
@@ -121,7 +122,7 @@ void ZeusShotStep() {
         return;
     }
     // How long the slingshot was last held drawn: the shot it lets go of reads it; the room darkens as it builds.
-    if (BtActStatus.action_on != 0 && BtActStatus.action_no == kHoldAction) {
+    if (BtActStatus.action_on != 0 && (BtActStatus.action_no == kDrawAction || BtActStatus.action_no == kHoldAction)) {
         if (++state.hold == kZeusChargedFrames) {
             ChargeCompleteFlash();
         }

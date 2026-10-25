@@ -131,3 +131,26 @@ TEST(ZeusShot, PrimedHerShotNotLockedOnCallsItsBoltWhereItLands) {
     expanded::ZeusShotFired(more, 0);
     EXPECT_EQ(more.damage[0], 10);
 }
+
+TEST(ZeusShot, ItsChargeCountsFromTheDraw) {
+    Floor floor;
+    floor.floor.status().cur_chara = CHARA_XIAO;
+    expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_SWORD_OF_ZEUS);
+    BtActStatus.action_on = 1;
+    BtActStatus.action_no = 11; // drawing the slingshot back
+    for (int i = 0; i < expanded::kZeusChargedFrames / 2; i++) {
+        expanded::ZeusShotStep();
+    }
+    BtActStatus.action_no = 12; // holding it drawn
+    for (int i = 0; i < expanded::kZeusChargedFrames - expanded::kZeusChargedFrames / 2; i++) {
+        expanded::ZeusShotStep();
+    }
+    BtActStatus.action_on = 0;
+    expanded::ZeusShotStep();
+    static CSHOT shots;
+    shots.size[0] = 1.0f;
+    shots.damage[0] = 10;
+    expanded::ZeusShotFired(shots, 0);
+    EXPECT_EQ(shots.damage[0], 0); // charged: its bolt is its hit
+    BtActStatus = {};
+}

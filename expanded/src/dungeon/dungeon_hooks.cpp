@@ -47,6 +47,8 @@
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
+#include "expanded/weapons/xiao/shot_charge.hpp"
+#include "expanded/weapons/xiao/steel_slingshot.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 #include "monstorunit.hpp"
 
@@ -203,6 +205,10 @@ bool MonsterHitRefused(const CMonstorUnit &, int monster, const COLLISION_HIT &h
 
 void MonsterHitTaken(const CMonstorUnit &, int, const COLLISION_HIT &hit) {
     SpiritBeastHitTaken(hit);
+}
+
+float XiaoShotWear(float wear) {
+    return ChargedShotWear(EnduranceUpShotWear(wear));
 }
 
 int MonsterSpherePercent(const CMonstorUnit &unit, int monster, int sphere, int owner, const COLLISION_HIT &hit, int percent) {

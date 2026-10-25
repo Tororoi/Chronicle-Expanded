@@ -83,6 +83,10 @@ bool PlayerHitStaggers(const COLLISION_HIT &hit);
 // A monster took the hit that reached it, past its guard and invincibility (CheckDmg).
 void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
 
+// The WHP a shot of Xiao's costs, wear an ordinary one's (BattleActionPlay_Jinn): the Steel Slingshot's, a charged
+// shot's.
+float XiaoShotWear(float wear);
+
 // The percentage of the hit's damage a monster's sphere takes from owner (CheckDmg).
 int MonsterSpherePercent(const CMonstorUnit &unit, int monster, int sphere, int owner, const COLLISION_HIT &hit, int percent);
 

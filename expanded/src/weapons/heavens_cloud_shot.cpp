@@ -10,6 +10,7 @@
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/xiao/shot_charge.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -150,6 +151,7 @@ void TyphoonShotFired(CSHOT &shots, int slot) {
     if (charge <= 0.0f) {
         return;
     }
+    ChargedShotLetGo(); // an empowered shot's wear is a charged one's
     shots.size[slot] *= 1.0f + (kTyphoonPellet - 1.0f) * charge;
     shots.damage[slot] = static_cast<int>(static_cast<float>(shots.damage[slot]) * (1.0f + (kTyphoonShotDamage - 1.0f) * charge));
     state.flights[slot] = {&shots, slot, charge};

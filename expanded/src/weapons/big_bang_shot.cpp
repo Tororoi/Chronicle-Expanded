@@ -31,7 +31,8 @@ namespace {
 
 constexpr float kFrameSeconds = 1.0f / 60.0f;
 constexpr float kGravity = 500.0f;
-constexpr int   kHoldAction = 12; // Xiao drawing the slingshot back
+constexpr int   kDrawAction = 11; // Xiao drawing the slingshot back
+constexpr int   kHoldAction = 12; // and holding it drawn
 constexpr int   kBombSlots = 6;
 constexpr float kBombHeight = 1.22f;   // the bomb's mesh below its root, at its own size
 constexpr float kDropExplosion = 2.0f; // the explosions, of the game's bomb's size
@@ -246,7 +247,7 @@ void BigBangShotStep() {
         }
     }
     // How long the slingshot was last held drawn: the shot it lets go of reads it.
-    if (BtActStatus.action_on != 0 && BtActStatus.action_no == kHoldAction) {
+    if (BtActStatus.action_on != 0 && (BtActStatus.action_no == kDrawAction || BtActStatus.action_no == kHoldAction)) {
         if (++state.hold == kChargedShotFrames) {
             ChargeCompleteFlash();
         }

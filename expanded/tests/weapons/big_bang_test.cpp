@@ -160,10 +160,14 @@ TEST(BigBangShot, AGuardStopsTheChargedShotsBlast) {
     Floor floor;
     floor.floor.status().cur_chara = CHARA_XIAO;
     expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_BIG_BANG);
-    // Held drawn a second, then let go.
+    // Drawn and held drawn a second, then let go.
     BtActStatus.action_on = 1;
-    BtActStatus.action_no = 12; // Xiao drawing the slingshot back
-    for (int i = 0; i < expanded::kChargedShotFrames; i++) {
+    BtActStatus.action_no = 11; // Xiao drawing the slingshot back
+    for (int i = 0; i < expanded::kChargedShotFrames / 2; i++) {
+        expanded::BigBangShotStep();
+    }
+    BtActStatus.action_no = 12; // and holding it drawn
+    for (int i = 0; i < expanded::kChargedShotFrames - expanded::kChargedShotFrames / 2; i++) {
         expanded::BigBangShotStep();
     }
     BtActStatus.action_on = 0;
