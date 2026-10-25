@@ -187,6 +187,10 @@ bool TargetNameHidden() {
     return JudgementHanging() || JudgementFalling() || BigBangShotHanging();
 }
 
+bool MonsterHitRefused(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {
+    return DragonShotRefused(monster, hit);
+}
+
 bool MonsterGuardBlocks(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {
     return BlindGuardBlocks(monster) && !BlastHit(hit) && !ChargingBullHit(hit) && !GuardCrushActive();
 }

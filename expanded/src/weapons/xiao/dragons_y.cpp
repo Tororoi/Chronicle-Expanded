@@ -45,6 +45,12 @@ void Build() {
     built = true;
 }
 
+constexpr int kEffectSlots = 8;
+constexpr int kRecords = 96;                           // the collision data's hits
+constexpr int kMark = 0x10000000;                      // in a hit's weapon flags: a dragon ball's
+u32           struck[kDragonShots][kEffectSlots] = {}; // the monsters each ball has hit, one bit each
+int           planted[kRecords] = {};                  // the ball (its shot and slot) each marked hit is from
+
 bool Ours(const BT_SHOT_EFFECT *shot) {
     return built && shot >= balls && shot < balls + kDragonShots;
 }
@@ -116,6 +122,7 @@ void DragonShotFired(CSHOT &shots, int slot) {
     if (effect->current_slot < 0) {
         return; // no room: the pellet flies
     }
+    struck[ball - balls][effect->current_slot] = 0;
     effect->SetDmg(static_cast<int>(std::lround(static_cast<float>(shots.damage[slot]) * kDragonShotDamage)));
     effect->SetWepStatus(NowWeaponHave->flags);
     effect->SetVsMonster(NowWeaponHave->vs_monster);
@@ -123,8 +130,14 @@ void DragonShotFired(CSHOT &shots, int slot) {
 }
 
 void DragonShotHit(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
-    if (!Ours(effect.effect_data) || slot < 0 || slot >= 8) {
+    if (!Ours(effect.effect_data) || slot < 0 || slot >= kEffectSlots) {
         return;
+    }
+    // Marked, so a monster it has already hit refuses its later ones (it keeps planting them as it bursts).
+    int record = static_cast<int>(&hit - NowColData->hit);
+    if (record >= 0 && record < kRecords) {
+        hit.weapon_flags |= kMark;
+        planted[record] = static_cast<int>(effect.effect_data - balls) * kEffectSlots + slot;
     }
     const float *v = effect.velocity[slot];
     float        length = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
@@ -140,6 +153,20 @@ void DragonShotHit(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
     hit.knockback_speed = kDragonShotKickSpeed;
     hit.knockback_decay = kDragonShotKickDecay;
     hit.knockback_mode = 2;
+}
+
+bool DragonShotRefused(int monster, const COLLISION_HIT &hit) {
+    int record = NowColData != nullptr ? static_cast<int>(&hit - NowColData->hit) : -1;
+    if ((hit.weapon_flags & kMark) == 0 || record < 0 || record >= kRecords || monster < 0 || monster >= 32) {
+        return false;
+    }
+    u32 &hit_already = struck[planted[record] / kEffectSlots][planted[record] % kEffectSlots];
+    u32  bit = 1u << monster;
+    if (hit_already & bit) {
+        return true;
+    }
+    hit_already |= bit;
+    return false;
 }
 
 } // namespace expanded

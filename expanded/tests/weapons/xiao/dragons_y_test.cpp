@@ -122,3 +122,33 @@ TEST(DragonsY, ItsHitThrowsFromBehindTheBall) {
     expanded::ShotEffectHitSet(*effect, 2, plain);
     EXPECT_EQ(plain.knockback_mode, 0);
 }
+
+TEST(DragonsY, ABallHitsAMonsterOnce) {
+    TestFloor       floor;
+    auto            data = std::make_unique<CCollisionData>();
+    CCollisionData *saved = NowColData;
+    NowColData = data.get();
+    auto effect = std::make_unique<CSHOT_EFFECT>();
+    effect->effect_data = const_cast<BT_SHOT_EFFECT *>(expanded::DragonShot(1));
+    effect->velocity[0][2] = 3.0f;
+
+    // The ball keeps planting hits as it flies and bursts: the first to land on a monster stands, the rest it refuses.
+    COLLISION_HIT &first = NowColData->hit[3];
+    first = {};
+    expanded::ShotEffectHitSet(*effect, 0, first);
+    EXPECT_FALSE(expanded::MonsterHitRefused(floor.unit(), 0, first));
+    COLLISION_HIT &again = NowColData->hit[4];
+    again = {};
+    expanded::ShotEffectHitSet(*effect, 0, again);
+    EXPECT_TRUE(expanded::MonsterHitRefused(floor.unit(), 0, again));
+    // Another monster in the burst takes its own hit.
+    EXPECT_FALSE(expanded::MonsterHitRefused(floor.unit(), 1, again));
+
+    // Another shot's hit is never refused.
+    COLLISION_HIT &plain = NowColData->hit[5];
+    plain = {};
+    plain.weapon_flags = 1;
+    EXPECT_FALSE(expanded::MonsterHitRefused(floor.unit(), 0, plain));
+    EXPECT_FALSE(expanded::MonsterHitRefused(floor.unit(), 0, plain));
+    NowColData = saved;
+}

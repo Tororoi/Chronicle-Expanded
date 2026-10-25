@@ -71,6 +71,9 @@ bool PelletHurts(const CSHOT &shots, int slot);
 // Whether the lock-on target's name plate is left off (setTargetCursor): something hangs over the target.
 bool TargetNameHidden();
 
+// Whether a monster refuses a hit it would take (CheckDmg): one the hit's source has landed on it already.
+bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
+
 // Whether a monster's guard windows block the hit that reached it (CheckDmg).
 bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
 
