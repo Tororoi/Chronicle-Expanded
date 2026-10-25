@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "character.hpp"
 #include "collisiondata.hpp"
 #include "dataalloc.hpp"
 #include "dataread.hpp"
@@ -39,10 +40,19 @@ struct Slot {
     CDataAlloc2<1> arena{-1};
 };
 
+// One of Expanded's characters, with the arena its model, motions and images live in.
+struct CharacterSlot {
+    CCharacter     chara;
+    CDataAlloc2<1> arena{-1};
+    std::string    path;
+};
+
 struct Store {
-    std::deque<Slot> slots; // only grows, so no effect moves
-    int              live = 0;
-    bool             floor = false;
+    std::deque<Slot>          slots; // only grows, so no effect moves
+    int                       live = 0;
+    std::deque<CharacterSlot> characters; // the same
+    int                       characters_live = 0;
+    bool                      floor = false;
 };
 
 Store &State() {
@@ -179,6 +189,41 @@ ShotEffectLoader &Loader() {
     return loader;
 }
 
+// Reads a character's pack from the cache into its own arena and sets the character up from its cfg.
+bool DiscCharacterLoad(CCharacter &chara, CDataAlloc2<1> &arena, const char *path, const char *cfg) {
+    const std::vector<unsigned char> *bytes = CachedFile(path);
+    if (bytes == nullptr) {
+        return false;
+    }
+    std::size_t pack_bytes = (bytes->size() + 2048 + 63) & ~std::size_t{63};
+    // The pack, then the model, motions, skins and images it copies out.
+    int quads = static_cast<int>((pack_bytes / 16) * 4 * kArenaHeadroom) + 4096;
+    arena.base = ArenaBlock(&arena, static_cast<std::size_t>(quads) * 16);
+    arena.limit = quads;
+    arena.used = 0;
+    auto *pack = reinterpret_cast<u_int *>(arena.Alloc64(static_cast<int>(pack_bytes / 16)));
+    std::memcpy(pack, bytes->data(), bytes->size());
+    DataReadTrackPack(pack, bytes->size());
+
+    TextureNeed need = NeedOf(pack);
+    int         free = FreeTextures() - kTextureReserve;
+    int         vram_end = TexManager.blocks[kShotEffectBlock].vram_end;
+    int         vram_left = TexManager.vram_max - (vram_end > mgTopVRAM ? vram_end : mgTopVRAM);
+    if (need.textures > free || need.vram > vram_left) {
+        std::fprintf(stderr, "characters: no texture room for %s: needs %d textures (%d free) and %d VRAM blocks (%d left)\n", path,
+                     need.textures, free, need.vram, vram_left);
+        return false;
+    }
+    chara.Initialize();
+    chara.LoadPackData2(pack, const_cast<char *>(cfg), &arena, kShotEffectBlock, &arena, 0);
+    return chara.frame != nullptr;
+}
+
+CharacterLoader &CharacterLoaderNow() {
+    static CharacterLoader loader = DiscCharacterLoad;
+    return loader;
+}
+
 int StoreIndex(const BT_SHOT_EFFECT *effect) {
     Store &store = State();
     for (int i = 0; i < store.live; i++) {
@@ -287,6 +332,31 @@ void ShotEffectsWeaponsChanged() {
     }
 }
 
+CCharacter *EnterCharacter(const char *path, const char *cfg) {
+    Store &store = State();
+    for (int i = 0; i < store.characters_live; i++) {
+        if (store.characters[i].path == path) {
+            return &store.characters[i].chara;
+        }
+    }
+    if (store.characters_live == static_cast<int>(store.characters.size())) {
+        store.characters.emplace_back();
+    }
+    CharacterSlot &slot = store.characters[store.characters_live];
+    if (!CharacterLoaderNow()(slot.chara, slot.arena, path, cfg)) {
+        slot.chara.Initialize();
+        return nullptr;
+    }
+    slot.path = path;
+    std::fprintf(stderr, "characters: %s entered (%d of %d units)\n", path, slot.arena.used, slot.arena.limit);
+    store.characters_live++;
+    return &slot.chara;
+}
+
+void SetCharacterLoader(CharacterLoader loader) {
+    CharacterLoaderNow() = loader != nullptr ? loader : DiscCharacterLoad;
+}
+
 void ShotEffectsClear() {
     Store &store = State();
     for (int i = 0; i < store.live; i++) {
@@ -294,6 +364,12 @@ void ShotEffectsClear() {
         store.slots[i].arena.used = 0;
     }
     store.live = 0;
+    for (int i = 0; i < store.characters_live; i++) {
+        store.characters[i].chara.Initialize();
+        store.characters[i].arena.used = 0;
+        store.characters[i].path.clear();
+    }
+    store.characters_live = 0;
     store.floor = false;
     TexManager.DeleteTextureBlock(kShotEffectBlock);
 }

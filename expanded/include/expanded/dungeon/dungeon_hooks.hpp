@@ -74,6 +74,9 @@ bool TargetNameHidden();
 // Whether a monster refuses a hit it would take (CheckDmg): one the hit's source has landed on it already.
 bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
 
+// Whether a hit of Xiao's makes the monster flinch (CheckDmg; retail's never do): a blow of one of her weapons' own.
+bool PlayerHitStaggers(const COLLISION_HIT &hit);
+
 // Whether a monster's guard windows block the hit that reached it (CheckDmg).
 bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
 

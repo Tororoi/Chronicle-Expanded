@@ -39,6 +39,7 @@
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
+#include "expanded/weapons/xiao/divine_beast_title.hpp"
 #include "expanded/weapons/xiao/double_impact.hpp"
 #include "expanded/weapons/xiao/dragons_y.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
@@ -95,6 +96,7 @@ void DungeonMonstersTick() {
     TyphoonShotStep();
     ChargingBullStep();
     DragonShotStep();
+    SpiritBeastStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
@@ -156,6 +158,7 @@ void PelletFired(CSHOT &shots, int slot) {
     DoubleImpactFired(shots, slot);
     ChargingBullFired(shots, slot);
     DragonShotFired(shots, slot);
+    SpiritBeastFired(shots, slot);
 }
 
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
@@ -191,8 +194,12 @@ bool MonsterHitRefused(const CMonstorUnit &, int monster, const COLLISION_HIT &h
     return DragonShotRefused(monster, hit);
 }
 
+bool PlayerHitStaggers(const COLLISION_HIT &hit) {
+    return SpiritBeastHit(hit);
+}
+
 bool MonsterGuardBlocks(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {
-    return BlindGuardBlocks(monster) && !BlastHit(hit) && !ChargingBullHit(hit) && !GuardCrushActive();
+    return BlindGuardBlocks(monster) && !BlastHit(hit) && !ChargingBullHit(hit) && !SpiritBeastHit(hit) && !GuardCrushActive();
 }
 
 } // namespace expanded

@@ -1451,7 +1451,11 @@ int CMonstorUnit::CheckDmg() {
                             result = MONSTER_DMG_NONE;
                         }
 
+#ifdef CHRONICLE_EXPANDED
+                        if (owner == 1 && !expanded::PlayerHitStaggers(NowColData->hit[hit])) {
+#else
                         if (owner == 1) {
+#endif
                             result = MONSTER_DMG_NONE;
                         }
                     }

@@ -1,8 +1,11 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <string>
 #include <vector>
 
+#include "character.hpp"
+#include "dataalloc.hpp"
 #include "dngstatusdata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
@@ -179,6 +182,31 @@ TEST_F(ShotEffects, NothingLoadsOutsideAFloor) {
     status_->GetItem(ITEM_WEAPON_SAX, 0);
 
     EXPECT_EQ(expanded::ShotEffectIndex(&town), -1);
+}
+
+int g_character_loads = 0;
+
+bool FakeCharacter(CCharacter &chara, CDataAlloc2<1> &, const char *path, const char *) {
+    g_character_loads++;
+    chara.Initialize();
+    return std::string(path).find("missing") == std::string::npos;
+}
+
+TEST_F(ShotEffects, ACharacterIsLoadedOnceAFloor) {
+    expanded::SetCharacterLoader(FakeCharacter);
+    g_character_loads = 0;
+
+    CCharacter *cat = expanded::EnterCharacter("gedit/s86/chara/c04cat.chr", "info.cfg");
+    ASSERT_NE(cat, nullptr);
+    EXPECT_EQ(expanded::EnterCharacter("gedit/s86/chara/c04cat.chr", "info.cfg"), cat);
+    EXPECT_EQ(expanded::EnterCharacter("gedit/missing.chr", "info.cfg"), nullptr);
+    EXPECT_EQ(g_character_loads, 2);
+
+    // The floor's end takes it down; the next floor loads it again.
+    expanded::ShotEffectsClear();
+    EXPECT_NE(expanded::EnterCharacter("gedit/s86/chara/c04cat.chr", "info.cfg"), nullptr);
+    EXPECT_EQ(g_character_loads, 3);
+    expanded::SetCharacterLoader(nullptr);
 }
 
 } // namespace
