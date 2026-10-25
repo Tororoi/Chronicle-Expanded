@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <memory>
+#include <vector>
 
 #include "btactstatus.hpp"
 #include "character.hpp"
@@ -9,7 +10,7 @@
 #include "dataalloc.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
-#include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -23,13 +24,14 @@ using expanded::SpiritBeastPhase;
 using expanded::test::TestFloor;
 using expanded::test::Wielding;
 
-// The cat's pack, stood in for: a character with no model.
+// The cat, stood in for: a character with no model.
 bool FakeLoad(CCharacter &chara, CDataAlloc2<1> &, const char *, const char *) {
     chara.Initialize();
     return true;
 }
 
-// Xiao with weapon_no (carrying sphere when given), attack 50, on a floor with ground 0, a pellet ready in slot 0.
+// Xiao with weapon_no (carrying sphere when given), attack 50, on a floor at height 0; a pellet of 50 ready in slot 0,
+// 10 up, flying along +z at 4 a frame.
 class SpiritBeast : public ::testing::Test {
 protected:
     explicit SpiritBeast(int weapon_no = ITEM_WEAPON_DIVINEBEASTTITLE, int sphere = 0) : wielding_(weapon_no, sphere) {}
@@ -40,12 +42,14 @@ protected:
         wielding_.weapon().attack = 50;
         saved_data_ = NowColData;
         NowColData = data_.get();
-        saved_pos_[0] = CharaMain.pos[0];
-        saved_pos_[1] = CharaMain.pos[1];
-        saved_pos_[2] = CharaMain.pos[2];
-        CharaMain.pos[0] = CharaMain.pos[1] = CharaMain.pos[2] = 0.0f;
-        expanded::ShotEffectsClear();
-        expanded::SetCharacterLoader(FakeLoad);
+        for (int i = 0; i < 3; i++) {
+            saved_pos_[i] = CharaMain.pos[i];
+            CharaMain.pos[i] = 0.0f;
+        }
+        saved_lock_ = lockOnTargetFlag;
+        lockOnTargetFlag = 0;
+        expanded::FloorCharactersClear();
+        expanded::SetFloorCharacterLoader(FakeLoad);
         expanded::SpiritBeastReset();
         *shots_ = CSHOT{};
         shots_->used[0] = 1;
@@ -56,12 +60,13 @@ protected:
 
     void TearDown() override {
         expanded::SpiritBeastReset();
-        expanded::SetCharacterLoader(nullptr);
-        expanded::ShotEffectsClear();
+        expanded::SetFloorCharacterLoader(nullptr);
+        expanded::FloorCharactersClear();
         NowColData = saved_data_;
-        CharaMain.pos[0] = saved_pos_[0];
-        CharaMain.pos[1] = saved_pos_[1];
-        CharaMain.pos[2] = saved_pos_[2];
+        for (int i = 0; i < 3; i++) {
+            CharaMain.pos[i] = saved_pos_[i];
+        }
+        lockOnTargetFlag = saved_lock_;
         BtActStatus = {};
     }
 
@@ -74,7 +79,7 @@ protected:
         CCharacter &body = floor_.unit().chara[monster][0];
         body.pos[0] = x;
         body.pos[2] = z;
-        body.body_height = 12.0f;
+        body.scale[0] = 1.0f;
         MONSTOR_EFFECT_STATE &effect = floor_.unit().effect[monster];
         effect.position[0][0] = x;
         effect.position[0][1] = 6.0f;
@@ -89,6 +94,17 @@ protected:
         }
     }
 
+    // Steps until the cat is in phase (or frames run out): the frames it took.
+    int StepsUntil(SpiritBeastPhase phase, int frames = 2000) {
+        for (int frame = 1; frame <= frames; frame++) {
+            expanded::SpiritBeastStep();
+            if (expanded::SpiritBeastPhaseNow() == phase) {
+                return frame;
+            }
+        }
+        return -1;
+    }
+
     // The slingshot held drawn for frames, then let go into slot 0.
     void HoldAndFire(int frames) {
         BtActStatus.action_on = 1;
@@ -99,7 +115,6 @@ protected:
         expanded::PelletFired(*shots_, 0);
     }
 
-    // The hit the cat planted, or nullptr.
     COLLISION_HIT *Planted() {
         for (int i = 0; i < 96; i++) {
             if (NowColData->active[i] != 0 && expanded::SpiritBeastHit(NowColData->hit[i])) {
@@ -115,6 +130,7 @@ protected:
     std::unique_ptr<CCollisionData> data_ = std::make_unique<CCollisionData>();
     CCollisionData                 *saved_data_ = nullptr;
     float                           saved_pos_[3] = {};
+    s32                             saved_lock_ = 0;
 };
 
 class SpiritBeastWithAnotherWeapon : public SpiritBeast {
@@ -129,69 +145,119 @@ protected:
 
 } // namespace
 
-TEST_F(SpiritBeast, AChargedShotLetsTheCatGoInThePelletsPlace) {
+TEST_F(SpiritBeast, ItGrowsOnTheHeldPelletThenBreaksAwayOnItsVelocity) {
     HoldAndFire(expanded::kSpiritBeastFrames);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kRiding);
+    EXPECT_EQ(shots_->halted[0], 1);
 
-    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kFlying);
+    // The pellet shrinks away as the cat grows on it.
+    Steps(3);
+    EXPECT_FLOAT_EQ(shots_->size[0], 0.5f);
+    Steps(expanded::kSpiritBeastGrowFrames - 4);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kRiding);
+    EXPECT_EQ(shots_->used[0], 1);
+    Steps(1);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kFalling);
     EXPECT_EQ(shots_->used[0], 0);
-    // It falls off the shot's line to the floor.
-    Steps(60);
-    EXPECT_NE(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kFlying);
+
+    // Off the pellet's line at its speed: 4 a frame along z until the paws touch.
+    float z = expanded::SpiritBeastPosition()[2];
+    Steps(1);
+    EXPECT_NEAR(expanded::SpiritBeastPosition()[2] - z, 4.0f, 1e-4f);
+    EXPECT_GT(StepsUntil(SpiritBeastPhase::kSitting), 0);
     EXPECT_FLOAT_EQ(expanded::SpiritBeastPosition()[1], 0.0f);
-    EXPECT_GT(expanded::SpiritBeastPosition()[2], 4.0f);
 }
 
-TEST_F(SpiritBeast, AShortHoldIsAPellet) {
+TEST_F(SpiritBeast, AHalfSecondHoldIsTheCatAShorterOneAPellet) {
     HoldAndFire(expanded::kSpiritBeastFrames - 1);
     EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kNone);
     EXPECT_EQ(shots_->used[0], 1);
+    EXPECT_EQ(expanded::kSpiritBeastFrames, 30);
 }
 
-TEST_F(SpiritBeast, WithNothingToChaseItSitsThenFades) {
+TEST_F(SpiritBeast, WithNothingToChaseItSitsThenFadesAtTwentySeconds) {
     HoldAndFire(expanded::kSpiritBeastFrames);
-    Steps(120);
-    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kSitting);
-    Steps(expanded::kSpiritBeastLifeFrames);
+    int sat = StepsUntil(SpiritBeastPhase::kSitting, 200);
+    ASSERT_GT(sat, 0);
+    Steps(expanded::kSpiritBeastLifeFrames - sat - 1);
+    EXPECT_FALSE(expanded::SpiritBeastFading());
+    Steps(1);
+    EXPECT_TRUE(expanded::SpiritBeastFading());
+    Steps(expanded::kSpiritBeastFadeFrames);
     EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kNone);
 }
 
-TEST_F(SpiritBeast, ItRunsAtAMonsterPouncesAndStrikesItOnce) {
-    Stand(0, 60.0f, 80.0f);
+TEST_F(SpiritBeast, ItWalksCrouchesWindsUpAndLeapsAsTheModTimesIt) {
+    Stand(0, 0.0f, 160.0f);
     HoldAndFire(expanded::kSpiritBeastFrames);
 
-    bool ran = false;
-    for (int frame = 0; frame < 600 && Planted() == nullptr; frame++) {
+    ASSERT_GT(StepsUntil(SpiritBeastPhase::kWalking), 0);
+    float z = expanded::SpiritBeastPosition()[2];
+    Steps(1);
+    EXPECT_NEAR(expanded::SpiritBeastPosition()[2] - z, expanded::kSpiritBeastWalk, 1e-4f);
+
+    ASSERT_GT(StepsUntil(SpiritBeastPhase::kReady), 0);
+    EXPECT_LE(160.0f - expanded::SpiritBeastPosition()[2], expanded::kSpiritBeastPounce);
+    EXPECT_EQ(StepsUntil(SpiritBeastPhase::kWindUp), expanded::kSpiritBeastReadyFrames);
+    EXPECT_EQ(StepsUntil(SpiritBeastPhase::kLeaping), expanded::kSpiritBeastWindUpFrames);
+}
+
+TEST_F(SpiritBeast, ItsOneHitIsThePelletsDamageAndTheAttackThroughAGuard) {
+    Stand(0, 0.0f, 160.0f);
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    for (int frame = 0; frame < 1000 && Planted() == nullptr; frame++) {
         expanded::SpiritBeastStep();
-        ran = ran || expanded::SpiritBeastPhaseNow() == SpiritBeastPhase::kRunning;
     }
-    EXPECT_TRUE(ran);
     COLLISION_HIT *hit = Planted();
     ASSERT_NE(hit, nullptr);
-    EXPECT_EQ(hit->damage, static_cast<int>(expanded::kSpiritBeastDamage * 50.0f));
+    EXPECT_EQ(hit->damage, 50 + 50);
     EXPECT_EQ(hit->owner, CHARA_XIAO);
+    EXPECT_FLOAT_EQ(hit->radius, expanded::kSpiritBeastHitRadius);
     EXPECT_EQ(hit->knockback_mode, 2);
     EXPECT_FLOAT_EQ(hit->knockback_speed, expanded::kSpiritBeastKickSpeed);
-    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kFading);
-    // Through a guard, and staggering as a blow does.
+    EXPECT_FLOAT_EQ(hit->knockback_decay, expanded::kSpiritBeastKickDecay);
     EXPECT_FALSE(expanded::MonsterGuardBlocks(floor_.unit(), 0, *hit));
     EXPECT_TRUE(expanded::PlayerHitStaggers(*hit));
+    EXPECT_TRUE(expanded::SpiritBeastFading());
 
-    // Gone after its fade, with no second hit.
+    // It fades as it goes on, with no second hit.
     NowColData->active[hit - NowColData->hit] = 0;
     Steps(expanded::kSpiritBeastFadeFrames);
     EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kNone);
     EXPECT_EQ(Planted(), nullptr);
 }
 
+TEST_F(SpiritBeast, ItHoldsItsCrouchWhileTheMonsterCannotBeHit) {
+    Stand(0, 0.0f, 160.0f);
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    ASSERT_GT(StepsUntil(SpiritBeastPhase::kReady), 0);
+    floor_.unit().monster[0].invincible_timer = 100;
+    Steps(expanded::kSpiritBeastReadyFrames * 3);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kReady);
+    floor_.unit().monster[0].invincible_timer = 0;
+    EXPECT_GT(StepsUntil(SpiritBeastPhase::kWindUp, 5), 0);
+}
+
+TEST_F(SpiritBeast, NothingIsTouchedUntilItBreaksAway) {
+    Stand(0, 0.0f, 0.0f);
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    Steps(expanded::kSpiritBeastGrowFrames);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kFalling);
+    EXPECT_EQ(Planted(), nullptr);
+    Steps(1);
+    EXPECT_NE(Planted(), nullptr);
+}
+
 TEST_F(SpiritBeastWithAnotherWeapon, NeverLetsACatGo) {
     HoldAndFire(expanded::kSpiritBeastFrames * 2);
     EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kNone);
     EXPECT_EQ(shots_->used[0], 1);
+    EXPECT_EQ(shots_->halted[0], 0);
 }
 
 TEST_F(SpiritBeastBySuperSteve, LetsTheSameCatGoWithTheSphere) {
     HoldAndFire(expanded::kSpiritBeastFrames);
-    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kFlying);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kRiding);
 }
 
 TEST(SpiritBeastHits, AnotherHitNeitherPassesAGuardNorStaggers) {

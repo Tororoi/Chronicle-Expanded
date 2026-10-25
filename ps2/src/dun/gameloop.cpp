@@ -127,6 +127,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/dungeon_hooks.hpp"
+#include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/dungeon/magic_circles.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -1550,6 +1551,7 @@ void GameInit() {
     }
 #ifdef CHRONICLE_EXPANDED
     expanded::ShotEffectsClear();
+    expanded::FloorCharactersClear();
     expanded::RosterVisitBegun();
 #endif
 
@@ -6561,6 +6563,7 @@ void BtLoadMonstor(int ura) {
     TexManager.DeleteTextureBlock(0x26);
 #ifdef CHRONICLE_EXPANDED
     expanded::ShotEffectsClear();
+    expanded::FloorCharactersClear();
 #endif
     TexManager.CleanUpBuffer();
     TexManager.CleanUpTextureList();

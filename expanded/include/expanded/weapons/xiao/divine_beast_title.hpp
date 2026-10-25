@@ -6,48 +6,61 @@ struct COLLISION_HIT;
 
 namespace expanded {
 
-// Divine Beast Title "Spirit Beast": with the Divine Beast Title in hand, or Super Steve carrying its SynthSphere, a
-// shot held drawn kSpiritBeastFrames (the charge-complete flash) lets go Xiao's cat in place of the pellet. It grows out
-// of the shot as it flies, falls to the floor, runs at the monster she is locked on to (else the nearest within
-// kSpiritBeastSight of her), crouches within kSpiritBeastPounce of it and pounces. The first monster it touches takes one
-// hit of kSpiritBeastDamage times the weapon's attack, in its selected element with its magic, through a guard, with a
-// sword blow's stagger and a shove (kSpiritBeastKickSpeed, kSpiritBeastKickDecay) away from the cat; then the cat fades
-// over kSpiritBeastFadeFrames. With nothing to chase it sits; it fades kSpiritBeastLifeFrames after it was let go. It
-// glows blue. Times are game frames, distances units.
-inline constexpr int   kSpiritBeastFrames = 60;
-inline constexpr float kSpiritBeastDamage = 2.0f;
+// Divine Beast Title "Spirit Beast", as the mod has it: with the Divine Beast Title in hand, or Super Steve carrying its
+// SynthSphere, a shot held drawn kSpiritBeastFrames (the charge-complete flash) lets Xiao's cat (the model built at
+// extraction, data/spirit_cat.hpp) go with its pellet. The pellet is held where it was fired, passing through everything,
+// and shrinks away as the cat grows over kSpiritBeastGrowFrames with its head on it; at full size the cat breaks away
+// with the pellet's velocity and falls (kSpiritBeastFall) to the floor; the land clip starts kSpiritBeastLandLead frames before
+// the touchdown, its momentum stops as the paws touch, and kSpiritBeastLandFrames after the clip began it walks
+// (kSpiritBeastWalk units a frame) at the monster she is locked on to, else the nearest to her within kSpiritBeastSight;
+// with none it sits. Within kSpiritBeastPounce it crouches (kSpiritBeastReadyFrames), held while the monster cannot be
+// hit, then winds up in the float-up and leaps: an arc (kSpiritBeastGravity) reaching the monster in kSpiritBeastLeapFrames
+// (kSpiritBeastLeapFramesTall for a large one), its horizontal speed re-aimed at it until the apex. Falling or landing,
+// the first monster its head touches (as a pellet does) takes one hit: the pellet's damage plus the weapon's attack, in the weapon's
+// element, through a guard, staggering it and shoving it (kSpiritBeastKickSpeed, kSpiritBeastKickDecay) away from the cat.
+// The cat then fades over kSpiritBeastFadeFrames as it goes on; kSpiritBeastLifeFrames after it was let go it fades where
+// it stands. It glows blue. Times are game frames, distances units.
+inline constexpr int   kSpiritBeastFrames = 30;
+inline constexpr int   kSpiritBeastGrowFrames = 6;
+inline constexpr float kSpiritBeastFall = 0.08f;
+inline constexpr float kSpiritBeastGravity = 0.05f;
+inline constexpr float kSpiritBeastLandLead = 11.1f; // the land clip's frames to the paws' touch: (219 - 215) / 0.36
+inline constexpr int   kSpiritBeastLandFrames = 27;
+inline constexpr float kSpiritBeastWalk = 0.7f;
+inline constexpr float kSpiritBeastWalkRate = 0.85f; // the town's walk mapping for this rig at that speed
 inline constexpr float kSpiritBeastSight = 300.0f;
 inline constexpr float kSpiritBeastPounce = 30.0f;
-inline constexpr float kSpiritBeastRun = 1.3f;      // units a frame
-inline constexpr float kSpiritBeastFall = 0.08f;    // off the shot's line
-inline constexpr float kSpiritBeastGravity = 0.05f; // in the pounce
+inline constexpr int   kSpiritBeastReadyFrames = 25;  // the crouch, 95..105 at 0.4
+inline constexpr int   kSpiritBeastWindUpFrames = 11; // the float-up to the feet leaving the floor, 285..293 at 0.75
 inline constexpr int   kSpiritBeastLeapFrames = 32;
-inline constexpr int   kSpiritBeastGrowFrames = 6;
-inline constexpr int   kSpiritBeastFadeFrames = 30;
-inline constexpr int   kSpiritBeastLifeFrames = 1200;
-inline constexpr float kSpiritBeastTouch = 3.0f; // the cat's own reach in the touch
-inline constexpr float kSpiritBeastHitRadius = 4.0f;
+inline constexpr int   kSpiritBeastLeapFramesTall = 40;
+inline constexpr float kSpiritBeastTouch = 2.0f; // a pellet's reach
+inline constexpr float kSpiritBeastHitRadius = 3.0f;
 inline constexpr float kSpiritBeastKickSpeed = 2.0f;
 inline constexpr float kSpiritBeastKickDecay = 0.3f;
+inline constexpr int   kSpiritBeastFadeFrames = 30;
+inline constexpr int   kSpiritBeastLifeFrames = 1200;
 
 bool SpiritBeastActive();
 
-// The cat's state, for tests: where it is, and its part of the chase.
+// The cat's part of its life, for tests, and where it is.
 enum class SpiritBeastPhase {
     kNone,
-    kFlying,
+    kRiding,
+    kFalling,
     kLanding,
-    kRunning,
+    kWalking,
     kSitting,
     kReady,
-    kLeaping,
-    kFading
+    kWindUp,
+    kLeaping
 };
 SpiritBeastPhase SpiritBeastPhaseNow();
+bool             SpiritBeastFading();
 const float     *SpiritBeastPosition();
 
-// Hooks: a dungeon step; a pellet let go into slot; the cat's draw; its light (CCharacter::Draw); whether a monster's guard
-// lets a hit through and whether a hit of Xiao's staggers (CheckDmg).
+// Hooks: a dungeon step; a pellet let go into slot; the cat's draw; its light (CCharacter::Draw); whether a hit is the
+// cat's (a guard lets it through, and as a hit of Xiao's it staggers).
 void SpiritBeastStep();
 void SpiritBeastFired(CSHOT &shots, int slot);
 void SpiritBeastDraw();

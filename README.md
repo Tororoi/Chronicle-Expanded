@@ -101,6 +101,8 @@ It writes only what changed and exits 1 if anything failed to build. What it bui
 - `expanded/town/<ally>.chr`: each ally's town model (`expanded/docs/town-models.md`).
 - `expanded/monstor/c16a.chr`: Minotaur Joe with his defeat scene's stagger and fall, for his death on a
   regular floor (`expanded/docs/bosses.md`).
+- `expanded/chara/spirit_cat.chr`: the Divine Beast Title's cat, the s86 town cat with the e01 town cat's
+  float-up grafted into its motion.
 - `expanded/enemies/script_damage.txt`: each monster script's strongest melee hit and shot, which the
   enemy stat scaling starts from; without it monster damage is left as it is.
 

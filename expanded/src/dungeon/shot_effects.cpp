@@ -10,13 +10,13 @@
 #include <unordered_map>
 #include <vector>
 
-#include "character.hpp"
 #include "collisiondata.hpp"
 #include "dataalloc.hpp"
 #include "dataread.hpp"
 #include "dataread_port.hpp"
 #include "dataset.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/pack_files.hpp"
 #include "itembombeffect.hpp"
 #include "itemdata.hpp"
 #include "main.hpp"
@@ -40,19 +40,10 @@ struct Slot {
     CDataAlloc2<1> arena{-1};
 };
 
-// One of Expanded's characters, with the arena its model, motions and images live in.
-struct CharacterSlot {
-    CCharacter     chara;
-    CDataAlloc2<1> arena{-1};
-    std::string    path;
-};
-
 struct Store {
-    std::deque<Slot>          slots; // only grows, so no effect moves
-    int                       live = 0;
-    std::deque<CharacterSlot> characters; // the same
-    int                       characters_live = 0;
-    bool                      floor = false;
+    std::deque<Slot> slots; // only grows, so no effect moves
+    int              live = 0;
+    bool             floor = false;
 };
 
 Store &State() {
@@ -73,91 +64,14 @@ std::vector<Registered> &Registry() {
     return registry;
 }
 
-std::unordered_map<std::string, std::vector<unsigned char>> &FileCache() {
-    static std::unordered_map<std::string, std::vector<unsigned char>> cache;
-    return cache;
-}
-
 std::string PathOf(const BT_SHOT_EFFECT *effect, const char *path) {
     return path != nullptr ? std::string(path) : "dun/effect/" + std::string(effect->model_name) + ".chr";
-}
-
-// The file's bytes, read through read_buffer the first time and kept for the session.
-const std::vector<unsigned char> *CachedFile(const std::string &path) {
-    auto found = FileCache().find(path);
-    if (found != FileCache().end()) {
-        return &found->second;
-    }
-    int size = 0;
-    if (LoadFile2(const_cast<char *>(path.c_str()), read_buffer, &size, 0) == 0) {
-        std::fprintf(stderr, "shot effects: cannot read %s\n", path.c_str());
-        return nullptr;
-    }
-    wait_now_loading_vsync();
-    auto *bytes = reinterpret_cast<unsigned char *>(read_buffer);
-    return &FileCache().emplace(path, std::vector<unsigned char>(bytes, bytes + size)).first->second;
-}
-
-struct TextureNeed {
-    int textures = 0;
-    int vram = 0;
-};
-
-// What the pack's images take of the texture table and of a block's VRAM, as CTextureManager enters them.
-TextureNeed NeedOf(u_int *pack) {
-    TextureNeed need;
-    char       *name;
-    int         size;
-    for (int index = 0; u_int *file = GetPackFile(pack, index, &name, &size); index++) {
-        std::size_t length = std::strlen(name);
-        if (length < 4 || strcasecmp(name + length - 4, ".img") != 0) {
-            continue;
-        }
-        auto   *buffer = reinterpret_cast<u_char *>(file);
-        u_char *entry = buffer + 16;
-        for (u_int i = 0; i < *reinterpret_cast<u_int *>(buffer + 4); i++, entry += 48) {
-            auto *head = reinterpret_cast<TM2_head *>(buffer + *reinterpret_cast<int *>(entry + 32));
-            int   width = head->image_width;
-            int   height = head->image_height;
-            int   bytes;
-            switch (head->image_type) {
-                case TIM2_RGB16:
-                    bytes = width * height * 2;
-                    break;
-                case TIM2_RGB24:
-                    bytes = width * height * 3;
-                    break;
-                case TIM2_RGB32:
-                    bytes = width * height * 4;
-                    break;
-                case TIM2_IDTEX4:
-                    bytes = width * height / 2 + 4 * 256;
-                    break;
-                case TIM2_IDTEX8:
-                    bytes = width * height + 4 * 256;
-                    break;
-                default:
-                    continue;
-            }
-            need.textures++;
-            need.vram += ((bytes >> 8) + 31) / 32 * 32;
-        }
-    }
-    return need;
-}
-
-int FreeTextures() {
-    int free = 0;
-    for (int i = 1; i < 196; i++) {
-        free += TexManager.textures[i].name[0] == 0;
-    }
-    return free;
 }
 
 // Reads the effect's pack from the cache into its own arena and sets the effect up from it.
 bool DiscLoad(CSHOT_EFFECT &effect, CDataAlloc2<1> &arena, BT_SHOT_EFFECT *description, int shots, const char *path) {
     std::string                       file = PathOf(description, path);
-    const std::vector<unsigned char> *bytes = CachedFile(file);
+    const std::vector<unsigned char> *bytes = CachedPackFile(file);
     if (bytes == nullptr) {
         return false;
     }
@@ -171,13 +85,7 @@ bool DiscLoad(CSHOT_EFFECT &effect, CDataAlloc2<1> &arena, BT_SHOT_EFFECT *descr
     std::memcpy(pack, bytes->data(), bytes->size());
     DataReadTrackPack(pack, bytes->size());
 
-    TextureNeed need = NeedOf(pack);
-    int         free = FreeTextures() - kTextureReserve;
-    int         vram_end = TexManager.blocks[kShotEffectBlock].vram_end;
-    int         vram_left = TexManager.vram_max - (vram_end > mgTopVRAM ? vram_end : mgTopVRAM);
-    if (need.textures > free || need.vram > vram_left) {
-        std::fprintf(stderr, "shot effects: no texture room for %s: needs %d textures (%d free) and %d VRAM blocks (%d left)\n",
-                     file.c_str(), need.textures, free, need.vram, vram_left);
+    if (!PackTexturesFit(pack, kShotEffectBlock, file.c_str())) {
         return false;
     }
     effect.Initialize();
@@ -186,41 +94,6 @@ bool DiscLoad(CSHOT_EFFECT &effect, CDataAlloc2<1> &arena, BT_SHOT_EFFECT *descr
 
 ShotEffectLoader &Loader() {
     static ShotEffectLoader loader = DiscLoad;
-    return loader;
-}
-
-// Reads a character's pack from the cache into its own arena and sets the character up from its cfg.
-bool DiscCharacterLoad(CCharacter &chara, CDataAlloc2<1> &arena, const char *path, const char *cfg) {
-    const std::vector<unsigned char> *bytes = CachedFile(path);
-    if (bytes == nullptr) {
-        return false;
-    }
-    std::size_t pack_bytes = (bytes->size() + 2048 + 63) & ~std::size_t{63};
-    // The pack, then the model, motions, skins and images it copies out.
-    int quads = static_cast<int>((pack_bytes / 16) * 4 * kArenaHeadroom) + 4096;
-    arena.base = ArenaBlock(&arena, static_cast<std::size_t>(quads) * 16);
-    arena.limit = quads;
-    arena.used = 0;
-    auto *pack = reinterpret_cast<u_int *>(arena.Alloc64(static_cast<int>(pack_bytes / 16)));
-    std::memcpy(pack, bytes->data(), bytes->size());
-    DataReadTrackPack(pack, bytes->size());
-
-    TextureNeed need = NeedOf(pack);
-    int         free = FreeTextures() - kTextureReserve;
-    int         vram_end = TexManager.blocks[kShotEffectBlock].vram_end;
-    int         vram_left = TexManager.vram_max - (vram_end > mgTopVRAM ? vram_end : mgTopVRAM);
-    if (need.textures > free || need.vram > vram_left) {
-        std::fprintf(stderr, "characters: no texture room for %s: needs %d textures (%d free) and %d VRAM blocks (%d left)\n", path,
-                     need.textures, free, need.vram, vram_left);
-        return false;
-    }
-    chara.Initialize();
-    chara.LoadPackData2(pack, const_cast<char *>(cfg), &arena, kShotEffectBlock, &arena, 0);
-    return chara.frame != nullptr;
-}
-
-CharacterLoader &CharacterLoaderNow() {
-    static CharacterLoader loader = DiscCharacterLoad;
     return loader;
 }
 
@@ -332,31 +205,6 @@ void ShotEffectsWeaponsChanged() {
     }
 }
 
-CCharacter *EnterCharacter(const char *path, const char *cfg) {
-    Store &store = State();
-    for (int i = 0; i < store.characters_live; i++) {
-        if (store.characters[i].path == path) {
-            return &store.characters[i].chara;
-        }
-    }
-    if (store.characters_live == static_cast<int>(store.characters.size())) {
-        store.characters.emplace_back();
-    }
-    CharacterSlot &slot = store.characters[store.characters_live];
-    if (!CharacterLoaderNow()(slot.chara, slot.arena, path, cfg)) {
-        slot.chara.Initialize();
-        return nullptr;
-    }
-    slot.path = path;
-    std::fprintf(stderr, "characters: %s entered (%d of %d units)\n", path, slot.arena.used, slot.arena.limit);
-    store.characters_live++;
-    return &slot.chara;
-}
-
-void SetCharacterLoader(CharacterLoader loader) {
-    CharacterLoaderNow() = loader != nullptr ? loader : DiscCharacterLoad;
-}
-
 void ShotEffectsClear() {
     Store &store = State();
     for (int i = 0; i < store.live; i++) {
@@ -364,12 +212,6 @@ void ShotEffectsClear() {
         store.slots[i].arena.used = 0;
     }
     store.live = 0;
-    for (int i = 0; i < store.characters_live; i++) {
-        store.characters[i].chara.Initialize();
-        store.characters[i].arena.used = 0;
-        store.characters[i].path.clear();
-    }
-    store.characters_live = 0;
     store.floor = false;
     TexManager.DeleteTextureBlock(kShotEffectBlock);
 }
@@ -386,7 +228,7 @@ void ShotEffectsFloorLoaded() {
     // Every registered file is read now, so a load mid-floor reads no disc.
     for (Registered &entry : Registry()) {
         if (Loader() == DiscLoad) {
-            CachedFile(PathOf(entry.effect, entry.path.empty() ? nullptr : entry.path.c_str()));
+            CachedPackFile(PathOf(entry.effect, entry.path.empty() ? nullptr : entry.path.c_str()));
         }
     }
     ShotEffectsWeaponsChanged();

@@ -2,7 +2,6 @@
 
 #include "dataalloc_fwd.hpp"
 
-class CCharacter;
 class CMonstorUnit;
 class CSHOT_EFFECT;
 struct BT_SHOT_EFFECT;
@@ -16,9 +15,6 @@ inline constexpr int kRetailShotEffects = 5;
 
 // Texture block Expanded's shot effects are entered into.
 inline constexpr int kShotEffectBlock = 0x34;
-
-// Free texture table entries kept back for what the dungeon enters after a load (menus, item models).
-inline constexpr int kTextureReserve = 48;
 
 // Pack indices in use: retail's five, then Expanded's loaded ones.
 int ShotEffectCount();
@@ -68,15 +64,6 @@ int ShotEffectBomb(float *position, const BT_SHOT_EFFECT *effect, int owner);
 // A description's blast damage by the monster that fired it, in place of its bomb_damage (nullptr removes it).
 using BlastDamage = int (*)(int owner);
 void SetBlastDamage(const BT_SHOT_EFFECT *effect, BlastDamage damage);
-
-// Loads a character pack from path (its cfg named cfg inside) into a character of Expanded's, in its own memory and the
-// effects' texture block, until the floor ends: the character (the one loaded from path already, when it was), or null
-// when it cannot be read or its images do not fit. The caller steps and draws it.
-CCharacter *EnterCharacter(const char *path, const char *cfg);
-
-// Tests replace the character's disc load: it sets chara up from the pack at path, returning false on failure.
-using CharacterLoader = bool (*)(CCharacter &chara, CDataAlloc2<1> &arena, const char *path, const char *cfg);
-void SetCharacterLoader(CharacterLoader loader);
 
 // Tests replace the disc load: it sets up effect from its file in arena, returning false on failure.
 using ShotEffectLoader = bool (*)(CSHOT_EFFECT &effect, CDataAlloc2<1> &arena, BT_SHOT_EFFECT *description, int shots,
