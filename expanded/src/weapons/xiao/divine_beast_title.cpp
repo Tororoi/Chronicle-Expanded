@@ -15,6 +15,8 @@
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/dungeon/navigation.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/miniboss.hpp"
+#include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
 #include "frame.hpp"
@@ -40,6 +42,43 @@ constexpr float kRootTouch = 2.0f;           // the touch point's height over th
 constexpr float kProbeUp = 8.0f, kProbeDown = 40.0f;
 constexpr float kClearance = 4.0f;
 constexpr float kTallScale = 1.25f; // a monster drawn this large or larger gets the higher arc
+constexpr float kProbeAhead = 3.0f, kProbeBehind = 2.0f; // the floor's extra casts along the cat: it stands on the highest
+// Flyers, hoverers and the tall or large: the higher arc.
+constexpr Monster kTallLeapers[] = {
+    Monster::HORNET,
+    Monster::WITCH_HELLZA,
+    Monster::WITCH_ILLZA,
+    Monster::GHOST,
+    Monster::LICH,
+    Monster::PHANTOM,
+    Monster::CAVE_BAT,
+    Monster::EVIL_BAT,
+    Monster::NIKAPOUS,
+    Monster::CRESCENT_BARON,
+    Monster::MASK_OF_PRAJNA,
+    Monster::ALEXANDER,
+    Monster::ARTHUR,
+    Monster::BLACK_KNIGHT,
+    Monster::BLACK_KNIGHT_MOUNT,
+    Monster::DARK_GENIE,
+    Monster::DARK_GENIE_RIGHT_HAND,
+    Monster::DARK_GENIE_FINAL,
+    Monster::MINOTAUR_JOE,
+    Monster::KINGS_CURSE,
+    Monster::KINGS_CURSE_COFFIN,
+    Monster::MASTER_UTAN,
+    Monster::DRAN,
+    Monster::GOL,
+    Monster::SIL,
+    Monster::BLIZZARD,
+    Monster::STEEL_GIANT,
+    Monster::TITAN,
+    Monster::GOLEM,
+    Monster::BLACK_DRAGON,
+    Monster::BLUE_DRAGON,
+    Monster::DRAGON,
+    Monster::OPAR,
+};
 constexpr int   kRetarget = 30;     // a lock-on made since is taken this often
 constexpr int   kMark = 0x08000000; // in a hit's weapon flags: the cat's
 constexpr int   kMonsters = 2;
@@ -111,7 +150,8 @@ void Face(const float *towards) {
     }
 }
 
-// The floor under the cat near its height, the way a thrown item finds it; unchanged over a pit.
+// The floor under the cat near its height, the way a thrown item finds it: cast at its root, kProbeAhead ahead and
+// kProbeBehind behind, the highest hit (so on stairs it rides its uphill end); unchanged over a pit.
 void ProbeFloor() {
     if (NowDngMap == nullptr) {
         cat.floor = CharaMain.pos[1];
@@ -120,10 +160,19 @@ void ProbeFloor() {
     static std::vector<CCPoly> polys(8192);
     float                      centre[4] = {cat.pos[0], cat.pos[1], cat.pos[2], 1.0f};
     int                        count = setCollisionData(NowDngMap, polys.data(), centre, 20.0f, 1.5f);
-    float                      from[4] = {cat.pos[0], cat.pos[1] + kProbeUp, cat.pos[2], 1.0f};
-    float                      hit[4];
-    if (count > 0 && CheckHitVertical(polys.data(), count, from, -(kProbeUp + kProbeDown), hit, 0) >= 0) {
-        cat.floor = hit[1];
+    float                      dx = std::sin(cat.yaw), dz = std::cos(cat.yaw);
+    bool                       found = false;
+    float                      highest = 0.0f;
+    for (float along : {0.0f, kProbeAhead, -kProbeBehind}) {
+        float from[4] = {cat.pos[0] + dx * along, cat.pos[1] + kProbeUp, cat.pos[2] + dz * along, 1.0f};
+        float hit[4];
+        if (count > 0 && CheckHitVertical(polys.data(), count, from, -(kProbeUp + kProbeDown), hit, 0) >= 0 && (!found || hit[1] > highest)) {
+            highest = hit[1];
+            found = true;
+        }
+    }
+    if (found) {
+        cat.floor = highest;
     }
 }
 
@@ -137,6 +186,40 @@ bool Hittable(int monster) {
 
 const CCharacter &Body(int monster) {
     return NowMonstorUnit->chara[monster][0];
+}
+
+// Where the cat walks and leaps to: across, the centre of the monster's largest hurt sphere Xiao's hits damage (else
+// its largest in use), the furthest forward of equals; its feet's height.
+void AimPoint(int monster, float *out) {
+    const CCharacter           &body = Body(monster);
+    const MONSTOR_EFFECT_STATE &effect = NowMonstorUnit->effect[monster];
+    out[0] = body.pos[0], out[1] = body.pos[1], out[2] = body.pos[2], out[3] = 1.0f;
+    float fx = std::sin(body.rotation.y), fz = std::cos(body.rotation.y);
+    float best = -1.0f, best_forward = -INFINITY;
+    for (int pass = 0; pass < 2 && best < 0; pass++) {
+        for (int sphere = 0; sphere < 16; sphere++) {
+            if (effect.timer[sphere] == 0 || (pass == 0 && effect.parameter[sphere][CHARA_XIAO] <= 0)) {
+                continue;
+            }
+            const float *c = effect.position[sphere];
+            float        r = effect.radius[sphere], forward = (c[0] - body.pos[0]) * fx + (c[2] - body.pos[2]) * fz;
+            if (r > best + 0.01f || (std::fabs(r - best) <= 0.01f && forward > best_forward)) {
+                best = r;
+                best_forward = forward;
+                out[0] = c[0], out[2] = c[2];
+            }
+        }
+    }
+}
+
+// Whether the monster gets the higher arc: a flyer, hoverer or tall body, a miniboss, or one drawn large.
+bool TallLeap(int monster) {
+    for (Monster kind : kTallLeapers) {
+        if (IsKind(*NowMonstorUnit, monster, kind)) {
+            return true;
+        }
+    }
+    return IsMiniboss(monster) || Body(monster).scale[0] >= kTallScale;
 }
 
 // The monster she is locked on to, else the nearest to her within sight, or -1.
@@ -274,7 +357,8 @@ void Walk() {
         }
         return;
     }
-    const float *goal = Body(cat.target).pos;
+    float goal[4];
+    AimPoint(cat.target, goal);
     if (Flat(goal, cat.pos) <= kSpiritBeastPounce) {
         Face(goal);
         Motion(kCatReady, kHoldLast);
@@ -298,9 +382,10 @@ void Walk() {
     Motion(kCatWalk, 0, kSpiritBeastWalkRate);
 }
 
-// The pounce's arc to the target's feet over the frames left: its horizontal speed, and on the launch its rise.
+// The pounce's arc to the target over the frames left: its horizontal speed, and on the launch its rise.
 void Aim(bool launch) {
-    const float *goal = Body(cat.target).pos;
+    float goal[4];
+    AimPoint(cat.target, goal);
     float        left = static_cast<float>(std::max(1, cat.leap_frames - cat.phase_age));
     cat.vel[0] = (goal[0] - cat.pos[0]) / left;
     cat.vel[2] = (goal[2] - cat.pos[2]) / left;
@@ -469,16 +554,18 @@ void SpiritBeastStep() {
                     Walk();
                 }
                 break;
-            case SpiritBeastPhase::kReady:
+            case SpiritBeastPhase::kReady: {
                 Retarget();
                 if (cat.target < 0) {
                     Walk();
                     break;
                 }
-                Face(Body(cat.target).pos);
+                float goal[4];
+                AimPoint(cat.target, goal);
+                Face(goal);
                 // Held crouched while the monster cannot be hit.
                 if (cat.phase_age >= kSpiritBeastReadyFrames && NowMonstorUnit->monster[cat.target].invincible_timer <= 0) {
-                    if (Flat(Body(cat.target).pos, cat.pos) > 2.0f * kSpiritBeastPounce) {
+                    if (Flat(goal, cat.pos) > 2.0f * kSpiritBeastPounce) {
                         Walk();
                     } else {
                         Motion(kCatFloat, kHoldLast);
@@ -486,19 +573,23 @@ void SpiritBeastStep() {
                     }
                 }
                 break;
-            case SpiritBeastPhase::kWindUp:
+            }
+            case SpiritBeastPhase::kWindUp: {
                 if (!Hittable(cat.target)) {
                     Walk();
                     break;
                 }
-                Face(Body(cat.target).pos);
+                float goal[4];
+                AimPoint(cat.target, goal);
+                Face(goal);
                 if (cat.phase_age >= kSpiritBeastWindUpFrames) {
-                    cat.leap_frames = Body(cat.target).scale[0] >= kTallScale ? kSpiritBeastLeapFramesTall : kSpiritBeastLeapFrames;
+                    cat.leap_frames = TallLeap(cat.target) ? kSpiritBeastLeapFramesTall : kSpiritBeastLeapFrames;
                     Phase(SpiritBeastPhase::kLeaping);
                     cat.rising = true;
                     Aim(true);
                 }
                 break;
+            }
             default:
                 break;
         }
