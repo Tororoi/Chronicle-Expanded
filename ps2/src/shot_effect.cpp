@@ -97,6 +97,7 @@ void CSHOT::step() {
                     NowColData->hit[NowColData->now_hit].weapon_flags = NowWeaponHave->flags;
                     NowColData->hit[NowColData->now_hit].vs_monster = NowWeaponHave->vs_monster;
 #ifdef CHRONICLE_EXPANDED
+                    expanded::PelletHitSet(*this, shot, NowColData->hit[NowColData->now_hit]);
                 }
 #endif
 #ifdef CHRONICLE_EXPANDED

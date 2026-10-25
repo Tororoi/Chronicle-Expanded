@@ -5,6 +5,7 @@
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
+#include "expanded/weapons/xiao/matador.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 
 namespace expanded {
@@ -19,6 +20,7 @@ void CharacterLight(const CCharacter &character, float *ambient) {
     BigBangShotLight(character, ambient);
     ZeusChargeLight(character, ambient);
     ZeusShotLight(character, ambient);
+    ChargingBullLight(character, ambient);
 }
 
 } // namespace expanded

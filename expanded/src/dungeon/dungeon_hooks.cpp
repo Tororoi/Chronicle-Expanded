@@ -42,6 +42,7 @@
 #include "expanded/weapons/xiao/double_impact.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
+#include "expanded/weapons/xiao/matador.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 
 namespace expanded {
@@ -91,6 +92,7 @@ void DungeonMonstersTick() {
     ZeusChargeStep();
     ZeusShotStep();
     TyphoonShotStep();
+    ChargingBullStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
@@ -150,6 +152,7 @@ void PelletFired(CSHOT &shots, int slot) {
     StealShotFired(shots, slot);
     RicochetShotFired(slot);
     DoubleImpactFired(shots, slot);
+    ChargingBullFired(shots, slot);
 }
 
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
@@ -158,6 +161,11 @@ void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
     ZeusShotEnded(shots, slot, point, struck);
     TyphoonShotEnded(shots, slot, point, struck);
     RicochetShotEnded(shots, slot, point, struck);
+    ChargingBullEnded(shots, slot);
+}
+
+void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
+    ChargingBullHit(shots, slot, hit);
 }
 
 void PelletStepping(CSHOT &shots, int slot) {
@@ -173,7 +181,7 @@ bool TargetNameHidden() {
 }
 
 bool MonsterGuardBlocks(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {
-    return BlindGuardBlocks(monster) && !BlastHit(hit) && !GuardCrushActive();
+    return BlindGuardBlocks(monster) && !BlastHit(hit) && !ChargingBullHit(hit) && !GuardCrushActive();
 }
 
 } // namespace expanded
