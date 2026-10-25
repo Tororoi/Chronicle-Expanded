@@ -1,10 +1,12 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <vector>
 
+#include "audio/mixer.hpp"
 #include "btactstatus.hpp"
 #include "character.hpp"
 #include "collisiondata.hpp"
@@ -12,6 +14,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
+#include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -690,4 +693,23 @@ TEST_F(SpiritBeast, ItKeepsItsTintAsItFades) {
     for (int i = 0; i < 3; i++) {
         EXPECT_FLOAT_EQ(fading[i], lit[i]);
     }
+}
+
+// DC_TEST_DATA, an extracted data directory: Norune's cat sound goes off as the cat sits down, and not again while it sits.
+TEST_F(SpiritBeast, ItMakesNorunesCatSoundAsItSitsDown) {
+    const char *data = std::getenv("DC_TEST_DATA");
+    if (data == nullptr) {
+        GTEST_SKIP() << "DC_TEST_DATA is not set";
+    }
+    expanded::test::DataRootScope root(data);
+    ASSERT_TRUE(expanded::LoadOwnSound(expanded::kSpiritBeastSitSound));
+    audio::Mixer &mixer = audio::DefaultMixer();
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    int before = mixer.ActiveVoices();
+    ASSERT_GT(StepsUntil(SpiritBeastPhase::kSitting, 200), 0);
+    int sat = mixer.ActiveVoices();
+    EXPECT_GT(sat, before);
+    Steps(60);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kSitting);
+    EXPECT_EQ(mixer.ActiveVoices(), sat);
 }

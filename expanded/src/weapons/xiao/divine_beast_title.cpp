@@ -130,6 +130,8 @@ constexpr Look kShooterCapeLook = {
 };
 constexpr GlowLook kElementGlows[6] = {GlowLook::kFire, GlowLook::kIce, GlowLook::kThunder, GlowLook::kWind, GlowLook::kHoly, GlowLook::kNoElement};
 
+[[maybe_unused]] const bool kRegistered = (RegisterOwnSound(kSpiritBeastSitSound), true);
+
 // The look of the cat the weapon in Xiao's hand lets go, or null for none.
 const Look *LookNow() {
     if (WeaponWielded(ITEM_WEAPON_DIVINEBEASTTITLE)) {
@@ -626,6 +628,7 @@ void Walking() {
             Flags(0, kPlayOnce);
             Key(kCatSit);
             Rate(-1.0f);
+            PlayOwnSound(kSpiritBeastSitSound, false);
         }
         cat.blocked = false;
         Phase(SpiritBeastPhase::kSitting);
