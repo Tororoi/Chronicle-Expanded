@@ -39,6 +39,7 @@
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
+#include "expanded/weapons/xiao/angel_shooter.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
 #include "expanded/weapons/xiao/double_impact.hpp"
@@ -98,6 +99,7 @@ void DungeonMonstersTick() {
     TyphoonShotStep();
     ChargingBullStep();
     DragonShotStep();
+    GuardianGraceStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }

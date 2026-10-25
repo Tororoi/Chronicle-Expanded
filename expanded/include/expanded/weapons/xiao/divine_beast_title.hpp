@@ -7,10 +7,15 @@ struct MONSTOR_EFFECT_STATE;
 
 namespace expanded {
 
-// Divine Beast Title "Spirit Beast", as the mod has it: with the Divine Beast Title in hand, or Super Steve carrying its
-// SynthSphere, a shot held drawn kSpiritBeastFrames (the charge-complete flash) lets Xiao's cat (the model built at
-// extraction, data/spirit_cat.hpp) go with its pellet, taking away the cat that was out. Its step runs as the mod's cave
-// does, once a frame after the pellets step:
+// Divine Beast Title "Spirit Beast", as the mod has it: with the Divine Beast Title or the Angel Shooter in hand, or Super
+// Steve carrying either's SynthSphere, a shot held drawn kSpiritBeastFrames (the charge-complete flash) lets Xiao's cat (the
+// model built at extraction, data/spirit_cat.hpp) go with its pellet, taking away the cat that was out. Each weapon's cat
+// has a look of its own: the Title's is plain and glows blue; the Angel Shooter's wears the wings, glows white, is
+// kAngelShooterCatScale times the size (its walk, head and glow with it), crouches from kSpiritBeastPounceWinged
+// (kSpiritBeastPounce by a mimic still in its chest) and steers its pounce on past the apex, until it has fallen halfway to
+// the floor (landing, until kSpiritBeastCommitHorizon frames out); Super Steve's with the Angel Shooter's sphere is that cat
+// wearing the cape and mask in the selected element's colour (spirit_cape.hpp), its glow the element's. A change of look
+// takes the cat away. Its step runs as the mod's cave does, once a frame after the pellets step:
 //   - Riding: from the pellet's first step it is held, through everything, and shrinks away as the cat grows over
 //     kSpiritBeastGrowFrames with its head on it; at full size the cat breaks away with the pellet's velocity. A pellet
 //     that ends before then leaves the cat full size where it was, fading.
@@ -31,7 +36,7 @@ namespace expanded {
 //     kSpiritBeastKickDecay) away from the head. Only a hit the monster takes spends the cat, which then fades over
 //     kSpiritBeastFadeFrames as it goes on; one refused, or not taken within kSpiritBeastHitWait frames, lets it touch again.
 // kSpiritBeastLifeFrames after it was bound it fades where it stands. Another character or weapon in hand, or a script
-// event, takes it away at once. It glows blue from its fifth frame. Times are game frames, distances units, clip frames
+// event, takes it away at once. It glows from its fifth frame. Times are game frames, distances units, clip frames
 // the cat's motion's.
 inline constexpr int   kSpiritBeastFrames = 30;
 inline constexpr int   kSpiritBeastGrowFrames = 6;
@@ -43,6 +48,8 @@ inline constexpr float kSpiritBeastWalkRate = 0.85f; // the town's walk mapping 
 inline constexpr float kSpiritBeastSight = 300.0f;
 inline constexpr int   kSpiritBeastRetarget = 30;
 inline constexpr float kSpiritBeastPounce = 30.0f;
+inline constexpr float kSpiritBeastPounceWinged = 50.0f;
+inline constexpr float kSpiritBeastCommitHorizon = 3.0f;
 inline constexpr float kSpiritBeastReadyStart = 95.0f, kSpiritBeastReadyEnd = 105.0f;     // the crouch clip
 inline constexpr float kSpiritBeastFloatStart = 285.0f, kSpiritBeastFloatLaunch = 293.0f; // the float-up, its feet off
 inline constexpr float kSpiritBeastFallBlend = 16.0f;
@@ -56,7 +63,15 @@ inline constexpr float kSpiritBeastKickDecay = 0.3f;
 inline constexpr int   kSpiritBeastFadeFrames = 30;
 inline constexpr int   kSpiritBeastLifeFrames = 1200;
 
+// The Angel Shooter's cat (and Super Steve's with its sphere) at this size.
+inline constexpr float kAngelShooterCatScale = 1.1f;
+
 bool SpiritBeastActive();
+
+// The cat let go last: its size, and whether it wears the wings or the cape and mask.
+float SpiritBeastScale();
+bool  SpiritBeastWinged();
+bool  SpiritBeastCaped();
 
 // The cat's part of its life, for tests, and where it is.
 enum class SpiritBeastPhase {
