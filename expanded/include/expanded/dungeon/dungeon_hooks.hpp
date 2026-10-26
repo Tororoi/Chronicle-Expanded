@@ -35,7 +35,8 @@ void MonsterPackFile(char *filename, int model_no);
 void MonsterDrawing(CMonstorUnit &unit, int monster);
 void MonsterDrawn(CMonstorUnit &unit, int monster);
 
-// A monster's life just ran out (CheckDmg): whether the kill counts down the floor and up the player's kills.
+// A monster's life just ran out (CheckDmg): the DeSanga's heal, and whether the kill counts down the floor and up the
+// player's kills.
 bool MonsterKilled(const CMonstorUnit &unit, int monster);
 
 // The item a killed monster drops, before the game's rare-item roll (CMonstorUnit::Step): drop_item, its set drop or -1,
