@@ -1932,7 +1932,11 @@ void CMonstorUnit::MoveCheck2() {
     flat_player[1] = 1;
     flat_next[1] = 1;
 
+#ifdef CHRONICLE_EXPANDED
+    if (DistVector(flat_player, flat_next) <= expanded::MonsterBlockRadius(6.0f) + monster[current_monster].body_radius && next_position[1] < 18.0f + player_position[1]) {
+#else
     if (DistVector(flat_player, flat_next) <= 6.0f + monster[current_monster].body_radius && next_position[1] < 18.0f + player_position[1]) {
+#endif
         towards_player[0] = player_position[0] - position[0];
         towards_player[2] = player_position[2] - position[2];
         towards_player[1] = 0;

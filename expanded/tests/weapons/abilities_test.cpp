@@ -7,6 +7,7 @@ TEST(WeaponAbilities, FixedAbilitiesAddToTheTableFlags) {
     EXPECT_EQ(expanded::WeaponAbilities(ITEM_WEAPON_MACHO_SWORD, 0, 99), 0x2000);
     EXPECT_EQ(expanded::WeaponAbilities(ITEM_WEAPON_EVILCISE, 0x0200, 99), 0x0204);
     EXPECT_EQ(expanded::WeaponAbilities(ITEM_WEAPON_DE_SANGA, 0, 0), 0x0400);
+    EXPECT_EQ(expanded::WeaponAbilities(ITEM_WEAPON_ANGE_GEAR, 0, 99), 0x0800);
     EXPECT_EQ(expanded::WeaponAbilities(ITEM_WEAPON_DAGGER, 0x0008, 0), 0x0008);
 }
 

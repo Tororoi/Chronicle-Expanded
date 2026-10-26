@@ -1,5 +1,7 @@
 #pragma once
 
+#include "shot_utils.hpp"
+
 class CMonstorUnit;
 class CSHOT;
 class CSHOT_EFFECT;
@@ -82,6 +84,29 @@ bool PlayerHitStaggers(const COLLISION_HIT &hit);
 
 // A monster took the hit that reached it, past its guard and invincibility (CheckDmg).
 void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
+
+// Where a monster's script finds the player (_GET_POSITION, _GET_DISTANCE): the Angel Gear's shield ring, else
+// confusion's target, else the player.
+void ScriptPlayerPosition(float *position);
+
+// How far from the player a monster's body stops (CMonstorUnit::MoveCheck2), radius the game's.
+float MonsterBlockRadius(float radius);
+
+// A shot effect's collision test (CSHOT_EFFECT::Step), as checkCollision's: the Angel Gear's returned shots meet walls
+// alone.
+SHOT_COLLISION_RESULT ShotEffectCollision(CSHOT_EFFECT &effect, int slot, float *hit_position, float *position);
+
+// The point a shot meets as the player (checkCollision), point hers: the Angel Gear's pouch while its shield is solid.
+void ShotPlayerPoint(float *point);
+
+// The action gauge's refill this step (motionDrive), gain the game's: held as the Angel Gear's shield's health.
+float ActionGaugeGain(float gain);
+
+// The Heal ability's tick came, before it heals the active character: the Angel Gear's party heal.
+void HealTicked();
+
+// The player's hits about to be checked (BtCheckDamageProc): the swings on the Angel Gear's shield spent first.
+void PlayerHitsChecking();
 
 // The WHP a shot of Xiao's costs, wear an ordinary one's (BattleActionPlay_Jinn): the Steel Slingshot's, a charged
 // shot's.

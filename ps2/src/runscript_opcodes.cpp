@@ -19,6 +19,7 @@
 #include "userstatus.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/enemies/bomb_gemron.hpp"
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/boss_moves.hpp"
@@ -26,7 +27,6 @@
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
-#include "expanded/status/confuse.hpp"
 #endif
 
 /** A monster number a script names: in Expanded, a boss cast member's for its cast's. */
@@ -221,7 +221,7 @@ int _GET_DISTANCE(RS_STACKDATA *stack, int argc) {
 
     if (argc == 1) {
 #ifdef CHRONICLE_EXPANDED
-        expanded::ConfuseScriptPlayerPosition(target_position);
+        expanded::ScriptPlayerPosition(target_position);
 #else
         sceVu0CopyVector(target_position, CharaMain.pos);
 #endif
@@ -253,7 +253,7 @@ int _GET_POSITION(RS_STACKDATA *stack, int argc) {
 
     if (target == -2) {
 #ifdef CHRONICLE_EXPANDED
-        expanded::ConfuseScriptPlayerPosition(position);
+        expanded::ScriptPlayerPosition(position);
 #else
         sceVu0CopyVector(position, CharaMain.pos);
 #endif

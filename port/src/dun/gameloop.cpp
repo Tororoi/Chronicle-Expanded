@@ -83,6 +83,7 @@
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
 #include "expanded/weapons/toan/seventh_heaven.hpp"
+#include "expanded/weapons/xiao/angel_gear.hpp"
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
 #endif
@@ -414,6 +415,7 @@ PORT_OVERRIDE void DunMainDraw() {
         expanded::BigBangShotDraw();
         expanded::ChargingBullDraw();
         expanded::SpiritBeastDraw();
+        expanded::GuardianReflectorDraw();
 #endif
         NowMainEffect->Draw();
     }
@@ -948,6 +950,10 @@ PORT_OVERRIDE int BtCheckDamageProc() {
     int           blown = 0;
 
     static int dmgSnd = 0;
+
+#ifdef CHRONICLE_EXPANDED
+    expanded::PlayerHitsChecking();
+#endif
 
     if (dmgSnd > 0) {
         dmgSnd--;

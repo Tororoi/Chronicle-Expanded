@@ -12,6 +12,9 @@
 #include "dranmapfield.hpp"
 #include "dun/gameloop.hpp"
 #include "dungeonmap.hpp"
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/dungeon_hooks.hpp"
+#endif
 #include "fishing.hpp"
 #include "mathutil.hpp"
 #include "mglib.hpp"
@@ -42,6 +45,9 @@ SHOT_COLLISION_RESULT checkCollision(float *hit_position, float *position, float
 
         sceVu0CopyVector(player_position, CharaMain.pos);
         player_position[1] += CharaHeight(UserStatus);
+#ifdef CHRONICLE_EXPANDED
+        expanded::ShotPlayerPoint(player_position);
+#endif
 
         if (DistVector(player_position, destination) <= radius + 6.0f) {
             sceVu0CopyVector(hit_position, player_position);

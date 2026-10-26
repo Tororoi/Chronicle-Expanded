@@ -9,6 +9,8 @@
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
+extern s32 NewChangeFxFlag;
+
 namespace {
 
 using expanded::test::TestFloor;
@@ -30,6 +32,7 @@ protected:
         floor_.status().cur_chara = CHARA_XIAO;
         floor_.status().hp[CHARA_XIAO] = 50;
         HealEffect.active = 0;
+        NewChangeFxFlag = 0;
         expanded::GuardianGraceReset();
     }
 
@@ -37,6 +40,7 @@ protected:
         expanded::GuardianGraceReset();
         BtActStatus = {};
         HealEffect.active = 0;
+        NewChangeFxFlag = 0;
     }
 
     void Guard(bool on) { BtActStatus.guard_mode = on ? 5 : 0; }
@@ -71,6 +75,16 @@ protected:
 class GuardianGraceBySuperSteve : public GuardianGrace {
 protected:
     GuardianGraceBySuperSteve() : GuardianGrace(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_ANGEL_SHOOTER, false) {}
+};
+
+class GuardianGraceByAngelGear : public GuardianGrace {
+protected:
+    GuardianGraceByAngelGear() : GuardianGrace(ITEM_WEAPON_ANGE_GEAR) {}
+};
+
+class GuardianGraceBySuperSteveWithTheAngelGear : public GuardianGrace {
+protected:
+    GuardianGraceBySuperSteveWithTheAngelGear() : GuardianGrace(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_ANGE_GEAR, false) {}
 };
 
 class GuardianGraceWithAnotherWeapon : public GuardianGrace {
@@ -111,10 +125,10 @@ TEST_F(GuardianGrace, HerColourSwellsWithTheTick) {
     Heals(1); // the counter held at the period less a second: the swell's height
     float high[3] = {}, low[3] = {};
     expanded::GuardianGraceLight(CharaMain, high);
-    EXPECT_FLOAT_EQ(high[0], expanded::kGuardianGraceHigh);
+    EXPECT_FLOAT_EQ(high[0], expanded::kGuardianGraceHigh[0]);
     Heals(expanded::kGuardianGraceFrames / 2);
     expanded::GuardianGraceLight(CharaMain, low);
-    EXPECT_NEAR(low[0], expanded::kGuardianGraceLow, 0.1f);
+    EXPECT_NEAR(low[0], expanded::kGuardianGraceLow[0], 0.1f);
     Guard(false);
     Heals(1);
     float none[3] = {};
@@ -139,4 +153,49 @@ TEST_F(GuardianGraceWithAnotherWeapon, NeverQuickensTheTick) {
     Guard(true);
     EXPECT_FALSE(expanded::GuardianGraceCarried());
     EXPECT_EQ(Heals(expanded::kHealPeriod * 3), 3);
+}
+
+TEST_F(GuardianGraceByAngelGear, GuardingTheTickHealsEveryHalfSecond) {
+    Guard(true);
+    EXPECT_EQ(Heals(expanded::kGuardianGraceGearFrames - 1), 0);
+    EXPECT_EQ(Heals(1), 1);
+    EXPECT_EQ(Heals(expanded::kGuardianGraceGearFrames * 10), 10);
+    Guard(false);
+    EXPECT_EQ(Heals(expanded::kHealPeriod * 3), 3);
+}
+
+TEST_F(GuardianGraceByAngelGear, ItsColourStillSwellsOnceASecond) {
+    Guard(true);
+    Heals(1); // the swell's height
+    float high[3] = {}, low[3] = {}, again[3] = {};
+    expanded::GuardianGraceLight(CharaMain, high);
+    EXPECT_FLOAT_EQ(high[0], expanded::kGuardianGraceGearHigh[0]);
+    Heals(expanded::kGuardianGraceGearFrames); // a tick: half a swell
+    expanded::GuardianGraceLight(CharaMain, low);
+    EXPECT_NEAR(low[0], expanded::kGuardianGraceGearLow[0], 0.1f);
+    Heals(expanded::kGuardianGraceGearFrames); // the next: the height again
+    expanded::GuardianGraceLight(CharaMain, again);
+    EXPECT_FLOAT_EQ(again[0], expanded::kGuardianGraceGearHigh[0]);
+}
+
+TEST_F(GuardianGraceByAngelGear, ItsGraceComesWithTheChangeBurstAndGlowsGold) {
+    Guard(true);
+    EXPECT_EQ(Heals(expanded::kGuardianGraceGearFrames * 10), 10);
+    EXPECT_EQ(NewChangeFxFlag, 1);
+    EXPECT_EQ(HealEffect.active, 0);
+    Guard(false);
+    Heals(1);
+    Guard(true);
+    Heals(1); // the swell's height
+    float high[3] = {};
+    expanded::GuardianGraceLight(CharaMain, high);
+    for (int i = 0; i < 3; i++) {
+        EXPECT_FLOAT_EQ(high[i], expanded::kGuardianGraceGearHigh[i]);
+    }
+}
+
+TEST_F(GuardianGraceBySuperSteveWithTheAngelGear, TheGearsSphereHealsEveryHalfSecondWhileGuarding) {
+    Guard(true);
+    EXPECT_EQ(Heals(expanded::kGuardianGraceGearFrames * 10), 10);
+    EXPECT_EQ(NewChangeFxFlag, 1);
 }

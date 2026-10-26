@@ -39,6 +39,9 @@
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
+#include "expanded/weapons/xiao/angel_gear.hpp"
+#include "expanded/weapons/xiao/angel_gear/shield_ring.hpp"
+#include "expanded/weapons/xiao/angel_gear/shot_reflect.hpp"
 #include "expanded/weapons/xiao/angel_shooter.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
@@ -61,6 +64,7 @@ void DungeonShotsStep(CMonstorUnit &unit) {
     CrystalGemronStep(unit);
     AtlaGemronStep(unit);
     BlackKnightStep();
+    GuardianReflectorStep();
 }
 
 void DungeonFloorLoaded(CMonstorUnit &unit) {
@@ -205,6 +209,37 @@ bool MonsterHitRefused(const CMonstorUnit &, int monster, const COLLISION_HIT &h
 
 void MonsterHitTaken(const CMonstorUnit &, int, const COLLISION_HIT &hit) {
     SpiritBeastHitTaken(hit);
+}
+
+void ScriptPlayerPosition(float *position) {
+    if (NowMonstorUnit != nullptr && angel_gear::RingTarget(NowMonstorUnit->current_monster, position)) {
+        return;
+    }
+    ConfuseScriptPlayerPosition(position);
+}
+
+float MonsterBlockRadius(float radius) {
+    return angel_gear::RingBlockRadius(radius);
+}
+
+SHOT_COLLISION_RESULT ShotEffectCollision(CSHOT_EFFECT &effect, int slot, float *hit_position, float *position) {
+    return angel_gear::ReflectCollision(effect, slot, hit_position, position);
+}
+
+void ShotPlayerPoint(float *point) {
+    GuardianReflectorPlayerPoint(point);
+}
+
+float ActionGaugeGain(float gain) {
+    return GuardianReflectorGaugeGain(gain);
+}
+
+void HealTicked() {
+    AngelGearHealTick();
+}
+
+void PlayerHitsChecking() {
+    GuardianReflectorSpend();
 }
 
 float XiaoShotWear(float wear) {
