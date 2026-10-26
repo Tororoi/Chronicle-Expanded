@@ -60,6 +60,12 @@ int  MirageDecoyLife();
 // How solid the copy is (0 to 1) and how strong the shimmer is (0 to 1).
 float MirageCloneAlpha();
 float MirageHazeGain();
+// How much of the copy is left at the end of the decoy's life: 1 until its last fade, then down to 0 as it dissolves (its
+// fade in and a hand-off do not count); 0 with no decoy.
+float MirageOutroAlpha();
+
+// The decoy taken down at once (Hercules' Wrath's Air Strike dispels it): the copy, its shimmer and its lure gone.
+void MirageDispel();
 
 // Taken down (the floor changed), for tests too.
 void MirageReset();

@@ -2,6 +2,7 @@
 
 #include "dataalloc_fwd.hpp"
 
+class CFrame;
 class CMonstorUnit;
 class CSHOT_EFFECT;
 struct BT_SHOT_EFFECT;
@@ -60,6 +61,10 @@ void ShotEffectsDraw();
 // engine's along +X), its damage the description's or, when one is set for it, its owner's (the monster that fired the
 // shot, or -1). Its collision record, or -1.
 int ShotEffectBomb(float *position, const BT_SHOT_EFFECT *effect, int owner);
+
+// An effect model's unlit frames drawn at k (0 to 1) of their own colour: for the additive meshes effects are made of, its
+// opacity. 1 hands back a model an earlier fade left dim.
+void FadeUnlitFrames(CFrame *frame, float k);
 
 // A description's blast damage by the monster that fired it, in place of its bomb_damage (nullptr removes it).
 using BlastDamage = int (*)(int owner);

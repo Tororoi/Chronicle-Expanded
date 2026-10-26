@@ -17,6 +17,7 @@
 #include "dataset.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/pack_files.hpp"
+#include "frame.hpp"
 #include "itembombeffect.hpp"
 #include "itemdata.hpp"
 #include "main.hpp"
@@ -254,6 +255,19 @@ void SetShotEffectLoader(ShotEffectLoader loader) {
 
 namespace {
 
+constexpr float kUnlitFull = 128.0f; // an unlit frame's own colour
+
+void FadeUnlit(CFrame *frame, float k, int depth) {
+    for (; frame != nullptr && depth <= 16; frame = frame->brother) {
+        if (frame->attr.use_color != 0) {
+            for (float &channel : frame->attr.color) {
+                channel = kUnlitFull * k;
+            }
+        }
+        FadeUnlit(frame->child, k, depth + 1);
+    }
+}
+
 std::map<const BT_SHOT_EFFECT *, BlastDamage> &BlastDamages() {
     static std::map<const BT_SHOT_EFFECT *, BlastDamage> damages;
     return damages;
@@ -267,6 +281,10 @@ void SetBlastDamage(const BT_SHOT_EFFECT *effect, BlastDamage damage) {
     } else {
         BlastDamages().erase(effect);
     }
+}
+
+void FadeUnlitFrames(CFrame *frame, float k) {
+    FadeUnlit(frame, k, 0);
 }
 
 int ShotEffectBomb(float *position, const BT_SHOT_EFFECT *effect, int owner) {
