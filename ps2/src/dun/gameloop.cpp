@@ -6189,6 +6189,9 @@ void motionDrive() {
             gain *= 1.5f;
         }
 
+#ifdef CHRONICLE_EXPANDED
+        gain = expanded::ActionGaugeGain(gain);
+#endif
         BtActStatus.action_gauge += gain;
 
         if (!((int) BtActStatus.action_gauge < 100)) {
@@ -6226,6 +6229,7 @@ void motionDrive() {
 #ifdef CHRONICLE_EXPANDED
     heal_counter = expanded::GuardianGraceCounter(heal_counter, expanded::kHealPeriod);
     if (!(heal_counter < expanded::kHealPeriod)) {
+        expanded::HealTicked();
         if (((NowWeaponHave->flags & 0x800) || expanded::GuardianGraceHeals()) && status->hp[*healed_ref] > 0) {
 #else
     if (!(heal_counter < 240)) {

@@ -239,6 +239,16 @@ protected:
     SpiritBeastBySuperSteveWithTheAngelShooter() : SpiritBeast(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_ANGEL_SHOOTER) {}
 };
 
+class SpiritBeastByAngelGear : public SpiritBeast {
+protected:
+    SpiritBeastByAngelGear() : SpiritBeast(ITEM_WEAPON_ANGE_GEAR) {}
+};
+
+class SpiritBeastBySuperSteveWithTheAngelGear : public SpiritBeast {
+protected:
+    SpiritBeastBySuperSteveWithTheAngelGear() : SpiritBeast(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_ANGE_GEAR) {}
+};
+
 // Where a cat lands when its target steps aside just past the leap's apex.
 float LandingAfterASidestep(SpiritBeast &test, std::function<void(int)> steps, std::function<int(SpiritBeastPhase, int)> until,
                             CMonstorUnit &unit) {
@@ -616,6 +626,26 @@ TEST_F(SpiritBeastByAngelShooter, LetsAWingedCatGoALittleLarger) {
     EXPECT_TRUE(expanded::SpiritBeastWinged());
     EXPECT_FALSE(expanded::SpiritBeastCaped());
     EXPECT_FLOAT_EQ(expanded::SpiritBeastScale(), expanded::kAngelShooterCatScale);
+}
+
+TEST_F(SpiritBeastByAngelGear, LetsAWingedCatGoLargerStill) {
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kRiding);
+    EXPECT_TRUE(expanded::SpiritBeastWinged());
+    EXPECT_FALSE(expanded::SpiritBeastCaped());
+    EXPECT_FLOAT_EQ(expanded::SpiritBeastScale(), expanded::kAngelGearCatScale);
+    float lit[3] = {};
+    expanded::SpiritBeastLight(*expanded::SpiritBeastModel(), lit);
+    EXPECT_FLOAT_EQ(lit[0], 27.0f); // a warm white
+    EXPECT_FLOAT_EQ(lit[2], 20.0f);
+}
+
+TEST_F(SpiritBeastBySuperSteveWithTheAngelGear, LetsACapedCatGoAtItsSize) {
+    HoldAndFire(expanded::kSpiritBeastFrames);
+    EXPECT_EQ(expanded::SpiritBeastPhaseNow(), SpiritBeastPhase::kRiding);
+    EXPECT_TRUE(expanded::SpiritBeastCaped());
+    EXPECT_FALSE(expanded::SpiritBeastWinged());
+    EXPECT_FLOAT_EQ(expanded::SpiritBeastScale(), expanded::kAngelGearCatScale);
 }
 
 TEST_F(SpiritBeastByAngelShooter, ItWalksAsItsSizeAndCrouchesFromFarther) {

@@ -128,6 +128,14 @@ constexpr Look kShooterCapeLook = {
     false, true, GlowLook::kNoElement, {20.0f, 20.0f, 20.0f},
        kSpiritBeastPounceWinged, true, kAngelShooterCatScale
 };
+constexpr Look kGearLook = {
+    true, false, GlowLook::kGold, {27.0f, 26.0f, 20.0f},
+       kSpiritBeastPounceWinged, true, kAngelGearCatScale
+};
+constexpr Look kGearCapeLook = {
+    false, true, GlowLook::kNoElement, {20.0f, 20.0f, 20.0f},
+       kSpiritBeastPounceWinged, true, kAngelGearCatScale
+};
 constexpr GlowLook kElementGlows[6] = {GlowLook::kFire, GlowLook::kIce, GlowLook::kThunder, GlowLook::kWind, GlowLook::kHoly, GlowLook::kNoElement};
 
 [[maybe_unused]] const bool kRegistered = (RegisterOwnSound(kSpiritBeastSitSound), true);
@@ -140,11 +148,16 @@ const Look *LookNow() {
     if (WeaponWielded(ITEM_WEAPON_ANGEL_SHOOTER)) {
         return &kShooterLook;
     }
+    if (WeaponWielded(ITEM_WEAPON_ANGE_GEAR)) {
+        return &kGearLook;
+    }
     switch (SuperSteveSphere()) {
         case ITEM_WEAPON_DIVINEBEASTTITLE:
             return &kTitleLook;
         case ITEM_WEAPON_ANGEL_SHOOTER:
             return &kShooterCapeLook;
+        case ITEM_WEAPON_ANGE_GEAR:
+            return &kGearCapeLook;
         default:
             return nullptr;
     }

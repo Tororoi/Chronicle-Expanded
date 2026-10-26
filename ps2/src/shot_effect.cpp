@@ -198,7 +198,11 @@ void CSHOT_EFFECT::Step() {
         SHOT_COLLISION_RESULT result = SHOT_COLLISION_NONE;
 
         if (phase[slot] < 2) {
+#ifdef CHRONICLE_EXPANDED
+            result = expanded::ShotEffectCollision(*this, slot, hit_position, position);
+#else
             result = checkCollision(hit_position, position, velocity[slot], effect_data->target, effect_data->radius[phase[slot]]);
+#endif
         }
 
         if (life_time[slot] > 0) {

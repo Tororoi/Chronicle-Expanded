@@ -22,6 +22,7 @@ constexpr WeaponAbility kAbilities[] = {
     {ITEM_WEAPON_BONE_SLINGSHOT, kAbilityFragile, 50},
     {ITEM_WEAPON_HARDSHOOTER, kAbilityFragile, 50},
     {ITEM_WEAPON_MATADOR, kAbilityCritical, 100},
+    {ITEM_WEAPON_ANGE_GEAR, kAbilityHeal, 100},
     // Goro
     {ITEM_WEAPON_FROZEN_TUNA, kAbilityStop, 100},
     // Ruby
