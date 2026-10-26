@@ -40,6 +40,7 @@
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "expanded/weapons/ungaga/halberd.hpp"
+#include "expanded/weapons/ungaga/scorpion.hpp"
 #include "expanded/weapons/xiao/angel_gear.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_ring.hpp"
 #include "expanded/weapons/xiao/angel_gear/shot_reflect.hpp"
@@ -212,6 +213,10 @@ bool MonsterHitRefused(const CMonstorUnit &, int monster, const COLLISION_HIT &h
 
 void MonsterHitTaken(const CMonstorUnit &, int, const COLLISION_HIT &hit) {
     SpiritBeastHitTaken(hit);
+}
+
+void MonsterPoisoned(const MONSTOR &target) {
+    VenomPoisoned(target);
 }
 
 void ScriptPlayerPosition(float *position) {
