@@ -1,5 +1,7 @@
 #pragma once
 
+#include "expanded/dungeon/own_sounds.hpp"
+
 class CCharacter;
 class CSHOT;
 struct COLLISION_HIT;
@@ -25,7 +27,8 @@ namespace expanded {
 //     is at its end.
 //   - Walking: kSpiritBeastWalk units a frame, straight at the monster she has (or would have) locked on to, else the
 //     nearest to her within kSpiritBeastSight, taking a new lock-on every kSpiritBeastRetarget frames; a wall ahead stops it
-//     standing; with no monster it sits. A mimic still in its chest is a target too, the chest its aim.
+//     standing; with no monster it sits, making kSpiritBeastSitSound as it sits down. A mimic still in its chest is a
+//     target too, the chest its aim.
 //   - Within kSpiritBeastPounce it crouches until the crouch clip ends, held while the monster cannot be hit (a mimic in
 //     its chest, or one in its untouchable frames), then winds up in the float-up and leaps as the clip's feet leave the
 //     floor: an arc through the height of the monster's aim point in kSpiritBeastLeapFrames (kSpiritBeastLeapFramesTall for
@@ -62,6 +65,10 @@ inline constexpr float kSpiritBeastKickSpeed = 2.0f;
 inline constexpr float kSpiritBeastKickDecay = 0.3f;
 inline constexpr int   kSpiritBeastFadeFrames = 30;
 inline constexpr int   kSpiritBeastLifeFrames = 1200;
+
+// Norune's cat sound (its SE 387), at about half the game's full volume.
+inline constexpr OwnSound kSpiritBeastSitSound = {
+    .path = "sound/set/snd0.snd", .bank = "e01a_g.hd", .program = 44, .note = 87, .frames = 72, .volume = 60};
 
 // The Angel Shooter's cat (and Super Steve's with its sphere) at this size.
 inline constexpr float kAngelShooterCatScale = 1.1f;
