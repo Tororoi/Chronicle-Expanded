@@ -1,6 +1,7 @@
 #include "expanded/status/poison.hpp"
 
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "monstorunit.hpp"
 
 namespace expanded {
@@ -25,6 +26,7 @@ void Poison(MONSTOR *target, int slot) {
     if (target->poison_timer <= 0) {
         target->poison_timer = 180;
         poison_start[slot] = step_clock;
+        MonsterPoisoned(*target);
     }
 
     target->slow_timer = 0;
