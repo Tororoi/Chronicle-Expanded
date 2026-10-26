@@ -39,6 +39,7 @@
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
+#include "expanded/weapons/ungaga/mirage.hpp"
 #include "expanded/weapons/xiao/angel_gear.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_ring.hpp"
 #include "expanded/weapons/xiao/angel_gear/shot_reflect.hpp"
@@ -65,6 +66,7 @@ void DungeonShotsStep(CMonstorUnit &unit) {
     AtlaGemronStep(unit);
     BlackKnightStep();
     GuardianReflectorStep();
+    MirageStep();
 }
 
 void DungeonFloorLoaded(CMonstorUnit &unit) {
@@ -153,7 +155,7 @@ int PlayerDefense(int chara, int defense) {
 }
 
 float PlayerLockOnRange(float rate) {
-    return LockOnDistanceRate(HolyReachRate(rate));
+    return LockOnDistanceRate(HolyReachRate(MirageLineReachRate(rate)));
 }
 
 bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
@@ -207,12 +209,14 @@ bool MonsterHitRefused(const CMonstorUnit &, int monster, const COLLISION_HIT &h
     return DragonShotRefused(monster, hit);
 }
 
-void MonsterHitTaken(const CMonstorUnit &, int, const COLLISION_HIT &hit) {
+void MonsterHitTaken(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {
     SpiritBeastHitTaken(hit);
+    MirageHitTaken(monster);
 }
 
 void ScriptPlayerPosition(float *position) {
-    if (NowMonstorUnit != nullptr && angel_gear::RingTarget(NowMonstorUnit->current_monster, position)) {
+    if (NowMonstorUnit != nullptr && (angel_gear::RingTarget(NowMonstorUnit->current_monster, position) ||
+                                      MirageTarget(NowMonstorUnit->current_monster, position))) {
         return;
     }
     ConfuseScriptPlayerPosition(position);

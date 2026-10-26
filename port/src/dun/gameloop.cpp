@@ -83,6 +83,7 @@
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
 #include "expanded/weapons/toan/seventh_heaven.hpp"
+#include "expanded/weapons/ungaga/mirage.hpp"
 #include "expanded/weapons/xiao/angel_gear.hpp"
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
@@ -365,6 +366,10 @@ PORT_OVERRIDE void DunMainDraw() {
         }
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::MirageCloneDraw();
+#endif
+
     NowDngMap->DrawNPCDraw();
     mainItemModel.Draw();
     TexManager.ReloadTexture(Vif1Packet, 6);
@@ -425,6 +430,9 @@ PORT_OVERRIDE void DunMainDraw() {
     sceVu0CopyVector(raster_pos, CharaFrame->position);
     TexManager.ReloadTexture(Vif1Packet, 0xE);
     NowDngMap->DrawRaster(CharaFrame);
+#ifdef CHRONICLE_EXPANDED
+    expanded::MirageHazeDraw();
+#endif
 
     if (NowDngMap->map_type == 1) {
         NowDngMap->DrawFire(CharaFrame, NowCamera__3);
