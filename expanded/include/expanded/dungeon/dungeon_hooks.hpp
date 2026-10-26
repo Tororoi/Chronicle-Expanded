@@ -6,6 +6,7 @@ class CMonstorUnit;
 class CSHOT;
 class CSHOT_EFFECT;
 struct COLLISION_HIT;
+struct MONSTOR;
 
 namespace expanded {
 
@@ -51,6 +52,11 @@ int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs);
 // change it.
 float MonsterWeaponDamage(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, float damage);
 
+// A monster's defense taken off a hit's damage and the hardness wearing the weapon that hits it (CheckDmg), its own as
+// the weapons' effects change them.
+int MonsterDefense(const CMonstorUnit &unit, int monster, int defense);
+int MonsterHardness(const CMonstorUnit &unit, int monster, int hardness);
+
 // A character's defense against a monster's hit (BtCheckDamageProc) and in the dungeon menu's status, defense their
 // own, as the weapons' effects change it.
 int PlayerDefense(int chara, int defense);
@@ -85,6 +91,9 @@ bool PlayerHitStaggers(const COLLISION_HIT &hit);
 
 // A monster took the hit that reached it, past its guard and invincibility (CheckDmg).
 void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
+
+// Poison took hold of a monster that had none (Poison, from CheckDmg's rolls): the Scorpion's venom.
+void MonsterPoisoned(const MONSTOR &target);
 
 // Where a monster's script finds the player (_GET_POSITION, _GET_DISTANCE): the Angel Gear's shield ring, else
 // confusion's target, else the player.
