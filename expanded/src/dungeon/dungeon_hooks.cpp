@@ -39,6 +39,7 @@
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
+#include "expanded/weapons/ungaga/de_sanga.hpp"
 #include "expanded/weapons/ungaga/halberd.hpp"
 #include "expanded/weapons/ungaga/javelin.hpp"
 #include "expanded/weapons/ungaga/scorpion.hpp"
@@ -137,6 +138,7 @@ void MonsterDrawn(CMonstorUnit &unit, int monster) {
 
 bool MonsterKilled(const CMonstorUnit &unit, int monster) {
     BossRecordKill(unit, monster);
+    VampireKill(unit, monster);
     return BossCastCountsKill(monster);
 }
 
