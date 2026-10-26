@@ -6,6 +6,7 @@ class CMonstorUnit;
 class CSHOT;
 class CSHOT_EFFECT;
 struct COLLISION_HIT;
+struct MONSTOR;
 
 namespace expanded {
 
@@ -36,7 +37,8 @@ void MonsterPackFile(char *filename, int model_no);
 void MonsterDrawing(CMonstorUnit &unit, int monster);
 void MonsterDrawn(CMonstorUnit &unit, int monster);
 
-// A monster's life just ran out (CheckDmg): whether the kill counts down the floor and up the player's kills.
+// A monster's life just ran out (CheckDmg): the DeSanga's heal, and whether the kill counts down the floor and up the
+// player's kills.
 bool MonsterKilled(const CMonstorUnit &unit, int monster);
 
 // The item a killed monster drops, before the game's rare-item roll (CMonstorUnit::Step): drop_item, its set drop or -1,
@@ -50,6 +52,11 @@ int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs);
 // A weapon hit's damage on a monster (CheckDmg, after the weapon's anti-monster bonus), as the weapons' effects
 // change it.
 float MonsterWeaponDamage(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, float damage);
+
+// A monster's defense taken off a hit's damage and the hardness wearing the weapon that hits it (CheckDmg), its own as
+// the weapons' effects change them.
+int MonsterDefense(const CMonstorUnit &unit, int monster, int defense);
+int MonsterHardness(const CMonstorUnit &unit, int monster, int hardness);
 
 // A character's defense against a monster's hit (BtCheckDamageProc) and in the dungeon menu's status, defense their
 // own, as the weapons' effects change it.
@@ -100,8 +107,11 @@ void PlayerMoveChecked(const float *position, float *velocity);
 // The units' shadow pass (Draw_MainUnitShadow), before it darkens the screen: the raised props' round shadows.
 void DungeonShadowsDrawing();
 
-// Where a monster's script finds the player (_GET_POSITION, _GET_DISTANCE): the Angel Gear's shield ring, else
-// confusion's target, else the player.
+// Poison took hold of a monster that had none (Poison, from CheckDmg's rolls): the Scorpion's venom.
+void MonsterPoisoned(const MONSTOR &target);
+
+// Where a monster's script finds the player (_GET_POSITION, _GET_DISTANCE): the Angel Gear's shield ring, else the
+// Mirage's decoy, else confusion's target, else the player.
 void ScriptPlayerPosition(float *position);
 
 // How far from the player a monster's body stops (CMonstorUnit::MoveCheck2), radius the game's.

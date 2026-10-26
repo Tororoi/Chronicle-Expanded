@@ -42,6 +42,11 @@
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "expanded/weapons/ungaga/cactus.hpp"
+#include "expanded/weapons/ungaga/de_sanga.hpp"
+#include "expanded/weapons/ungaga/halberd.hpp"
+#include "expanded/weapons/ungaga/javelin.hpp"
+#include "expanded/weapons/ungaga/mirage.hpp"
+#include "expanded/weapons/ungaga/scorpion.hpp"
 #include "expanded/weapons/xiao/angel_gear.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_ring.hpp"
 #include "expanded/weapons/xiao/angel_gear/shot_reflect.hpp"
@@ -68,6 +73,7 @@ void DungeonShotsStep(CMonstorUnit &unit) {
     AtlaGemronStep(unit);
     BlackKnightStep();
     GuardianReflectorStep();
+    MirageStep();
 }
 
 void DungeonFloorLoaded(CMonstorUnit &unit) {
@@ -108,6 +114,7 @@ void DungeonMonstersTick() {
     TyphoonShotStep();
     ChargingBullStep();
     DragonShotStep();
+    TornadoChargeStep();
     GuardianGraceStep();
     DesertBloomStep();
     if (NowMonstorUnit != nullptr) {
@@ -137,6 +144,7 @@ void MonsterDrawn(CMonstorUnit &unit, int monster) {
 
 bool MonsterKilled(const CMonstorUnit &unit, int monster) {
     BossRecordKill(unit, monster);
+    VampireKill(unit, monster);
     return BossCastCountsKill(monster);
 }
 
@@ -145,11 +153,19 @@ int MonsterDropItem(const CMonstorUnit &unit, int monster, int drop_item) {
 }
 
 int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs) {
-    return SanctifierAbs(unit, monster, JacketHunterAbs(unit, monster, abs));
+    return MarineHunterAbs(unit, monster, SanctifierAbs(unit, monster, JacketHunterAbs(unit, monster, abs)));
 }
 
 float MonsterWeaponDamage(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, float damage) {
     return SanctifierDamage(unit, monster, hit, damage);
+}
+
+int MonsterDefense(const CMonstorUnit &unit, int monster, int defense) {
+    return MarineHunterDefense(unit, monster, defense);
+}
+
+int MonsterHardness(const CMonstorUnit &unit, int monster, int hardness) {
+    return MarineHunterHardness(unit, monster, hardness);
 }
 
 int PlayerDefense(int chara, int defense) {
@@ -157,7 +173,7 @@ int PlayerDefense(int chara, int defense) {
 }
 
 float PlayerLockOnRange(float rate) {
-    return LockOnDistanceRate(HolyReachRate(rate));
+    return LockOnDistanceRate(HolyReachRate(MirageLineReachRate(rate)));
 }
 
 bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
@@ -175,6 +191,7 @@ void PelletFired(CSHOT &shots, int slot) {
     DoubleImpactFired(shots, slot);
     ChargingBullFired(shots, slot);
     DragonShotFired(shots, slot);
+    TornadoShotFired(shots, slot);
     SpiritBeastFired(shots, slot);
 }
 
@@ -211,8 +228,13 @@ bool MonsterHitRefused(const CMonstorUnit &, int monster, const COLLISION_HIT &h
     return DragonShotRefused(monster, hit);
 }
 
-void MonsterHitTaken(const CMonstorUnit &, int, const COLLISION_HIT &hit) {
+void MonsterHitTaken(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {
     SpiritBeastHitTaken(hit);
+    MirageHitTaken(monster);
+}
+
+void MonsterPoisoned(const MONSTOR &target) {
+    VenomPoisoned(target);
 }
 
 void MonsterDamaged(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount) {
@@ -236,7 +258,8 @@ void DungeonShadowsDrawing() {
 }
 
 void ScriptPlayerPosition(float *position) {
-    if (NowMonstorUnit != nullptr && angel_gear::RingTarget(NowMonstorUnit->current_monster, position)) {
+    if (NowMonstorUnit != nullptr && (angel_gear::RingTarget(NowMonstorUnit->current_monster, position) ||
+                                      MirageTarget(NowMonstorUnit->current_monster, position))) {
         return;
     }
     ConfuseScriptPlayerPosition(position);

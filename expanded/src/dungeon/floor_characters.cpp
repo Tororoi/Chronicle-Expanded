@@ -1,8 +1,10 @@
 #include "expanded/dungeon/floor_characters.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <deque>
+#include <iterator>
 #include <string>
 
 #include "character.hpp"
@@ -21,6 +23,7 @@ struct Slot {
     CCharacter     chara;
     CDataAlloc2<1> arena{-1};
     std::string    path;
+    bool           images = true; // its pack's images loaded, not the original's textures shared
 };
 
 struct Store {
@@ -33,7 +36,7 @@ Store &State() {
     return store;
 }
 
-bool PackLoad(CCharacter &chara, CDataAlloc2<1> &arena, const char *path, const char *cfg) {
+bool PackLoad(CCharacter &chara, CDataAlloc2<1> &arena, const char *path, const char *cfg, bool images) {
     const std::vector<unsigned char> *bytes = CachedPackFile(path);
     if (bytes == nullptr) {
         return false;
@@ -47,33 +50,33 @@ bool PackLoad(CCharacter &chara, CDataAlloc2<1> &arena, const char *path, const 
     auto *pack = reinterpret_cast<u_int *>(arena.Alloc64(static_cast<int>(pack_bytes / 16)));
     std::memcpy(pack, bytes->data(), bytes->size());
     DataReadTrackPack(pack, bytes->size());
-    if (!PackTexturesFit(pack, kFloorCharacterBlock, path)) {
+    if (images && !PackTexturesFit(pack, kFloorCharacterBlock, path)) {
         return false;
     }
     chara.Initialize();
-    chara.LoadPackData2(pack, const_cast<char *>(cfg), &arena, kFloorCharacterBlock, &arena, 0);
+    // Without an image arena the pack's images are passed over; none left from an earlier character may stand in for them.
+    std::fill(std::begin(chara.images), std::end(chara.images), nullptr);
+    chara.LoadPackData2(pack, const_cast<char *>(cfg), &arena, kFloorCharacterBlock, images ? &arena : nullptr, 0);
     return chara.frame != nullptr;
 }
 
 FloorCharacterLoader &Loader() {
-    static FloorCharacterLoader loader = PackLoad;
+    static FloorCharacterLoader loader = nullptr;
     return loader;
 }
 
-CCharacter *Entered(const char *path) {
+CCharacter *Entered(const char *path, bool images) {
     Store &store = State();
     for (int i = 0; i < store.live; i++) {
-        if (store.slots[i].path == path) {
+        if (store.slots[i].path == path && store.slots[i].images == images) {
             return &store.slots[i].chara;
         }
     }
     return nullptr;
 }
 
-} // namespace
-
-CCharacter *EnterFloorCharacter(const char *path, const char *cfg) {
-    if (CCharacter *entered = Entered(path)) {
+CCharacter *Enter(const char *path, const char *cfg, bool images) {
+    if (CCharacter *entered = Entered(path, images)) {
         return entered;
     }
     Store &store = State();
@@ -81,14 +84,27 @@ CCharacter *EnterFloorCharacter(const char *path, const char *cfg) {
         store.slots.emplace_back();
     }
     Slot &slot = store.slots[store.live];
-    if (!Loader()(slot.chara, slot.arena, path, cfg)) {
+    bool  loaded = Loader() != nullptr ? Loader()(slot.chara, slot.arena, path, cfg) : PackLoad(slot.chara, slot.arena, path, cfg, images);
+    if (!loaded) {
         slot.chara.Initialize();
         return nullptr;
     }
     slot.path = path;
-    std::fprintf(stderr, "floor characters: %s entered (%d of %d units)\n", path, slot.arena.used, slot.arena.limit);
+    slot.images = images;
+    std::fprintf(stderr, "floor characters: %s entered%s (%d of %d units)\n", path, images ? "" : " as a copy", slot.arena.used,
+                 slot.arena.limit);
     store.live++;
     return &slot.chara;
+}
+
+} // namespace
+
+CCharacter *EnterFloorCharacter(const char *path, const char *cfg) {
+    return Enter(path, cfg, true);
+}
+
+CCharacter *EnterFloorCopy(const char *path, const char *cfg) {
+    return Enter(path, cfg, false);
 }
 
 void FloorCharactersClear() {
@@ -103,7 +119,7 @@ void FloorCharactersClear() {
 }
 
 void SetFloorCharacterLoader(FloorCharacterLoader loader) {
-    Loader() = loader != nullptr ? loader : PackLoad;
+    Loader() = loader;
 }
 
 } // namespace expanded
