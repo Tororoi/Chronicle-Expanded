@@ -1382,6 +1382,9 @@ PORT_OVERRIDE void DunMoveChara() {
                                                                     colPolyNum = NowDngMap->CreateCollision(polys, bound, colPolyNum);
                                                                     colPolyNum = NowDranMapField->AddCollision(polys, colPolyNum, bound);
                                                                     NowMonstorUnit->MoveCheck(pos, velo__2, lockOnTargetFlag);
+#ifdef CHRONICLE_EXPANDED
+                                                                    expanded::PlayerMoveChecked(pos, velo__2);
+#endif
                                                                     mode = 1;
 
                                                                     if (UserStatus->cur_chara == CHARA_OSMOND) {
@@ -1486,6 +1489,9 @@ PORT_OVERRIDE void DunMoveChara() {
 
                                                                     colPolyNum = NowDngMap->CreateCollision(polys, bound, colPolyNum);
                                                                     NowMonstorUnit->MoveCheck(pos, velo__2, lockOnTargetFlag);
+#ifdef CHRONICLE_EXPANDED
+                                                                    expanded::PlayerMoveChecked(pos, velo__2);
+#endif
                                                                     mode = 1;
 
                                                                     if (UserStatus->cur_chara == CHARA_OSMOND) {
@@ -2292,6 +2298,9 @@ PORT_OVERRIDE void DunMoveChara() {
                 bool can_walk = FirstPersonDungeonKeyboardVelocity(velo__2, viewAngleH__2, BtActStatus,
                                                                    driveStepHold || CMonUnitHold, UserStatus->CheckLife() > 0, StatusErrCheck(AILMENT_GOO) != 0);
                 NowMonstorUnit->MoveCheck(pos, velo__2, lockOnTargetFlag);
+#ifdef CHRONICLE_EXPANDED
+                expanded::PlayerMoveChecked(pos, velo__2);
+#endif
                 MoveCheckInfo info{};
                 sceVu0FVECTOR before;
                 sceVu0CopyVector(before, pos);

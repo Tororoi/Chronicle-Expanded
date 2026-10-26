@@ -22,7 +22,8 @@ void DungeonFloorLoaded(CMonstorUnit &unit);
 void DungeonMonstersCleared(bool drop_stars);
 
 // A step the monsters take unpaused (before motionDrive): the clocks poison and confusion count by, the weapons'
-// curses, the Solar Flash's charge and blinding, and the Wise Owl Sword's watch for key holders.
+// curses, the Solar Flash's charge and blinding, the Cactus's Desert Bloom, and the Wise Owl Sword's watch for key
+// holders.
 void DungeonMonstersTick();
 
 // A step after the player's pellets have stepped (motionDrive), as the mod's pellet catcher runs: the Divine Beast cat.
@@ -85,6 +86,20 @@ bool PlayerHitStaggers(const COLLISION_HIT &hit);
 // A monster took the hit that reached it, past its guard and invincibility (CheckDmg).
 void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
 
+// A hit just took amount off a monster's life (CheckDmg; its life is past it, under 0 when it took more than it had).
+void MonsterDamaged(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount);
+
+// Whether a hit of a sword-wielder's on a monster wears the weapon (CheckDmg, landed or guarded): not the Cactus's pricks.
+bool HitWearsWeapon(const COLLISION_HIT &hit);
+
+// A monster's step after the other monsters blocked it (CMonstorUnit::Step, after MoveChecMonster), and the player's after
+// the monsters blocked it (his move, after CMonstorUnit::MoveCheck), velocity his step: a raised prop stands in the way.
+void MonsterMoveChecked(CMonstorUnit &unit, int monster);
+void PlayerMoveChecked(const float *position, float *velocity);
+
+// The units' shadow pass (Draw_MainUnitShadow), before it darkens the screen: the raised props' round shadows.
+void DungeonShadowsDrawing();
+
 // Where a monster's script finds the player (_GET_POSITION, _GET_DISTANCE): the Angel Gear's shield ring, else
 // confusion's target, else the player.
 void ScriptPlayerPosition(float *position);
@@ -93,7 +108,7 @@ void ScriptPlayerPosition(float *position);
 float MonsterBlockRadius(float radius);
 
 // A shot effect's collision test (CSHOT_EFFECT::Step), as checkCollision's: the Angel Gear's returned shots meet walls
-// alone.
+// alone; a raised prop stops the monsters' shots.
 SHOT_COLLISION_RESULT ShotEffectCollision(CSHOT_EFFECT &effect, int slot, float *hit_position, float *position);
 
 // The point a shot meets as the player (checkCollision), point hers: the Angel Gear's pouch while its shield is solid.

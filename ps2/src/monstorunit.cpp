@@ -1347,7 +1347,11 @@ int CMonstorUnit::CheckDmg() {
 
                                 int owner = NowColData->hit[hit].owner;
 
+#ifdef CHRONICLE_EXPANDED
+                                if (NowColData->hit[hit].attack_no == 0 && (owner == 0 || owner == 2 || owner == 4) && expanded::HitWearsWeapon(NowColData->hit[hit])) {
+#else
                                 if (NowColData->hit[hit].attack_no == 0 && (owner == 0 || owner == 2 || owner == 4)) {
+#endif
                                     SwordDmgCheck1(0.1f, monster[current_monster].hardness);
                                 }
 
@@ -1426,7 +1430,7 @@ int CMonstorUnit::CheckDmg() {
                     int attacker = NowColData->hit[hit].owner;
 
 #ifdef CHRONICLE_EXPANDED
-                    if ((attacker == 0 || attacker == 2 || attacker == 4) && !expanded::ChargeShotHit(attacker, original_record)) {
+                    if ((attacker == 0 || attacker == 2 || attacker == 4) && !expanded::ChargeShotHit(attacker, original_record) && expanded::HitWearsWeapon(*original_record)) {
 #else
                     if (attacker == 0 || attacker == 2 || attacker == 4) {
 #endif
@@ -1708,6 +1712,9 @@ int CMonstorUnit::CheckDmg() {
 
                     BtActStatus.monstor_target = owner;
                     monster[current_monster].hp -= amount;
+#ifdef CHRONICLE_EXPANDED
+                    expanded::MonsterDamaged(*this, current_monster, NowColData->hit[hit], amount);
+#endif
 
                     if (monster[current_monster].hp <= 0) {
                         monster[current_monster].last_attacker = owner;
@@ -2195,6 +2202,9 @@ void CMonstorUnit::Step(int pause) {
 
                     if (monster[current_monster].collision_off_timer <= 0) {
                         MoveChecMonster();
+#ifdef CHRONICLE_EXPANDED
+                        expanded::MonsterMoveChecked(*this, current_monster);
+#endif
                     }
 
                     monster[current_monster].collision_poly_count = original_count;

@@ -83,6 +83,7 @@
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
 #include "expanded/weapons/toan/seventh_heaven.hpp"
+#include "expanded/weapons/ungaga/cactus.hpp"
 #include "expanded/weapons/xiao/angel_gear.hpp"
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
@@ -337,6 +338,9 @@ PORT_OVERRIDE void DunMainDraw() {
     if (CMonUnitHyde == 0 && BtEventMode == 0) {
         DrawMonstorDetail();
     }
+#ifdef CHRONICLE_EXPANDED
+    expanded::DesertBloomDraw();
+#endif
 
     if (CharaMainHandViewFlag != 0) {
         TexManager.ReloadTexture(Vif1Packet, 0x11);
