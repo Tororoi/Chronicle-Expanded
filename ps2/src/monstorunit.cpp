@@ -1348,7 +1348,11 @@ int CMonstorUnit::CheckDmg() {
                                 int owner = NowColData->hit[hit].owner;
 
                                 if (NowColData->hit[hit].attack_no == 0 && (owner == 0 || owner == 2 || owner == 4)) {
+#ifdef CHRONICLE_EXPANDED
+                                    SwordDmgCheck1(0.1f, expanded::MonsterHardness(*this, current_monster, monster[current_monster].hardness));
+#else
                                     SwordDmgCheck1(0.1f, monster[current_monster].hardness);
+#endif
                                 }
 
                                 guard_direction[0] = 0;
@@ -1430,7 +1434,11 @@ int CMonstorUnit::CheckDmg() {
 #else
                     if (attacker == 0 || attacker == 2 || attacker == 4) {
 #endif
+#ifdef CHRONICLE_EXPANDED
+                        SwordDmgCheck1(1.0f, expanded::MonsterHardness(*this, current_monster, monster[current_monster].hardness));
+#else
                         SwordDmgCheck1(1.0f, monster[current_monster].hardness);
+#endif
                     }
 
                     result = MONSTER_DMG_HIT;
@@ -1607,7 +1615,11 @@ int CMonstorUnit::CheckDmg() {
                     }
 
                     int   index = GetCurrentMonsterIndex();
+#ifdef CHRONICLE_EXPANDED
+                    float defense = (float) expanded::MonsterDefense(*this, index, monster[index].defense);
+#else
                     float defense = (float) monster[index].defense;
+#endif
 
                     if (owner == 3) {
                         defense /= 2.0f;

@@ -50,6 +50,11 @@ int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs);
 // change it.
 float MonsterWeaponDamage(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, float damage);
 
+// A monster's defense taken off a hit's damage and the hardness wearing the weapon that hits it (CheckDmg), its own as
+// the weapons' effects change them.
+int MonsterDefense(const CMonstorUnit &unit, int monster, int defense);
+int MonsterHardness(const CMonstorUnit &unit, int monster, int hardness);
+
 // A character's defense against a monster's hit (BtCheckDamageProc) and in the dungeon menu's status, defense their
 // own, as the weapons' effects change it.
 int PlayerDefense(int chara, int defense);
