@@ -39,6 +39,7 @@
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
+#include "expanded/weapons/ungaga/halberd.hpp"
 #include "expanded/weapons/xiao/angel_gear.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_ring.hpp"
 #include "expanded/weapons/xiao/angel_gear/shot_reflect.hpp"
@@ -105,6 +106,7 @@ void DungeonMonstersTick() {
     TyphoonShotStep();
     ChargingBullStep();
     DragonShotStep();
+    TornadoChargeStep();
     GuardianGraceStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
@@ -171,6 +173,7 @@ void PelletFired(CSHOT &shots, int slot) {
     DoubleImpactFired(shots, slot);
     ChargingBullFired(shots, slot);
     DragonShotFired(shots, slot);
+    TornadoShotFired(shots, slot);
     SpiritBeastFired(shots, slot);
 }
 
