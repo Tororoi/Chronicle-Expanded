@@ -137,6 +137,7 @@
 #include "expanded/weapons/toan/shamshir.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
+#include "expanded/weapons/ungaga/partisan.hpp"
 #include "expanded/weapons/xiao/angel_shooter.hpp"
 #include "expanded/weapons/xiao/dragons_y.hpp"
 #endif
@@ -5900,6 +5901,7 @@ void motionDrive() {
 
 #ifdef CHRONICLE_EXPANDED
         expanded::SwiftStrikesMotion(CharaMain, chara);
+        expanded::QuickComboMotion(CharaMain, chara);
         expanded::LockOnSpeedMotion(CharaMain, chara);
 #endif
         CharaMain.Step();
