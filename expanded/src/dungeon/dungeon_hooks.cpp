@@ -2,6 +2,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/atla_drops.hpp"
+#include "expanded/dungeon/ground_shadow.hpp"
 #include "expanded/dungeon/navigation.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
@@ -26,6 +27,7 @@
 #include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/solar_flash.hpp"
+#include "expanded/weapons/solid_column.hpp"
 #include "expanded/weapons/toan/agas_sword.hpp"
 #include "expanded/weapons/toan/atlamillia_sword.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
@@ -39,6 +41,7 @@
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
+#include "expanded/weapons/ungaga/cactus.hpp"
 #include "expanded/weapons/ungaga/de_sanga.hpp"
 #include "expanded/weapons/ungaga/halberd.hpp"
 #include "expanded/weapons/ungaga/javelin.hpp"
@@ -113,6 +116,7 @@ void DungeonMonstersTick() {
     DragonShotStep();
     TornadoChargeStep();
     GuardianGraceStep();
+    DesertBloomStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
@@ -233,6 +237,26 @@ void MonsterPoisoned(const MONSTOR &target) {
     VenomPoisoned(target);
 }
 
+void MonsterDamaged(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount) {
+    CactusMonsterDamaged(unit, monster, hit, amount);
+}
+
+bool HitWearsWeapon(const COLLISION_HIT &hit) {
+    return !DesertBloomPrick(hit);
+}
+
+void MonsterMoveChecked(CMonstorUnit &unit, int monster) {
+    SolidColumnMonsterMove(unit, monster);
+}
+
+void PlayerMoveChecked(const float *position, float *velocity) {
+    SolidColumnPlayerMove(position, velocity);
+}
+
+void DungeonShadowsDrawing() {
+    GroundShadowDraw();
+}
+
 void ScriptPlayerPosition(float *position) {
     if (NowMonstorUnit != nullptr && (angel_gear::RingTarget(NowMonstorUnit->current_monster, position) ||
                                       MirageTarget(NowMonstorUnit->current_monster, position))) {
@@ -246,7 +270,8 @@ float MonsterBlockRadius(float radius) {
 }
 
 SHOT_COLLISION_RESULT ShotEffectCollision(CSHOT_EFFECT &effect, int slot, float *hit_position, float *position) {
-    return angel_gear::ReflectCollision(effect, slot, hit_position, position);
+    SHOT_COLLISION_RESULT result = angel_gear::ReflectCollision(effect, slot, hit_position, position);
+    return SolidColumnShot(effect, slot, result, hit_position, position);
 }
 
 void ShotPlayerPoint(float *point) {

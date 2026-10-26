@@ -1,0 +1,121 @@
+#include "expanded/weapons/summon_smoke.hpp"
+
+#include <algorithm>
+#include <cstdio>
+
+#include "bt_shot_effect.hpp"
+#include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/enemy_events.hpp"
+#include "frame.hpp"
+#include "shot_effect.hpp"
+
+namespace expanded {
+
+namespace {
+
+constexpr float kUnlitFull = 128.0f; // an unlit frame's own colour
+constexpr int   kMonsters = 2;       // whom it is aimed at: none of the monsters' blocks stop it
+
+// e228ex.chr: its one clip playing once where it is put, no flight and no hit.
+// clang-format off
+BT_SHOT_EFFECT smoke = {"e228ex", 0, 0, {}, {}, -1, 0, 0, 3, kMonsters, {0, -1, -1, -1}, 0, {0, 0}, 1.0f, 0, {-1, -1, -1, -1}};
+// clang-format on
+
+struct Puff {
+    CSHOT_EFFECT *effect = nullptr;
+    int           slot = -1;
+    float         spot[3] = {};
+};
+
+Puff puff;
+
+void OnFloor() {
+    puff = Puff{};
+}
+
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
+
+// Every unlit frame of the model at k of its own colour: for the additive meshes the smoke is made of, its opacity.
+void Fade(CFrame *frame, float k, int depth) {
+    for (; frame != nullptr && depth <= 16; frame = frame->brother) {
+        if (frame->attr.use_color != 0) {
+            for (float &channel : frame->attr.color) {
+                channel = kUnlitFull * k;
+            }
+        }
+        Fade(frame->child, k, depth + 1);
+    }
+}
+
+bool Live() {
+    return puff.effect != nullptr && puff.slot >= 0 && puff.effect->effect_data == &smoke && puff.effect->active[puff.slot] != 0;
+}
+
+} // namespace
+
+BT_SHOT_EFFECT *SummonSmokeEffect() {
+    return &smoke;
+}
+
+bool SummonSmokeStart(const float *spot, float yaw, float scale) {
+    SummonSmokeEnd();
+    int index = ShotEffectIndex(&smoke);
+    if (index < 0) {
+        std::printf("summon smoke: not loaded on this floor\n");
+        return false;
+    }
+    // A shot that does not fly: aimed straight up at no speed.
+    CSHOT_EFFECT *effect = ShotEffectAt(index);
+    float         from[4] = {spot[0], spot[1], spot[2], 1.0f};
+    float         to[4] = {spot[0], spot[1] + 1.0f, spot[2], 1.0f};
+    effect->Set(from, to, 0, -1, 0, nullptr, 0);
+    int slot = effect->current_slot;
+    if (slot < 0) {
+        return false;
+    }
+    puff.effect = effect;
+    puff.slot = slot;
+    std::copy(spot, spot + 3, puff.spot);
+    effect->velocity[slot][0] = effect->velocity[slot][1] = effect->velocity[slot][2] = 0.0f;
+    CCharacter &model = effect->chara[slot];
+    model.SetScale(scale, scale, scale);
+    model.SetRotation(0.0f, yaw, 0.0f);
+    model.motion_speed = kSmokeRate;
+    Fade(model.frame, 1.0f, 0); // a slot an earlier smoke faded, back to full
+    return true;
+}
+
+void SummonSmokeStep() {
+    if (puff.slot < 0) {
+        return;
+    }
+    if (!Live()) {
+        puff = Puff{};
+        return;
+    }
+    CCharacter &model = puff.effect->chara[puff.slot];
+    model.SetPosition(puff.spot[0], puff.spot[1], puff.spot[2]);
+    model.motion_speed = kSmokeRate;
+    float frame = model.motion_type.state.time;
+    if (frame >= kSmokeFadeFrom) {
+        Fade(model.frame, 1.0f - std::clamp((frame - kSmokeFadeFrom) / (kSmokeClipEnd - kSmokeFadeFrom), 0.0f, 1.0f), 0);
+    }
+}
+
+void SummonSmokeEnd() {
+    if (Live()) {
+        puff.effect->active[puff.slot] = 0;
+        Fade(puff.effect->chara[puff.slot].frame, 1.0f, 0); // handed back at full
+    }
+    puff = Puff{};
+}
+
+bool SummonSmokePlaying() {
+    return Live();
+}
+
+float SummonSmokeFrame() {
+    return Live() ? puff.effect->chara[puff.slot].motion_type.state.time : -1.0f;
+}
+
+} // namespace expanded

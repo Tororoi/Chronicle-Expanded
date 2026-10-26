@@ -2172,6 +2172,9 @@ void Draw_MainUnitShadow() {
         }
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::DungeonShadowsDrawing();
+#endif
     MGEndDrawShadow(0x40);
     sceVu0CopyMatrix(light, saved);
     MGSetPLight(light, colour);
