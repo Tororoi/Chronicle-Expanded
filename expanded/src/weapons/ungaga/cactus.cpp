@@ -1,4 +1,5 @@
 #include "expanded/weapons/ungaga/cactus.hpp"
+#include "sound_effect.h"
 
 #include <algorithm>
 #include <cmath>
@@ -26,6 +27,7 @@
 #include "gameutil.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
+#include "snd.hpp"
 #include "userstatus.hpp"
 
 namespace expanded {
@@ -117,9 +119,9 @@ struct Bloom {
     bool        latched = false;
     bool        up = false;
     int         age = 0;
-    float       spot[3] = {}; // x, ground, z
-    float       yaw = 0.0f;   // the wielder's facing at the summon
-    float       rise = 0.0f;  // the root's height while it emerges
+    float       spot[3] = {};      // x, ground, z
+    float       yaw = 0.0f;        // the wielder's facing at the summon
+    float       rise = 0.0f;       // the root's height while it emerges
     float       rise_speed = 0.0f; // how far it sinks this frame (below 0: it climbs)
     float       rise_gain = 0.0f;  // and what that gains each frame
     bool        emerged = false, peaked = false, risen = false;
@@ -318,6 +320,7 @@ void Summon() {
     PropPlace(bloom.root, CopyYaw(), bloom.scale, bloom.alpha);
     SummonSmokeStart(bloom.spot, bloom.yaw, kBloomSmokeScale);
     ChargeCompleteFlash();
+    SndSePlay(SE_BOX_OPEN, -1, 0); // the poof
 }
 
 bool ControllerGuard() {
