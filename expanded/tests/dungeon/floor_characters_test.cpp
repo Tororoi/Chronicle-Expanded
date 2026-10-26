@@ -55,3 +55,13 @@ TEST_F(FloorCharacters, OneThatFailsIsTriedAgainAndTakesNoPlace) {
     EXPECT_NE(first, second);
     EXPECT_EQ(expanded::EnterFloorCharacter("expanded/chara/a.chr", "info.cfg"), first);
 }
+
+TEST_F(FloorCharacters, ACopyIsEnteredApartFromTheCharacter) {
+    CCharacter *copy = expanded::EnterFloorCopy("dun/mainchara/c10b.chr", "base.cfg");
+    ASSERT_NE(copy, nullptr);
+    EXPECT_EQ(expanded::EnterFloorCopy("dun/mainchara/c10b.chr", "base.cfg"), copy);
+    CCharacter *own = expanded::EnterFloorCharacter("dun/mainchara/c10b.chr", "base.cfg");
+    ASSERT_NE(own, nullptr);
+    EXPECT_NE(own, copy);
+    EXPECT_EQ(loads, 2);
+}

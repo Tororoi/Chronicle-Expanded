@@ -95,8 +95,8 @@ void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT 
 // Poison took hold of a monster that had none (Poison, from CheckDmg's rolls): the Scorpion's venom.
 void MonsterPoisoned(const MONSTOR &target);
 
-// Where a monster's script finds the player (_GET_POSITION, _GET_DISTANCE): the Angel Gear's shield ring, else
-// confusion's target, else the player.
+// Where a monster's script finds the player (_GET_POSITION, _GET_DISTANCE): the Angel Gear's shield ring, else the
+// Mirage's decoy, else confusion's target, else the player.
 void ScriptPlayerPosition(float *position);
 
 // How far from the player a monster's body stops (CMonstorUnit::MoveCheck2), radius the game's.

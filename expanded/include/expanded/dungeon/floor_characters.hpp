@@ -15,6 +15,11 @@ inline constexpr int kFloorCharacterBlock = 0x35;
 // else a new one, or null when the pack cannot be read or its images do not fit.
 CCharacter *EnterFloorCharacter(const char *path, const char *cfg);
 
+// A copy of a character the game has loaded, from the same pack: its own model, motions, skins and cloth, but none of the
+// pack's images, its model drawing with the textures of the same names the game loaded for the original. The one entered
+// from path already on this floor, else a new one, or null when the pack cannot be read.
+CCharacter *EnterFloorCopy(const char *path, const char *cfg);
+
 // Hook: the floor ending (beside the shot effects' clear): every character taken down, the texture block emptied.
 void FloorCharactersClear();
 
