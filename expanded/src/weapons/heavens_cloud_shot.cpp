@@ -143,7 +143,11 @@ void TyphoonShotStep() {
 }
 
 void TyphoonShotFired(CSHOT &shots, int slot) {
-    if (!TyphoonShotActive() || slot < 0 || slot >= 12) {
+    if (slot < 0 || slot >= 12) {
+        return;
+    }
+    state.flights[slot] = {}; // a pellet fired into this slot before is gone, ended or not
+    if (!TyphoonShotActive()) {
         return;
     }
     float charge = TyphoonShotCharge(std::max(state.hold, state.held));

@@ -23,6 +23,7 @@ struct Puff {
     CSHOT_EFFECT *effect = nullptr;
     int           slot = -1;
     float         spot[3] = {};
+    const void   *owner = nullptr;
 };
 
 Puff puff;
@@ -37,14 +38,22 @@ bool Live() {
     return puff.effect != nullptr && puff.slot >= 0 && puff.effect->effect_data == &smoke && puff.effect->active[puff.slot] != 0;
 }
 
+void PutOut() {
+    if (Live()) {
+        puff.effect->active[puff.slot] = 0;
+        FadeUnlitFrames(puff.effect->chara[puff.slot].frame, 1.0f); // handed back at full
+    }
+    puff = Puff{};
+}
+
 } // namespace
 
 BT_SHOT_EFFECT *SummonSmokeEffect() {
     return &smoke;
 }
 
-bool SummonSmokeStart(const float *spot, float yaw, float scale) {
-    SummonSmokeEnd();
+bool SummonSmokeStart(const float *spot, float yaw, float scale, const void *owner) {
+    PutOut();
     int index = ShotEffectIndex(&smoke);
     if (index < 0) {
         std::printf("summon smoke: not loaded on this floor\n");
@@ -61,6 +70,7 @@ bool SummonSmokeStart(const float *spot, float yaw, float scale) {
     }
     puff.effect = effect;
     puff.slot = slot;
+    puff.owner = owner;
     std::copy(spot, spot + 3, puff.spot);
     effect->velocity[slot][0] = effect->velocity[slot][1] = effect->velocity[slot][2] = 0.0f;
     CCharacter &model = effect->chara[slot];
@@ -88,12 +98,10 @@ void SummonSmokeStep() {
     }
 }
 
-void SummonSmokeEnd() {
-    if (Live()) {
-        puff.effect->active[puff.slot] = 0;
-        FadeUnlitFrames(puff.effect->chara[puff.slot].frame, 1.0f); // handed back at full
+void SummonSmokeEnd(const void *owner) {
+    if (puff.owner == owner) {
+        PutOut();
     }
-    puff = Puff{};
 }
 
 bool SummonSmokePlaying() {

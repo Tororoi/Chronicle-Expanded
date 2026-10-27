@@ -8,9 +8,10 @@ namespace expanded {
 // cast outside events only, as the monsters' are.
 inline constexpr float kGroundShadowLift = 0.3f;
 
-// Cast centred at (x, z) on the floor at height ground, radius across, from the next shadow pass; no longer cast.
-void GroundShadowShow(float x, float ground, float z, float radius);
-void GroundShadowHide();
+// Cast centred at (x, z) on the floor at height ground, radius across, from the next shadow pass, for owner (the prop, by
+// any pointer of its own); no longer cast, if owner cast it.
+void GroundShadowShow(float x, float ground, float z, float radius, const void *owner);
+void GroundShadowHide(const void *owner);
 bool GroundShadowShown();
 
 // Hook: the units' shadow pass (Draw_MainUnitShadow).

@@ -209,7 +209,7 @@ protected:
     // Ungaga's first combo swing at its cursor.
     void Swing(float cursor) {
         BtActStatus.action_on = 1;
-        BtActStatus.action_no = 0x24;
+        BtActStatus.action_no = 0x25;
         CharaMain.motion_type.state.time = cursor;
     }
 
