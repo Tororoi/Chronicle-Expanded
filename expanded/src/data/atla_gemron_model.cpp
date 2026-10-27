@@ -52,7 +52,7 @@ constexpr double      kFlySaturation = 0.5;
 
 constexpr int           kClipFrom = 105, kClipTo = 125;
 constexpr int           kTimelineEnd = kAtlaGemronDeathEnd + 1;
-constexpr std::uint32_t kCameraChannels[] = {30, 31, 32, 33};
+constexpr std::uint32_t kCameraChannels[] = {mot::kCameraPosition, mot::kCameraReference, mot::kCameraRoll, mot::kCameraFov};
 
 const MdsFrame &Frame(const std::vector<MdsFrame> &frames, std::string_view name, const char *mds) {
     const MdsFrame *f = FindFrame(frames, name);
@@ -78,7 +78,7 @@ std::array<double, 4> StepAt(const MotTrack &track, double frame) {
 }
 
 std::array<double, 4> LightAt(const MotTrack &track, double frame) {
-    return track.w2 == 0x32 || track.w2 == mot::kSubtreeVisible ? StepAt(track, frame) : TrackAt(track, frame);
+    return track.w2 == mot::kVisible || track.w2 == mot::kSubtreeVisible ? StepAt(track, frame) : TrackAt(track, frame);
 }
 
 // The keys a track keeps: from the first, each next one as far on as the straight blend to it reproduces every key
@@ -86,13 +86,13 @@ std::array<double, 4> LightAt(const MotTrack &track, double frame) {
 std::vector<MotKeyframe> Thinned(const std::vector<MotKeyframe> &keys, std::uint32_t channel) {
     double tolerance;
     switch (channel) {
-        case 1:
+        case mot::kScale:
             tolerance = 0.02;
             break;
-        case 2:
+        case mot::kTranslation:
             tolerance = 0.05;
             break;
-        case 40:
+        case mot::kMaterialAlpha:
             tolerance = 0.03;
             break;
         default:
@@ -291,9 +291,9 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
     }
     const double s = rc::kLightScale;
     const Vec3  &l = rc::kLightT;
-    MotTrack     scale = TrackLike(reference, std::uint32_t(light_at), 0, 1);
+    MotTrack     scale = TrackLike(reference, std::uint32_t(light_at), 0, mot::kScale);
     scale.keys = {MotKeyframe::Make(0, {s, s, s, 0}), MotKeyframe::Make(kTimelineEnd, {s, s, s, 0})};
-    MotTrack place = TrackLike(reference, std::uint32_t(light_at), 0, 2);
+    MotTrack place = TrackLike(reference, std::uint32_t(light_at), 0, mot::kTranslation);
     place.keys = {MotKeyframe::Make(0, {l[0], l[1], l[2], 0}), MotKeyframe::Make(kTimelineEnd, {l[0], l[1], l[2], 0})};
     added.push_back(std::move(scale));
     added.push_back(std::move(place));
@@ -412,7 +412,7 @@ Bytes BuildAtlaShotPack(std::span<const unsigned char> light_chr) {
     }
     // The flight over the window backed off, so the burst stands where it was fired while the shot flies.
     double   back = -rc::kShotFlight * (kAtlaShotTo - kAtlaShotFrom) / kAtlaShotSpeed;
-    MotTrack flight = TrackLike(reference, 1, 0, 2);
+    MotTrack flight = TrackLike(reference, 1, 0, mot::kTranslation);
     flight.keys = {MotKeyframe::Make(kAtlaShotFrom, {0, 0, 0, 0}), MotKeyframe::Make(kAtlaShotTo, {0, 0, back, 0})};
     shot.tracks.push_back(std::move(flight));
 

@@ -205,8 +205,8 @@ private:
     std::vector<M4> CatWorld(double frame) const {
         std::vector<M4> w(cat_nodes_.size());
         for (const RigNode &n : cat_nodes_) {
-            auto q_track = ctr_.find({n.i, 0});
-            auto t_track = ctr_.find({n.i, 2});
+            auto q_track = ctr_.find({n.i, mot::kRotation});
+            auto t_track = ctr_.find({n.i, mot::kTranslation});
             V4   q = q_track != ctr_.end() ? Sample(*q_track->second, frame) : n.quat;
             V3   t = n.t;
             if (t_track != ctr_.end()) {
@@ -238,7 +238,7 @@ private:
 
     M3 DranLocalR(const std::string &name, std::optional<double> df) const {
         const RigNode &d = Dn(name);
-        auto           src = dtracks_.find({d.i, 0});
+        auto           src = dtracks_.find({d.i, mot::kRotation});
         M3             rw = (df && src != dtracks_.end()) ? WorldR(QuatToMat(Sample(*src->second, *df))) : WorldR(d.r);
         return LocalOf(rw, d.t).r;
     }
@@ -1292,7 +1292,7 @@ WingData Graft::Build() {
         int   nid = base_ + k;
         Track tr;
         tr.node = nid;
-        tr.chan = 0;
+        tr.chan = mot::kRotation;
         for (int f : frames_all) {
             tr.frames.push_back(f);
             tr.vals.push_back(MatToQuat(per_frame[f][nid].r));
@@ -1301,7 +1301,7 @@ WingData Graft::Build() {
         if (nodes_[std::size_t(nid)].parent == parent_) {
             Track tt;
             tt.node = nid;
-            tt.chan = 2;
+            tt.chan = mot::kTranslation;
             for (int f : frames_all) {
                 const V3 &t = per_frame[f][nid].t;
                 tt.frames.push_back(f);

@@ -209,7 +209,7 @@ void ApplyRootOffset(ChrPack &pack, std::string_view mot_name, int dlo, int dhi,
 void FreezeRoots(ChrPack &pack, std::string_view mot_name, int frame, int dlo, int dhi) {
     MotFile mot = MotOf(pack, mot_name);
     for (MotTrack &track : mot.tracks) {
-        if (track.w2 != 2 ||
+        if (track.w2 != mot::kTranslation ||
             std::none_of(track.keys.begin(), track.keys.end(), [&](const MotKeyframe &k) {
                 return InWindow(k, dlo, dhi);
             })) {

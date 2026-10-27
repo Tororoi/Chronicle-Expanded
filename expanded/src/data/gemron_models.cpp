@@ -262,7 +262,7 @@ void AddGlowTrack(ChrPack &pack, int frame) {
     MotFile    mot = MotFile::FromRecord(record);
     MotTrack   track;
     track.w0 = std::uint32_t(frame);
-    track.w2 = 1; // scale
+    track.w2 = mot::kScale;
     track.w3 = mot.tracks.back().w3;
     track.w6 = mot.tracks.back().w6;
     track.w7 = mot.tracks.back().w7;

@@ -380,7 +380,7 @@ V4 Sample(const Track &track, double f) {
     }
     std::size_t lo = hi - 1;
     double      u = (f - frames[lo]) / (frames[hi] - frames[lo]);
-    if (track.chan == 0) {
+    if (track.chan == mot::kRotation) {
         return Slerp(vals[lo], vals[hi], u);
     }
     V4 r;
@@ -673,7 +673,7 @@ std::unordered_map<int, VertexWeights> LoadWeights(const ChrPack &pack, std::str
         return out;
     }
     for (const MotTrack &track : MotFile::FromRecord(*record).tracks) {
-        if (track.w2 != 20) {
+        if (track.w2 != mot::kWeight) {
             continue;
         }
         VertexWeights &per = out[static_cast<int>(track.w0)];
@@ -821,7 +821,7 @@ std::optional<SkinMesh> BuildMeshWeighted(std::span<const unsigned char> mds, co
 std::vector<Track> BuildTracks(const ChrPack &pack, std::string_view mot, int count) {
     std::vector<Track> tracks;
     for (const MotTrack &t : MotFile::FromRecord(pack.Require(mot)).tracks) {
-        if (t.w0 >= static_cast<std::uint32_t>(count) || (t.w2 != 0 && t.w2 != 2) || t.keys.empty()) {
+        if (t.w0 >= static_cast<std::uint32_t>(count) || (t.w2 != mot::kRotation && t.w2 != mot::kTranslation) || t.keys.empty()) {
             continue;
         }
         Track track;

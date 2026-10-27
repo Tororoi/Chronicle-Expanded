@@ -322,7 +322,7 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
             if (bframes[std::size_t(j)].name.find("__ba") == std::string::npos) {
                 continue;
             }
-            MotTrack     track = TrackLike(reference, std::uint32_t(at + placed[j]), 0, 1);
+            MotTrack     track = TrackLike(reference, std::uint32_t(at + placed[j]), 0, mot::kScale);
             const double h = kHidden;
             for (auto [f, v] : {
                      std::pair{0,                 h  },

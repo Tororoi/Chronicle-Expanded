@@ -211,7 +211,7 @@ void ApplySpin(ChrPack &base, const TownMeshGraft &graft) {
     Bytes           mds = base.Require(cfg.body_mds).Payload();
     int             w0 = Index(ReadMdsFrames(mds), spin.node);
     MotFile         dm = MotOf(base, cfg.body_mot);
-    MotTrack       *track = dm.TrackBy(static_cast<std::uint32_t>(w0), 0);
+    MotTrack       *track = dm.TrackBy(static_cast<std::uint32_t>(w0), mot::kRotation);
     if (!track) {
         Bad("spin: the hub has no rotation track");
     }

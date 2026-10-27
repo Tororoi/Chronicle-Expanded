@@ -65,10 +65,13 @@ struct MotKeyframe {
 // Keys in frame order, those on one frame kept in their order.
 void SortByFrame(std::vector<MotKeyframe> &keys);
 
-// .mot track channels (MotTrack::w2): a joint's rotation and translation, a frame's subtree shown (below 1 out of the
-// draw) and a material's alpha.
+// .mot track channels (MotTrack::w2): a joint's rotation, scale and translation; a .wgt's skin weights; a cutscene
+// camera's position, reference point, roll and field of view; a material's alpha; a frame shown, and its subtree shown
+// (each sets the frame's flag word by whether the value is below 1; below 1 the subtree is out of the draw).
 namespace mot {
-inline constexpr std::uint32_t kRotation = 0, kTranslation = 2, kSubtreeVisible = 0x33, kMaterialAlpha = 40;
+inline constexpr std::uint32_t kRotation = 0, kScale = 1, kTranslation = 2, kWeight = 20;
+inline constexpr std::uint32_t kCameraPosition = 0x1E, kCameraReference = 0x1F, kCameraRoll = 0x20, kCameraFov = 0x21;
+inline constexpr std::uint32_t kMaterialAlpha = 0x28, kVisible = 0x32, kSubtreeVisible = 0x33;
 } // namespace mot
 
 // One .mot track: w0 the joint's .mds frame index, w2 the channel (mot::).

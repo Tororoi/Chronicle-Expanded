@@ -63,7 +63,7 @@ M3 RotAbout(const V3 &axis, double deg);
 // Keys (frame, value) held outside, smoothstepped between.
 double KeyedVal(std::span<const std::pair<double, double>> keys, double f);
 
-// A motion track as frames and values (rotations are channel 0, slerped; others lerped).
+// A motion track as frames and values (rotations, mot::kRotation, slerped; others lerped).
 struct Track {
     int                 node = 0, chan = 0;
     std::vector<double> frames;

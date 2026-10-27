@@ -35,7 +35,6 @@ constexpr const char        *kCapeNode = "cat_cape";
 constexpr const char        *kCapeTexture = "catcape"; // the mask's too
 constexpr const char        *kCapeClo = "catcape.clo";
 constexpr const char        *kGlowName = "catglowc";
-constexpr std::uint32_t      kWeightChannel = 20;
 constexpr std::size_t        kSubmeshRecords = 150;
 constexpr unsigned char      kWingRgba[] = {255, 255, 255, 0x80};
 constexpr unsigned char      kCapeRgba[] = {128, 28, 0, 0x80};
@@ -432,7 +431,7 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
             }
         }
         std::uint32_t m = static_cast<std::uint32_t>(mesh_index[mi]);
-        out.wgt_tracks.push_back(Trk(m, 0, kWeightChannel, w6, w7, {}));
+        out.wgt_tracks.push_back(Trk(m, 0, mot::kWeight, w6, w7, {}));
         int keys = 0;
         for (auto &[b, list] : per_bone) {
             std::stable_sort(list.begin(), list.end());
@@ -441,7 +440,7 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
                 kfs.push_back(Key(i, {double(pct)}));
             }
             keys += static_cast<int>(kfs.size());
-            out.wgt_tracks.push_back(Trk(m, static_cast<std::uint32_t>(b), kWeightChannel, w6, w7, std::move(kfs)));
+            out.wgt_tracks.push_back(Trk(m, static_cast<std::uint32_t>(b), mot::kWeight, w6, w7, std::move(kfs)));
         }
         log(std::format("  {} wing baked: {} verts, {} tris, MDT {} B, {} wgt keys, {} two-pose verts", sd, me.nv, me.tris.size(), blob.size(), keys, two_pose));
     }
@@ -449,7 +448,7 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
         if (t.node < base) {
             continue;
         }
-        if (!(t.node < base + 8 && (t.chan == 0 || t.chan == 2))) {
+        if (!(t.node < base + 8 && (t.chan == mot::kRotation || t.chan == mot::kTranslation))) {
             throw std::runtime_error(std::format("wing track node {}", t.node));
         }
         std::vector<MotKeyframe> kfs;
@@ -511,12 +510,12 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
     }
     std::vector<V4> mask_normals(mworld.size(), V4{0.5, 0.5, 1.0, 1.0}), mask_uvs(mworld.size(), V4{0.5, 0.5, 1.0, 0.0});
     out.nodes[mask_slot].mdt = ListMdt(skin_mdt, mat_template, kCapeTexture, mworld, mask_normals, mask_uvs, mask.tris);
-    out.wgt_tracks.push_back(Trk(static_cast<std::uint32_t>(mask_index), 0, kWeightChannel, w6, w7, {}));
+    out.wgt_tracks.push_back(Trk(static_cast<std::uint32_t>(mask_index), 0, mot::kWeight, w6, w7, {}));
     std::vector<MotKeyframe> mask_keys;
     for (std::size_t v = 0; v < mworld.size(); v++) {
         mask_keys.push_back(Key(double(v), {100.0}));
     }
-    out.wgt_tracks.push_back(Trk(static_cast<std::uint32_t>(mask_index), static_cast<std::uint32_t>(head.i), kWeightChannel, w6, w7, std::move(mask_keys)));
+    out.wgt_tracks.push_back(Trk(static_cast<std::uint32_t>(mask_index), static_cast<std::uint32_t>(head.i), mot::kWeight, w6, w7, std::move(mask_keys)));
     log(std::format("  mask baked: {} verts, {} tris on {}", mworld.size(), mask.tris.size(), kMaskAnchor));
     out.bbp.resize(out.nodes.size() * 64);
     for (std::size_t i = 0; i < out.nodes.size(); i++) {
