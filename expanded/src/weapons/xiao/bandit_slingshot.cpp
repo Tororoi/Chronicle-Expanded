@@ -1,5 +1,3 @@
-#include "expanded/dungeon/collision_hits.hpp"
-#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
 
 #include <cstring>
@@ -10,9 +8,11 @@
 #include "clsmes.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/menu_text.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/species.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "gametext.hpp"
 #include "itemdata.hpp"

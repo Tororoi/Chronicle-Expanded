@@ -8,6 +8,7 @@
 #include "character.hpp"
 #include "dataalloc.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/frames.hpp"
 #include "expanded/enemies/species.hpp"
 #include "frame.hpp"
 #include "mds.hpp"
@@ -74,7 +75,7 @@ bool Copy() {
     blade.copied = true;
     blade.source = MainWeapon.frame;
     // Its reach: grip to its tip's hit point (dcol1), as the sword in hand has it.
-    CFrame *tip = MainWeapon.frame->SearchFrame(const_cast<char *>("dcol1"));
+    CFrame *tip = FrameNamed(MainWeapon.frame, "dcol1");
     if (tip != nullptr) {
         sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, grip, end;
         MainWeapon.frame->GetWorldPosition(grip, origin);

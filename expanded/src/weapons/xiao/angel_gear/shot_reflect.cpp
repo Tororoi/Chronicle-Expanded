@@ -1,4 +1,3 @@
-#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/xiao/angel_gear/shot_reflect.hpp"
 
 #include <algorithm>
@@ -8,6 +7,7 @@
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/status/poison.hpp"

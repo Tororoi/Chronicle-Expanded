@@ -1,7 +1,7 @@
-#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/ungaga/partisan.hpp"
 
 #include "character.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/shamshir.hpp"
 #include "itemdata.hpp"

@@ -1,5 +1,3 @@
-#include "expanded/dungeon/collision_hits.hpp"
-#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/status/confuse.hpp"
 
 #include <libvu0.h>
@@ -14,7 +12,9 @@
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/status/confuse_icon.hpp"
 #include "expanded/status/poison.hpp"
 #include "itembombeffect.hpp"

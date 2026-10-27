@@ -1,7 +1,7 @@
-#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
 
 #include "btactstatus.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 
 namespace expanded {

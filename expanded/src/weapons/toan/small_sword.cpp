@@ -1,9 +1,9 @@
-#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 
 #include "btactstatus.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "gamepad.hpp"
 #include "itemdata.hpp"

@@ -1,4 +1,3 @@
-#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/xiao/angel_shooter.hpp"
 #include "sound_effect.h"
 
@@ -10,6 +9,7 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "healeffect.hpp"
 #include "itemdata.hpp"

@@ -1,6 +1,3 @@
-#include "expanded/dungeon/collision_hits.hpp"
-#include "expanded/weapons/hit_marks.hpp"
-#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
 
 #include <algorithm>
@@ -11,8 +8,12 @@
 #include "collisiondata.hpp"
 #include "dataalloc.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/frames.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/hit_marks.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
 #include "frame.hpp"
@@ -223,7 +224,7 @@ void ChargingBullDraw() {
             // Upright, fork up, its face turned along its flight as it is held; then slid so its pouch is on the pellet.
             copy.SetPosition(at[0], at[1], at[2]);
             copy.SetRotation(-kHalfPi, std::atan2(v[0], v[2]) + kHalfPi, 0.0f);
-            if (CFrame *pouch = copy.frame->SearchFrame(const_cast<char *>(kPouch))) {
+            if (CFrame *pouch = FrameNamed(copy.frame, kPouch)) {
                 sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, on;
                 pouch->GetWorldPosition(on, origin);
                 // The pouch bone sits a little over and ahead of the cup the pellet shows in.

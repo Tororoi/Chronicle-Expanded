@@ -1,6 +1,3 @@
-#include "expanded/dungeon/collision_hits.hpp"
-#include "expanded/weapons/hit_marks.hpp"
-#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
 
 #include <algorithm>
@@ -13,13 +10,17 @@
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "dungeonparts.hpp"
+#include "expanded/core/frames.hpp"
 #include "expanded/data/monster_scripts.hpp"
 #include "expanded/data/spirit_cat.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/monsters.hpp"
+#include "expanded/weapons/hit_marks.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
 #include "expanded/weapons/xiao/spirit_cape.hpp"
@@ -457,7 +458,7 @@ void Watch() {
 // The cat's touch point: its head as last posed, else its root.
 void HeadPoint(float *point) {
     point[0] = cat.pos[0], point[1] = cat.pos[1] + kRootTouch, point[2] = cat.pos[2], point[3] = 1.0f;
-    CFrame *kao = model != nullptr && model->frame != nullptr ? model->frame->SearchFrame(const_cast<char *>(kHeadFrame)) : nullptr;
+    CFrame *kao = model != nullptr ? FrameNamed(model->frame, kHeadFrame) : nullptr;
     if (kao != nullptr) {
         sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, at;
         kao->GetWorldPosition(at, origin);
@@ -785,7 +786,7 @@ void Place() {
 // Where the head rests in the cat's own space: its rest pose's matrices up to the root.
 void FindHead() {
     head[0] = kHeadFallback[0], head[1] = kHeadFallback[1], head[2] = kHeadFallback[2];
-    CFrame *kao = model != nullptr && model->frame != nullptr ? model->frame->SearchFrame(const_cast<char *>(kHeadFrame)) : nullptr;
+    CFrame *kao = model != nullptr ? FrameNamed(model->frame, kHeadFrame) : nullptr;
     if (kao == nullptr) {
         return;
     }
@@ -888,7 +889,7 @@ void SpiritBeastStep() {
             FindHead();
             Key(kCatLeap);
             for (int i = 0; i < 2; i++) {
-                wings[i] = model->frame != nullptr ? model->frame->SearchFrame(const_cast<char *>(kWingFrames[i])) : nullptr;
+                wings[i] = FrameNamed(model->frame, kWingFrames[i]);
             }
             SpiritCapeTake(*model); // off the cat's own cloth list, its mask out of the cat's draw: only a caped cat wears them
         }
@@ -987,8 +988,8 @@ void SpiritBeastDraw() {
         return;
     }
     float   middle[4] = {cat.pos[0], cat.pos[1] + kRootTouch, cat.pos[2], 1.0f};
-    CFrame *hips = model->frame->SearchFrame(const_cast<char *>(kHipsFrame));
-    CFrame *spine = model->frame->SearchFrame(const_cast<char *>(kSpineFrame));
+    CFrame *hips = FrameNamed(model->frame, kHipsFrame);
+    CFrame *spine = FrameNamed(model->frame, kSpineFrame);
     if (hips != nullptr && spine != nullptr) {
         sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, a, b;
         hips->GetWorldPosition(a, origin);

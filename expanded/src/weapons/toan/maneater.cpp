@@ -1,9 +1,9 @@
-#include "expanded/core/party.hpp"
 #include "expanded/weapons/toan/maneater.hpp"
 
 #include <algorithm>
 
 #include "dun/gameloop.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"

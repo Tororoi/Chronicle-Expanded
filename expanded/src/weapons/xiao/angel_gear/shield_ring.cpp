@@ -1,4 +1,3 @@
-#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_ring.hpp"
 #include "sound_effect.h"
 
@@ -6,6 +5,7 @@
 
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "hitmark.hpp"
 #include "monstorunit.hpp"

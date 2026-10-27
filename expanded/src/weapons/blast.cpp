@@ -1,5 +1,3 @@
-#include "expanded/dungeon/collision_hits.hpp"
-#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/blast.hpp"
 
 #include <algorithm>
@@ -9,7 +7,9 @@
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "gamepad.hpp"
 #include "itembombeffect.hpp"

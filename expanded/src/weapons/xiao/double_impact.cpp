@@ -1,9 +1,9 @@
-#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/xiao/double_impact.hpp"
 
 #include <cmath>
 
 #include "dun/gameloop.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 #include "itemdata.hpp"

@@ -1,4 +1,3 @@
-#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
 
 #include <algorithm>
@@ -10,6 +9,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/wear.hpp"

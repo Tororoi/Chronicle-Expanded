@@ -1,4 +1,3 @@
-#include "expanded/core/party.hpp"
 #include "expanded/dungeon/magic_circles.hpp"
 
 #include <algorithm>
@@ -7,6 +6,7 @@
 #include "battlemenu.hpp"
 #include "dun/gameloop.hpp"
 #include "dungeonmap.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/ownership.hpp"
 #include "itemdata.hpp"

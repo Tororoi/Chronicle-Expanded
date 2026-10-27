@@ -1,8 +1,8 @@
-#include "expanded/core/party.hpp"
 #include "expanded/weapons/super_steve.hpp"
 
 #include "dun/gameloop.hpp"
 #include "expanded/core/options.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/weapons/xiao/double_impact.hpp"
 #include "itemdata.hpp"
 #include "mglib.hpp"

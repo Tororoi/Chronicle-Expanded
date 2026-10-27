@@ -1,9 +1,9 @@
-#include "expanded/core/party.hpp"
 #include "expanded/weapons/curse.hpp"
 
 #include <vector>
 
 #include "dun/gameloop.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "userstatus.hpp"
 

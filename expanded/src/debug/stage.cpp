@@ -1,4 +1,3 @@
-#include "expanded/core/party.hpp"
 #include "expanded/debug/stage.hpp"
 
 #include <charconv>
@@ -15,6 +14,7 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "dungeonmap.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/debug/enemy_roster.hpp"
 #include "expanded/debug/event_log.hpp"

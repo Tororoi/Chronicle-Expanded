@@ -1,4 +1,3 @@
-#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 
 #include <cmath>
@@ -6,6 +5,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"

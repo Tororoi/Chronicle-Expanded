@@ -1,8 +1,8 @@
-#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/status/poison.hpp"
 
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "monstorunit.hpp"
 
 namespace expanded {

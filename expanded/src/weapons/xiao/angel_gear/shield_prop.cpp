@@ -10,6 +10,7 @@
 #include "btmisc.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/frames.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "frame.hpp"
@@ -193,8 +194,8 @@ void WorldOf(CFrame *frame, float *out) {
         PropRoot(out);
         return;
     }
-    float origin[4] = {0.0f, 0.0f, 0.0f, 1.0f}, at[4];
-    frame->GetWorldPosition(at, origin);
+    float at[4];
+    FrameOrigin(*frame, at);
     std::copy(at, at + 3, out);
 }
 
@@ -223,8 +224,8 @@ bool PropLoad() {
     prop.model = model;
     prop.weapon = NowWeaponHave->item_no;
     Prepare(*model);
-    prop.pouch = model->frame->SearchFrame(const_cast<char *>(kPouchFrame));
-    prop.muzzle = model->frame->SearchFrame(const_cast<char *>(kMuzzleFrame));
+    prop.pouch = FrameNamed(model->frame, kPouchFrame);
+    prop.muzzle = FrameNamed(model->frame, kMuzzleFrame);
     prop.have_catch = CatchPose(*model, prop.catch_pose);
     return true;
 }

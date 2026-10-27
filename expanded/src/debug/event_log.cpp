@@ -1,10 +1,10 @@
-#include "expanded/core/party.hpp"
 #include "expanded/debug/event_log.hpp"
 
 #include <cstdio>
 #include <format>
 
 #include "dun/gameloop.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/super_steve.hpp"

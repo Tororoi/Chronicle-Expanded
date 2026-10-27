@@ -1,4 +1,3 @@
-#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/toan/heavens_cloud.hpp"
 
 #include <algorithm>
@@ -9,6 +8,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/weapons/blade_scale.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"

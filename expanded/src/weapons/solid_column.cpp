@@ -1,9 +1,9 @@
-#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/solid_column.hpp"
 
 #include <cmath>
 
 #include "bt_shot_effect.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"

@@ -1,5 +1,3 @@
-#include "expanded/dungeon/collision_hits.hpp"
-#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/ungaga/hercules_wrath.hpp"
 
 #include <algorithm>
@@ -10,11 +8,14 @@
 #include "btactstatus.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/frames.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/floor_height.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/ungaga/mirage.hpp"
@@ -101,11 +102,10 @@ float Ground() {
 void Tip(float *out) {
     const float *at = Xiao() ? state.landed : state.place;
     CCharacter  *held = Xiao() ? nullptr : mirage::CloneWeapon();
-    CFrame      *tip = held != nullptr && held->frame != nullptr ? held->frame->SearchFrame(const_cast<char *>(kSpearTip)) : nullptr;
+    CFrame      *tip = held != nullptr ? FrameNamed(held->frame, kSpearTip) : nullptr;
     float        world[4];
     if (tip != nullptr) {
-        float origin[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-        tip->GetWorldPosition(world, origin);
+        FrameOrigin(*tip, world);
         at = world;
     }
     std::copy(at, at + 3, out);

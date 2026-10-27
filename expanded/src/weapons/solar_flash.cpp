@@ -1,6 +1,3 @@
-#include "expanded/dungeon/collision_hits.hpp"
-#include "expanded/enemies/enemy_events.hpp"
-#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 
 #include <algorithm>
@@ -10,10 +7,14 @@
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/frames.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/glow_sprite.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/status/blind.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
@@ -333,8 +334,8 @@ bool WeaponGlowPoint(const SolarProfile &profile, float *point) {
     }
     float         along = profile.glow_along;
     sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 0.0f};
-    CFrame       *hilt = NowWeapon->frame->SearchFrame(const_cast<char *>("dcol0"));
-    CFrame       *tip = NowWeapon->frame->SearchFrame(const_cast<char *>("dcol1"));
+    CFrame       *hilt = FrameNamed(NowWeapon->frame, "dcol0");
+    CFrame       *tip = FrameNamed(NowWeapon->frame, "dcol1");
     if (hilt == nullptr || tip == nullptr) {
         NowWeapon->frame->GetWorldPosition(point, origin);
         return true;

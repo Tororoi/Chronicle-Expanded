@@ -1,6 +1,3 @@
-#include "expanded/dungeon/collision_hits.hpp"
-#include "expanded/weapons/hit_marks.hpp"
-#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/xiao/dragons_y.hpp"
 
 #include <cmath>
@@ -10,7 +7,10 @@
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/weapons/hit_marks.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
 #include "itemdata.hpp"

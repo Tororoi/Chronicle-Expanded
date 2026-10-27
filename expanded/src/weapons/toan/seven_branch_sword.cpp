@@ -1,4 +1,3 @@
-#include "expanded/core/party.hpp"
 #include "expanded/weapons/toan/seven_branch_sword.hpp"
 
 #include <optional>
@@ -7,6 +6,7 @@
 #include "battlemenu.hpp"
 #include "dngstatusdata.hpp"
 #include "expanded/core/menu_text.hpp"
+#include "expanded/core/party.hpp"
 #include "itemdata.hpp"
 #include "localize.hpp"
 

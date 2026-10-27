@@ -1,4 +1,3 @@
-#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "sound_effect.h"
 
@@ -8,6 +7,7 @@
 #include "btactstatus.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/player_state.hpp"

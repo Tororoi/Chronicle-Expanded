@@ -1,8 +1,8 @@
-#include "expanded/core/party.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
 
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 

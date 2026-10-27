@@ -1,6 +1,3 @@
-#include "expanded/enemies/enemy_events.hpp"
-#include "expanded/weapons/pellets.hpp"
-#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 
 #include <algorithm>
@@ -10,7 +7,10 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/scene_light.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/status/blind.hpp"
+#include "expanded/weapons/pellets.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"

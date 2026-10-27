@@ -7,6 +7,7 @@
 #include "cloth.hpp"
 #include "dataalloc.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/frames.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/ungaga/mirage.hpp"
@@ -118,7 +119,7 @@ bool CloneLoad() {
     body->frame->SetAttr(attr, 1, 4);
     clone.body = body;
     clone.chara = chara;
-    clone.hand = body->frame->SearchFrame(const_cast<char *>(kHandFrame));
+    clone.hand = FrameNamed(body->frame, kHandFrame);
     return true;
 }
 
@@ -192,8 +193,8 @@ bool CloneRoot(float *out) {
     if (!clone.up || clone.body == nullptr || clone.body->frame == nullptr) {
         return false;
     }
-    float origin[4] = {0.0f, 0.0f, 0.0f, 1.0f}, world[4];
-    clone.body->frame->GetWorldPosition(world, origin);
+    float world[4];
+    FrameOrigin(*clone.body->frame, world);
     out[0] = world[0], out[1] = world[1], out[2] = world[2];
     return true;
 }

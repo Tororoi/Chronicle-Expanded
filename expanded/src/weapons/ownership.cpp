@@ -1,7 +1,7 @@
-#include "expanded/core/party.hpp"
 #include "expanded/weapons/ownership.hpp"
 
 #include "dngstatusdata.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "savedata.hpp"
 #include "stockitem.hpp"

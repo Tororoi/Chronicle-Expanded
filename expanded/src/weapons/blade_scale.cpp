@@ -1,4 +1,3 @@
-#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/blade_scale.hpp"
 
 #include <libvu0.h>
@@ -8,6 +7,7 @@
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "frame.hpp"
 
 namespace expanded {

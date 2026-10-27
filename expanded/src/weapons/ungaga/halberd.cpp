@@ -1,4 +1,3 @@
-#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/ungaga/halberd.hpp"
 
 #include <cmath>
@@ -6,6 +5,7 @@
 #include "bt_shot_effect.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
 #include "itemdata.hpp"

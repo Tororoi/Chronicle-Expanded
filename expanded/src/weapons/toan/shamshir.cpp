@@ -1,8 +1,8 @@
-#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/toan/shamshir.hpp"
 
 #include "character.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 
