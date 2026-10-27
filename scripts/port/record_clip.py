@@ -8,7 +8,8 @@ Runs darkcloud headless for N + M frames with --record from frame N and DC_AUDIO
 put the frames and the sound from frame N on together. The sound is the mixer's as the game clock
 ticks (loading screens included), so a frame's place in it is its clock tick over the tick rate, both of
 which --record logs in ticks.txt; the video plays at the frames' own pace in ticks. Options after -- go
-to the game (--jump, --input, --roster, --fast-load...). Needs ffmpeg on the PATH.
+to the game (--jump, --input, --roster, --fast-load...). Needs ffmpeg on the PATH. The game is a release
+build when one is built: a debug build records about ten times slower.
 """
 import argparse
 import os
@@ -17,15 +18,25 @@ import subprocess
 import sys
 import tempfile
 
+ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+
+
+def default_exe():
+    """The first darkcloud built of the release builds, then the debug ones."""
+    name = 'darkcloud.exe' if os.name == 'nt' else 'darkcloud'
+    for build in ('macos-arm64-release', 'pc-release', 'macos-arm64', 'pc'):
+        exe = os.path.join(ROOT, 'port', 'build', build, name)
+        if os.path.exists(exe):
+            return exe
+    return os.path.join(ROOT, 'port', 'build', 'macos-arm64-release', name)
+
 
 def main():
-    here = os.path.dirname(os.path.abspath(__file__))
-    root = os.path.normpath(os.path.join(here, '..', '..'))
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--out', required=True, help='the video (.mp4)')
     ap.add_argument('--from', dest='start', type=int, required=True, help='first frame recorded')
     ap.add_argument('--length', type=int, required=True, help='frames recorded')
-    ap.add_argument('--exe', default=os.path.join(root, 'port', 'build', 'macos-arm64', 'darkcloud'))
+    ap.add_argument('--exe', default=default_exe())
     ap.add_argument('--data', default=os.environ.get('DC_DATA'))
     ap.add_argument('--save')
     ap.add_argument('--width', type=int, default=960, help='the video width (default 960)')

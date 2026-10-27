@@ -2,6 +2,7 @@
 
 #include "dngstatusdata.hpp"
 #include "expanded/weapons/ownership.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #include "savedata.hpp"
 
 namespace {
@@ -47,4 +48,13 @@ TEST(WeaponOwnership, CountsEveryCopy) {
     stock->weapons[3].item_no = ITEM_WEAPON_FLAMINGO;
     status->chara_weapons[1][10].item_no = ITEM_WEAPON_FLAMINGO;
     EXPECT_EQ(expanded::WeaponsOwned(status, stock, ITEM_WEAPON_FLAMINGO), 3);
+}
+
+TEST(WeaponOwnership, PlainWeaponsOwnNothing) {
+    alignas(64) static CSaveData owned;
+    owned.GetDngStatus()->chara_weapons[0][0].item_no = ITEM_WEAPON_MACHO_SWORD;
+    expanded::SetPlainWeapons(true);
+    EXPECT_FALSE(expanded::WeaponOwned(owned.GetDngStatus(), owned.GetStockItem(), ITEM_WEAPON_MACHO_SWORD));
+    expanded::SetPlainWeapons(false);
+    EXPECT_TRUE(expanded::WeaponOwned(owned.GetDngStatus(), owned.GetStockItem(), ITEM_WEAPON_MACHO_SWORD));
 }

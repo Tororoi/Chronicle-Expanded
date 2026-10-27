@@ -21,7 +21,7 @@ WEAPON_HAVE *Maneater(CUserStatus &status, int chara) {
         return nullptr;
     }
     WEAPON_HAVE &weapon = status.chara_weapons[chara][slot];
-    if (chara == CHARA_TOAN && weapon.item_no == ITEM_WEAPON_MANEATER) {
+    if (chara == CHARA_TOAN && weapon.item_no == ITEM_WEAPON_MANEATER && !PlainWeapons()) {
         return &weapon;
     }
     if (chara == CHARA_XIAO && weapon.item_no == ITEM_WEAPON_SUPER_STEVE && SphereWeapon(weapon) == ITEM_WEAPON_MANEATER) {

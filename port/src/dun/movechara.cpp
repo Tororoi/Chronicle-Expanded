@@ -84,6 +84,7 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/debug/stage.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/enemies/miniboss_loot.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
@@ -1872,7 +1873,11 @@ PORT_OVERRIDE void DunMoveChara() {
                     break;
                 case BT_REQUEST_ENTRANCE_WINDOW:
                     BtEventInfo.request = BT_REQUEST_NONE;
+#ifdef CHRONICLE_EXPANDED
+                    InitDunEnterMenu(0x17, selectMapNo, expanded::StageEntranceFloor());
+#else
                     InitDunEnterMenu(0x17, selectMapNo, -1);
+#endif
                     BtGameModeFlag = BT_GAME_MODE_ENTRANCE_MENU;
                     break;
                 case BT_REQUEST_ESCAPE_WINDOW:

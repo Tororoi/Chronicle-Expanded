@@ -18,13 +18,19 @@ void DungeonShotsStep(CMonstorUnit &unit);
 // A floor's monsters loaded (BtLoadMonstor, after its kinds were set up).
 void DungeonFloorLoaded(CMonstorUnit &unit);
 
+// The party's status taken up as a dungeon visit begins (GameInit, after UserStatus->Init): a stage's weapons.
+void DungeonStatusReady();
+
+// The top of a dungeon frame (GameLoop): a stage's party member brought out.
+void DungeonFrameBegins();
+
 // The floor's monsters put back (CleanViewMonstor): confusion ends (its stars dropped when drop_stars), Expanded's
 // shots stop and a flash's charge and blinding end.
 void DungeonMonstersCleared(bool drop_stars);
 
 // A step the monsters take unpaused (before motionDrive): the clocks poison and confusion count by, the weapons'
-// curses, the Solar Flash's charge and blinding, the Cactus's Desert Bloom, Hercules' Wrath's Air Strike, and the Wise
-// Owl Sword's watch for key holders.
+// curses, the Solar Flash's charge and blinding, the Cactus's Desert Bloom, Hercules' Wrath's Air Strike, the Wise
+// Owl Sword's watch for key holders, a stage's steps and the event log's reading of the party.
 void DungeonMonstersTick();
 
 // A step after the player's pellets have stepped (motionDrive), as the mod's pellet catcher runs: the Divine Beast cat.

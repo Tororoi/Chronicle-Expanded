@@ -15,7 +15,7 @@ bool MoonlitFocusWeapon(int weapon_no) {
 } // namespace
 
 bool MoonlitFocusSword() {
-    return NowWeaponHave != nullptr && MoonlitFocusWeapon(NowWeaponHave->item_no);
+    return MoonlitFocusWeapon(HeldWeapon());
 }
 
 bool MoonlitFocusSphere() {

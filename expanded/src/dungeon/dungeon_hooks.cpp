@@ -1,6 +1,8 @@
 #include "expanded/dungeon/dungeon_hooks.hpp"
 
 #include "dun/gameloop.hpp"
+#include "expanded/debug/event_log.hpp"
+#include "expanded/debug/stage.hpp"
 #include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/dungeon/ground_shadow.hpp"
 #include "expanded/dungeon/navigation.hpp"
@@ -86,6 +88,15 @@ void DungeonFloorLoaded(CMonstorUnit &unit) {
     SteveLinesFloorLoaded(unit);
     AtlaDropsFloorLoaded();
     AtlamilliaFloorLoaded();
+    EventLogFloorLoaded();
+}
+
+void DungeonStatusReady() {
+    StageStatusReady();
+}
+
+void DungeonFrameBegins() {
+    StageFrame();
 }
 
 void DungeonMonstersCleared(bool drop_stars) {
@@ -122,6 +133,8 @@ void DungeonMonstersTick() {
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
+    StageStep();
+    EventLogStep();
 }
 
 void PlayerShotsStepped() {
@@ -145,6 +158,7 @@ void MonsterDrawn(CMonstorUnit &unit, int monster) {
 }
 
 bool MonsterKilled(const CMonstorUnit &unit, int monster) {
+    EventLogKilled(unit, monster);
     BossRecordKill(unit, monster);
     VampireKill(unit, monster);
     return BossCastCountsKill(monster);
@@ -242,6 +256,7 @@ void MonsterPoisoned(const MONSTOR &target) {
 }
 
 void MonsterDamaged(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount) {
+    EventLogDamaged(unit, monster, amount);
     CactusMonsterDamaged(unit, monster, hit, amount);
 }
 

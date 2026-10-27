@@ -1,0 +1,13 @@
+# Lock on, guard (the decoy appears, then the five-second charge), step back and aside while it charges, let go once
+# primed, and swing: the strike lands on the decoy. Record from 600 for 920 frames.
+600 128 128 128 255
+650 circle 128 128 128 255
+656 128 128 128 255
+670 r1 128 128 128 255
+695 r1 128 255 128 255
+820 r1 255 128 128 255
+920 r1 128 128 128 255
+1020 128 128 128 255
+1045 cross 128 128 128 255
+1050 128 128 128 255
+1520

@@ -65,3 +65,20 @@ TEST(SuperSteve, SlingshotSphereLendsItsPellet) {
     weapon.attach[1].sphere_weapon_no = ITEM_WEAPON_BASELARD;
     EXPECT_EQ(PelletWeapon(), ITEM_WEAPON_SUPER_STEVE);
 }
+
+// Plain weapons: nothing is wielded, channelled or owned as Expanded's effects ask, and back after.
+TEST(SuperSteve, PlainWeaponsWieldNothing) {
+    WEAPON_HAVE weapon = SuperSteve(ITEM_WEAPON_BASELARD);
+    Wielding wielding(weapon);
+    SetPlainWeapons(true);
+    EXPECT_TRUE(PlainWeapons());
+    EXPECT_EQ(HeldWeapon(), 0);
+    EXPECT_EQ(SphereWeapon(weapon), 0);
+    EXPECT_EQ(SuperSteveSphere(), 0);
+    EXPECT_FALSE(WeaponWielded(ITEM_WEAPON_SUPER_STEVE));
+    EXPECT_FALSE(WeaponActive(ITEM_WEAPON_BASELARD));
+    SetPlainWeapons(false);
+    EXPECT_EQ(HeldWeapon(), ITEM_WEAPON_SUPER_STEVE);
+    EXPECT_TRUE(WeaponWielded(ITEM_WEAPON_SUPER_STEVE));
+    EXPECT_TRUE(WeaponActive(ITEM_WEAPON_BASELARD));
+}

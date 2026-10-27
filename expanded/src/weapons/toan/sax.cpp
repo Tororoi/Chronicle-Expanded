@@ -63,7 +63,7 @@ int FineFareTier() {
         return kNone;
     }
 
-    Tier tier = TierOf(NowWeaponHave->item_no);
+    Tier tier = TierOf(HeldWeapon());
     return tier != kNone ? tier : TierOf(SuperSteveSphere());
 }
 

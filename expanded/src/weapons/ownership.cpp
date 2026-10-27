@@ -1,6 +1,7 @@
 #include "expanded/weapons/ownership.hpp"
 
 #include "dngstatusdata.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #include "savedata.hpp"
 #include "stockitem.hpp"
 #include "userstatus.hpp"
@@ -31,7 +32,7 @@ int WeaponsOwned(int weapon_no) {
 }
 
 int WeaponsOwned(const CUserStatus *status, const CStockItem *stock, int weapon_no) {
-    if (weapon_no <= 0) {
+    if (weapon_no <= 0 || PlainWeapons()) {
         return 0;
     }
 

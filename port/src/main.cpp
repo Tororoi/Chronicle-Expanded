@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <format>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -64,6 +65,9 @@ void TouchOverlayPoll();
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/debug/enemy_roster.hpp"
+#include "expanded/debug/event_log.hpp"
+#include "expanded/debug/stage.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #endif
 
 int  EditInit(void *param);
@@ -94,6 +98,9 @@ struct Options {
     const char  *font = nullptr;
 #ifdef CHRONICLE_EXPANDED
     const char  *roster = nullptr;
+    const char  *stage = nullptr;
+    const char  *event_log = nullptr;
+    bool         plain_weapons = false;
 #endif
 };
 
@@ -135,6 +142,11 @@ Options g_options;
 #ifdef CHRONICLE_EXPANDED
                  "  --roster KIND,...  debug mode: every dungeon floor lays out these MonstorTable kinds,\n"
                  "                     a trailing ! spawning one at most once (20!,60)\n"
+                 "  --stage FILE       start a staged recording: the save's game on a dungeon floor with a\n"
+                 "                     party member, weapon and monsters set out (DC_STAGE); see\n"
+                 "                     expanded/docs/recording.md\n"
+                 "  --plain-weapons    Expanded's weapon effects off, for a recording's before (DC_PLAIN_WEAPONS=1)\n"
+                 "  --event-log FILE   write damage, kills, life, weapon HP and sounds as JSON lines (DC_EVENT_LOG)\n"
 #endif
                  ,
                  program);
@@ -185,6 +197,12 @@ Options ParseOptions(int argc, const char **argv) {
 #ifdef CHRONICLE_EXPANDED
         } else if (arg == "--roster") {
             options.roster = value();
+        } else if (arg == "--stage") {
+            options.stage = value();
+        } else if (arg == "--event-log") {
+            options.event_log = value();
+        } else if (arg == "--plain-weapons") {
+            options.plain_weapons = true;
 #endif
         } else if (arg == "--fast-load") {
             options.fast_load = true;
@@ -444,6 +462,29 @@ int Run(int argc, const char **argv) {
         std::exit(kExitUsage);
     }
 #ifdef CHRONICLE_EXPANDED
+    static std::string stage_jump;
+    if (options.stage == nullptr) {
+        options.stage = std::getenv("DC_STAGE");
+    }
+    if (std::string why; options.stage != nullptr && !expanded::SetStage(options.stage, &why)) {
+        std::fprintf(stderr, "bad --stage %s: %s\n", options.stage, why.c_str());
+        std::exit(kExitUsage);
+    }
+    // A stage with a dungeon starts in it, as --jump dungeon:<n> does.
+    if (const expanded::Stage *stage = expanded::ActiveStage(); stage != nullptr && stage->dungeon >= 0 &&
+                                                                (options.jump == nullptr || *options.jump == '\0')) {
+        stage_jump = std::format("dungeon:{}", stage->dungeon);
+        options.jump = stage_jump.c_str();
+    }
+    if (options.event_log == nullptr) {
+        options.event_log = std::getenv("DC_EVENT_LOG");
+    }
+    if (std::string why; options.event_log != nullptr && !expanded::SetEventLog(options.event_log, &why)) {
+        std::fprintf(stderr, "bad --event-log %s: %s\n", options.event_log, why.c_str());
+        std::exit(kExitUsage);
+    }
+    const char *plain = std::getenv("DC_PLAIN_WEAPONS");
+    expanded::SetPlainWeapons(options.plain_weapons || (plain != nullptr && *plain != '\0' && *plain != '0'));
     if (std::string why; options.roster != nullptr && !expanded::SetDebugRoster(options.roster, &why)) {
         std::fprintf(stderr, "bad --roster %s: %s\n", options.roster, why.c_str());
         std::exit(kExitUsage);

@@ -23,6 +23,8 @@ constexpr int kIconX = 29;
 constexpr int kIconY = 399;
 constexpr int kIconSize = 20;
 
+bool plain = false;
+
 // The active character's equipped weapon record.
 const WEAPON_HAVE *EquippedWeapon() {
     if (UserStatus == nullptr) {
@@ -46,6 +48,9 @@ int SuperSteveSphere(const WEAPON_HAVE *weapon) {
 
 // A weapon holds one SynthSphere at most, so the first is the one.
 int SphereWeapon(const WEAPON_HAVE &weapon) {
+    if (plain) {
+        return 0;
+    }
     for (const ATTACH_LIST &attach : weapon.attach) {
         if (attach.item_no == ITEM_ATTACH_SYNTHESIS_SPHERE) {
             return attach.sphere_weapon_no;
@@ -59,8 +64,20 @@ int SuperSteveSphere() {
     return SuperSteveSphere(NowWeaponHave);
 }
 
+int HeldWeapon() {
+    return plain || NowWeaponHave == nullptr ? 0 : NowWeaponHave->item_no;
+}
+
 bool WeaponWielded(int weapon_no) {
-    return NowWeaponHave != nullptr && NowWeaponHave->item_no == weapon_no;
+    return weapon_no != 0 && HeldWeapon() == weapon_no;
+}
+
+void SetPlainWeapons(bool on) {
+    plain = on;
+}
+
+bool PlainWeapons() {
+    return plain;
 }
 
 bool WeaponActive(int weapon_no) {

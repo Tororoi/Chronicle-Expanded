@@ -23,7 +23,7 @@ bool HerosCourage(int chara) {
         return false;
     }
     const WEAPON_HAVE &weapon = UserStatus->chara_weapons[chara][slot];
-    return weapon.item_no == ITEM_WEAPON_BRAVE_ARK ||
+    return (weapon.item_no == ITEM_WEAPON_BRAVE_ARK && !PlainWeapons()) ||
            (weapon.item_no == ITEM_WEAPON_SUPER_STEVE && SphereWeapon(weapon) == ITEM_WEAPON_BRAVE_ARK);
 }
 
