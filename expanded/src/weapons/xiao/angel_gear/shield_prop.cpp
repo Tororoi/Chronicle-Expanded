@@ -208,7 +208,7 @@ bool PropLoad() {
         static bool logged = false;
         if (!logged) {
             logged = true;
-            std::printf("angel gear: no shield, %s could not be loaded\n", path.c_str());
+            std::fprintf(stderr, "angel gear: no shield, %s could not be loaded\n", path.c_str());
         }
         return false;
     }

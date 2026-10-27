@@ -6,7 +6,7 @@ class CSHOT_EFFECT;
 
 namespace expanded::angel_gear {
 
-// The Guardian Reflector's catch and return, as the mod's ShotReflect and ReflectedHits have them, a frame at a time:
+// The Guardian Reflector's catch and return, a frame at a time:
 //   - Claim: a monster's shot in flight within kClaimRadius of Xiao, closing on her, with the flight left to reach the pouch
 //     (a shot that flies for good never is), is claimed: held as a shot that has just landed is held (it hurts no one), what
 //     it is kept (its kind, speed, damage).

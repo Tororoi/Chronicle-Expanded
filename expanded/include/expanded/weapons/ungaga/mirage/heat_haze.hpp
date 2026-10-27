@@ -2,7 +2,7 @@
 
 namespace expanded::mirage {
 
-// The Mirage copy's heat shimmer, as the mod's HeatHaze draws it: the game's own heat raster over a fire (CFireOmni::DrawRaster,
+// The Mirage copy's heat shimmer: the game's own heat raster over a fire (CFireOmni::DrawRaster,
 // the one framebuffer distortion it has), drawn once a frame at the copy's root, kHazeLift up (the raster sits high, built to
 // rise over a flame; the draw adds the fire's own 3), kHazeWidth by kHazeHeight units (a fire's is 15 by 16), its sway
 // kHazeSway times a fire's at the strength it is given (0 none to 1 full) and its wave stepping kHazeWaveStep at most a

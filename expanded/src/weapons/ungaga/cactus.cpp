@@ -37,7 +37,6 @@ namespace {
 
 using namespace cactus;
 
-constexpr int kKickAway = 2;    // thrown away from the hit's origin
 constexpr int kHitReserve = 16; // free hit records a prick leaves the game
 
 // The smoke's frames as game frames from the summon.
@@ -194,7 +193,7 @@ void Prick(CMonstorUnit &unit, int monster) {
     }
     record->weapon_flags |= kPrickMark;
     float origin[4] = {bloom.spot[0], bloom.spot[1], bloom.spot[2], 1.0f};
-    NowColData->SetKickBack(origin, kBloomKick.speed, kBloomKick.decay, kKickAway);
+    NowColData->SetKickBack(origin, kBloomKick.speed, kBloomKick.decay, kKnockbackFromOrigin);
 }
 
 void Pricks() {
@@ -324,12 +323,12 @@ void End() {
     bloom = Bloom{};
 }
 
-} // namespace
-
-bool DesertBloomActive() {
+bool Active() {
     return UserStatus != nullptr && NowMonstorUnit != nullptr && (UserStatus->cur_chara == CHARA_UNGAGA || UserStatus->cur_chara == CHARA_XIAO) &&
            WeaponActive(ITEM_WEAPON_CACTUS);
 }
+
+} // namespace
 
 bool DesertBloomUp() {
     return bloom.up;
@@ -356,7 +355,7 @@ bool DesertBloomPrick(const COLLISION_HIT &hit) {
 }
 
 void DesertBloomStep() {
-    bool active = DesertBloomActive();
+    bool active = Active();
     if (bloom.chara >= 0 && (!active || UserStatus->cur_chara != bloom.chara)) {
         End(); // a change of wielder ends it: the next one's starts afresh
     }

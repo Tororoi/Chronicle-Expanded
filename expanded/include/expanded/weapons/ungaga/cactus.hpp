@@ -53,7 +53,6 @@ struct BloomShape {
 inline constexpr BloomShape kBloomCactus = {3.0f, 11.7f, 6.8f, 6.0f, 0.0f, 0.0f, 0.0f, 1.8f};
 inline constexpr BloomShape kBloomTrees = {0.7f, 74.3f, 74.3f, 9.5f, -6.0f, -1.0f, std::numbers::pi_v<float> / 2.0f, 0.0f};
 
-bool DesertBloomActive();
 // Whether a copy stands (fading included), its frames since it was raised, its size now, where it stands (its spot: x,
 // ground, z) and how solid it is (0 to 1).
 bool  DesertBloomUp();

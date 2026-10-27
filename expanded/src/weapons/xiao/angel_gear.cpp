@@ -8,6 +8,7 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/abilities.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_prop.hpp"
@@ -24,7 +25,6 @@ namespace {
 
 using namespace angel_gear;
 
-constexpr int   kHealAbility = 0x800; // the weapon flags' Heal
 constexpr float kFullGauge = 100.0f;
 constexpr float kXiaoGaugeRate = 1.5f; // the refill's own rate for Xiao
 constexpr float kOutOfReach = 1.0e6f;
@@ -239,7 +239,7 @@ void GuardianReflectorPlayerPoint(float *point) {
 
 void AngelGearHealTick() {
     if (UserStatus == nullptr || UserStatus->cur_chara != CHARA_XIAO || !WeaponActive(ITEM_WEAPON_ANGE_GEAR) || NowWeaponHave == nullptr ||
-        (NowWeaponHave->flags & kHealAbility) == 0) {
+        (NowWeaponHave->flags & kAbilityHeal) == 0) {
         return;
     }
     if (UserStatus->step_disable != 0 || BtActStatus.in_presentation != 0 || BtEventMode != 0) {

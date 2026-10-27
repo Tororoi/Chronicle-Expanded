@@ -47,7 +47,6 @@ CCharacter weapon;
 alignas(64) u_long128 arena_store[kArenaQuads];
 CDataAlloc2<1> arena;
 
-
 bool WeaponCurrent() {
     return clone.armed && NowWeapon != nullptr && NowWeapon->frame == clone.weapon_source && NowWeaponHave != nullptr &&
            NowWeaponHave->item_no == clone.weapon_item;
@@ -103,7 +102,7 @@ bool CloneLoad() {
     CCharacter *body = EnterFloorCopy(charaNameTbl[chara], kBaseCfg);
     if (body == nullptr || body->frame == nullptr) {
         clone.failed = chara;
-        std::printf("mirage: no copy, %s could not be loaded\n", charaNameTbl[chara]);
+        std::fprintf(stderr, "mirage: no copy, %s could not be loaded\n", charaNameTbl[chara]);
         return false;
     }
     CloneDown();

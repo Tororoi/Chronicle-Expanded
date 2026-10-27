@@ -13,6 +13,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
+#include "expanded/weapons/abilities.hpp"
 #include "expanded/weapons/xiao/angel_gear.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_prop.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_ring.hpp"
@@ -32,7 +33,6 @@ namespace gear = expanded::angel_gear;
 using expanded::test::TestFloor;
 using expanded::test::Wielding;
 
-constexpr int kHealAbility = 0x800;
 constexpr int kGoo = 0x800;
 
 // The weapon's copy, stood in for: its grip, a bone 2 up, and under that the pouch and the muzzle (3 up), one block of frames
@@ -619,7 +619,7 @@ TEST_F(GuardianReflector, WithTheHealAbilityEachTickHealsTheRestOfTheParty) {
     status.hp[CHARA_RUBY] = 100; // full
     expanded::HealTicked();      // no Heal ability (stripped): no one
     EXPECT_EQ(status.hp[CHARA_GORO], 40);
-    wielding_.weapon().flags = kHealAbility;
+    wielding_.weapon().flags = expanded::kAbilityHeal;
     expanded::HealTicked();
     EXPECT_EQ(status.hp[CHARA_TOAN], 0);
     EXPECT_EQ(status.hp[CHARA_RUBY], 100);
@@ -637,13 +637,13 @@ TEST_F(GuardianReflectorBySuperSteve, ItsSpheresHealHealsTheParty) {
     floor_.status().hp[CHARA_GORO] = 40;
     expanded::HealTicked();
     EXPECT_EQ(floor_.status().hp[CHARA_GORO], 40);
-    wielding_.weapon().flags = kHealAbility; // the sphere's Heal, among Super Steve's live abilities
+    wielding_.weapon().flags = expanded::kAbilityHeal; // the sphere's Heal, among Super Steve's live abilities
     expanded::HealTicked();
     EXPECT_EQ(floor_.status().hp[CHARA_GORO], 41);
 }
 
 TEST_F(GuardianReflectorWithTheShooter, AnotherWeaponHealsNoOneElse) {
-    wielding_.weapon().flags = kHealAbility;
+    wielding_.weapon().flags = expanded::kAbilityHeal;
     floor_.status().max_hp[CHARA_GORO] = 100;
     floor_.status().hp[CHARA_GORO] = 40;
     expanded::HealTicked();

@@ -9,6 +9,7 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/abilities.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "healeffect.hpp"
@@ -23,7 +24,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int   kHealAbility = 0x800; // the weapon flags' Heal: the bit the game's tick heals for
 constexpr float kFlashSpeed = 60.0f, kFlashCount = 1.0f;
 
 struct Grace {
@@ -69,7 +69,7 @@ bool GuardianGraceOn() {
     if (UserStatus == nullptr || UserStatus->cur_chara != CHARA_XIAO || NowWeaponHave == nullptr || !GuardianGraceCarried()) {
         return false;
     }
-    bool ability = (NowWeaponHave->flags & kHealAbility) != 0 || Inherited();
+    bool ability = (NowWeaponHave->flags & kAbilityHeal) != 0 || Inherited();
     return ability && UserStatus->hp[CHARA_XIAO] > 0 && Guarding();
 }
 

@@ -4,7 +4,7 @@ class CCharacter;
 
 namespace expanded {
 
-// Angel Gear "Guardian Reflector", as the mod has it: with the Angel Gear in hand, or Super Steve carrying its SynthSphere,
+// Angel Gear "Guardian Reflector": with the Angel Gear in hand, or Super Steve carrying its SynthSphere,
 // while Xiao guards a giant copy of the slingshot in hand stands in front of her (angel_gear/shield_prop.hpp), fading in
 // over kReflectorFadeIn with the change jingle once solid, and away over kReflectorFadeOut once she lets go. It turns about
 // her to face the nearest shot coming at her, else the nearest monster, else ahead, and while it fires, the monster it fires

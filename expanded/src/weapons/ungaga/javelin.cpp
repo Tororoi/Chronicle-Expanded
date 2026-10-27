@@ -8,15 +8,15 @@ namespace expanded {
 
 namespace {
 
+bool Active() {
+    return WeaponActive(ITEM_WEAPON_JAVELIN);
+}
+
 bool Hunted(const CMonstorUnit &unit, int monster) {
-    return MarineHunterActive() && unit.model[unit.monster[monster].base_model].attachment_kind == MONSTER_FAMILY_SEA;
+    return Active() && unit.model[unit.monster[monster].base_model].attachment_kind == MONSTER_FAMILY_SEA;
 }
 
 } // namespace
-
-bool MarineHunterActive() {
-    return WeaponActive(ITEM_WEAPON_JAVELIN);
-}
 
 int MarineHunterDefense(const CMonstorUnit &unit, int monster, int defense) {
     return Hunted(unit, monster) ? 0 : defense;

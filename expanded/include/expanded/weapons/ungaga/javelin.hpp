@@ -9,8 +9,6 @@ namespace expanded {
 // monster killed then gives kMarineHunterAbs times its ABS.
 inline constexpr int kMarineHunterAbs = 2;
 
-bool MarineHunterActive();
-
 // A monster's defense and hardness as CheckDmg reads them, its own as the arguments.
 int MarineHunterDefense(const CMonstorUnit &unit, int monster, int defense);
 int MarineHunterHardness(const CMonstorUnit &unit, int monster, int hardness);

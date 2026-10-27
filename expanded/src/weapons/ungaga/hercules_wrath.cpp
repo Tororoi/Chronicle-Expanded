@@ -323,12 +323,12 @@ float GoldRamp(float charge) {
     return static_cast<float>((std::exp(kAirStrikeGoldCurve * charge) - 1.0) / (std::exp(kAirStrikeGoldCurve) - 1.0));
 }
 
-} // namespace
-
-bool AirStrikeActive() {
+bool Active() {
     return UserStatus != nullptr && (UserStatus->cur_chara == CHARA_UNGAGA || UserStatus->cur_chara == CHARA_XIAO) &&
            WeaponActive(ITEM_WEAPON_HERCULES_WRATH);
 }
+
+} // namespace
 
 AirStrikePhase AirStrikeState() {
     return state.phase;
@@ -343,7 +343,7 @@ BT_SHOT_EFFECT *AirStrikeSparkle() {
 }
 
 void AirStrikeStep() {
-    bool active = AirStrikeActive();
+    bool active = Active();
     if (state.chara >= 0 && (!active || UserStatus->cur_chara != state.chara)) {
         Cancel("the weapon was put away");
         SceneLightReset();
@@ -423,7 +423,7 @@ void AirStrikeStep() {
 }
 
 void AirStrikeFired(const CSHOT &shots, int slot) {
-    if (state.phase != AirStrikePhase::kPrimed || !Xiao() || !AirStrikeActive() || MirageOutroAlpha() <= 0.0f) {
+    if (state.phase != AirStrikePhase::kPrimed || !Xiao() || !Active() || MirageOutroAlpha() <= 0.0f) {
         return;
     }
     state.phase = AirStrikePhase::kFlying;

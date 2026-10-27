@@ -5,7 +5,7 @@ class CCloth;
 
 namespace expanded {
 
-// The cape the Super Steve spirit cat wears (and its domino mask), as the mod has them: the cloth the cat's pack builds
+// The cape the Super Steve spirit cat wears (and its domino mask): the cloth the cat's pack builds
 // (CLOTH catcape.clo) on its cat_cape frame, taken off the cat's own cloth list so only a caped cat steps and draws it.
 // Its ties, collision capsules and wind are sized to the cat; each frame its rest shape is blown back off the cat's back
 // (kSpiritCapeLift at the hem, eased along the hang, a swell running collar to hem every kSpiritCapeRippleFrames) and its
@@ -34,8 +34,6 @@ inline constexpr SpiritCapeLook kSpiritCapeLooks[6] = {
 // The cape taken from the cat just loaded, and its mask frame left out of the cat's own draw; false when the pack has
 // none.
 bool SpiritCapeTake(CCharacter &cat);
-// The cape for tests, or null.
-CCloth *SpiritCape();
 // Sized to a cat scale times its own.
 void SpiritCapeSize(float scale);
 // Every particle put on its rest shape where the cat now is.

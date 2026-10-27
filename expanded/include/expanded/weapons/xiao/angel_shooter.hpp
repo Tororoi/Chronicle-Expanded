@@ -4,7 +4,7 @@ class CCharacter;
 
 namespace expanded {
 
-// Angel Shooter "Guardian Grace", as the mod has it: with the Angel Shooter or the Angel Gear in hand (its Heal ability not
+// Angel Shooter "Guardian Grace": with the Angel Shooter or the Angel Gear in hand (its Heal ability not
 // stripped; the Angel Gear always has it, abilities.hpp), or Super Steve carrying either's SynthSphere, while Xiao guards
 // the Heal ability's tick comes every kGuardianGraceFrames (kGuardianGraceGearFrames with the Angel Gear's): its counter is
 // held no further than that from the tick, so the game's own +1 HP comes each time (Super Steve's own record lacks the
