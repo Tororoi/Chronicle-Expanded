@@ -838,7 +838,7 @@ std::vector<Track> BuildTracks(const ChrPack &pack, std::string_view mot, int co
 
 const ChrRecord *FindCfg(const ChrPack &pack) {
     for (const ChrRecord &record : pack.records) {
-        if (record.name.size() >= 4 && EqualsFolded(std::string_view(record.name).substr(record.name.size() - 4), ".cfg")) {
+        if (EndsFolded(record.name, ".cfg")) {
             return &record;
         }
     }

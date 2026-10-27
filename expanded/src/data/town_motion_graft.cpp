@@ -1,16 +1,9 @@
 #include <algorithm>
-#include <bit>
-#include <cmath>
 #include <format>
-#include <fstream>
 #include <functional>
-#include <limits>
 #include <map>
-#include <numbers>
 #include <set>
-#include <stdexcept>
 #include <string>
-#include <unordered_map>
 
 #include "expanded/data/model_parts.hpp"
 #include "expanded/data/town_rig.hpp"
@@ -259,7 +252,7 @@ void InjectShadow(ChrPack &base, const ChrPack &donor, const TownShadowInject &i
         base.records.push_back(*record);
     }
     ChrRecord  &cfg = base.records[CfgMotionsOf(base).cfg];
-    std::string text = Text(cfg.Payload());
+    std::string text = ToText(cfg.Payload());
     std::size_t va = IndexOf(text, "\r\n", IndexOf(text, "VERTEX_ANIME")) + 2;
     text.insert(va, "SHADOW_VERTEX_ANIME 1\r\n");
     std::size_t eol = IndexOf(text, "\r\n", IndexOf(text, "MODEL ")) + 2;

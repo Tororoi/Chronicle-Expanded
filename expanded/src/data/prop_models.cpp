@@ -28,10 +28,6 @@ constexpr std::size_t kMdsNodeTable = 0xC, kMdsNodeCount = 8, kMdsNode = 0x70, k
 constexpr std::size_t kMdsOneNode = 0x80; // the header and one frame; the mesh follows
 constexpr std::size_t kPackEnd = 0x50;    // the zero record that ends a pack
 
-Bytes Text(const std::string &text) {
-    return Bytes(text.begin(), text.end());
-}
-
 // A character's cfg: its one bank, its model (and shadow model, when given), no motion.
 std::string Cfg(const std::string &title, const std::string &bank, const std::string &model, const std::string &shadow = "") {
     std::string cfg = "//" + title + "\r\nIMG 0,\"" + bank + "\"\r\nIMG_END\r\nMATERIAL_ANIME 0\r\nVERTEX_ANIME 0\r\n\r\nMODEL \"" + model + "\"\r\n";
@@ -156,7 +152,7 @@ Bytes BuildQueensTrees(std::span<const unsigned char> scene, std::span<const uns
     bank.magic = source.magic;
     bank.entries.emplace_back(kTreesPicture, source.Block(kTreesPicture));
     std::string name = kTreesSubFile;
-    return Pack({ChrRecord::Make(kQueensTreesCfg, Text(Cfg("queens trees", name + ".img", name + ".mds"))), ChrRecord::Make(name + ".mds", mds),
+    return Pack({ChrRecord::Make(kQueensTreesCfg, ToBytes(Cfg("queens trees", name + ".img", name + ".mds"))), ChrRecord::Make(name + ".mds", mds),
                  ChrRecord::Make(name + ".img", bank.Build())});
 }
 
@@ -198,7 +194,7 @@ Bytes BuildShadowDisc(std::span<const unsigned char> rock) {
     ImgBank bank;
     bank.magic = {'I', 'M', 'G', 0};
     bank.entries.emplace_back(kRockPicture, tim8::Resample(source.Block(kRockPicture), source.magic[2] == '2', kShadowDiscStandIn));
-    return Pack({ChrRecord::Make(kShadowDiscCfg, Text(Cfg("shadow disc", "disc.img", "disc.mds", "disc_shadow.mds"))),
+    return Pack({ChrRecord::Make(kShadowDiscCfg, ToBytes(Cfg("shadow disc", "disc.img", "disc.mds", "disc_shadow.mds"))),
                  ChrRecord::Make("disc.mds", disc), ChrRecord::Make("disc_shadow.mds", disc), ChrRecord::Make("disc.img", bank.Build())});
 }
 

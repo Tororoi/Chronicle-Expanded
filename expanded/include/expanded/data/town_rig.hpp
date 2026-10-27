@@ -22,13 +22,8 @@ namespace expanded::town {
 using Vec4 = std::array<double, 4>;
 using Span = std::pair<int, int>;
 
-// Throws what went wrong; whether text ends with tail (case folded); bytes as text and back; where what is in text
-// from from, throwing when the cfg lacks it.
-[[noreturn]] void Bad(const std::string &what);
-bool              EndsFolded(std::string_view text, std::string_view tail);
-std::string       Text(std::span<const unsigned char> bytes);
-Bytes             ToBytes(std::string_view text);
-std::size_t       IndexOf(std::string_view text, std::string_view what, std::size_t from = 0);
+// Where what is in text from from, throwing when the cfg lacks it.
+std::size_t IndexOf(std::string_view text, std::string_view what, std::size_t from = 0);
 
 // ------------------------------------------------------------------ cfg text
 

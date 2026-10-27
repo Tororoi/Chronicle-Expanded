@@ -572,10 +572,6 @@ std::string Cfg() {
     return text;
 }
 
-Bytes ToBytes(const std::string &text) {
-    return Bytes(text.begin(), text.end());
-}
-
 } // namespace
 
 Bytes BuildSpiritCatModel(std::span<const unsigned char> cat_bytes, std::span<const unsigned char> town, std::span<const unsigned char> dran,

@@ -1,26 +1,15 @@
 #include "expanded/data/town_rig.hpp"
 
 #include <algorithm>
-#include <bit>
 #include <cmath>
 #include <format>
-#include <fstream>
-#include <functional>
-#include <limits>
-#include <map>
-#include <numbers>
-#include <set>
-#include <stdexcept>
 #include <string>
-#include <unordered_map>
 
 #include "expanded/data/model_parts.hpp"
 
 namespace expanded::town {
 
 namespace {
-
-namespace fs = std::filesystem;
 
 // A step of the few cfg patterns: a literal, [ \t]+, [ \t]*, "([^"]+)" (kept or skipped).
 struct Step {
@@ -91,22 +80,6 @@ std::optional<std::string> Search(std::string_view text, std::initializer_list<S
 
 } // namespace
 
-[[noreturn]] void Bad(const std::string &what) {
-    throw std::runtime_error(what);
-}
-
-bool EndsFolded(std::string_view text, std::string_view tail) {
-    return text.size() >= tail.size() && EqualsFolded(text.substr(text.size() - tail.size()), tail);
-}
-
-std::string Text(std::span<const unsigned char> bytes) {
-    return std::string(bytes.begin(), bytes.end());
-}
-
-Bytes ToBytes(std::string_view text) {
-    return Bytes(text.begin(), text.end());
-}
-
 std::size_t IndexOf(std::string_view text, std::string_view what, std::size_t from) {
     std::size_t at = text.find(what, from);
     if (at == std::string_view::npos) {
@@ -131,13 +104,13 @@ CfgMotions CfgMotionsOf(const ChrPack &pack, std::string_view prefer) {
     }
     CfgMotions result{.cfg = candidates[0]};
     for (std::size_t i : candidates) {
-        std::string text = Text(pack.records[i].Payload());
+        std::string text = ToText(pack.records[i].Payload());
         if (text.contains("KEY_START") && text.contains("MOTION")) {
             result.cfg = i;
             break;
         }
     }
-    std::string text = Text(pack.records[result.cfg].Payload());
+    std::string text = ToText(pack.records[result.cfg].Payload());
     using enum Step::Kind;
     auto body_mot = Search(text, {
                                      {Literal, "MOTION"},
@@ -180,15 +153,15 @@ CfgMotions CfgMotionsOf(const ChrPack &pack, std::string_view prefer) {
 
 std::string CfgBbp(const ChrRecord &cfg) {
     using enum Step::Kind;
-    auto bbp = Search(Text(cfg.Payload()), {
-                                               {Literal, "MOTION"},
-                                               {Blanks},
-                                               {Literal, "0,"},
-                                               {MaybeBlanks},
-                                               {SkipQuoted},
-                                               {Literal, ","},
-                                               {MaybeBlanks},
-                                               {Quoted}
+    auto bbp = Search(ToText(cfg.Payload()), {
+                                                 {Literal, "MOTION"},
+                                                 {Blanks},
+                                                 {Literal, "0,"},
+                                                 {MaybeBlanks},
+                                                 {SkipQuoted},
+                                                 {Literal, ","},
+                                                 {MaybeBlanks},
+                                                 {Quoted}
     });
     if (!bbp) {
         Bad(std::format("{} names no body .bbp", cfg.name));

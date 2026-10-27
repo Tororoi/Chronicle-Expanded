@@ -1,22 +1,13 @@
 #include "expanded/data/town_model.hpp"
 
 #include <algorithm>
-#include <bit>
-#include <cmath>
 #include <format>
-#include <fstream>
 #include <functional>
-#include <limits>
 #include <map>
-#include <numbers>
-#include <set>
-#include <stdexcept>
 #include <string>
-#include <unordered_map>
 
 #include "expanded/data/cfg_text.hpp"
 #include "expanded/data/data_build.hpp"
-#include "expanded/data/model_parts.hpp"
 #include "expanded/data/town_rig.hpp"
 
 namespace expanded {

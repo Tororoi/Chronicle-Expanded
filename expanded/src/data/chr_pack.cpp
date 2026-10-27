@@ -12,10 +12,6 @@ namespace expanded {
 
 namespace {
 
-[[noreturn]] void Bad(const std::string &what) {
-    throw std::runtime_error(what);
-}
-
 std::string_view Basename(std::string_view path) {
     std::size_t slash = path.find_last_of("/\\");
     return slash == std::string_view::npos ? path : path.substr(slash + 1);

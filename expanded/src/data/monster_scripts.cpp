@@ -147,12 +147,6 @@ void FunctionHeader(Bytes &out, std::size_t base) {
     out.resize(out.size() + 52, 0);
 }
 
-void Pad4(Bytes &out) {
-    while (out.size() % 4 != 0) {
-        out.push_back(0);
-    }
-}
-
 void Mark(Bytes &out) {
     out.insert(out.end(), kBakedScriptMark.begin(), kBakedScriptMark.end());
 }
@@ -204,9 +198,9 @@ Bytes GuardWake(std::span<const unsigned char> script, const Spec &spec, std::si
     }
     const Block &anchor = anchors[0];
     Bytes        out(script.begin(), script.end());
-    Pad4(out);
+    PadTo4(out);
     Mark(out);
-    Pad4(out);
+    PadTo4(out);
     std::size_t function = out.size();
     FunctionHeader(out, base);
     Bytes cells = Copy(script, anchor);
@@ -226,7 +220,7 @@ Bytes GuardWake(std::span<const unsigned char> script, const Spec &spec, std::si
 
 Bytes Replace(std::span<const unsigned char> script, const Spec &spec, std::size_t base, const std::vector<Block> &blocks, std::string &done) {
     Bytes out(script.begin(), script.end());
-    Pad4(out);
+    PadTo4(out);
     std::map<std::string, std::size_t> names;
     for (const Sphere &sphere : spec.spheres) {
         if (!names.contains(sphere.name)) {
@@ -235,7 +229,7 @@ Bytes Replace(std::span<const unsigned char> script, const Spec &spec, std::size
         }
     }
     Mark(out);
-    Pad4(out);
+    PadTo4(out);
     std::size_t function = out.size();
     FunctionHeader(out, base);
     for (const Sphere &sphere : spec.spheres) {
@@ -256,9 +250,9 @@ Bytes Replace(std::span<const unsigned char> script, const Spec &spec, std::size
 // Each _SET_BODY_COL becomes a call to a function of its own: the block as it was, the params, a return.
 Bytes Arm(std::span<const unsigned char> script, const Spec &spec, std::size_t base, const std::vector<Block> &blocks, std::string &done) {
     Bytes out(script.begin(), script.end());
-    Pad4(out);
+    PadTo4(out);
     Mark(out);
-    Pad4(out);
+    PadTo4(out);
     std::string functions;
     for (const Block &block : blocks) {
         std::size_t function = out.size();

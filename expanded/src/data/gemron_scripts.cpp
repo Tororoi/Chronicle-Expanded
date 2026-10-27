@@ -253,10 +253,10 @@ Bytes BuildAtlaGemronScript(std::span<const unsigned char> script) {
     std::copy_n(script.begin() + std::ptrdiff_t(sc - 24), 36, out.begin() + std::ptrdiff_t(other));      // push 0.3, push 0.0, CALL the shot
     std::copy_n(script.begin() + std::ptrdiff_t(sc + 12), 12, out.begin() + std::ptrdiff_t(other + 36)); // its drop
     Set32(out, jmp + 4, std::uint32_t(outer - cb));
-    std::size_t aim = (out.size() + 3) & ~std::size_t{3};
+    PadTo4(out);
+    std::size_t aim = out.size();
     Bytes       tail = AimCells(std::uint32_t(sites[0] - cb));
-    out.resize(aim + tail.size(), 0);
-    std::copy(tail.begin(), tail.end(), out.begin() + std::ptrdiff_t(aim));
+    out.insert(out.end(), tail.begin(), tail.end());
     Cell(out, std::size_t(hold), stb::kJump, std::uint32_t(aim - cb), 0); // to the aim
     return out;
 }

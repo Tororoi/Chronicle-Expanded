@@ -191,7 +191,6 @@ public:
             dtracks_[{t.node, t.chan}] = &t;
         }
         weights_all_ = LoadWeights(dran_pack, "c12a.wgt").at(Dn("obj1").i);
-        dran_pack_ = &dran_pack;
         dran_mds_ = dran_mds;
         cat_pack_ = &cat_pack;
     }
@@ -271,7 +270,6 @@ private:
     const Bytes                   &cat_mds_;
     const std::vector<RigNode>    &dran_nodes_;
     const Log                     &log_;
-    const ChrPack                 *dran_pack_ = nullptr;
     const ChrPack                 *cat_pack_ = nullptr;
     std::span<const unsigned char> dran_mds_;
 
@@ -1318,8 +1316,6 @@ WingData Graft::Build() {
     data.base = base_;
     data.parent = parent_;
     data.om = om;
-    data.frames_all.assign(frames_all.begin(), frames_all.end());
-    data.ref_frame = ref_frame;
     data.wref = wref;
     data.wcat = wcat;
     data.bind_open = bind_open;

@@ -54,8 +54,7 @@ struct WingData {
     std::vector<rig::RigNode>      nodes, cat_nodes;
     std::vector<rig::SkinMesh>     meshes;
     std::vector<rig::Track>        tracks;
-    int                            base = 0, parent = 0, ref_frame = 0;
-    std::vector<int>               frames_all;
+    int                            base = 0, parent = 0;
     std::map<std::string, WingSet> wing_sets;
     MdtMesh                        om;
     std::map<int, rig::M4>         wref;

@@ -1,14 +1,9 @@
 #include <algorithm>
-#include <bit>
 #include <cmath>
-#include <format>
-#include <fstream>
 #include <functional>
 #include <limits>
 #include <map>
 #include <numbers>
-#include <set>
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 
@@ -139,7 +134,7 @@ void GraftMeshNodes(ChrPack &base, const ChrPack &src, const TownMeshGraft &graf
             }
             Set32(node, kNodeMesh, static_cast<std::uint32_t>(chunks_at + chunks.size()));
             chunks.insert(chunks.end(), spl.begin() + mesh, spl.begin() + mesh + size);
-            chunks.resize((chunks.size() + 15) & ~std::size_t{15});
+            PadTo16(chunks);
         }
         nodes.insert(nodes.end(), node.begin(), node.end());
         nodes.resize(nodes.size() + mds::kName);
