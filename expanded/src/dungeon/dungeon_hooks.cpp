@@ -44,6 +44,7 @@
 #include "expanded/weapons/ungaga/cactus.hpp"
 #include "expanded/weapons/ungaga/de_sanga.hpp"
 #include "expanded/weapons/ungaga/halberd.hpp"
+#include "expanded/weapons/ungaga/hercules_wrath.hpp"
 #include "expanded/weapons/ungaga/javelin.hpp"
 #include "expanded/weapons/ungaga/mirage.hpp"
 #include "expanded/weapons/ungaga/scorpion.hpp"
@@ -117,6 +118,7 @@ void DungeonMonstersTick() {
     TornadoChargeStep();
     GuardianGraceStep();
     DesertBloomStep();
+    AirStrikeStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
@@ -193,6 +195,7 @@ void PelletFired(CSHOT &shots, int slot) {
     DragonShotFired(shots, slot);
     TornadoShotFired(shots, slot);
     SpiritBeastFired(shots, slot);
+    AirStrikeFired(shots, slot);
 }
 
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
@@ -202,6 +205,7 @@ void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
     TyphoonShotEnded(shots, slot, point, struck);
     RicochetShotEnded(shots, slot, point, struck);
     ChargingBullEnded(shots, slot);
+    AirStrikeEnded(shots, slot, point);
 }
 
 void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
@@ -242,7 +246,7 @@ void MonsterDamaged(const CMonstorUnit &unit, int monster, const COLLISION_HIT &
 }
 
 bool HitWearsWeapon(const COLLISION_HIT &hit) {
-    return !DesertBloomPrick(hit);
+    return !DesertBloomPrick(hit) && !UngagaBlastHit(hit);
 }
 
 void MonsterMoveChecked(CMonstorUnit &unit, int monster) {

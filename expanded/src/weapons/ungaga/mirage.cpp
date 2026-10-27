@@ -280,6 +280,21 @@ float MirageHazeGain() {
     return decoy.up ? Envelope(0, kMirageHazeRampFrames) : 0.0f;
 }
 
+float MirageOutroAlpha() {
+    if (!decoy.up) {
+        return 0.0f;
+    }
+    if (decoy.handoff) {
+        return 1.0f;
+    }
+    float out = static_cast<float>(decoy.life - decoy.age - kMirageHazeRampFrames);
+    return std::clamp(out / kMirageFadeFrames, 0.0f, 1.0f);
+}
+
+void MirageDispel() {
+    End("dispelled by the strike");
+}
+
 void MirageReset() {
     decoy = Decoy{};
     guard = Guard{};

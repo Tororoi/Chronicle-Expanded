@@ -5,16 +5,13 @@
 #include <cmath>
 #include <iterator>
 #include <numbers>
-#include <vector>
 
 #include "btactstatus.hpp"
 #include "character.hpp"
-#include "collision.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
-#include "dungeonmap.hpp"
-#include "dungeonparts.hpp"
 #include "expanded/data/prop_models.hpp"
+#include "expanded/dungeon/floor_height.hpp"
 #include "expanded/dungeon/ground_shadow.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
@@ -24,7 +21,6 @@
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/ungaga/cactus/bloom_prop.hpp"
 #include "gamepad.hpp"
-#include "gameutil.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "snd.hpp"
@@ -89,11 +85,8 @@ constexpr float kRisenFrames = (kBloomRisenFrame - kSmokeClipStart) / kSmokeRate
 constexpr float kUnposed = 80.0f;
 constexpr float kBodyFallback = 10.0f;
 
-// The floor under the spot: the highest at or below the wielder's height plus this, searched this deep.
+// The floor under the spot: the highest at or below the wielder's height plus this.
 constexpr float kFloorAbove = 20.0f;
-constexpr float kFloorDepth = 200.0f;
-constexpr float kFloorReach = 16.0f;
-constexpr int   kFloorPolys = 8192;
 
 struct Form {
     BloomModel model;
@@ -176,22 +169,6 @@ void RootAcross(float s, float *root) {
     float c = std::cos(CopyYaw()), n = std::sin(CopyYaw());
     root[0] = bloom.spot[0] - (c * Shape().base_x + n * Shape().base_z) * s;
     root[2] = bloom.spot[2] - (-n * Shape().base_x + c * Shape().base_z) * s;
-}
-
-// The floor's height under (x, z), at or below from; false where there is none.
-bool FloorUnder(float x, float z, float from, float *ground) {
-    if (NowDngMap == nullptr) {
-        return false;
-    }
-    static std::vector<CCPoly> polys(kFloorPolys);
-    float                      centre[4] = {x, from - kFloorDepth / 2.0f, z, 1.0f};
-    int                        count = std::clamp(setCollisionData(NowDngMap, polys.data(), centre, kFloorReach, kFloorDepth / 2.0f / kFloorReach), 0, kFloorPolys);
-    float                      start[4] = {x, from, z, 1.0f}, hit[4];
-    if (CheckHitVertical(polys.data(), count, start, -kFloorDepth, hit, 0) < 0) {
-        return false;
-    }
-    *ground = hit[1];
-    return true;
 }
 
 bool Live(const MONSTOR &live) {

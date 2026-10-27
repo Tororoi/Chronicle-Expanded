@@ -6,15 +6,13 @@
 #include "bt_shot_effect.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
-#include "frame.hpp"
 #include "shot_effect.hpp"
 
 namespace expanded {
 
 namespace {
 
-constexpr float kUnlitFull = 128.0f; // an unlit frame's own colour
-constexpr int   kMonsters = 2;       // whom it is aimed at: none of the monsters' blocks stop it
+constexpr int kMonsters = 2; // whom it is aimed at: none of the monsters' blocks stop it
 
 // e228ex.chr: its one clip playing once where it is put, no flight and no hit.
 // clang-format off
@@ -34,18 +32,6 @@ void OnFloor() {
 }
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
-
-// Every unlit frame of the model at k of its own colour: for the additive meshes the smoke is made of, its opacity.
-void Fade(CFrame *frame, float k, int depth) {
-    for (; frame != nullptr && depth <= 16; frame = frame->brother) {
-        if (frame->attr.use_color != 0) {
-            for (float &channel : frame->attr.color) {
-                channel = kUnlitFull * k;
-            }
-        }
-        Fade(frame->child, k, depth + 1);
-    }
-}
 
 bool Live() {
     return puff.effect != nullptr && puff.slot >= 0 && puff.effect->effect_data == &smoke && puff.effect->active[puff.slot] != 0;
@@ -81,7 +67,7 @@ bool SummonSmokeStart(const float *spot, float yaw, float scale) {
     model.SetScale(scale, scale, scale);
     model.SetRotation(0.0f, yaw, 0.0f);
     model.motion_speed = kSmokeRate;
-    Fade(model.frame, 1.0f, 0); // a slot an earlier smoke faded, back to full
+    FadeUnlitFrames(model.frame, 1.0f); // a slot an earlier smoke faded, back to full
     return true;
 }
 
@@ -98,14 +84,14 @@ void SummonSmokeStep() {
     model.motion_speed = kSmokeRate;
     float frame = model.motion_type.state.time;
     if (frame >= kSmokeFadeFrom) {
-        Fade(model.frame, 1.0f - std::clamp((frame - kSmokeFadeFrom) / (kSmokeClipEnd - kSmokeFadeFrom), 0.0f, 1.0f), 0);
+        FadeUnlitFrames(model.frame, 1.0f - std::clamp((frame - kSmokeFadeFrom) / (kSmokeClipEnd - kSmokeFadeFrom), 0.0f, 1.0f));
     }
 }
 
 void SummonSmokeEnd() {
     if (Live()) {
         puff.effect->active[puff.slot] = 0;
-        Fade(puff.effect->chara[puff.slot].frame, 1.0f, 0); // handed back at full
+        FadeUnlitFrames(puff.effect->chara[puff.slot].frame, 1.0f); // handed back at full
     }
     puff = Puff{};
 }

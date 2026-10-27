@@ -43,6 +43,7 @@ struct BlastOptions {
     bool  guardable = false; // a monster's guard stops it, as any hit's
     bool  flat = false;      // every monster in reach takes the outermost step's share, however near
     float throw_to = 0.0f;   // each monster thrown out to this far from the blast, instead of kBlastKick
+    bool  rumble = true;     // felt as the knockdown rumble
 };
 
 // A throw_to throw: from a monster's distance to the blast, the speed that carries it to the edge (decay as
@@ -50,7 +51,7 @@ struct BlastOptions {
 inline constexpr float kBlastThrowMost = 6.0f;
 float                  BlastThrowSpeed(float distance, float edge);
 
-// The blast at point with attack, felt as the knockdown rumble: how many monsters it reached.
+// The blast at point with attack, felt as the knockdown rumble unless asked not to be: how many monsters it reached.
 int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOptions &options = {});
 
 // How a blast is felt in the hands: the rumble of a knockdown blow to the player (a blast that hurts), or a lighter
@@ -84,5 +85,9 @@ void ShockRingAt(const float *point, float ring, float scale);
 
 // Whether a hit is an unguardable blast's, which no guard stops.
 bool BlastHit(const COLLISION_HIT &hit);
+
+// Whether a hit is an unguardable blast of Ungaga's, which wears no weapon HP as it lands: what set it off bills its own
+// (Hercules' Wrath's Air Strike).
+bool UngagaBlastHit(const COLLISION_HIT &hit);
 
 } // namespace expanded

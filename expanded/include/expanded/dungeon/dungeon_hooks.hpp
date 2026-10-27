@@ -23,8 +23,8 @@ void DungeonFloorLoaded(CMonstorUnit &unit);
 void DungeonMonstersCleared(bool drop_stars);
 
 // A step the monsters take unpaused (before motionDrive): the clocks poison and confusion count by, the weapons'
-// curses, the Solar Flash's charge and blinding, the Cactus's Desert Bloom, and the Wise Owl Sword's watch for key
-// holders.
+// curses, the Solar Flash's charge and blinding, the Cactus's Desert Bloom, Hercules' Wrath's Air Strike, and the Wise
+// Owl Sword's watch for key holders.
 void DungeonMonstersTick();
 
 // A step after the player's pellets have stepped (motionDrive), as the mod's pellet catcher runs: the Divine Beast cat.
@@ -96,7 +96,8 @@ void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT 
 // A hit just took amount off a monster's life (CheckDmg; its life is past it, under 0 when it took more than it had).
 void MonsterDamaged(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount);
 
-// Whether a hit of a sword-wielder's on a monster wears the weapon (CheckDmg, landed or guarded): not the Cactus's pricks.
+// Whether a hit of a sword-wielder's on a monster wears the weapon (CheckDmg, landed or guarded): not the Cactus's pricks
+// nor Ungaga's unguardable blasts.
 bool HitWearsWeapon(const COLLISION_HIT &hit);
 
 // A monster's step after the other monsters blocked it (CMonstorUnit::Step, after MoveChecMonster), and the player's after

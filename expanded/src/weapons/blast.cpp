@@ -79,7 +79,9 @@ int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOp
     if (NowColData == nullptr) {
         return 0;
     }
-    RumbleBlast(BlastRumble::kKnockdown);
+    if (options.rumble) {
+        RumbleBlast(BlastRumble::kKnockdown);
+    }
     int reached = 0;
     for (int monster = 0; monster < 16; monster++) {
         const MONSTOR &live = unit.monster[monster];
@@ -194,6 +196,10 @@ bool ExplosionAt(const float *point, float scale, float ring, BlastSound sound) 
 
 bool BlastHit(const COLLISION_HIT &hit) {
     return (hit.weapon_flags & kBlastMark) != 0;
+}
+
+bool UngagaBlastHit(const COLLISION_HIT &hit) {
+    return hit.owner == CHARA_UNGAGA && BlastHit(hit);
 }
 
 } // namespace expanded
