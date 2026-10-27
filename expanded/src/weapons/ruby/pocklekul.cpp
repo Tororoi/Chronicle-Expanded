@@ -183,6 +183,7 @@ void Summon() {
     float yaw = PlayerYaw();
     float spawn[4] = {CharaMain.pos[0] + std::sin(yaw) * kPockleSpawnAhead, CharaMain.pos[1], CharaMain.pos[2] + std::cos(yaw) * kPockleSpawnAhead, 1.0f};
     ChargeCompleteFlash();
+    sceVu0CopyVector(pockle.point, spawn); // where its script finds the player as it is set up
     if (!AllySummon(No(kPockleKinds[kind]), spawn)) {
         std::fprintf(stderr, "pocklekul: no summon (%s did not load or stand)\n", kPockleNames[kind]);
         return;
@@ -199,7 +200,6 @@ void Summon() {
     pockle.target = -1;
     pockle.parked = false;
     pockle.settling = 0;
-    sceVu0CopyVector(pockle.point, spawn);
     FightsBegin();
     TintStart(live);
     pockle.pinned = SummonSmokeStart(spawn, yaw, kPockleSmokeScale, &pockle);
@@ -502,14 +502,11 @@ void PocklekulShotsStep() {
 }
 
 bool PocklekulScriptTarget(float *position) {
-    if (!pockle.up || NowMonstorUnit == nullptr) {
-        return false;
-    }
     if (AllyStepping()) {
         sceVu0CopyVector(position, pockle.point);
         return true;
     }
-    return PockleProvoked(NowMonstorUnit->current_monster, position);
+    return pockle.up && NowMonstorUnit != nullptr && PockleProvoked(NowMonstorUnit->current_monster, position);
 }
 
 void PocklekulReset() {
