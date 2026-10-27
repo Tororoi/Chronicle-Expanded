@@ -321,8 +321,12 @@ bool PlayerHitStaggers(const COLLISION_HIT &hit) {
     return SpiritBeastHit(hit);
 }
 
+bool MonsterCanGuard(int monster) {
+    return BlindGuardBlocks(monster);
+}
+
 bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, int window, const COLLISION_HIT &hit) {
-    return BlindGuardBlocks(monster) && !BlastHit(hit) && !ChargingBullHit(hit) && !SpiritBeastHit(hit) && !GuardCrushActive() &&
+    return MonsterCanGuard(monster) && !BlastHit(hit) && !ChargingBullHit(hit) && !SpiritBeastHit(hit) && !GuardCrushActive() &&
            !NoFoolsGoldOpens(unit, monster, window);
 }
 

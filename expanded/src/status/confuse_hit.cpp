@@ -5,6 +5,7 @@
 #include "collisiondata.hpp"
 #include "dngstatusdata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "hitmark.hpp"
 #include "hitvalue.hpp"
 #include "monstorunit.hpp"
@@ -16,7 +17,8 @@ namespace expanded {
 
 namespace {
 
-// Deals another monster's hit to sphere i: blocked by a guard window, else damage less defence (at least 1).
+// Deals another monster's hit to sphere i: blocked by a guard window the monster can guard with, else damage less defence
+// (at least 1).
 int FriendlyHit(CMonstorUnit &unit, int i, int hit) {
     int            slot = unit.current_monster;
     MONSTOR       &monster = unit.monster[slot];
@@ -26,7 +28,8 @@ int FriendlyHit(CMonstorUnit &unit, int i, int hit) {
     for (int j = 0; j < 3; j++) {
         float time = unit.chara[slot][0].motion_type.state.time;
 
-        if (unit.guard[slot].active[j] != 0 && unit.guard[slot].motion_start[j] <= time && !(unit.guard[slot].motion_end[j] < time)) {
+        if (MonsterCanGuard(slot) && unit.guard[slot].active[j] != 0 && unit.guard[slot].motion_start[j] <= time &&
+            !(unit.guard[slot].motion_end[j] < time)) {
             sceVu0FVECTOR guard_direction = {0, 2.5f, 0, 1};
             HitMark[hitCnt].Set(unit.effect[slot].position[i], guard_direction, HIT_MARK_GUARD, 0.8f, 0.005f, 0.02f, 1.3f, 32, monster.ground_y);
             HitPointMark[hitCnt].Set(unit.effect[slot].position[i]);

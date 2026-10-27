@@ -192,7 +192,7 @@ void ShotImpact(int hit) {
     if (motion == -1) {
         found->active[slot] = 0;
         if (data->end_effect == SHOT_END_EFFECT_BOMB) {
-            SetBombEffect(record.pos, data->target, data->bomb_damage, data->bomb_scale);
+            ShotEffectBomb(record.pos, data, found->user_id_2[slot]); // the owner's damage and the shot's radius
         }
         return;
     }
