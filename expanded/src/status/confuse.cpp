@@ -26,7 +26,8 @@ using namespace confuse;
 constexpr int   kConfuseSteps = 20 * kStepsPerSecond;
 constexpr float kConfuseChance = 5.0f;
 
-// A monster's confusion, in the event log: confused, its target (another monster's slot, -1 the player) or its senses back.
+// A monster's confusion, in the event log: confused, its 20 seconds rolled by a hit carrying Confuse, its target (another
+// monster's slot, -1 the player) or its senses back.
 void LogConfusion(const char *step, int slot, int target = -2) {
     LogEvent("confuse", target == -2 ? std::format("\"step\":\"{}\",\"monster\":{}", step, slot)
                                      : std::format("\"step\":\"{}\",\"monster\":{},\"target\":{}", step, slot, target));
@@ -134,6 +135,7 @@ void ConfuseRoll(CMonstorUnit &unit, int slot) {
         std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
         LogConfusion("confused", slot);
     }
+    LogConfusion("rolled", slot);
     state.until[slot] = state.tick + kConfuseSteps;
 }
 
