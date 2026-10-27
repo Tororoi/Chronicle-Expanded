@@ -29,6 +29,7 @@
 #include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
+#include "expanded/weapons/kick_back.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/solid_column.hpp"
 #include "expanded/weapons/toan/agas_sword.hpp"
@@ -41,12 +42,14 @@
 #include "expanded/weapons/toan/dusack.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
 #include "expanded/weapons/toan/heavens_cloud.hpp"
+#include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/maneater.hpp"
 #include "expanded/weapons/toan/seventh_heaven.hpp"
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "expanded/weapons/ungaga/cactus.hpp"
+#include "expanded/weapons/ungaga/charge_shot.hpp"
 #include "expanded/weapons/ungaga/de_sanga.hpp"
 #include "expanded/weapons/ungaga/halberd.hpp"
 #include "expanded/weapons/ungaga/hercules_wrath.hpp"
@@ -366,6 +369,22 @@ int MonsterSpherePercent(const CMonstorUnit &unit, int monster, int sphere, int 
 
 bool PlayerHitStaggers(const COLLISION_HIT &hit) {
     return SpiritBeastHit(hit);
+}
+
+bool LandedHitWearsWeapon(int attacker, const COLLISION_HIT &hit) {
+    return !ChargeShotHit(attacker, &hit) && HitWearsWeapon(hit);
+}
+
+void MonsterKnockedBack(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit) {
+    WeaponKickBack(unit, monster, hit);
+}
+
+void MonsterItemStolen(const CMonstorUnit &unit, int monster, int item) {
+    StealShotTaken(unit, monster, item);
+}
+
+bool KillAbsTaken(WEAPON_HAVE &weapon, int abs, int max_abs) {
+    return OvertrainingAbs(weapon, abs, max_abs);
 }
 
 bool MonsterCanGuard(int monster) {

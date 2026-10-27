@@ -7,6 +7,7 @@ class CSHOT;
 class CSHOT_EFFECT;
 struct COLLISION_HIT;
 struct MONSTOR;
+struct WEAPON_HAVE;
 
 namespace expanded {
 
@@ -162,6 +163,18 @@ float XiaoShotWear(float wear);
 
 // The percentage of the hit's damage a monster's sphere takes from owner (CheckDmg).
 int MonsterSpherePercent(const CMonstorUnit &unit, int monster, int sphere, int owner, const COLLISION_HIT &hit, int percent);
+
+// A landed weapon hit on a monster (CheckDmg): whether it wears the weapon (attacker its owner), and its knockback set,
+// for the weapons that throw it further.
+bool LandedHitWearsWeapon(int attacker, const COLLISION_HIT &hit);
+void MonsterKnockedBack(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
+
+// A monster's item stolen by the player's hit (CheckDmg's steal).
+void MonsterItemStolen(const CMonstorUnit &unit, int monster, int item);
+
+// A kill's ABS reaching the weapon (CMonstorUnit::Step, after the zone without weapon changes): true when a weapon's
+// effect took it in place of the game's grant up to max_abs.
+bool KillAbsTaken(WEAPON_HAVE &weapon, int abs, int max_abs);
 
 // Whether a monster's guard windows can block at all: not while it is blinded. Any hit on a monster, another monster's
 // too, is held to it.

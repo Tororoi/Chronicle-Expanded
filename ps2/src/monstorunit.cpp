@@ -53,10 +53,6 @@
 #include "expanded/enemies/species.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/poison.hpp"
-#include "expanded/weapons/kick_back.hpp"
-#include "expanded/weapons/toan/macho_sword.hpp"
-#include "expanded/weapons/ungaga/charge_shot.hpp"
-#include "expanded/weapons/xiao/bandit_slingshot.hpp"
 #endif
 
 int           hitCnt;
@@ -1424,14 +1420,14 @@ int CMonstorUnit::CheckDmg() {
                         StealItem.Set(steal_position, monster[current_monster].steal_item);
                         monster[current_monster].steal_item = -1;
 #ifdef CHRONICLE_EXPANDED
-                        expanded::StealShotTaken(*this, current_monster, item);
+                        expanded::MonsterItemStolen(*this, current_monster, item);
 #endif
                     }
 
                     int attacker = NowColData->hit[hit].owner;
 
 #ifdef CHRONICLE_EXPANDED
-                    if ((attacker == 0 || attacker == 2 || attacker == 4) && !expanded::ChargeShotHit(attacker, original_record) && expanded::HitWearsWeapon(*original_record)) {
+                    if ((attacker == 0 || attacker == 2 || attacker == 4) && expanded::LandedHitWearsWeapon(attacker, *original_record)) {
 #else
                     if (attacker == 0 || attacker == 2 || attacker == 4) {
 #endif
@@ -1481,7 +1477,7 @@ int CMonstorUnit::CheckDmg() {
                     }
 
 #ifdef CHRONICLE_EXPANDED
-                    expanded::WeaponKickBack(*this, current_monster, *record);
+                    expanded::MonsterKnockedBack(*this, current_monster, *record);
 #endif
 
                     hit_direction[0] = 0;
@@ -2391,7 +2387,7 @@ void CMonstorUnit::Step(int pause) {
                                     weapon->experience = 0;
                                 }
 #ifdef CHRONICLE_EXPANDED
-                            } else if (expanded::OvertrainingAbs(*weapon, exp, max_exp)) {
+                            } else if (expanded::KillAbsTaken(*weapon, exp, max_exp)) {
 #endif
                             } else if (weapon->experience < max_exp) {
                                 int updated = weapon->experience + exp;
