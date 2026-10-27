@@ -15,6 +15,7 @@
 #include "expanded/enemies/species.hpp"
 #include "expanded/status/blind.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -88,7 +89,7 @@ struct State {
     float  shown = 0.0f; // the hanging bomb, 0..1
     int    pulse = 0;    // frames it has hung fully in
     float  flash_at[4] = {};
-    Flight flights[12];
+    Flight flights[kPelletSlots];
 };
 
 State state;
@@ -392,7 +393,7 @@ void BigBangShotDraw() {
 }
 
 bool BigBangShotBlasts(const CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= 12) {
+    if (slot < 0 || slot >= kPelletSlots) {
         return false;
     }
     const Flight &flight = state.flights[slot];

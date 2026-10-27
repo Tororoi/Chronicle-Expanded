@@ -1,5 +1,6 @@
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/hit_marks.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
 
 #include <algorithm>
@@ -965,7 +966,7 @@ void SpiritBeastStep() {
 }
 
 void SpiritBeastFired(CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= 12 || !SpiritBeastActive() || !charge.TakeCharged() || model == nullptr) {
+    if (slot < 0 || slot >= kPelletSlots || !SpiritBeastActive() || !charge.TakeCharged() || model == nullptr) {
         return;
     }
     pending_shots = &shots;

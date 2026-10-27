@@ -8,6 +8,7 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -34,7 +35,7 @@ struct State {
     int    hold = 0; // frames the slingshot has been held drawn
     int    held = 0; // how long it was held drawn before it last let go
     bool   flashed[2] = {};
-    Flight flights[12];
+    Flight flights[kPelletSlots];
 };
 
 State state;
@@ -142,7 +143,7 @@ void TyphoonShotStep() {
 }
 
 void TyphoonShotFired(CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= 12) {
+    if (slot < 0 || slot >= kPelletSlots) {
         return;
     }
     state.flights[slot] = {}; // a pellet fired into this slot before is gone, ended or not
@@ -161,7 +162,7 @@ void TyphoonShotFired(CSHOT &shots, int slot) {
 }
 
 void TyphoonShotEnded(const CSHOT &shots, int slot, const float *point, bool struck) {
-    if (slot < 0 || slot >= 12) {
+    if (slot < 0 || slot >= kPelletSlots) {
         return;
     }
     Flight &flight = state.flights[slot];

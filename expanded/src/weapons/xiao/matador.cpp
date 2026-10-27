@@ -1,5 +1,6 @@
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/hit_marks.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
 
 #include <algorithm>
@@ -30,7 +31,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int   kShots = 12;
 constexpr int   kWeaponTextureBlock = 0x1D;
 constexpr int   kArenaQuads = 0x4000; // 256 KB for the copy's frames
 constexpr float kGlowPull = 6.0f;
@@ -42,7 +42,7 @@ constexpr float kOrange[3] = {120.0f, 45.0f, 0.0f};
 struct State {
     ShotCharge    charge{kChargingBullFrames};
     const CSHOT  *shots = nullptr;
-    bool          charged[kShots] = {};
+    bool          charged[kPelletSlots] = {};
     bool          copied = false;
     const CFrame *source = nullptr; // the slingshot in hand it was copied from
 };
@@ -140,7 +140,7 @@ bool Copy() {
 }
 
 bool Ours(const CSHOT &shots, int slot) {
-    return slot >= 0 && slot < kShots && &shots == state.shots && state.charged[slot];
+    return slot >= 0 && slot < kPelletSlots && &shots == state.shots && state.charged[slot];
 }
 
 } // namespace
@@ -154,7 +154,7 @@ void ChargingBullStep() {
 }
 
 void ChargingBullFired(CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= kShots) {
+    if (slot < 0 || slot >= kPelletSlots) {
         return;
     }
     if (&shots == state.shots) {
@@ -212,7 +212,7 @@ void ChargingBullDraw() {
     if (state.shots == nullptr) {
         return;
     }
-    for (int slot = 0; slot < kShots; slot++) {
+    for (int slot = 0; slot < kPelletSlots; slot++) {
         if (!state.charged[slot] || state.shots->used[slot] == 0) {
             continue;
         }

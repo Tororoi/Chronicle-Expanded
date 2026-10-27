@@ -1,4 +1,5 @@
 #include "expanded/dungeon/collision_hits.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
 
 #include <cstring>
@@ -140,7 +141,7 @@ void StealShotTaken(const CMonstorUnit &unit, int monster, int item) {
 }
 
 void StealShotFired(CSHOT &shots, int slot) {
-    if (!stolen.held || !StealShotActive() || slot < 0 || slot >= 12) {
+    if (!stolen.held || !StealShotActive() || slot < 0 || slot >= kPelletSlots) {
         return;
     }
     int index = ShotEffectIndex(&stolen.shot);

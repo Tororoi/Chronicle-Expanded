@@ -1,3 +1,4 @@
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/xiao/double_impact.hpp"
 
 #include <cmath>
@@ -13,7 +14,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kShots = 12;
 
 } // namespace
 
@@ -22,11 +22,11 @@ bool DoubleImpactActive() {
 }
 
 int DoubleImpactFired(CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= kShots || shots.used[slot] == 0 || !DoubleImpactActive()) {
+    if (slot < 0 || slot >= kPelletSlots || shots.used[slot] == 0 || !DoubleImpactActive()) {
         return -1;
     }
     int twin = -1;
-    for (int other = 0; other < kShots; other++) {
+    for (int other = 0; other < kPelletSlots; other++) {
         if (other != slot && shots.used[other] == 0) {
             twin = other;
             break;

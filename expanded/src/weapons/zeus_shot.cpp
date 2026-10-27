@@ -1,3 +1,4 @@
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 
@@ -46,7 +47,7 @@ struct State {
     bool          dimmed = false;
     bool          struck = false; // a bolt came down in the window
     float         sling = 0.0f;   // the slingshot's white, 0..1
-    Flight        flights[12];
+    Flight        flights[kPelletSlots];
 };
 
 State state;
@@ -82,7 +83,7 @@ void Spend() {
     if (state.charge != Charge::kIdle || state.dimmed) {
         SceneDimEnd();
     }
-    Flight flights[12];
+    Flight flights[kPelletSlots];
     std::copy(std::begin(state.flights), std::end(state.flights), std::begin(flights));
     state = {};
     std::copy(std::begin(flights), std::end(flights), std::begin(state.flights)); // the pellets out still owe their bolts
@@ -180,7 +181,7 @@ void ZeusShotReset() {
 }
 
 void ZeusShotFired(CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= 12) {
+    if (slot < 0 || slot >= kPelletSlots) {
         return;
     }
     state.flights[slot] = {}; // a pellet fired into this slot before is gone, ended or not
@@ -211,7 +212,7 @@ void ZeusShotFired(CSHOT &shots, int slot) {
 }
 
 void ZeusShotEnded(const CSHOT &shots, int slot, const float *point, bool struck) {
-    if (slot < 0 || slot >= 12) {
+    if (slot < 0 || slot >= kPelletSlots) {
         return;
     }
     Flight &flight = state.flights[slot];
@@ -250,7 +251,7 @@ void ZeusShotLight(const CCharacter &character, float *ambient) {
 }
 
 bool ZeusShotCallsBolt(const CSHOT &shots, int slot) {
-    return slot >= 0 && slot < 12 && state.flights[slot].shots == &shots && state.flights[slot].pellet == slot;
+    return slot >= 0 && slot < kPelletSlots && state.flights[slot].shots == &shots && state.flights[slot].pellet == slot;
 }
 
 } // namespace expanded

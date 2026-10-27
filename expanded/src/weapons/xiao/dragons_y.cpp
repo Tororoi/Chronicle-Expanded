@@ -1,5 +1,6 @@
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/hit_marks.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/xiao/dragons_y.hpp"
 
 #include <cmath>
@@ -106,7 +107,7 @@ void DragonShotStep() {
 }
 
 void DragonShotFired(CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= 12 || !DragonShotActive() || !charge.TakeCharged() || NowWeaponHave == nullptr) {
+    if (slot < 0 || slot >= kPelletSlots || !DragonShotActive() || !charge.TakeCharged() || NowWeaponHave == nullptr) {
         return;
     }
     BT_SHOT_EFFECT *ball = const_cast<BT_SHOT_EFFECT *>(DragonShot(NowWeaponHave->best_elem));

@@ -1,3 +1,4 @@
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 
 #include <cmath>
@@ -15,7 +16,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int   kShots = 12;
 constexpr int   kSpheres = 16;
 constexpr int   kMonsters = 16;
 constexpr float kPelletRadius = 2.0f; // checkCollision's, for a pellet
@@ -23,11 +23,11 @@ constexpr float kTwoPi = 6.28318530718f;
 
 constexpr int kDepartTicks = 30; // the most frames a ricochet is stepped clear before the game takes it
 
-bool ricochet[kShots] = {};
-int  departing[kShots] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // the monster a ricochet is leaving
-int  departed[kShots] = {};
-int  partner[kShots] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // the other pellet of a pair
-int  claimed[kShots] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // the monster the partner's ricochet took
+bool ricochet[kPelletSlots] = {};
+int  departing[kPelletSlots] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // the monster a ricochet is leaving
+int  departed[kPelletSlots] = {};
+int  partner[kPelletSlots] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // the other pellet of a pair
+int  claimed[kPelletSlots] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // the monster the partner's ricochet took
 
 void Unpair(int slot) {
     partner[slot] = -1;
@@ -35,7 +35,7 @@ void Unpair(int slot) {
 }
 
 void OnFloor() {
-    for (int slot = 0; slot < kShots; slot++) {
+    for (int slot = 0; slot < kPelletSlots; slot++) {
         ricochet[slot] = false;
         departing[slot] = -1;
         Unpair(slot);
@@ -114,7 +114,7 @@ bool RicochetActive() {
 }
 
 bool Ricochet(int slot) {
-    return slot >= 0 && slot < kShots && ricochet[slot];
+    return slot >= 0 && slot < kPelletSlots && ricochet[slot];
 }
 
 int RicochetStruck(const CMonstorUnit &unit, const float *point) {
@@ -134,7 +134,7 @@ int RicochetStruck(const CMonstorUnit &unit, const float *point) {
 }
 
 void RicochetPair(int first, int second) {
-    if (first < 0 || first >= kShots || second < 0 || second >= kShots) {
+    if (first < 0 || first >= kPelletSlots || second < 0 || second >= kPelletSlots) {
         return;
     }
     Unpair(first);
@@ -144,7 +144,7 @@ void RicochetPair(int first, int second) {
 }
 
 void RicochetShotFired(int slot) {
-    if (slot >= 0 && slot < kShots) {
+    if (slot >= 0 && slot < kPelletSlots) {
         ricochet[slot] = false;
         departing[slot] = -1;
         Unpair(slot);
@@ -152,7 +152,7 @@ void RicochetShotFired(int slot) {
 }
 
 void RicochetStep(CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= kShots || departing[slot] < 0 || NowMonstorUnit == nullptr) {
+    if (slot < 0 || slot >= kPelletSlots || departing[slot] < 0 || NowMonstorUnit == nullptr) {
         return;
     }
     const CMonstorUnit &unit = *NowMonstorUnit;
@@ -176,7 +176,7 @@ void RicochetStep(CSHOT &shots, int slot) {
 }
 
 int RicochetShotEnded(CSHOT &shots, int slot, const float *point, bool struck) {
-    if (slot < 0 || slot >= kShots) {
+    if (slot < 0 || slot >= kPelletSlots) {
         return -1;
     }
     bool bounced = ricochet[slot];
@@ -194,7 +194,7 @@ int RicochetShotEnded(CSHOT &shots, int slot, const float *point, bool struck) {
         return -1;
     }
     int free = -1;
-    for (int other = 0; other < kShots; other++) {
+    for (int other = 0; other < kPelletSlots; other++) {
         if (other != slot && shots.used[other] == 0) {
             free = other;
             break;
