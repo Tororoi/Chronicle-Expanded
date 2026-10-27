@@ -169,35 +169,6 @@ std::string CfgBbp(const ChrRecord &cfg) {
     return *bbp;
 }
 
-Vec4 QuatMul(const Vec4 &a, const Vec4 &b) {
-    return {
-        a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
-        a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
-        a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
-        a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
-    };
-}
-
-Vec4 MatToQuat(const Mat3 &r) {
-    double m00 = r[0][0], m01 = r[0][1], m02 = r[0][2], m10 = r[1][0], m11 = r[1][1], m12 = r[1][2], m20 = r[2][0],
-           m21 = r[2][1], m22 = r[2][2];
-    double tr = m00 + m11 + m22, s;
-    if (tr > 0) {
-        s = std::sqrt(tr + 1.0) * 2;
-        return {0.25 * s, (m21 - m12) / s, (m02 - m20) / s, (m10 - m01) / s};
-    }
-    if (m00 >= m11 && m00 >= m22) {
-        s = std::sqrt(1.0 + m00 - m11 - m22) * 2;
-        return {(m21 - m12) / s, 0.25 * s, (m01 + m10) / s, (m02 + m20) / s};
-    }
-    if (m11 >= m22) {
-        s = std::sqrt(1.0 + m11 - m00 - m22) * 2;
-        return {(m02 - m20) / s, (m01 + m10) / s, 0.25 * s, (m12 + m21) / s};
-    }
-    s = std::sqrt(1.0 + m22 - m00 - m11) * 2;
-    return {(m10 - m01) / s, (m02 + m20) / s, (m12 + m21) / s, 0.25 * s};
-}
-
 Bind MdsBind(std::span<const unsigned char> mds, int node) {
     std::size_t p = mds::kTable + static_cast<std::size_t>(node) * mds::kRecord;
     double      m[16];
@@ -209,14 +180,6 @@ Bind MdsBind(std::span<const unsigned char> mds, int node) {
         {{{m[0], m[1], m[2]}, {m[4], m[5], m[6]}, {m[8], m[9], m[10]}}},
         {m[12], m[13], m[14]}
     };
-}
-
-double Dot(const Vec4 &a, const Vec4 &b) {
-    double sum = 0;
-    for (int i = 0; i < 4; i++) {
-        sum += a[i] * b[i];
-    }
-    return sum;
 }
 
 bool InWindow(const MotKeyframe &key, int lo, int hi) {
@@ -255,7 +218,7 @@ std::vector<int> SpanEdges(const std::vector<Span> &spans) {
     return edges;
 }
 
-std::optional<Vec4> SampleTrack(const MotTrack &track, int frame) {
+std::optional<Vec4> SampleNlerp(const MotTrack &track, int frame) {
     const MotKeyframe *prev = nullptr;
     const MotKeyframe *next = nullptr;
     for (const MotKeyframe &key : track.keys) {

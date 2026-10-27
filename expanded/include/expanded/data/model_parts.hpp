@@ -1,7 +1,7 @@
 #pragma once
 
 // The parts of a .chr pack the built monsters edit: an .mds's frame records and meshes, an MDT mesh, a texture bank
-// and its 8-bit TIM2 pictures, and the rig maths over them. Includes no game header, so dcdata can build with it.
+// and its 8-bit TIM2 pictures (the maths over them: rig_math.hpp). Includes no game header, so dcdata can build with it.
 
 #include <array>
 #include <cstdint>
@@ -14,32 +14,9 @@
 #include <vector>
 
 #include "expanded/data/chr_pack.hpp"
+#include "expanded/data/rig_math.hpp"
 
 namespace expanded {
-
-using Vec3 = std::array<double, 3>;
-using Mat3 = std::array<Vec3, 3>; // rows
-using Mat4 = std::array<std::array<double, 4>, 4>;
-
-// A sum as Python's sum() makes it (Neumaier-compensated), which the PS2 mod's builders used, so built models match theirs.
-double ExactSum(std::initializer_list<double> values);
-
-Vec3   Add(const Vec3 &a, const Vec3 &b);
-Vec3   Scale(const Vec3 &a, double s);
-Vec3   Cross(const Vec3 &a, const Vec3 &b);
-double Dot(const Vec3 &a, const Vec3 &b);
-Vec3   Unit(const Vec3 &a);
-Mat3   MatMul(const Mat3 &a, const Mat3 &b);
-Mat4   MatMul4(const Mat4 &a, const Mat4 &b);
-Vec3   MatVec(const Mat3 &m, const Vec3 &v);
-// The rotation by angle radians about unit axis, right-hand rule (Rodrigues).
-Mat3 AxisRotation(const Vec3 &axis, double angle);
-// The rotation taking +Y onto unit d.
-Mat3 RotationYTo(const Vec3 &d);
-// A key's float values as doubles.
-std::array<double, 4> Wide(const std::array<float, 4> &v);
-// Two .mot rotation keys (w first) slerped the shorter way round, linear past 0.9995.
-std::array<double, 4> SlerpKeys(const std::array<float, 4> &a, const std::array<float, 4> &b, double t);
 
 // One .mds frame record; world is its bind pose (row vectors, world = local x parent).
 struct MdsFrame {

@@ -21,8 +21,6 @@ namespace {
 
 using namespace rig;
 using namespace spirit_cat;
-using rig::Cross;
-using rig::Unit;
 
 constexpr double             kHideScale = 0.001; // the cape frame's bind 3x3: the cloth built from it starts collapsed to a point
 constexpr const char        *kRootName = "catroot";
@@ -254,7 +252,7 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
             ts.push_back({ts[std::size_t(k)][0] + seg * r[0][0], ts[std::size_t(k)][1] + seg * r[0][1], ts[std::size_t(k)][2] + seg * r[0][2]});
         }
         for (int k = 0; k < 4; k++) {
-            open[side0 + k] = MatMul(MatFromRT(data.bind_open[side0 + k].r, ts[std::size_t(k)]), psp);
+            open[side0 + k] = MatMulExact(MatFromRT(data.bind_open[side0 + k].r, ts[std::size_t(k)]), psp);
         }
     }
     auto w_open = [&](int i) -> const M4 & {
@@ -274,7 +272,7 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
         if (!(0 <= n.parent && n.parent < base + k)) {
             throw std::runtime_error(std::format("{}: parent {}", kBoneNames[k], n.parent));
         }
-        M4 l = MatMul(w_open(base + k), RigidInv(w_open(n.parent)));
+        M4 l = MatMulExact(w_open(base + k), RigidInv(w_open(n.parent)));
         M3 r = RotOf(l);
         V3 t = TransOf(l);
         if (n.parent != parent && !(std::fabs(t[1]) < 1e-3 && std::fabs(t[2]) < 1e-3 && std::fabs(t[0] - n.t[0]) < 1e-3)) {
@@ -325,7 +323,7 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
                 two_pose++;
                 V3 fa = XformPt(w_ref(b0), me.p0[i]), fb = XformPt(w_ref(b1), me.p1[i]);
                 V3 target = {fa[0] * w + fb[0] * (1 - w), fa[1] * w + fb[1] * (1 - w), fa[2] * w + fb[2] * (1 - w)};
-                M4 a0 = MatMul(RigidInv(w_open(b0)), w_ref(b0)), a1 = MatMul(RigidInv(w_open(b1)), w_ref(b1)), mb{};
+                M4 a0 = MatMulExact(RigidInv(w_open(b0)), w_ref(b0)), a1 = MatMulExact(RigidInv(w_open(b1)), w_ref(b1)), mb{};
                 for (std::size_t r = 0; r < 4; r++) {
                     for (std::size_t c = 0; c < 4; c++) {
                         mb[r][c] = w * a0[r][c] + (1 - w) * a1[r][c];

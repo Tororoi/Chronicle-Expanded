@@ -132,20 +132,8 @@ MotKeyframe Sample(const std::map<std::uint32_t, MotKeyframe> &keys, std::uint32
     if (s == before->first) {
         return key;
     }
-    double               t = (s - before->first) / (after->first - before->first);
-    std::array<float, 4> a, b;
-    for (int i = 0; i < 4; i++) {
-        a[std::size_t(i)] = before->second.Value(i);
-        b[std::size_t(i)] = after->second.Value(i);
-    }
-    std::array<double, 4> v;
-    if (channel == mot::kRotation) {
-        v = SlerpKeys(a, b, t);
-    } else {
-        for (int i = 0; i < 4; i++) {
-            v[std::size_t(i)] = a[std::size_t(i)] + (b[std::size_t(i)] - double(a[std::size_t(i)])) * t;
-        }
-    }
+    double                t = (s - before->first) / (after->first - before->first);
+    std::array<double, 4> v = BlendKeys(before->second.Values(), after->second.Values(), t, channel == mot::kRotation);
     for (int i = 0; i < 4; i++) {
         key.SetValue(i, static_cast<float>(v[std::size_t(i)]));
     }

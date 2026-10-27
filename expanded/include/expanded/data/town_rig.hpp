@@ -19,7 +19,6 @@
 
 namespace expanded::town {
 
-using Vec4 = std::array<double, 4>;
 using Span = std::pair<int, int>;
 
 // Where what is in text from from, throwing when the cfg lacks it.
@@ -50,19 +49,12 @@ struct Bind {
     std::array<double, 3> translation;
 };
 
-// Hamilton product, w first as .mot rotations store it.
-Vec4 QuatMul(const Vec4 &a, const Vec4 &b);
-
-// The engine's quaternion-to-matrix inverted (Shepperd).
-Vec4 MatToQuat(const Mat3 &r);
-
 // A node's bind in an .mds.
 Bind MdsBind(std::span<const unsigned char> mds, int node);
 
-// Four-wide dot product; whether a key lies in [lo, hi]; name's index in names, or -1.
-double Dot(const Vec4 &a, const Vec4 &b);
-bool   InWindow(const MotKeyframe &key, int lo, int hi);
-int    Index(const std::vector<std::string> &names, std::string_view name);
+// Whether a key lies in [lo, hi]; name's index in names, or -1.
+bool InWindow(const MotKeyframe &key, int lo, int hi);
+int  Index(const std::vector<std::string> &names, std::string_view name);
 
 // The complement of the windows within [lo, hi].
 std::vector<Span> FoldSpans(std::vector<Span> windows, int lo, int hi);
@@ -70,8 +62,9 @@ std::vector<Span> FoldSpans(std::vector<Span> windows, int lo, int hi);
 // Each span's first frame and, past a one-frame span, its last.
 std::vector<int> SpanEdges(const std::vector<Span> &spans);
 
-// The track's value at frame: lerp for translations, sign-corrected nlerp for rotations.
-std::optional<Vec4> SampleTrack(const MotTrack &track, int frame);
+// The track's value at frame: the keys either side of it lerped, a rotation's sign-corrected and nlerped (plain sums);
+// the first or last key's outside them; none for an empty track.
+std::optional<Vec4> SampleNlerp(const MotTrack &track, int frame);
 
 // A pack's .mot record replaced and read; an .mds record's frame names; names joined for a message.
 void                     ReplaceMot(ChrPack &pack, std::string_view mot_name, const MotFile &mot);

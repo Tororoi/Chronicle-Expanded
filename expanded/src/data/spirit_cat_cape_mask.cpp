@@ -13,8 +13,6 @@
 namespace expanded::spirit_cat {
 
 using namespace rig;
-using rig::Cross;
-using rig::Unit;
 
 namespace {
 
@@ -59,7 +57,7 @@ std::vector<BoundWorld> CapeBoundsWorld(const std::vector<RigNode> &nodes) {
         for (std::size_t c = 0; c < 3; c++) {
             upw[c] = Sum({b.up[0] * wm[0][c], b.up[1] * wm[1][c], b.up[2] * wm[2][c]});
         }
-        V3 z = Unit({aw[0] - bw[0], aw[1] - bw[1], aw[2] - bw[2]}), x = Unit(Cross(upw, z)), y = Cross(z, x);
+        V3 z = UnitExact({aw[0] - bw[0], aw[1] - bw[1], aw[2] - bw[2]}), x = UnitExact(Cross(upw, z)), y = Cross(z, x);
         out.push_back({
             {(aw[0] + bw[0]) / 2, (aw[1] + bw[1]) / 2, (aw[2] + bw[2]) / 2},
             {x,                   y,                   z                  },
@@ -652,26 +650,26 @@ std::optional<std::pair<V3, V3>> MaskRay(const std::vector<V3> &fur, const std::
         const V3 &a = fur[std::size_t(tri[0])], &b = fur[std::size_t(tri[1])], &c = fur[std::size_t(tri[2])];
         V3        e1 = {b[0] - a[0], b[1] - a[1], b[2] - a[2]}, e2 = {c[0] - a[0], c[1] - a[1], c[2] - a[2]};
         V3        h = Cross(d, e2);
-        double    det = Sum3(e1, h);
+        double    det = DotExact(e1, h);
         if (std::fabs(det) < 1e-9) {
             continue;
         }
         V3     s = {o[0] - a[0], o[1] - a[1], o[2] - a[2]};
-        double uu = Sum3(s, h) / det;
+        double uu = DotExact(s, h) / det;
         if (uu < -1e-9 || uu > 1 + 1e-9) {
             continue;
         }
         V3     q = Cross(s, e1);
-        double vv = Sum3(d, q) / det;
+        double vv = DotExact(d, q) / det;
         if (vv < -1e-9 || uu + vv > 1 + 1e-9) {
             continue;
         }
-        double t = Sum3(e2, q) / det;
+        double t = DotExact(e2, q) / det;
         if (t <= 0.05) {
             continue;
         }
-        V3 n = Unit(Cross(e1, e2));
-        if (Sum3(n, d) < 0) {
+        V3 n = UnitExact(Cross(e1, e2));
+        if (DotExact(n, d) < 0) {
             n = {-n[0], -n[1], -n[2]};
         }
         if (!best || t > *best + 1e-9) {
@@ -690,7 +688,7 @@ std::optional<std::pair<V3, V3>> MaskRay(const std::vector<V3> &fur, const std::
         ys.push_back(n[1]);
         zs.push_back(n[2]);
     }
-    V3 nn = Unit({Sum(xs), Sum(ys), Sum(zs)});
+    V3 nn = UnitExact({Sum(xs), Sum(ys), Sum(zs)});
     return std::pair{
         V3{o[0] + d[0] * *best, o[1] + d[1] * *best, o[2] + d[2] * *best},
         nn
@@ -767,7 +765,7 @@ SkinMesh BuildMaskMesh(const std::vector<RigNode> &cat_nodes, const SkinMesh &sk
             misses++;
         } else {
             auto [p, n] = *hit;
-            double face = std::fabs(Sum3(d, n));
+            double face = std::fabs(DotExact(d, n));
             floor.push_back(Dist(p, kMaskCore) + kMaskLift / std::max(face, 0.35));
         }
         dirs.emplace_back(d, u < 0 ? -1.0 : 1.0);

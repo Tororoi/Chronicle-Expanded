@@ -56,7 +56,7 @@ TEST(CatRig, RotationsRoundTrip) {
         }
     }
     M4 m = MatFromRT(r, {4.0, -2.0, 9.0});
-    M4 identity = MatMul(m, RigidInv(m));
+    M4 identity = MatMulExact(m, RigidInv(m));
     for (std::size_t i = 0; i < 4; i++) {
         for (std::size_t j = 0; j < 4; j++) {
             EXPECT_NEAR(identity[i][j], i == j ? 1.0 : 0.0, 1e-12);

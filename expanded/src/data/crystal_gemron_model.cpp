@@ -63,17 +63,6 @@ constexpr double      kEyeU0 = 0.21, kEyeU1 = 0.35, kEyeV0 = 0.50, kEyeV1 = 0.61
 
 constexpr Vec3 kForward = {0.0, 0.0, 1.0}, kUp = {0.0, 1.0, 0.0};
 
-Mat3 QuatToMat(const std::array<double, 4> &q) {
-    double w = q[0], x = q[1], y = q[2], z = q[3];
-    return {
-        {
-         {1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)},
-         {2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)},
-         {2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)},
-         }
-    };
-}
-
 // Every frame's world matrix at a frame of the motion.
 std::vector<Mat4> PoseWorld(const std::vector<MdsFrame> &frames, const MotFile &mot, double frame) {
     std::map<std::uint32_t, const MotTrack *> rotation, translation;
@@ -101,7 +90,7 @@ std::vector<Mat4> PoseWorld(const std::vector<MdsFrame> &frames, const MotFile &
                 local[3][std::size_t(j)] = t[std::size_t(j)];
             }
         }
-        world.push_back(f.parent < 0 ? local : MatMul4(local, world[std::size_t(f.parent)]));
+        world.push_back(f.parent < 0 ? local : MatMulExact(local, world[std::size_t(f.parent)]));
     }
     return world;
 }
@@ -109,7 +98,7 @@ std::vector<Mat4> PoseWorld(const std::vector<MdsFrame> &frames, const MotFile &
 Vec3 LocalDirection(const Mat4 &w, const Vec3 &d) {
     Vec3 v;
     for (int r = 0; r < 3; r++) {
-        v[std::size_t(r)] = ExactSum({w[std::size_t(r)][0] * d[0], w[std::size_t(r)][1] * d[1], w[std::size_t(r)][2] * d[2]});
+        v[std::size_t(r)] = Sum({w[std::size_t(r)][0] * d[0], w[std::size_t(r)][1] * d[1], w[std::size_t(r)][2] * d[2]});
     }
     return Unit(v);
 }
@@ -117,7 +106,7 @@ Vec3 LocalDirection(const Mat4 &w, const Vec3 &d) {
 // The ball root's rotation in its gem bone's frame: its +Y up the world, its +Z the Gemron's forward.
 Mat3 Upright(const Mat4 &w) {
     Vec3   u = LocalDirection(w, kUp), f = LocalDirection(w, kForward);
-    double along = ExactSum({f[0] * u[0], f[1] * u[1], f[2] * u[2]});
+    double along = DotExact(f, u);
     f = Unit({f[0] - along * u[0], f[1] - along * u[1], f[2] - along * u[2]});
     return {Cross(u, f), u, f};
 }
@@ -130,8 +119,8 @@ std::pair<Bytes, Bytes> SplitEyes(std::span<const unsigned char> mds, const MdsF
         if (a[0] == b[0] || b[0] == c[0] || a[0] == c[0]) {
             return false;
         }
-        double u = ExactSum({m.uvs[std::size_t(a[2])][0], m.uvs[std::size_t(b[2])][0], m.uvs[std::size_t(c[2])][0]}) / 3;
-        double v = ExactSum({m.uvs[std::size_t(a[2])][1], m.uvs[std::size_t(b[2])][1], m.uvs[std::size_t(c[2])][1]}) / 3;
+        double u = Sum({m.uvs[std::size_t(a[2])][0], m.uvs[std::size_t(b[2])][0], m.uvs[std::size_t(c[2])][0]}) / 3;
+        double v = Sum({m.uvs[std::size_t(a[2])][1], m.uvs[std::size_t(b[2])][1], m.uvs[std::size_t(c[2])][1]}) / 3;
         return kEyeU0 < u && u < kEyeU1 && kEyeV0 < v && v < kEyeV1;
     };
     std::vector<MdtMesh::Submesh> keep, eyes;

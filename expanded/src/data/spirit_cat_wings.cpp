@@ -11,8 +11,6 @@
 namespace expanded::spirit_cat {
 
 using namespace rig;
-using rig::Cross;
-using rig::Unit;
 
 namespace {
 
@@ -214,7 +212,7 @@ private:
                 t = {s[0], s[1], s[2]};
             }
             M4 local = MatFromRT(QuatToMat(q), t);
-            w[std::size_t(n.i)] = n.parent < 0 ? local : MatMul(local, w[std::size_t(n.parent)]);
+            w[std::size_t(n.i)] = n.parent < 0 ? local : MatMulExact(local, w[std::size_t(n.parent)]);
         }
         return w;
     }
@@ -227,14 +225,14 @@ private:
             c = c * s_;
         }
         Local l;
-        l.r = Mul3(rw, r_ref_t_);
+        l.r = MatMulExact(rw, r_ref_t_);
         for (std::size_t i = 0; i < 3; i++) {
             l.t[i] = anchor_local_[i] + Sum({rel[0] * r_ref_t_[0][i], rel[1] * r_ref_t_[1][i], rel[2] * r_ref_t_[2][i]});
         }
         return l;
     }
 
-    M3 WorldR(const M3 &rd) const { return Mul3(Mul3(Mul3(rd, droot_r_), yaw_r_), pitch_r_); }
+    M3 WorldR(const M3 &rd) const { return MatMulExact(MatMulExact(MatMulExact(rd, droot_r_), yaw_r_), pitch_r_); }
 
     M3 DranLocalR(const std::string &name, std::optional<double> df) const {
         const RigNode &d = Dn(name);
@@ -253,9 +251,9 @@ private:
     }
 
     static M3 Basis(V3 span, V3 top) {
-        span = Unit(span);
-        double d = Sum3(top, span);
-        top = Unit({top[0] - d * span[0], top[1] - d * span[1], top[2] - d * span[2]});
+        span = UnitExact(span);
+        double d = DotExact(top, span);
+        top = UnitExact({top[0] - d * span[0], top[1] - d * span[1], top[2] - d * span[2]});
         return {span, top, Cross(span, top)};
     }
 
@@ -349,10 +347,10 @@ std::map<int, Local> Graft::WingLocals(double f) {
                 }
                 for (std::size_t k = 0; k < 4; k++) {
                     double uk = std::pow(u, 1.0 + double(k) * kStrokeLag), fk = w7.cs + uk * (w7.ce - w7.cs);
-                    M3     r = Mul3(DranLocalR(ch[k], double(w7.de)), RotAbout(fa, KeyedVal(kStrokePhi, fk) * flap_sign_.at(sd)));
+                    M3     r = MatMulExact(DranLocalR(ch[k], double(w7.de)), RotAbout(fa, KeyedVal(kStrokePhi, fk) * flap_sign_.at(sd)));
                     double psi = kStrokeSweep * (u - uk);
                     if (std::fabs(psi) > 1e-6) {
-                        r = Mul3(r, RotAbout(va, psi * sweep_sign_.at(sd)));
+                        r = MatMulExact(r, RotAbout(va, psi * sweep_sign_.at(sd)));
                     }
                     stroke.push_back(r);
                     if (k == 0) {
@@ -360,11 +358,11 @@ std::map<int, Local> Graft::WingLocals(double f) {
                         continue;
                     }
                     double e = KeyedVal(kStrokeExtend, fk);
-                    M3     rel_s = Mul3(stroke[k], T3(stroke[k - 1]));
-                    M3     rel_i = Mul3(idle_rots_.at(sd)[k], T3(idle_rots_.at(sd)[k - 1]));
+                    M3     rel_s = MatMulExact(stroke[k], Transpose(stroke[k - 1]));
+                    M3     rel_i = MatMulExact(idle_rots_.at(sd)[k], Transpose(idle_rots_.at(sd)[k - 1]));
                     M3     rel = e >= 1 ? rel_s : e <= 0 ? rel_i
-                                                         : QuatToMat(Slerp(MatToQuat(rel_i), MatToQuat(rel_s), e));
-                    rls.push_back(Mul3(rel, rls[k - 1]));
+                                                         : QuatToMat(SlerpExact(MatToQuat(rel_i), MatToQuat(rel_s), e));
+                    rls.push_back(MatMulExact(rel, rls[k - 1]));
                 }
             } else {
                 for (const std::string &name : ch) {
@@ -385,7 +383,7 @@ std::map<int, Local> Graft::WingLocals(double f) {
                         {{c, sn, 0.0}, {-sn, c, 0.0}, {0.0, 0.0, 1.0}}
                     };
                     for (M3 &r : rls) {
-                        r = Mul3(r, qz);
+                        r = MatMulExact(r, qz);
                     }
                 }
             }
@@ -396,7 +394,7 @@ std::map<int, Local> Graft::WingLocals(double f) {
                 auto [a, b] = kWingLandLag[k];
                 double t = Smooth((f - a) / (b - a));
                 rls.push_back(t <= 0 ? rf : t >= 1 ? rt
-                                                   : QuatToMat(Slerp(MatToQuat(rf), MatToQuat(rt), t)));
+                                                   : QuatToMat(SlerpExact(MatToQuat(rf), MatToQuat(rt), t)));
             }
             auto [a, b] = kWingLandLag[0];
             double    t = Smooth((f - a) / (b - a));
@@ -416,7 +414,7 @@ std::map<int, Local> Graft::WingLocals(double f) {
                     M3     qz = {
                         {{c, sn, 0.0}, {-sn, c, 0.0}, {0.0, 0.0, 1.0}}
                     };
-                    rls[std::size_t(k)] = Mul3(rls[std::size_t(k)], qz);
+                    rls[std::size_t(k)] = MatMulExact(rls[std::size_t(k)], qz);
                 }
             }
         }
@@ -430,7 +428,7 @@ std::map<int, Local> Graft::WingLocals(double f) {
                     M3     rx = {
                         {{1.0, 0.0, 0.0}, {0.0, c, sn}, {0.0, -sn, c}}
                     };
-                    rls[std::size_t(k)] = Mul3(rx, rls[std::size_t(k)]);
+                    rls[std::size_t(k)] = MatMulExact(rx, rls[std::size_t(k)]);
                 }
             }
         }
@@ -446,7 +444,7 @@ std::pair<std::map<int, M4>, V3> Graft::WingPose(double f) {
     M4                pw = CatWorld(f)[std::size_t(parent_)];
     std::map<int, M4> w;
     for (const auto &[id, local] : WingLocals(f)) {
-        w[id] = MatMul(MatFromRT(local.r, local.t), pw);
+        w[id] = MatMulExact(MatFromRT(local.r, local.t), pw);
     }
     return {w, XformPt(pw, anchor_local_)};
 }
@@ -492,7 +490,7 @@ WingData Graft::Build() {
          {droot_r_[2][0], droot_r_[2][1], droot_r_[2][2], 0.0},
          {0.0, 0.0, 0.0, 1.0}}
     };
-    r_ref_t_ = T3(r_ref);
+    r_ref_t_ = Transpose(r_ref);
 
     const RigNode  &obj1 = Dn("obj1");
     MdtMesh         om = MdtMesh::Parse(dran_mds_.subspan(std::size_t(obj1.mesh_off)));
@@ -512,7 +510,7 @@ WingData Graft::Build() {
         n.r = l.r;
         n.t = l.t;
         n.quat = MatToQuat(l.r);
-        n.world = MatMul(MatFromRT(l.r, l.t), nodes_[std::size_t(parent_)].world);
+        n.world = MatMulExact(MatFromRT(l.r, l.t), nodes_[std::size_t(parent_)].world);
         n.inv_world = RigidInv(n.world);
         n.world_pos = {n.world[3][0], n.world[3][1], n.world[3][2]};
         nodes_.push_back(n);
@@ -535,7 +533,7 @@ WingData Graft::Build() {
             loop_start = std::min(loop_start, c.ds);
         }
     }
-    M3 r_stand = RotOf(CatWorld(kWingFoldFrame)[std::size_t(parent_)]), r_stand_t = T3(r_stand);
+    M3 r_stand = RotOf(CatWorld(kWingFoldFrame)[std::size_t(parent_)]), r_stand_t = Transpose(r_stand);
     for (const std::string sd : {"r", "l"}) {
         const auto     &ch = Chain(sd);
         double          sx = sd == "l" ? -1.0 : 1.0;
@@ -587,8 +585,8 @@ WingData Graft::Build() {
                 top_t[i] = Sum({top_t0[0] * r_stand_t[0][i], top_t0[1] * r_stand_t[1][i], top_t0[2] * r_stand_t[2][i]});
             }
             M3 bf = Basis(span_f, top_f), bt = Basis(span_t, top_t);
-            M3 a = Mul3(T3(bf), bt);
-            rls.push_back(Mul3(rf, a));
+            M3 a = MatMulExact(Transpose(bf), bt);
+            rls.push_back(MatMulExact(rf, a));
         }
         V3 shift_w = {kWingFoldRootShift[0] * sx, kWingFoldRootShift[1], kWingFoldRootShift[2]}, shift_l;
         for (std::size_t i = 0; i < 3; i++) {
@@ -602,14 +600,14 @@ WingData Graft::Build() {
             n.r = rls[k];
             n.t = fold_tls_[sd][k];
             n.quat = MatToQuat(rls[k]);
-            n.world = MatMul(MatFromRT(n.r, n.t), nodes_[std::size_t(parent_)].world);
+            n.world = MatMulExact(MatFromRT(n.r, n.t), nodes_[std::size_t(parent_)].world);
             n.inv_world = RigidInv(n.world);
             n.world_pos = {n.world[3][0], n.world[3][1], n.world[3][2]};
         }
         for (std::size_t k = 1; k < 4; k++) {
             RigNode       &n = nodes_[std::size_t(Wid(ch[k]))];
             const RigNode &pn = nodes_[std::size_t(Wid(ch[k - 1]))];
-            M4             l = MatMul(n.world, RigidInv(pn.world));
+            M4             l = MatMulExact(n.world, RigidInv(pn.world));
             n.parent = pn.i;
             n.r = RotOf(l);
             n.t = TransOf(l);
@@ -741,8 +739,8 @@ WingData Graft::Build() {
             auto            tip = [&](const std::vector<M3> &rs) { return FkLocals(sd, rs)[3]; };
             std::vector<M3> up_rs, back_rs;
             for (const M3 &r : g) {
-                up_rs.push_back(Mul3(r, RotAbout(fa, 80)));
-                back_rs.push_back(Mul3(r, RotAbout(va, 30)));
+                up_rs.push_back(MatMulExact(r, RotAbout(fa, 80)));
+                back_rs.push_back(MatMulExact(r, RotAbout(va, 30)));
             }
             flap_sign_[sd] = tip(up_rs)[1] < tip(g)[1] ? 1.0 : -1.0;
             sweep_sign_[sd] = tip(back_rs)[0] < tip(g)[0] ? 1.0 : -1.0;
@@ -1235,7 +1233,7 @@ WingData Graft::Build() {
         polys.insert(polys.end(), fine.begin(), fine.end());
         if (!mixed.empty()) {
             // The fold rounded: each wing-body midpoint pushed out along the shoulder in the folded pose (exact in the leap).
-            V3 nrm = Unit({0.6 * (sd == "l" ? 1.0 : -1.0), 0.8, 0.0});
+            V3 nrm = UnitExact({0.6 * (sd == "l" ? 1.0 : -1.0), 0.8, 0.0});
             for (int i : mixed) {
                 fit(std::size_t(i), {kWingTabBulge * nrm[0], kWingTabBulge * nrm[1], kWingTabBulge * nrm[2]});
             }
@@ -1278,7 +1276,7 @@ WingData Graft::Build() {
                 ms.push_back(MatFromRT(loc[ids.back()].r, loc[ids.back()].t));
             }
             for (std::size_t k = 1; k < 4; k++) {
-                M4     l = MatMul(ms[k], RigidInv(ms[k - 1]));
+                M4     l = MatMulExact(ms[k], RigidInv(ms[k - 1]));
                 double dev = std::max(std::max(std::fabs(l[3][0] - seg_len_[sd][k - 1]), std::fabs(l[3][1])), std::fabs(l[3][2]));
                 if (!(dev < 1e-3)) {
                     throw std::runtime_error(std::format("wing chain drift at frame {}, {}", f, ch[k]));

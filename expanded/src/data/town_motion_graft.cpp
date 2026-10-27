@@ -39,7 +39,7 @@ void CreateMissingTracks(MotFile &dst, const MotFile &src, const std::vector<std
             continue;
         }
         Bind     b = MdsBind(dpl, dw);
-        Vec4     v = st.w2 == mot::kRotation ? MatToQuat(b.rotation) : Vec4{b.translation[0], b.translation[1], b.translation[2], 0.0};
+        Vec4     v = st.w2 == mot::kRotation ? MatToQuatUnnormalised(b.rotation) : Vec4{b.translation[0], b.translation[1], b.translation[2], 0.0};
         MotTrack added = st;
         added.w0 = static_cast<std::uint32_t>(dw);
         added.keys.clear();
@@ -105,7 +105,7 @@ void SealGraft(ChrPack &dst_pack, const Model &dst_model, const ChrPack &src_pac
             if (std::any_of(dt.keys.begin(), dt.keys.end(), at_edge)) {
                 continue;
             }
-            std::optional<Vec4> v = SampleTrack(st, sf);
+            std::optional<Vec4> v = SampleNlerp(st, sf);
             if (!v) {
                 continue;
             }
@@ -131,7 +131,7 @@ void HoldTracks(MotFile &mot, int frame, int dlo, int dhi, const std::function<b
         if (!which(track)) {
             continue;
         }
-        std::optional<Vec4> v = SampleTrack(track, frame);
+        std::optional<Vec4> v = SampleNlerp(track, frame);
         if (!v || track.keys.empty()) {
             continue;
         }
@@ -215,7 +215,7 @@ void FreezeRoots(ChrPack &pack, std::string_view mot_name, int frame, int dlo, i
             })) {
             continue;
         }
-        std::optional<Vec4> v = SampleTrack(track, frame);
+        std::optional<Vec4> v = SampleNlerp(track, frame);
         if (!v) {
             continue;
         }

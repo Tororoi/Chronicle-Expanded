@@ -18,7 +18,6 @@ constexpr const char *kGemDrop[] = {kGemronBigGem, kGemronSmallGems[0], kGemronS
 
 } // namespace
 
-// A track's value at a frame: its first or last key outside its range, else the pair around it blended.
 std::array<double, 4> TrackAt(const MotTrack &track, double frame) {
     const auto &keys = track.keys;
     if (frame <= keys.front().Frame()) {
@@ -31,17 +30,9 @@ std::array<double, 4> TrackAt(const MotTrack &track, double frame) {
     while (keys[b].Frame() <= frame) {
         b++;
     }
-    const MotKeyframe   &ka = keys[b - 1], &kb = keys[b];
-    double               t = (frame - ka.Frame()) / (double(kb.Frame()) - ka.Frame());
-    std::array<float, 4> va = ka.Values(), vb = kb.Values();
-    if (track.w2 == mot::kRotation) {
-        return SlerpKeys(va, vb, t);
-    }
-    std::array<double, 4> v;
-    for (int i = 0; i < 4; i++) {
-        v[std::size_t(i)] = va[std::size_t(i)] + (vb[std::size_t(i)] - double(va[std::size_t(i)])) * t;
-    }
-    return v;
+    const MotKeyframe &ka = keys[b - 1], &kb = keys[b];
+    double             t = (frame - ka.Frame()) / (double(kb.Frame()) - ka.Frame());
+    return BlendKeys(ka.Values(), kb.Values(), t, track.w2 == mot::kRotation);
 }
 
 MotTrack TrackLike(const MotTrack &reference, std::uint32_t node, std::uint32_t w1, std::uint32_t channel) {

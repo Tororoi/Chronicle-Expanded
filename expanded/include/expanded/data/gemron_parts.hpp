@@ -18,7 +18,7 @@
 
 namespace expanded {
 
-// A track's value at a frame: its first or last key outside its range, else the pair around it blended.
+// A track's value at a frame: its first or last key outside its range, else the pair around it blended (BlendKeys).
 std::array<double, 4> TrackAt(const MotTrack &track, double frame);
 // A track of node on channel, its other words the reference's.
 MotTrack TrackLike(const MotTrack &reference, std::uint32_t node, std::uint32_t w1, std::uint32_t channel);

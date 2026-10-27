@@ -154,7 +154,7 @@ void GraftMeshNodes(ChrPack &base, const ChrPack &src, const TownMeshGraft &graf
     for (const std::string &name : names) {
         const std::vector<const MotTrack *> &tracks = by_node[name];
         for (const MotTrack *track : tracks) {
-            std::optional<Vec4> value = SampleTrack(*track, graft.pose_frame);
+            std::optional<Vec4> value = SampleNlerp(*track, graft.pose_frame);
             if (!value) {
                 continue;
             }
@@ -169,7 +169,7 @@ void GraftMeshNodes(ChrPack &base, const ChrPack &src, const TownMeshGraft &graf
         if (spin && name == spin->node &&
             std::none_of(tracks.begin(), tracks.end(), [](const MotTrack *t) { return t->w2 == mot::kRotation; })) {
             // A hub without a source rotation: an anchor-only rotation track at its bind, for the spin.
-            Vec4     bind = MatToQuat(MdsBind(spl, Index(snames, name)).rotation);
+            Vec4     bind = MatToQuatUnnormalised(MdsBind(spl, Index(snames, name)).rotation);
             MotTrack added{.w0 = static_cast<std::uint32_t>(new_index[name]), .w3 = 0x20};
             added.w6 = MotTrack::kTagW6;
             added.w7 = MotTrack::kTagW7;
@@ -273,7 +273,7 @@ void ApplySpin(ChrPack &base, const TownMeshGraft &graft) {
             Bad("spin: a step of 90 degrees or more");
         }
     }
-    Vec4 bind = MatToQuat(MdsBind(mds, w0).rotation);
+    Vec4 bind = MatToQuatUnnormalised(MdsBind(mds, w0).rotation);
     for (auto [frame, deg] : ordered) {
         double th = deg * (std::numbers::pi / 180.0);
         double s = std::sin(th / 2);

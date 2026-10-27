@@ -49,7 +49,7 @@ std::vector<MdsFrame> ReadMdsSkeleton(std::span<const unsigned char> mds) {
         }
         local[3][3] = 1.0;
         frame.local = local;
-        frame.world = frame.parent < 0 ? local : MatMul4(local, frames[static_cast<std::size_t>(frame.parent)].world);
+        frame.world = frame.parent < 0 ? local : MatMulExact(local, frames[static_cast<std::size_t>(frame.parent)].world);
     }
     return frames;
 }
