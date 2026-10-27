@@ -4,8 +4,6 @@
 // (expanded/docs/town-models.md). Includes no game header, so dcdata can build with it.
 
 #include <array>
-#include <cstdio>
-#include <filesystem>
 #include <functional>
 #include <optional>
 #include <string_view>
@@ -95,7 +93,7 @@ Bytes RewriteTownKeys(std::span<const unsigned char> cfg, const std::vector<Town
 // grafted track at the window's edges; src_cfg names src's cfg where its pack bundles two characters.
 void GraftMotionWindow(ChrPack &base, const ChrPack &src, std::string_view src_cfg, int slo, int shi, int dlo, int dhi);
 
-// Builds every ally's model into data, skipping one whose base is missing. Returns the failures.
-int BuildTownModels(const std::filesystem::path &data, std::FILE *log);
+// Every ally's model, each skipped when its base is missing (its slots' sources are read as it builds).
+std::vector<DataBuild> TownModelBuilds();
 
 } // namespace expanded

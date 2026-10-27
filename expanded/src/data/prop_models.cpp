@@ -189,12 +189,12 @@ Bytes BuildShadowDisc(std::span<const unsigned char> rock) {
                            ChrRecord::Make("disc.mds", disc), ChrRecord::Make("disc_shadow.mds", disc), ChrRecord::Make("disc.img", bank.Build())});
 }
 
-int BuildPropModels(const std::filesystem::path &data, std::FILE *log) {
-    std::vector<DataBuild> builds = {
-        {"Queens' trees", kQueensTreesFile, {kQueensSceneFile, kQueensImagesFile}, [](const DiscReader &read) { return BuildQueensTrees(read(kQueensSceneFile), read(kQueensImagesFile)); }},
-        {"shadow disc",   kShadowDiscFile,  {kShadowDiscSource},                   [](const DiscReader &read) { return BuildShadowDisc(read(kShadowDiscSource)); }                         },
+std::vector<DataBuild> PropModelBuilds() {
+    using Files = const std::vector<Bytes> &;
+    return {
+        DataBuild::FromSources("Queens' trees", kQueensTreesFile, {kQueensSceneFile, kQueensImagesFile}, [](Files s) { return BuildQueensTrees(s[0], s[1]); }),
+        DataBuild::FromSources("shadow disc", kShadowDiscFile, {kShadowDiscSource}, [](Files s) { return BuildShadowDisc(s[0]); }),
     };
-    return RunDataBuilds(data, "prop model", builds, log);
 }
 
 } // namespace expanded

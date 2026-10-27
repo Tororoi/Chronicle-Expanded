@@ -5,13 +5,13 @@
 // float-up grafted in, Dran's wings, the Super Steve cape (a cloth) and mask, a flat white wing texture, the cape's and
 // the element glow disc. Each weapon's cat shows what it wears. Includes no game header, so dcdata can build with it.
 
-#include <cstdio>
-#include <filesystem>
 #include <functional>
 #include <span>
 #include <string>
+#include <vector>
 
 #include "expanded/data/bytes.hpp"
+#include "expanded/data/data_build.hpp"
 
 namespace expanded {
 
@@ -44,7 +44,7 @@ enum SpiritCatKey {
 Bytes BuildSpiritCatModel(std::span<const unsigned char> cat, std::span<const unsigned char> town, std::span<const unsigned char> dran,
                           std::span<const unsigned char> glow_pack, const std::function<void(const std::string &)> &log = {});
 
-// Builds it into the data directory; 1 when it could not be built.
-int BuildSpiritCatModels(const std::filesystem::path &data, std::FILE *log);
+// The cat's model.
+std::vector<DataBuild> SpiritCatModelBuilds();
 
 } // namespace expanded

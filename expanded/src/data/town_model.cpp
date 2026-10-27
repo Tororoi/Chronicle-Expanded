@@ -119,14 +119,13 @@ Bytes BuildTownModel(const TownAlly &ally, const DiscReader &read) {
     return base.Rebuild();
 }
 
-int BuildTownModels(const std::filesystem::path &data, std::FILE *log) {
+std::vector<DataBuild> TownModelBuilds() {
     std::vector<DataBuild> builds;
     for (const TownAlly &ally : TownAllies()) {
-        std::vector<std::string> sources = {std::string(ally.base)};
-        auto                     build = [&ally](const DiscReader &read) { return BuildTownModel(ally, read); };
-        builds.push_back(DataBuild{std::string(ally.name), std::string(ally.file), sources, build});
+        auto build = [&ally](const DiscReader &read) { return BuildTownModel(ally, read); };
+        builds.push_back(DataBuild{std::string(ally.name), std::string(ally.file), {std::string(ally.base)}, build});
     }
-    return RunDataBuilds(data, "town model", builds, log);
+    return builds;
 }
 
 } // namespace expanded

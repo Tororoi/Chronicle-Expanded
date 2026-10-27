@@ -299,15 +299,13 @@ Bytes BakeMonsterScript(std::string_view script, std::span<const unsigned char> 
     return out;
 }
 
-int BuildMonsterScripts(const std::filesystem::path &data, std::FILE *log) {
+std::vector<DataBuild> MonsterScriptBuilds() {
     std::vector<DataBuild> builds;
     for (const Spec &spec : Specs()) {
-        std::string source = std::format("dun/monstor/{}.stb", spec.script);
-        builds.push_back({spec.who, BakedScriptFile(spec.script), {source}, [script = spec.script, source](const DiscReader &read) {
-                              return BakeMonsterScript(script, read(source));
-                          }});
+        builds.push_back(DataBuild::FromSources(spec.who, BakedScriptFile(spec.script), {std::format("dun/monstor/{}.stb", spec.script)},
+                                                [script = spec.script](const std::vector<Bytes> &s) { return BakeMonsterScript(script, s[0]); }));
     }
-    return RunDataBuilds(data, "monster script", builds, log);
+    return builds;
 }
 
 } // namespace expanded

@@ -599,14 +599,9 @@ Bytes BuildSpiritCatModel(std::span<const unsigned char> cat_bytes, std::span<co
                            ChrRecord::Make("dbcat.wgt", wgt2.BuildPayload()), ChrRecord::Make(kCapeClo, ToBytes(wd.clo))});
 }
 
-int BuildSpiritCatModels(const std::filesystem::path &data, std::FILE *log) {
-    DataBuild build{
-        "Divine Beast Title", kSpiritCatModelFile, {kSpiritCatSource, kSpiritCatFloatSource, kSpiritCatWingSource, kGlowSourcePack},
-          [](const DiscReader &read) {
-            return BuildSpiritCatModel(read(kSpiritCatSource), read(kSpiritCatFloatSource), read(kSpiritCatWingSource), read(kGlowSourcePack));
-                                                    }
-    };
-    return RunDataBuilds(data, "spirit cat", {build}, log);
+std::vector<DataBuild> SpiritCatModelBuilds() {
+    return {DataBuild::FromSources("Divine Beast Title", kSpiritCatModelFile, {kSpiritCatSource, kSpiritCatFloatSource, kSpiritCatWingSource, kGlowSourcePack},
+                                   [](const std::vector<Bytes> &s) { return BuildSpiritCatModel(s[0], s[1], s[2], s[3]); })};
 }
 
 } // namespace expanded

@@ -20,8 +20,6 @@ namespace expanded {
 
 namespace {
 
-namespace fs = std::filesystem;
-
 constexpr double kDegrees = std::numbers::pi / 180.0;
 
 // The bomb's body radius in its own model (the wick rises to 1.98), and its turns about the wick before it is aimed.
@@ -342,31 +340,19 @@ Bytes BuildBombThrowPack(std::span<const unsigned char> apple, std::span<const u
     return pack.Rebuild();
 }
 
-int BuildGemronModels(const fs::path &data, std::FILE *log) {
-    // Each built from its sources in turn.
-    auto from = [](std::vector<std::string> sources, auto build) {
-        return std::pair{sources, [sources, build](const DiscReader &read) {
-                             std::vector<Bytes> files;
-                             for (const std::string &source : sources) {
-                                 files.push_back(read(source));
-                             }
-                             return build(files);
-                         }};
-    };
-    std::vector<DataBuild> builds;
-
-    auto add = [&](const char *name, const char *target, auto made) { builds.push_back({name, target, made.first, made.second}); };
+std::vector<DataBuild> GemronModelBuilds() {
     using Files = const std::vector<Bytes> &;
     // clang-format off
-    add("Bomb Gemron",             kBombGemronModelFile,     from({kBombGemronSource, kBombModelFile, kBombPictureFile, kGlowQuadFile, kGlowSourcePack},                    [](Files s) { return BuildBombGemronModel(s[0], s[1], s[2], s[3], s[4]); }));
-    add("Bomb Gemron's bomb",      kBombThrowFile,           from({kBombThrowSource, kBombModelFile, kBombPictureFile},                                                     [](Files s) { return BuildBombThrowPack(s[0], s[1], s[2]); }));
-    add("Crystal Gemron",          kCrystalGemronModelFile,  from({kCrystalGemronSource, kCrystalBallFile},                                                                 [](Files s) { return BuildCrystalGemronModel(s[0], s[1]); }));
-    add("Crystal Gemron's script", kCrystalGemronScriptFile, from({kCrystalGemronScriptSource},                                                                             [](Files s) { return BuildCrystalGemronScript(s[0]); }));
-    add("Atla Gemron",             kAtlaGemronModelFile,     from({kAtlaGemronSource, kAtlaPackFile, kAtlaPictureFile, kToanPackFile, kAtlamilliaLightFile, kFlyLightFile}, [](Files s) { return BuildAtlaGemronModel(s[0], s[1], s[2], s[3], s[4], s[5]); }));
-    add("Atla Gemron's shot",      kAtlaShotFile,            from({kAtlamilliaLightFile},                                                                                   [](Files s) { return BuildAtlaShotPack(s[0]); }));
-    add("Atla Gemron's script",    kAtlaGemronScriptFile,    from({kAtlaGemronScriptSource},                                                                                [](Files s) { return BuildAtlaGemronScript(s[0]); }));
+    return {
+        DataBuild::FromSources("Bomb Gemron",             kBombGemronModelFile,     {kBombGemronSource, kBombModelFile, kBombPictureFile, kGlowQuadFile, kGlowSourcePack},                    [](Files s) { return BuildBombGemronModel(s[0], s[1], s[2], s[3], s[4]); }),
+        DataBuild::FromSources("Bomb Gemron's bomb",      kBombThrowFile,           {kBombThrowSource, kBombModelFile, kBombPictureFile},                                                     [](Files s) { return BuildBombThrowPack(s[0], s[1], s[2]); }),
+        DataBuild::FromSources("Crystal Gemron",          kCrystalGemronModelFile,  {kCrystalGemronSource, kCrystalBallFile},                                                                 [](Files s) { return BuildCrystalGemronModel(s[0], s[1]); }),
+        DataBuild::FromSources("Crystal Gemron's script", kCrystalGemronScriptFile, {kCrystalGemronScriptSource},                                                                             [](Files s) { return BuildCrystalGemronScript(s[0]); }),
+        DataBuild::FromSources("Atla Gemron",             kAtlaGemronModelFile,     {kAtlaGemronSource, kAtlaPackFile, kAtlaPictureFile, kToanPackFile, kAtlamilliaLightFile, kFlyLightFile}, [](Files s) { return BuildAtlaGemronModel(s[0], s[1], s[2], s[3], s[4], s[5]); }),
+        DataBuild::FromSources("Atla Gemron's shot",      kAtlaShotFile,            {kAtlamilliaLightFile},                                                                                   [](Files s) { return BuildAtlaShotPack(s[0]); }),
+        DataBuild::FromSources("Atla Gemron's script",    kAtlaGemronScriptFile,    {kAtlaGemronScriptSource},                                                                                [](Files s) { return BuildAtlaGemronScript(s[0]); }),
+    };
     // clang-format on
-    return RunDataBuilds(data, "gemron model", builds, log);
 }
 
 } // namespace expanded

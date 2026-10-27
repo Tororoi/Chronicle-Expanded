@@ -114,7 +114,7 @@ TEST(CatRig, TriangulatesAndTestsPolygons) {
 
 TEST(SpiritCatModel, SkipsDataWithoutTheCats) {
     expanded::test::ScratchDir dir("spirit_cat");
-    EXPECT_EQ(BuildSpiritCatModels(dir.path(), nullptr), 0);
+    EXPECT_EQ(RunDataBuilds(dir.path(), "spirit cat", SpiritCatModelBuilds(), nullptr), 0);
     EXPECT_FALSE(fs::exists(dir.path() / "expanded"));
 }
 
