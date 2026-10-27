@@ -307,7 +307,7 @@ bool WallAhead(const float *move) {
 }
 
 bool Live(int monster) {
-    if (NowMonstorUnit == nullptr || monster < 0 || monster >= 16) {
+    if (NowMonstorUnit == nullptr || monster < 0 || monster >= kFloorMonsters) {
         return false;
     }
     const MONSTOR &live = NowMonstorUnit->monster[monster];
@@ -344,7 +344,7 @@ void AimPoint(int monster, float *out) {
     float fx = std::sin(body.rotation.y), fz = std::cos(body.rotation.y);
     float best = -1.0f, best_forward = -INFINITY;
     for (int pass = 0; pass < 2 && best < 0; pass++) {
-        for (int sphere = 0; sphere < 16; sphere++) {
+        for (int sphere = 0; sphere < kMonsterSpheres; sphere++) {
             if (effect.timer[sphere] == 0 || (pass == 0 && CatPercent(effect, sphere) <= 0)) {
                 continue;
             }
@@ -395,7 +395,7 @@ int PickTarget() {
     }
     int   best = -1;
     float nearest = INFINITY;
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         float d = Flat(Body(monster).pos, CharaMain.pos);
         if (Live(monster) && d < nearest && d <= kSpiritBeastSight) {
             best = monster;
@@ -471,9 +471,9 @@ SHOT_COLLISION_RESULT TouchTest(float *point, float *move) {
     if (NowDngMap != nullptr) {
         return checkCollision(out, point, move, kHitsMonsters, kSpiritBeastTouch);
     }
-    for (int m = 0; m < 16; m++) { // with no map, its monster test alone
+    for (int m = 0; m < kFloorMonsters; m++) { // with no map, its monster test alone
         const MONSTOR &live = NowMonstorUnit->monster[m];
-        for (int sphere = 0; live.state != -1 && live.revealed != 0 && sphere < 16; sphere++) {
+        for (int sphere = 0; live.state != -1 && live.revealed != 0 && sphere < kMonsterSpheres; sphere++) {
             const MONSTOR_EFFECT_STATE &effect = NowMonstorUnit->effect[m];
             if (effect.timer[sphere] != 0 && DistVector(const_cast<float *>(effect.position[sphere]), point) <= kSpiritBeastTouch + effect.radius[sphere]) {
                 return SHOT_COLLISION_MONSTER;

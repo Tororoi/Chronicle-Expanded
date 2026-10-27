@@ -1,3 +1,4 @@
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 
@@ -101,7 +102,7 @@ bool Toan() {
 }
 
 bool Live(int monster) {
-    if (NowMonstorUnit == nullptr || monster < 0 || monster >= 16) {
+    if (NowMonstorUnit == nullptr || monster < 0 || monster >= kFloorMonsters) {
         return false;
     }
     const MONSTOR &live = NowMonstorUnit->monster[monster];
@@ -193,7 +194,7 @@ int BoltVolley(const float *origin) {
         return 0;
     }
     std::vector<std::pair<float, int>> near;
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         if (!Live(monster)) {
             continue;
         }

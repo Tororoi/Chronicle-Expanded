@@ -182,7 +182,7 @@ float BodyEdge(CMonstorUnit &unit, int monster, float x, float z) {
     unit.chara[monster][0].GetPosition(at);
     bool  posed = false;
     float nearest = 0.0f;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < kMonsterSpheres; i++) {
         const float *centre = body.position[i];
         if (body.timer[i] == 0 || std::fabs(centre[0] - at[0]) > kUnposed || std::fabs(centre[2] - at[2]) > kUnposed) {
             continue;
@@ -204,7 +204,7 @@ float BodyCentre(CMonstorUnit &unit, int monster, float *centre) {
     unit.chara[monster][0].GetPosition(at);
     centre[0] = at[0], centre[1] = at[1] + kBodyFallback, centre[2] = at[2], centre[3] = 1.0f;
     float radius = kBodyFallback, best = 0.0f;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < kMonsterSpheres; i++) {
         const float *sphere = body.position[i];
         if (body.timer[i] == 0 || body.radius[i] <= best || std::fabs(sphere[0] - at[0]) > kUnposed || std::fabs(sphere[2] - at[2]) > kUnposed) {
             continue;
@@ -248,7 +248,7 @@ void Pricks() {
     if (NowMonstorUnit == nullptr) {
         return;
     }
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         if (Live(NowMonstorUnit->monster[monster]) &&
             BodyEdge(*NowMonstorUnit, monster, bloom.spot[0], bloom.spot[2]) <= Shape().block_radius + kBloomHitReach) {
             Prick(*NowMonstorUnit, monster);

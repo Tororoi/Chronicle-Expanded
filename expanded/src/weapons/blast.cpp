@@ -1,4 +1,5 @@
 #include "expanded/dungeon/collision_hits.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/blast.hpp"
 
 #include <algorithm>
@@ -45,7 +46,7 @@ bool HitFree() {
 float BlastDistance(const CMonstorUnit &unit, int monster, const float *point) {
     const MONSTOR_EFFECT_STATE &body = unit.effect[monster];
     float                       nearest = -1.0f;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < kMonsterSpheres; i++) {
         if (body.timer[i] == 0) {
             continue;
         }
@@ -84,7 +85,7 @@ int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOp
         RumbleBlast(BlastRumble::kKnockdown);
     }
     int reached = 0;
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         const MONSTOR &live = unit.monster[monster];
         if (monster == options.except || (options.spared >> monster & 1) != 0 || live.state == -1 || live.hp <= 0 ||
             live.revealed != -1) {

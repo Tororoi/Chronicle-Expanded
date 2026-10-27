@@ -172,9 +172,9 @@ void Land(const CSHOT_EFFECT &effect, const float *point, float radius, int mons
 // reach (the monster into monster), else a wall; never the player.
 SHOT_COLLISION_RESULT ReturnTest(CSHOT_EFFECT &effect, int slot, float *hit_position, float *position, int *monster) {
     float radius = effect.effect_data->radius[effect.phase[slot]];
-    for (int m = 0; NowMonstorUnit != nullptr && m < 16; m++) {
+    for (int m = 0; NowMonstorUnit != nullptr && m < kFloorMonsters; m++) {
         const MONSTOR &live = NowMonstorUnit->monster[m];
-        for (int sphere = 0; live.state != -1 && live.revealed != 0 && sphere < 16; sphere++) {
+        for (int sphere = 0; live.state != -1 && live.revealed != 0 && sphere < kMonsterSpheres; sphere++) {
             const MONSTOR_EFFECT_STATE &body = NowMonstorUnit->effect[m];
             if (body.timer[sphere] != 0 && DistVector(const_cast<float *>(body.position[sphere]), position) <= radius + body.radius[sphere]) {
                 sceVu0CopyVector(hit_position, const_cast<float *>(body.position[sphere]));
@@ -433,7 +433,7 @@ bool NearestAim(const float *from, float *aim) {
     CMonstorUnit &unit = *NowMonstorUnit;
     float         best = 0.0f;
     bool          found = false;
-    for (int m = 0; m < 16; m++) {
+    for (int m = 0; m < kFloorMonsters; m++) {
         const MONSTOR &live = unit.monster[m];
         float          at[4];
         unit.chara[m][0].GetPosition(at);

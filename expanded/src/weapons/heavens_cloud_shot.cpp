@@ -1,3 +1,4 @@
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "sound_effect.h"
 
@@ -44,7 +45,7 @@ bool MonsterNear(const float *point, float reach) {
     if (NowMonstorUnit == nullptr) {
         return false;
     }
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         const MONSTOR &live = NowMonstorUnit->monster[monster];
         if (live.state == -1 || live.hp <= 0) {
             continue;

@@ -1,3 +1,4 @@
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/status/poison.hpp"
 
 #include "dun/gameloop.hpp"
@@ -12,7 +13,7 @@ namespace {
 int step_clock;
 
 // step_clock when each monster was poisoned.
-int poison_start[16];
+int poison_start[kFloorMonsters];
 
 } // namespace
 

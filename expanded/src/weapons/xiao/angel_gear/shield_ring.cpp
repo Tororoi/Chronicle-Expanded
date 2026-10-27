@@ -90,7 +90,7 @@ void RingReset() {
 }
 
 bool RingTarget(int monster, float *position) {
-    if (!ring.up || NowMonstorUnit == nullptr || monster < 0 || monster >= 16) {
+    if (!ring.up || NowMonstorUnit == nullptr || monster < 0 || monster >= kFloorMonsters) {
         return false;
     }
     sceVu0CopyVector(position, CharaMain.pos);

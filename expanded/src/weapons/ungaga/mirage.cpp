@@ -36,7 +36,7 @@ struct Decoy {
     int   handoff_age = 0; // frames since the hand-off began
     float old_at[4] = {};  // the old decoy's spot, its copy dissolving there
     int   hold = 0;        // frames left the monsters keep to the old spot
-    bool  hit[16] = {};    // the monsters hit since they last took to a decoy
+    bool  hit[kFloorMonsters] = {};    // the monsters hit since they last took to a decoy
 };
 
 struct Guard {

@@ -1,4 +1,5 @@
 #include "expanded/dungeon/collision_hits.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 
@@ -180,7 +181,7 @@ int MonsterAt(const float *point, float reach) {
     }
     int   nearest = -1;
     float best = reach;
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         const MONSTOR &live = NowMonstorUnit->monster[monster];
         if (live.state == -1 || live.hp <= 0) {
             continue;
@@ -362,7 +363,7 @@ int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int 
         return 0;
     }
     int struck = 0;
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         const MONSTOR &live = unit.monster[monster];
         if (monster == except || live.state == -1 || live.hp <= 0 || live.revealed != -1) {
             continue;
