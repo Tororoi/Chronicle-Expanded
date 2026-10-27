@@ -17,6 +17,12 @@ BT_SHOT_EFFECT IcePrisonShot();
 void PlayerChest(float *chest);
 void PlayerFeet(float *feet);
 
+// Whether a point is within reach of the player's chest.
+bool NearPlayerChest(const float *point, float reach);
+
+// Steps a spent arrow's hit takes to reach the player (and freeze him).
+inline constexpr int kIceArrowSettle = 2;
+
 // Whether the player is frozen, and whether any of his ailments still runs.
 bool PlayerFrozen();
 bool PlayerAfflicted();

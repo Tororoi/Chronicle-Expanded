@@ -9,6 +9,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/ice_queen.hpp"
 #include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "frame.hpp"
@@ -54,7 +55,7 @@ const Cast kCasts[] = {
     {.kinds = {Monster::ICE_QUEEN, Monster::ICE_BARRIER},
      .names = {"Ice Queen", "Ice Barrier"},
      .needs = CHARA_RUBY,
-     .follower = Follower{.kind = Monster::ICE_BARRIER, .rise = 10.1f}},
+     .follower = Follower{.kind = Monster::ICE_BARRIER, .rise = kIceQueenChest}},
     // King's Curse's coffin hides 500 under the king until his smoke is blown away (in retail at 0, 0, -500, out of
     // the arena).
     {.kinds = {Monster::KINGS_CURSE_COFFIN, Monster::KINGS_CURSE},
