@@ -14,7 +14,6 @@ namespace expanded {
 
 namespace {
 
-
 } // namespace
 
 bool VenomActive() {

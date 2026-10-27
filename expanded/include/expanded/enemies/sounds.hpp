@@ -6,7 +6,9 @@
 
 #include "expanded/enemies/monsters.hpp"
 
+namespace dc::game {
 class CMonstorUnit;
+} // namespace dc::game
 
 namespace expanded {
 

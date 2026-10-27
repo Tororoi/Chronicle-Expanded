@@ -8,7 +8,7 @@
 #include "expanded/core/menu_text.hpp"
 #include "expanded/core/party.hpp"
 #include "itemdata.hpp"
-#include "localize.hpp"
+#include "localize/localize.hpp"
 
 namespace expanded {
 

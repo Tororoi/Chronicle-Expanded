@@ -2,7 +2,9 @@
 
 #include "shot_utils.hpp"
 
+namespace dc::game {
 class CSHOT_EFFECT;
+} // namespace dc::game
 
 namespace expanded::angel_gear {
 

@@ -11,7 +11,7 @@
 #include "expanded/weapons/super_steve.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
-#include "localize.hpp"
+#include "localize/localize.hpp"
 #include "sysmes.hpp"
 #include "userstatus.hpp"
 

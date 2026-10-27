@@ -51,11 +51,6 @@ static int defWeapon[6] = {ITEM_WEAPON_DAGGER_BROKEN, ITEM_WEAPON_WOODENSLINGSHO
 #include "texture.hpp"
 #include "userstatus.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/dungeon/dungeon_hooks.hpp"
-#include "expanded/weapons/toan/kitchen_knife.hpp"
-#endif
-
 s32   DebugStatus[21];
 float StatusColor[3];
 
@@ -312,14 +307,7 @@ void HealingWater() {
     int   max_hp;
     int   now_hp;
 
-#ifdef CHRONICLE_EXPANDED
-    expanded::SpringsBlessingStep();
-#endif
-
     if (CheckHealZone() || CheckHealingWater()) {
-#ifdef CHRONICLE_EXPANDED
-        expanded::SpringsBlessingSoak();
-#endif
         if (healingSpeed <= 0) {
             chara = UserStatus->cur_chara;
             UserStatus->AddDrink(chara, 0xFF, 255.0f);
@@ -1077,11 +1065,6 @@ void BtStatusErrStep() {
 void BtSetStatusErr(int status) {
     int chara;
 
-#ifdef CHRONICLE_EXPANDED
-    if (!expanded::AilmentAllowed(status)) {
-        return;
-    }
-#endif
     chara = UserStatus->cur_chara;
 
     switch (status) {
@@ -1366,12 +1349,7 @@ int BtMapJumpLoad(char *map_name) {
     // The monsters get whatever the map left of its buffer.
     int     map_used = MapModelBuffer.used;
     u_char *monster_base = MapModelBuffer.base + map_used * 16;
-#ifdef CHRONICLE_EXPANDED
-    // All the map buffer's headroom: any nine kinds fit.
-    long monster_size = MapModelBuffer.limit - map_used;
-#else
     long    monster_size = 0xA7F80 - map_used;
-#endif
     MonstorModelBuffer.base = monster_base;
     MonstorModelBuffer.limit = monster_size;
     MonstorModelBuffer.used = 0;

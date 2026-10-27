@@ -24,19 +24,20 @@
 #include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "frame.hpp"
-#include "gametext.hpp"
 #include "itemdata.hpp"
 #include "main.hpp"
-#include "menu_dungeon_port.hpp"
+#include "menu_dungeon.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
 #include "test_support.hpp"
+#include "text/gametext.hpp"
 #include "userstatus.hpp"
 #include "weaponelement.hpp"
 
-extern s32          mode;
-extern s32          lockOnTargetNo;
-extern CSHOT_EFFECT CharaMainEffect;
+namespace dc::game {
+extern s32 mode;
+extern s32 lockOnTargetNo;
+} // namespace dc::game
 
 namespace {
 
@@ -82,10 +83,10 @@ protected:
         mode = GAME_MODE_DUNGEON;
         NowColData = hits_.get();
         NowEventMan = events_.get();
-        CharaMainEffect.Initialize();
-        CharaMainEffect.effect_data = &orb_;
-        CharaMainEffect.slot_count = 6;
-        NowMainEffect = &CharaMainEffect;
+        CharaMainShotEffect().Initialize();
+        CharaMainShotEffect().effect_data = &orb_;
+        CharaMainShotEffect().slot_count = 6;
+        NowMainEffect = &CharaMainShotEffect();
         BtRubyDoorKey = WEAPON_ELEMENT_WIND;
         lockOnTargetFlag = 0;
         status().cur_chara = static_cast<s8>(chara_);
@@ -112,7 +113,7 @@ protected:
         expanded::CursedPrismFloorEnds();
         expanded::ShotEffectsClear();
         expanded::SetShotEffectLoader(nullptr);
-        CharaMainEffect.Initialize();
+        CharaMainShotEffect().Initialize();
         NowMainEffect = saved_live_;
         NowEventMan = saved_events_;
         NowColData = saved_hits_;
@@ -147,17 +148,17 @@ protected:
     // An orb of hers flying from (0, 8, 0) along flight for damage, let go into slot 0 as BattleActionShotRuby does: scale
     // the throw's charge, repeat a full charge's second orb.
     void Throw(float x, float y, float z, int damage, float scale = 1.0f, bool repeat = false) {
-        CharaMainEffect.chara[0].SetPosition(0.0f, 8.0f, 0.0f);
-        CharaMainEffect.velocity[0][0] = x;
-        CharaMainEffect.velocity[0][1] = y;
-        CharaMainEffect.velocity[0][2] = z;
-        CharaMainEffect.phase[0] = 1;
-        CharaMainEffect.active[0] = 1;
-        CharaMainEffect.damage[0] = damage;
-        CharaMainEffect.weapon_status[0] = 0x40;
-        CharaMainEffect.vs_monster[0] = vs_monster_;
-        CharaMainEffect.current_slot = 0;
-        expanded::RubyOrbThrown(CharaMainEffect, 0, scale, repeat);
+        CharaMainShotEffect().chara[0].SetPosition(0.0f, 8.0f, 0.0f);
+        CharaMainShotEffect().velocity[0][0] = x;
+        CharaMainShotEffect().velocity[0][1] = y;
+        CharaMainShotEffect().velocity[0][2] = z;
+        CharaMainShotEffect().phase[0] = 1;
+        CharaMainShotEffect().active[0] = 1;
+        CharaMainShotEffect().damage[0] = damage;
+        CharaMainShotEffect().weapon_status[0] = 0x40;
+        CharaMainShotEffect().vs_monster[0] = vs_monster_;
+        CharaMainShotEffect().current_slot = 0;
+        expanded::RubyOrbThrown(CharaMainShotEffect(), 0, scale, repeat);
     }
 
     // A monster of kind set out at (x, 0, z) in monster slot.
@@ -345,7 +346,7 @@ TEST_F(CrystalRing, ABuildUpIntoTheRingTakesIce) {
 TEST_F(CrystalRing, EveryOrbFliesOnAsTheIceArrow) {
     ASSERT_NE(arrows_, nullptr);
     Throw(0.0f, 0.0f, 0.9f, 77);
-    EXPECT_EQ(CharaMainEffect.active[0], 0);
+    EXPECT_EQ(CharaMainShotEffect().active[0], 0);
     ASSERT_NE(arrows_->active[0], 0);
     EXPECT_EQ(arrows_->phase[0], 1);
     EXPECT_EQ(arrows_->damage[0], 77);
@@ -373,7 +374,7 @@ TEST_F(CrystalRing, EveryOrbFliesOnAsTheIceArrow) {
     EXPECT_NE(arrows_->active[1], 0);
     EXPECT_EQ(arrows_->damage[1], 140);
     EXPECT_EQ(arrows_->active[2], 0);
-    EXPECT_EQ(CharaMainEffect.active[0], 0);
+    EXPECT_EQ(CharaMainShotEffect().active[0], 0);
 }
 
 TEST_F(CrystalRing, AChargedThrowsArrowFliesALittleFaster) {
@@ -395,23 +396,23 @@ TEST_F(CrystalRing, WithNoRoomLeftTheOrbFlies) {
         Throw(0.0f, 0.0f, 0.9f, 10);
     }
     Throw(0.0f, 0.0f, 0.9f, 10);
-    EXPECT_NE(CharaMainEffect.active[0], 0);
+    EXPECT_NE(CharaMainShotEffect().active[0], 0);
     // and so does a full charge's second orb with it.
     Throw(0.0f, 0.0f, 0.9f, 10, 2.2f, true);
-    EXPECT_NE(CharaMainEffect.active[0], 0);
+    EXPECT_NE(CharaMainShotEffect().active[0], 0);
 }
 
 TEST_F(CrystalRing, LiftedOrBrokenTheOrbsAreHerOwn) {
     Lift();
     Throw(0.0f, 0.0f, 0.9f, 77);
-    EXPECT_NE(CharaMainEffect.active[0], 0);
+    EXPECT_NE(CharaMainShotEffect().active[0], 0);
     EXPECT_EQ(arrows_->active[0], 0);
 
     floor_.SetUpModel(0, Monster::MASTER_JACKET);
     expanded::CurseStep();
     NowMainEffect = &CharaMainEffectCrash;
     Throw(0.0f, 0.0f, 0.9f, 77);
-    EXPECT_NE(CharaMainEffect.active[0], 0);
+    EXPECT_NE(CharaMainShotEffect().active[0], 0);
     EXPECT_EQ(arrows_->active[0], 0);
 }
 
@@ -498,7 +499,7 @@ TEST_F(CrystalRingWithAnotherWeapon, NoCurseNoArrowsNoLock) {
     EXPECT_EQ(status().ailments[CHARA_RUBY] & AILMENT_CURSE, 0);
     EXPECT_FALSE(expanded::CursedPrismActive());
     Throw(0.0f, 0.0f, 0.9f, 77);
-    EXPECT_NE(CharaMainEffect.active[0], 0);
+    EXPECT_NE(CharaMainShotEffect().active[0], 0);
     EXPECT_EQ(expanded::HeldElement(status().chara_weapons[CHARA_RUBY][0]), -1);
 }
 

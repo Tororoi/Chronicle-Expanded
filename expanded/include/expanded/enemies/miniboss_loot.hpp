@@ -4,8 +4,10 @@
 
 #include "expanded/enemies/monsters.hpp"
 
+namespace dc::game {
 class CRandomItem;
 struct WEAPON_HAVE;
+} // namespace dc::game
 
 namespace expanded {
 

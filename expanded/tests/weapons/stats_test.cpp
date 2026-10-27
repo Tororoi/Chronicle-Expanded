@@ -5,7 +5,9 @@
 #include "expanded/weapons/stats.hpp"
 #include "itemdata.hpp"
 
+namespace dc::game {
 extern WEAPON_DATA WeaponList[120];
+} // namespace dc::game
 
 namespace {
 

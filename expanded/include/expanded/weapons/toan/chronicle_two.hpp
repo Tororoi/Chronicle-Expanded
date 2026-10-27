@@ -1,6 +1,8 @@
 #pragma once
 
+namespace dc::game {
 struct WEAPON_HAVE;
+} // namespace dc::game
 
 namespace expanded {
 

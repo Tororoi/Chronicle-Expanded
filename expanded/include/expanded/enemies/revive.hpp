@@ -1,6 +1,9 @@
 #pragma once
 
+namespace dc::game {
+enum class MonsterDamageResult : int;
 class CMonstorUnit;
+} // namespace dc::game
 
 namespace expanded {
 
@@ -53,7 +56,7 @@ bool StaysDown(const CMonstorUnit &unit, int monster_no);
 
 // The current monster's CheckDmg result: a kill may start a revival in place of its death script. A summoned ally's
 // (ally_unit.hpp) never does, and its rolls and its unit's reset leave the floor's revivals alone.
-int ReviveCheckDmg(CMonstorUnit &unit, int result);
+MonsterDamageResult ReviveCheckDmg(CMonstorUnit &unit, MonsterDamageResult result);
 
 // Steps monster_no's revival in place of its script; false when it is not reviving.
 bool ReviveStep(CMonstorUnit &unit, int monster_no);

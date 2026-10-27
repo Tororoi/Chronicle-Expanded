@@ -1,6 +1,8 @@
 #pragma once
 
+namespace dc::game {
 struct CUserStatus;
+} // namespace dc::game
 
 namespace expanded {
 

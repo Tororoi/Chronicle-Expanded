@@ -3,9 +3,11 @@
 #include <optional>
 #include <string>
 
+namespace dc::game {
 class CMonstorUnit;
 class CSHOT;
 struct BT_SHOT_EFFECT;
+} // namespace dc::game
 
 namespace expanded {
 

@@ -4,7 +4,9 @@
 
 #include "dataalloc_fwd.hpp"
 
+namespace dc::game {
 class CCharacter;
+} // namespace dc::game
 
 namespace expanded {
 

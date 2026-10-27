@@ -39,22 +39,6 @@
 #include "userstatus.hpp"
 #include "weaponelement.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/dungeon/dungeon_hooks.hpp"
-#include "expanded/enemies/boss_casts.hpp"
-#include "expanded/enemies/boss_moves.hpp"
-#include "expanded/enemies/bosses.hpp"
-#include "expanded/enemies/enemy_events.hpp"
-#include "expanded/enemies/faster.hpp"
-#include "expanded/enemies/miniboss.hpp"
-#include "expanded/enemies/revive.hpp"
-#include "expanded/enemies/roster.hpp"
-#include "expanded/enemies/scaling.hpp"
-#include "expanded/enemies/species.hpp"
-#include "expanded/status/confuse.hpp"
-#include "expanded/status/poison.hpp"
-#endif
-
 int           hitCnt;
 BEE_STATE     BeeTbl[800];
 CTexAnimeData MonsterTexAnim[320];
@@ -622,15 +606,8 @@ void CMonstorUnit::ArrangementPos(CDungeonMap *map, int count, int model_no, int
 
                         if (model_no == -1) {
                             selected = (int) ((float) model_count * (float) rand() / 2147483648.0f);
-#ifdef CHRONICLE_EXPANDED
-                            selected = expanded::MinibossPlacedModel(*this, n, selected);
-#endif
 
-#ifdef CHRONICLE_EXPANDED
-                            if (expanded::RosterSpawnsOnce(*this, selected)) {
-#else
                             if (model[selected].kind != MONSTER_KIND_NORMAL && model[selected].kind != MONSTER_KIND_MIMIC_SMALL) {
-#endif
                                 if (used[selected] != 0) {
                                     continue;
                                 }
@@ -648,9 +625,6 @@ void CMonstorUnit::ArrangementPos(CDungeonMap *map, int count, int model_no, int
     }
 
     SetKey();
-#ifdef CHRONICLE_EXPANDED
-    expanded::MinibossesArranged(*this);
-#endif
 }
 
 void CMonstorUnit::AllBin2() {
@@ -775,9 +749,6 @@ void CMonstorUnit::DrawMonstor() {
             character = &chara[i][0];
             character->TextureAnime(42);
             PalletSet();
-#ifdef CHRONICLE_EXPANDED
-            expanded::MinibossMotion(*this, i);
-#endif
 
             if (paused != 0 || monster[i].stop_timer > 0) {
                 chara[i][0].SetMotion(chara[i][0].motion_no, 1);
@@ -789,34 +760,16 @@ void CMonstorUnit::DrawMonstor() {
                 }
             }
 
-#ifdef CHRONICLE_EXPANDED
-            expanded::FasterMotionStep(*this, i, chara[i][0]);
-#else
             chara[i][0].Step();
-#endif
-#ifdef CHRONICLE_EXPANDED
-            expanded::MonsterDrawing(*this, i);
-#endif
             character->Draw();
-#ifdef CHRONICLE_EXPANDED
-            expanded::MonsterDrawn(*this, i);
-#endif
 
             for (int j = 0; j < monster[i].attachment_count; j++) {
                 if (chara[i][j + 1].frame != NULL) {
-#ifdef CHRONICLE_EXPANDED
-                    expanded::FasterMotionStep(*this, i, chara[i][j + 1]);
-#else
                     chara[i][j + 1].Step();
-#endif
                 }
             }
 
-#ifdef CHRONICLE_EXPANDED
-            if (expanded::BossSmokes(i, monster[i].base_model)) {
-#else
             if (UserStatus->cur_georama == 3 && UserStatus->cur_floor == 17 && i == 1) {
-#endif
                 DrawBee(chara[i][0].frame, 15);
             }
 
@@ -1006,9 +959,6 @@ void CMonstorUnit::CheckViewLevel() {
 
         CCharacter *character = &chara[i][0];
         character->GetPosition(monster_position);
-#ifdef CHRONICLE_EXPANDED
-        expanded::BossCastWakePosition(*this, i, monster_position);
-#endif
         monster_position[3] = 1;
         player_position[3] = 1;
         float distance = DistVector(player_position, monster_position);
@@ -1112,9 +1062,6 @@ int CMonstorUnit::CheckDmg() {
     COLLISION_HIT *record;
     int            immune = 0;
     sceVu0FVECTOR  direction, position;
-#ifdef CHRONICLE_EXPANDED
-    expanded::ConfuseStep(*this, current_monster);
-#endif
 
     if (monster[current_monster].stop_timer <= 0) {
         for (int i = 0; i < 16; i++) {
@@ -1122,11 +1069,7 @@ int CMonstorUnit::CheckDmg() {
                 float time = chara[current_monster][0].motion_type.state.time;
 
                 if (effect2[current_monster].motion_start[i] < time && !(effect2[current_monster].motion_end[i] <= time)) {
-#ifdef CHRONICLE_EXPANDED
-                    int damage = expanded::EnemyMeleeDamage(current_monster, effect2[current_monster].damage[i]);
-#else
                     int damage = effect2[current_monster].damage[i];
-#endif
 
                     if (monster[current_monster].anger_timer > 0) {
                         damage *= 2;
@@ -1171,9 +1114,6 @@ int CMonstorUnit::CheckDmg() {
                             NowColData->SetVelocity(hit, forward, 1.0f);
                         }
                     }
-#ifdef CHRONICLE_EXPANDED
-                    expanded::MonsterSwingSet(*this, current_monster, hit);
-#endif
                 }
             }
         }
@@ -1188,9 +1128,6 @@ int CMonstorUnit::CheckDmg() {
             monster[current_monster].motion_reset_pending = true;
         }
 
-#ifdef CHRONICLE_EXPANDED
-        expanded::PoisonCureDead(&monster[current_monster]);
-#endif
         return MONSTER_DMG_NONE;
     }
 
@@ -1223,10 +1160,6 @@ int CMonstorUnit::CheckDmg() {
         monster[current_monster].anger_timer--;
     }
 
-#ifdef CHRONICLE_EXPANDED
-    expanded::PoisonCureLapsed(&monster[current_monster], current_monster);
-#endif
-
     if (monster[current_monster].poison_timer > 0) {
         monster[current_monster].palette_override[0] = 47.0f;
         monster[current_monster].palette_override[1] = 0.5f;
@@ -1236,37 +1169,21 @@ int CMonstorUnit::CheckDmg() {
 
         if (monster[current_monster].poison_timer == 0) {
             monster[current_monster].poison_timer = 180;
-#ifdef CHRONICLE_EXPANDED
-            float damage = (float) expanded::PoisonTickDamage(&monster[current_monster]);
-#else
             float damage = 0.1f * (float) monster[current_monster].max_hp;
-#endif
             monster[current_monster].hp -= (int) damage;
             result = MONSTER_DMG_HIT;
 
             if (monster[current_monster].hp <= 0) {
                 monster[current_monster].hp = 0;
-#ifdef CHRONICLE_EXPANDED
-                if (expanded::MonsterKilled(*this, current_monster)) {
-                    alive_count--;
-                    ((CDngStatusData *) UserStatus)->AddKills();
-                }
-                result = MONSTER_DMG_KILLED;
-#else
                 alive_count--;
                 result = MONSTER_DMG_KILLED;
                 ((CDngStatusData *) UserStatus)->AddKills();
-#endif
             }
 
             chara[current_monster][0].GetPosition(poison_position);
             poison_position[1] += chara[current_monster][0].body_height;
             HitValueEntry(NowHitValue, poison_position, (int) damage, HIT_VALUE_MONSTER, NULL);
         }
-
-#ifdef CHRONICLE_EXPANDED
-        expanded::PoisonCureFinished(&monster[current_monster], current_monster);
-#endif
     }
 
     if (monster[current_monster].invincible_timer > 0) {
@@ -1315,19 +1232,9 @@ int CMonstorUnit::CheckDmg() {
                     }
                 }
 
-#ifdef CHRONICLE_EXPANDED
-                if (hit != -1 && rejected == 0 && expanded::MonsterHitRefused(*this, current_monster, NowColData->hit[hit])) {
-                    rejected = 1;
-                }
-#endif
-
                 if (hit != -1 && rejected == 0) {
                     for (int j = 0; j < 3; j++) {
-#ifdef CHRONICLE_EXPANDED
-                        if (guard[current_monster].active[j] != 0 && expanded::MonsterGuardBlocks(*this, current_monster, j, NowColData->hit[hit])) {
-#else
                         if (guard[current_monster].active[j] != 0) {
-#endif
                             float time = chara[current_monster][0].motion_type.state.time;
 
                             if (guard[current_monster].motion_start[j] <= time && !(guard[current_monster].motion_end[j] < time)) {
@@ -1346,13 +1253,8 @@ int CMonstorUnit::CheckDmg() {
 
                                 int owner = NowColData->hit[hit].owner;
 
-#ifdef CHRONICLE_EXPANDED
-                                if (NowColData->hit[hit].attack_no == 0 && (owner == 0 || owner == 2 || owner == 4) && expanded::HitWearsWeapon(NowColData->hit[hit])) {
-                                    SwordDmgCheck1(0.1f, expanded::MonsterHardness(*this, current_monster, monster[current_monster].hardness));
-#else
                                 if (NowColData->hit[hit].attack_no == 0 && (owner == 0 || owner == 2 || owner == 4)) {
                                     SwordDmgCheck1(0.1f, monster[current_monster].hardness);
-#endif
                                 }
 
                                 guard_direction[0] = 0;
@@ -1374,9 +1276,6 @@ int CMonstorUnit::CheckDmg() {
                 if (hit != -1 && rejected == 0) {
                     COLLISION_HIT *original_record = &(*NowColData->Get(hit));
                     effect[current_monster].hit_slot = i;
-#ifdef CHRONICLE_EXPANDED
-                    expanded::MonsterHitTaken(*this, current_monster, NowColData->hit[hit]);
-#endif
                     int attack = NowColData->hit[hit].attack_no;
                     owner = NowColData->GetUserID(hit);
 
@@ -1422,23 +1321,12 @@ int CMonstorUnit::CheckDmg() {
                         steal_position[1] += 12.0f;
                         StealItem.Set(steal_position, monster[current_monster].steal_item);
                         monster[current_monster].steal_item = -1;
-#ifdef CHRONICLE_EXPANDED
-                        expanded::MonsterItemStolen(*this, current_monster, item);
-#endif
                     }
 
                     int attacker = NowColData->hit[hit].owner;
 
-#ifdef CHRONICLE_EXPANDED
-                    if ((attacker == 0 || attacker == 2 || attacker == 4) && expanded::LandedHitWearsWeapon(attacker, *original_record)) {
-#else
                     if (attacker == 0 || attacker == 2 || attacker == 4) {
-#endif
-#ifdef CHRONICLE_EXPANDED
-                        SwordDmgCheck1(1.0f, expanded::MonsterHardness(*this, current_monster, monster[current_monster].hardness));
-#else
                         SwordDmgCheck1(1.0f, monster[current_monster].hardness);
-#endif
                     }
 
                     result = MONSTER_DMG_HIT;
@@ -1457,11 +1345,7 @@ int CMonstorUnit::CheckDmg() {
                             result = MONSTER_DMG_NONE;
                         }
 
-#ifdef CHRONICLE_EXPANDED
-                        if (owner == 1 && !expanded::PlayerHitStaggers(NowColData->hit[hit])) {
-#else
                         if (owner == 1) {
-#endif
                             result = MONSTER_DMG_NONE;
                         }
                     }
@@ -1478,10 +1362,6 @@ int CMonstorUnit::CheckDmg() {
                         monster[current_monster].knockback[0] = record->knockback_speed * monster[current_monster].knockback[2];
                         monster[current_monster].knockback[1] = record->knockback_decay * monster[current_monster].knockback[2];
                     }
-
-#ifdef CHRONICLE_EXPANDED
-                    expanded::MonsterKnockedBack(*this, current_monster, *record);
-#endif
 
                     hit_direction[0] = 0;
                     hit_direction[1] = 1.1f;
@@ -1516,12 +1396,8 @@ int CMonstorUnit::CheckDmg() {
 
                     if (effect[current_monster].hit_attributes & 0x20) {
                         if (100.0f * (float) rand() / 2147483648.0f <= 10.0f && chance < (float) monster[current_monster].status_chance) {
-#ifdef CHRONICLE_EXPANDED
-                            expanded::Poison(&monster[current_monster], current_monster);
-#else
                             monster[current_monster].poison_timer = 180;
                             monster[current_monster].slow_timer = 0;
-#endif
                         } else if (owner == -1) {
                             immune = 1;
                         }
@@ -1543,21 +1419,13 @@ int CMonstorUnit::CheckDmg() {
                         }
                     }
 
-#ifdef CHRONICLE_EXPANDED
-                    expanded::ConfuseRoll(*this, current_monster);
-#endif
-
                     chance = monster[current_monster].status_chance == 0 ? 100.0f : 0.0f;
 
                     if (original_record->flags & 0x200) {
                         if (chance < (float) monster[current_monster].status_chance) {
                             if (monster[current_monster].stop_timer == 0 && monster[current_monster].anger_timer == 0) {
-#ifdef CHRONICLE_EXPANDED
-                                expanded::Poison(&monster[current_monster], current_monster);
-#else
                                 monster[current_monster].poison_timer = 180;
                                 monster[current_monster].slow_timer = 0;
-#endif
                             }
                         } else if (owner == -1) {
                             immune = 1;
@@ -1615,11 +1483,7 @@ int CMonstorUnit::CheckDmg() {
                     }
 
                     int   index = GetCurrentMonsterIndex();
-#ifdef CHRONICLE_EXPANDED
-                    float defense = (float) expanded::MonsterDefense(*this, index, monster[index].defense);
-#else
                     float defense = (float) monster[index].defense;
-#endif
 
                     if (owner == 3) {
                         defense /= 2.0f;
@@ -1653,16 +1517,10 @@ int CMonstorUnit::CheckDmg() {
                     if (effectiveness != NULL) {
                         damage += damage * (0.015f * (float) effectiveness[monster[index].attachment_kind]);
                     }
-#ifdef CHRONICLE_EXPANDED
-                    damage = expanded::MonsterWeaponDamage(*this, index, NowColData->hit[hit], damage);
-#endif
 
                     if (owner != -1) {
                         float old_damage = damage;
                         int   multiplier = effect[index].parameter[i][owner];
-#ifdef CHRONICLE_EXPANDED
-                        multiplier = expanded::MonsterSpherePercent(*this, index, i, owner, NowColData->hit[hit], multiplier);
-#endif
                         float damage_scale = (float) multiplier;
                         damage = damage / 100.0f * damage_scale;
 
@@ -1720,24 +1578,13 @@ int CMonstorUnit::CheckDmg() {
 
                     BtActStatus.monstor_target = owner;
                     monster[current_monster].hp -= amount;
-#ifdef CHRONICLE_EXPANDED
-                    expanded::MonsterDamaged(*this, current_monster, NowColData->hit[hit], amount);
-#endif
 
                     if (monster[current_monster].hp <= 0) {
                         monster[current_monster].last_attacker = owner;
                         monster[current_monster].hp = 0;
-#ifdef CHRONICLE_EXPANDED
-                        if (expanded::MonsterKilled(*this, current_monster)) {
-                            alive_count--;
-                            ((CDngStatusData *) UserStatus)->AddKills();
-                        }
-                        result = MONSTER_DMG_KILLED;
-#else
                         alive_count--;
                         result = MONSTER_DMG_KILLED;
                         ((CDngStatusData *) UserStatus)->AddKills();
-#endif
 
                         if (monster[current_monster].event_flag2 != -1) {
                             monster[current_monster].event_flag2_pending = 1;
@@ -1774,18 +1621,6 @@ int CMonstorUnit::CheckDmg() {
 
                     break;
                 }
-
-#ifdef CHRONICLE_EXPANDED
-                int friendly = expanded::MonsterFriendlyHit(*this, i);
-
-                if (friendly != -1) {
-                    if (friendly != MONSTER_DMG_NONE) {
-                        return friendly;
-                    }
-
-                    break;
-                }
-#endif
             }
         }
     }
@@ -1947,11 +1782,7 @@ void CMonstorUnit::MoveCheck2() {
     flat_player[1] = 1;
     flat_next[1] = 1;
 
-#ifdef CHRONICLE_EXPANDED
-    if (DistVector(flat_player, flat_next) <= expanded::MonsterBlockRadius(6.0f) + monster[current_monster].body_radius && next_position[1] < 18.0f + player_position[1]) {
-#else
     if (DistVector(flat_player, flat_next) <= 6.0f + monster[current_monster].body_radius && next_position[1] < 18.0f + player_position[1]) {
-#endif
         towards_player[0] = player_position[0] - position[0];
         towards_player[2] = player_position[2] - position[2];
         towards_player[1] = 0;
@@ -2142,11 +1973,7 @@ void CMonstorUnit::Step(int pause) {
                     printf("err %d\n", monster[current_monster].collision_poly_count);
                 }
 
-#ifdef CHRONICLE_EXPANDED
-                switch (expanded::ReviveCheckDmg(*this, CheckDmg())) {
-#else
                 switch (CheckDmg()) {
-#endif
                     case MONSTER_DMG_NONE:
                         break;
                     case MONSTER_DMG_HIT:
@@ -2166,12 +1993,7 @@ void CMonstorUnit::Step(int pause) {
                         monster[current_monster].invincible_timer--;
                     }
                 } else {
-#ifdef CHRONICLE_EXPANDED
-                    if (expanded::MonsterStepTaken(*this, current_monster)) {
-                    } else if (script_state[current_monster] == 0) {
-#else
                     if (script_state[current_monster] == 0) {
-#endif
                         if (monster[current_monster].revealed == 1) {
                             interpreter[current_monster].run(50);
                             monster[current_monster].revealed = -1;
@@ -2201,18 +2023,12 @@ void CMonstorUnit::Step(int pause) {
                         }
                     }
 
-#ifdef CHRONICLE_EXPANDED
-                    expanded::BossSteer(*this, current_monster);
-#endif
                     if (monster[current_monster].collision_off_timer <= 0) {
                         MoveCheck2();
                     }
 
                     if (monster[current_monster].collision_off_timer <= 0) {
                         MoveChecMonster();
-#ifdef CHRONICLE_EXPANDED
-                        expanded::MonsterMoveChecked(*this, current_monster);
-#endif
                     }
 
                     monster[current_monster].collision_poly_count = original_count;
@@ -2325,9 +2141,6 @@ void CMonstorUnit::Step(int pause) {
                         if (event[current_monster].damage_override != -1) {
                             NowShotEffect->SetDmg(event[current_monster].damage_override);
                         }
-#ifdef CHRONICLE_EXPANDED
-                        expanded::EnemyShotFired(current_monster);
-#endif
 
                         event[current_monster].timer = 0;
                     }
@@ -2339,9 +2152,6 @@ void CMonstorUnit::Step(int pause) {
                         if (event2[current_monster].damage_override != -1) {
                             NowShotEffect->SetDmg(event2[current_monster].damage_override);
                         }
-#ifdef CHRONICLE_EXPANDED
-                        expanded::EnemyShotFired(current_monster);
-#endif
 
                         event2[current_monster].timer = 0;
                     }
@@ -2350,9 +2160,6 @@ void CMonstorUnit::Step(int pause) {
                     SoundCheck();
 
                     if (monster[current_monster].state == -1) {
-#ifdef CHRONICLE_EXPANDED
-                        expanded::MinibossDefeated(*this, current_monster);
-#endif
                         CDngStatusData *status = (CDngStatusData *) UserStatus;
                         int             current_chara = UserStatus->cur_chara;
                         int             no_exp;
@@ -2369,11 +2176,7 @@ void CMonstorUnit::Step(int pause) {
 
                         if (monster[current_monster].last_attacker == current_chara && no_exp == 0) {
                             int max_exp = GetWeaponMaxExp(weapon);
-#ifdef CHRONICLE_EXPANDED
-                            int exp = expanded::MonsterKillAbs(*this, current_monster, monster[current_monster].exp);
-#else
                             int exp = monster[current_monster].exp;
-#endif
 
                             if (back_dungeon != 0) {
                                 exp *= 2;
@@ -2389,9 +2192,6 @@ void CMonstorUnit::Step(int pause) {
                                 if (weapon->experience <= 0) {
                                     weapon->experience = 0;
                                 }
-#ifdef CHRONICLE_EXPANDED
-                            } else if (expanded::KillAbsTaken(*weapon, exp, max_exp)) {
-#endif
                             } else if (weapon->experience < max_exp) {
                                 int updated = weapon->experience + exp;
 
@@ -2424,9 +2224,6 @@ void CMonstorUnit::Step(int pause) {
 
                         if (monster[current_monster].kind != MONSTER_KIND_NO_LOCK_ON && monster[current_monster].drops_items != 0) {
                             printf("************ item = %d ************ \n", monster[current_monster].drop_item);
-#ifdef CHRONICLE_EXPANDED
-                            monster[current_monster].drop_item = expanded::MonsterDropItem(*this, current_monster, monster[current_monster].drop_item);
-#endif
 
                             if (monster[current_monster].drop_item == -1 && monster[current_monster].rare_item != -1 && (100.0f * (float) rand() / 2147483648.0f) < 10.0f) {
                                 monster[current_monster].drop_item = monster[current_monster].rare_item;
@@ -2436,9 +2233,6 @@ void CMonstorUnit::Step(int pause) {
                                 if (SetGateKeyStack(monster[current_monster].drop_item) != 0) {
                                     chara[current_monster][0].GetPosition(key_position);
                                     key_position[1] -= monster[current_monster].ground_distance;
-#ifdef CHRONICLE_EXPANDED
-                                    expanded::MinibossDropSet(current_monster, *RandomItem, key_position);
-#endif
                                     RandomItem->Set(key_position, 1, -1, monster[current_monster].drop_item);
                                 }
                             } else {
@@ -2483,9 +2277,6 @@ void CMonstorUnit::Step(int pause) {
 }
 
 void CMonstorUnit::CleanViewMonstor(int back_floor) {
-#ifdef CHRONICLE_EXPANDED
-    expanded::ReviveClear();
-#endif
     for (int i = 0; i < 16; i++) {
         monster[i].state = -1;
         monster[i].stop_timer = 0;
@@ -2579,19 +2370,12 @@ void CMonstorUnit::CleanViewMonstor(int back_floor) {
 }
 
 int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDataAlloc2<1> *alloc) {
-#ifdef CHRONICLE_EXPANDED
-    MONSTOR_MODEL *description = expanded::SpeciesRecord(model_no);
-#else
     MONSTOR_MODEL *description = &MonstorTable[model_no];
-#endif
     char           filename[64];
     CFrameAttr     attr;
     int            file_size;
     attr.fog_enable = true;
     sprintf(filename, "dun/monstor/%s.chr", description->model_name[0]);
-#ifdef CHRONICLE_EXPANDED
-    expanded::MonsterPackFile(filename, model_no);
-#endif
     LoadFile(filename, read_buffer, NULL);
     wait_now_loading_vsync();
     CCharacter *character = &base_chara[slot][0];
@@ -2612,9 +2396,6 @@ int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDat
     }
 
     sprintf(filename, "dun/monstor/%s.stb", description->script_name);
-#ifdef CHRONICLE_EXPANDED
-    expanded::SpeciesScriptFile(filename, model_no);
-#endif
     LoadFile(filename, read_buffer, &file_size);
     wait_now_loading_vsync();
     script_data[slot] = (char *) (alloc->base + alloc->used * 16);
@@ -2647,9 +2428,6 @@ int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDat
         }
     }
 
-#ifdef CHRONICLE_EXPANDED
-    expanded::EnemyModelSetUp(*this, slot, model_no);
-#endif
     model_count++;
     return 1;
 }
@@ -2675,15 +2453,9 @@ int CMonstorUnit::SetupViewMonstor(int model_no, float *position, int event_flag
     chara[current_monster][0].SetPosition(position);
     chara[current_monster][0].SetRotation(0.0f, 0.0f, 0.0f);
 
-#ifdef CHRONICLE_EXPANDED
-    if (expanded::BossSmokes(current_monster, model_no)) {
-        InitBee(chara[current_monster][0].frame, 15);
-    }
-#else
     if (UserStatus->cur_georama == 3 && UserStatus->cur_floor == 17 && current_monster == 1) {
         InitBee(chara[1][0].frame, 15);
     }
-#endif
 
     monster[current_monster].attachment_count = 0;
 
@@ -2750,9 +2522,6 @@ int CMonstorUnit::SetupViewMonstor(int model_no, float *position, int event_flag
         event_flags[current_monster][i] = 0;
     }
 
-#ifdef CHRONICLE_EXPANDED
-    expanded::EnemySpawned(*this, current_monster);
-#endif
     if (interpreter[current_monster].check_program(1) != 0) {
         interpreter[current_monster].run(1);
     }

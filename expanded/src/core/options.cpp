@@ -200,12 +200,12 @@ std::string OptionChoiceName(std::string_view key, int choice) {
     return choice >= 0 && choice < static_cast<int>(names.size()) ? std::string(names[static_cast<std::size_t>(choice)]) : std::string();
 }
 
-std::vector<options::Page> OptionsPages(std::span<const options::Page> pages) {
-    std::vector<options::Page> out(pages.begin(), pages.end());
+std::vector<dc::options::Page> OptionsPages(std::span<const dc::options::Page> pages) {
+    std::vector<dc::options::Page> out(pages.begin(), pages.end());
     if (Toggles().empty()) {
         return out;
     }
-    static std::vector<options::Row> rows;
+    static std::vector<dc::options::Row> rows;
     rows.clear();
     for (std::size_t i = 0; i < Toggles().size(); ++i) {
         const Toggle &toggle = Toggles()[i];

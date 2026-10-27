@@ -32,7 +32,7 @@ constexpr int kContactSteps = kStepsPerSecond / 2;
 
 // Deals another monster's hit to sphere i: blocked by a guard window the monster can guard with, else damage less defence
 // (at least 1).
-int FriendlyHit(CMonstorUnit &unit, int i, int hit) {
+MonsterDamageResult FriendlyHit(CMonstorUnit &unit, int i, int hit) {
     int            slot = unit.current_monster;
     MONSTOR       &monster = unit.monster[slot];
     COLLISION_HIT *record = NowColData->Get(hit);
@@ -47,11 +47,11 @@ int FriendlyHit(CMonstorUnit &unit, int i, int hit) {
             HitMark[hitCnt].Set(unit.effect[slot].position[i], guard_direction, HIT_MARK_GUARD, 0.8f, 0.005f, 0.02f, 1.3f, 32, monster.ground_y);
             HitPointMark[hitCnt].Set(unit.effect[slot].position[i]);
             SndSePlay(SE_HIT_BLOCKED, -1, 0);
-            return MONSTER_DMG_NONE;
+            return MonsterDamageResult::None;
         }
     }
 
-    int result = MONSTER_DMG_HIT;
+    MonsterDamageResult result = MonsterDamageResult::Hit;
     unit.effect[slot].hit_slot = i;
     unit.effect[slot].hit_attributes = record->weapon_flags;
     monster.last_hit_id = -1;
@@ -103,7 +103,7 @@ int FriendlyHit(CMonstorUnit &unit, int i, int hit) {
         monster.last_attacker = -1;
         monster.hp = 0;
         unit.alive_count--;
-        result = MONSTER_DMG_KILLED;
+        result = MonsterDamageResult::Killed;
         ((CDngStatusData *) UserStatus)->AddKills();
 
         if (monster.event_flag2 != -1) {
@@ -196,10 +196,13 @@ void ConfuseLanded(CMonstorUnit &unit, int hit, int victim) {
     }
 }
 
-int ConfuseMonsterHit(CMonstorUnit &unit, int sphere) {
+std::optional<MonsterDamageResult> ConfuseMonsterHit(CMonstorUnit &unit, int sphere) {
     int slot = unit.current_monster;
     int hit = ConfuseFriendlyHit(unit, slot, unit.effect[slot].position[sphere], unit.effect[slot].radius[sphere]);
-    return hit == -1 ? -1 : FriendlyHit(unit, sphere, hit);
+    if (hit == -1) {
+        return std::nullopt;
+    }
+    return FriendlyHit(unit, sphere, hit);
 }
 
 } // namespace expanded

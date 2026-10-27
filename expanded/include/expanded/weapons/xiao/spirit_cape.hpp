@@ -1,7 +1,9 @@
 #pragma once
 
+namespace dc::game {
 class CCharacter;
 class CCloth;
+} // namespace dc::game
 
 namespace expanded {
 

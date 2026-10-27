@@ -1,11 +1,18 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 
 #include "expanded/weapons/abilities.hpp"
 
+namespace dc::game {
+enum class MonsterDamageResult : int;
 class CMonstorUnit;
+} // namespace dc::game
+
+namespace dc::render {
 struct PortDecodedTexture;
+} // namespace dc::render
 
 namespace expanded {
 
@@ -52,8 +59,8 @@ int  ConfuseFriendlyHit(CMonstorUnit &unit, int victim, const float *position, f
 // Records that hit landed on victim, and ends it there if it is a shot.
 void ConfuseLanded(CMonstorUnit &unit, int hit, int victim);
 
-// Another monster's hit on sphere of the current monster: CheckDmg's result, or -1 for none.
-int ConfuseMonsterHit(CMonstorUnit &unit, int sphere);
+// Another monster's hit on sphere of the current monster: CheckDmg's result, or nothing for none.
+std::optional<MonsterDamageResult> ConfuseMonsterHit(CMonstorUnit &unit, int sphere);
 
 // Draws the stars over the confused monsters.
 void ConfuseStarsDraw();

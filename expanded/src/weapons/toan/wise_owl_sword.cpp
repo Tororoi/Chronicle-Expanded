@@ -8,7 +8,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/ownership.hpp"
 #include "itemdata.hpp"
-#include "localize.hpp"
+#include "localize/localize.hpp"
 #include "monstorunit.hpp"
 #include "sysmes.hpp"
 

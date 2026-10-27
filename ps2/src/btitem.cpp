@@ -48,9 +48,6 @@
 #include "texture.hpp"
 #include "vector.hpp"
 #include "weaponeffect.hpp"
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/dungeon/atla_drops.hpp"
-#endif
 
 /** Weapon each party member is handed when first brought into the party. */
 static int defWeapon[6] = {ITEM_WEAPON_DAGGER_BROKEN, ITEM_WEAPON_WOODENSLINGSHOT_BROKEN, ITEM_WEAPON_MALLET_BROKEN, ITEM_WEAPON_GOLD_RING_BROKEN, ITEM_WEAPON_FIGHTING_STICK_BROKEN, ITEM_WEAPON_MACHINE_GUN_BROKEN};
@@ -747,22 +744,11 @@ int BtAtraGetShort_Loop(int map_no, int floor) {
                 shortAtraEffect.SetMotion(0, 6);
                 atraGetStatusRate__2 = 0.0f;
                 CDngStatusData *status = (CDngStatusData *) UserStatus;
-#ifdef CHRONICLE_EXPANDED
-                bool dropped = expanded::AtlaDropTaken(index); // an Expanded drop: no part, nothing saved
-                int  atra_id = dropped ? -1 : status->atra_registry[map_no][NowDngMap->atra[index].atra_no].id;
-#else
                 int             atra_id = status->atra_registry[map_no][NowDngMap->atra[index].atra_no].id;
-#endif
                 BtAtraGetID = atra_id;
                 NowDngMap->atra[NowDngMap->events[BtAtraGetNo].index].used = 0;
                 NowDngMap->events[BtAtraGetNo].kind = DNG_EVENT_NONE;
-#ifdef CHRONICLE_EXPANDED
-                if (!dropped) {
-                    getAtraToSaveData(atra_id, NowDngMap->atra[index].atra_no, SaveData, map_no, floor);
-                }
-#else
                 getAtraToSaveData(atra_id, NowDngMap->atra[index].atra_no, SaveData, map_no, floor);
-#endif
                 sceVu0CopyVector(position, NowDngMap->atra[index].pos);
                 CharaMain.SetPosition(position);
                 CharaMain.SetRotation(0.0f, 0.0f, 0.0f);
@@ -797,13 +783,7 @@ int BtAtraGetShort_Loop(int map_no, int floor) {
             }
 
             if (!(shortAtraEffect.motion_type.state.time < 129.5f)) {
-#ifdef CHRONICLE_EXPANDED
-                if (!expanded::AtlaDropNamed()) {
-                    AtraGetMes(map_no, BtAtraGetID, 0x28);
-                }
-#else
                 AtraGetMes(map_no, BtAtraGetID, 0x28);
-#endif
                 atraGetStatus = 2;
                 atraGetMsgBord = 1;
                 atraGetMsgBordRate = 0.0f;

@@ -18,8 +18,8 @@
 
 namespace {
 
-using expanded::Monster;
 using expanded::MinibossTier;
+using expanded::Monster;
 
 // The species the loot table covers.
 constexpr Monster kLooted[] = {
