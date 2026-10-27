@@ -14,6 +14,7 @@
 #include "expanded/core/save.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/randomize.hpp"
+#include "expanded/enemies/species.hpp"
 #include "expanded/enemies/themes.hpp"
 #include "monstorunit.hpp"
 #include "platform/config.hpp"
@@ -61,12 +62,12 @@ TEST(EnemyThemes, TheGroupsAreRegularMonsters) {
         EXPECT_FALSE(theme.members.empty()) << theme.name;
         EXPECT_LE(theme.members.size(), 10u) << theme.name;
         for (Monster kind : theme.members) {
-            EXPECT_EQ(MonstorTable[No(kind)].kind, MONSTER_KIND_NORMAL) << theme.name << " " << No(kind);
+            EXPECT_EQ(expanded::Species(No(kind))->kind, MONSTER_KIND_NORMAL) << theme.name << " " << No(kind);
         }
     }
     for (int dungeon = 0; dungeon < 7; dungeon++) {
         for (Monster kind : expanded::DungeonNatives(dungeon)) {
-            EXPECT_EQ(MonstorTable[No(kind)].kind, MONSTER_KIND_NORMAL) << dungeon << " " << No(kind);
+            EXPECT_EQ(expanded::Species(No(kind))->kind, MONSTER_KIND_NORMAL) << dungeon << " " << No(kind);
         }
     }
 }
