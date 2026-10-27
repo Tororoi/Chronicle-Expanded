@@ -56,31 +56,17 @@ std::string Fixed6(double v) {
     return std::format("{:.6f}", v);
 }
 
-struct MdsNode {
-    std::string name;
-    int         mesh_off, parent;
-};
-
-std::vector<MdsNode> MdsNodes(std::span<const unsigned char> mds) {
-    std::vector<MdsNode> out;
-    for (std::uint32_t i = 0; i < Get32(mds, 8); i++) {
-        std::size_t p = 0x18 + i * 0x70;
-        out.push_back({NameAt(mds, p, 0x20), static_cast<int>(Get32(mds, p + 0x20)), GetI32(mds, p + 0x24)});
-    }
-    return out;
-}
-
 // The rig's nodes named as the cat's runtime finds them: the root kRootName, the rest kNodePrefix + their own.
 Bytes RenameRig(std::span<const unsigned char> mds) {
-    Bytes out(mds.begin(), mds.end());
-    auto  nodes = MdsNodes(mds);
-    for (std::size_t k = 0; k < nodes.size(); k++) {
-        std::size_t p = 0x18 + k * 0x70;
-        std::string name = k == 0 ? kRootName : kNodePrefix + nodes[k].name;
-        if (name.size() > 0x1F) {
+    Bytes                    out(mds.begin(), mds.end());
+    std::vector<std::string> names = ReadMdsFrames(mds);
+    for (std::size_t k = 0; k < names.size(); k++) {
+        std::size_t p = mds::kTable + k * mds::kRecord + mds::kName;
+        std::string name = k == 0 ? kRootName : kNodePrefix + names[k];
+        if (name.size() > mds::kNameSize - 1) {
             throw std::runtime_error("cat node name too long: " + name);
         }
-        std::fill_n(out.begin() + std::ptrdiff_t(p), 0x20, 0);
+        std::fill_n(out.begin() + std::ptrdiff_t(p), mds::kNameSize, 0);
         std::copy(name.begin(), name.end(), out.begin() + std::ptrdiff_t(p));
     }
     return out;
@@ -95,51 +81,23 @@ struct ExtraNode {
 
 // The nodes appended to an .mds: records after the last, every mesh offset moved past them, their MDTs after the meshes.
 Bytes GraftExtraNodes(std::span<const unsigned char> payload, const std::vector<ExtraNode> &extra) {
-    std::uint32_t old = Get32(payload, 8);
-    if (Get32(payload, 0x14) != 0x70) {
+    if (Get32(payload, mds::kTable + mds::kSize) != mds::kRecord) {
         throw std::runtime_error("mds stride");
     }
-    std::size_t mesh0 = 0x18 + old * 0x70 - 8, delta = extra.size() * 0x70;
-    Bytes       head(payload.begin(), payload.begin() + std::ptrdiff_t(mesh0));
-    Append32(head, old);
-    Append32(head, 0x70);
-    Set32(head, 8, static_cast<std::uint32_t>(old + extra.size()));
-    for (std::uint32_t i = 0; i < old; i++) {
-        std::size_t   at = 0x18 + i * 0x70 + 0x20;
-        std::uint32_t mo = Get32(head, at);
-        if (mo != 0) {
-            Set32(head, at, static_cast<std::uint32_t>(mo + delta));
-        }
-    }
-    Bytes       mblock(payload.begin() + std::ptrdiff_t(mesh0), payload.end());
-    std::size_t start = 0x18 + (old + extra.size()) * 0x70 - 8 + mblock.size();
-    Bytes       chunks, recs;
-    for (std::size_t k = 0; k < extra.size(); k++) {
-        const ExtraNode &node = extra[k];
-        if (node.name.size() > 0x1F) {
+    std::vector<std::pair<Bytes, std::optional<Bytes>>> frames;
+    for (const ExtraNode &node : extra) {
+        if (node.name.size() > mds::kNameSize - 1) {
             throw std::runtime_error("node name too long: " + node.name);
         }
-        Bytes rec(0x68, 0);
-        std::copy(node.name.begin(), node.name.end(), rec.begin());
-        Set32(rec, 0x20, node.mdt ? static_cast<std::uint32_t>(start + chunks.size()) : 0);
-        Set32(rec, 0x24, static_cast<std::uint32_t>(node.parent));
+        Bytes record(mds::kRecord, 0);
+        std::copy(node.name.begin(), node.name.end(), record.begin() + mds::kName);
+        Set32(record, mds::kParent, static_cast<std::uint32_t>(node.parent));
         for (std::size_t i = 0; i < 16; i++) {
-            SetF32(rec, 0x28 + i * 4, static_cast<float>(node.local[i]));
+            SetF32(record, mds::kRotation + i * 4, static_cast<float>(node.local[i]));
         }
-        if (node.mdt) {
-            chunks.insert(chunks.end(), node.mdt->begin(), node.mdt->end());
-            PadTo16(chunks);
-        }
-        recs.insert(recs.end(), rec.begin(), rec.end());
-        Append32(recs, static_cast<std::uint32_t>(old + k + 1));
-        Append32(recs, 0x70);
+        frames.emplace_back(std::move(record), node.mdt);
     }
-    Bytes out = head;
-    out.insert(out.end(), recs.begin(), recs.end());
-    out.resize(out.size() - 8); // the last record's tail is the first MDT's start again
-    out.insert(out.end(), mblock.begin(), mblock.end());
-    out.insert(out.end(), chunks.begin(), chunks.end());
-    return out;
+    return AppendMdsFrames(payload, frames);
 }
 
 // Only the keys inside the clip windows (and the one either side of each) kept.
@@ -246,22 +204,18 @@ Bytes ListMdt(const MdtMesh &skin_mdt, const Bytes &mat_template, std::string_vi
         m.submeshes.push_back(std::move(sub));
     }
     Bytes mat = mat_template;
-    std::fill_n(mat.begin() + 0x34, 16, 0);
-    std::copy(texture.begin(), texture.end(), mat.begin() + 0x34);
+    std::fill_n(mat.begin() + MdtMesh::kMaterialTexture, 16, 0);
+    std::copy(texture.begin(), texture.end(), mat.begin() + MdtMesh::kMaterialTexture);
     m.materials = {mat};
     m.preamble = {0, 16, static_cast<int>(m.submeshes.size()), 0};
     m.order = {"POS", "DL", "UV", "NORM", "MAT"};
-    std::size_t dl = 16;
-    for (const auto &sub : m.submeshes) {
-        dl += 12 + 12 * sub.records.size();
-    }
     m.pads = {
-        {"POS", {}},
-        {"DL", Bytes(std::size_t(Mod(-int(dl), 16)), 0)},
-        {"UV", {}},
+        {"POS",  {}},
+        {"UV",   {}},
         {"NORM", {}},
-        {"MAT", {}}
+        {"MAT",  {}}
     };
+    m.AlignDisplayList();
     std::uint32_t nv = static_cast<std::uint32_t>(pos.size());
     m.header[5] = nv;
     m.header[7] = 0;
@@ -517,10 +471,10 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
     }
     out.wgt_tracks.push_back(Trk(static_cast<std::uint32_t>(mask_index), static_cast<std::uint32_t>(head.i), mot::kWeight, w6, w7, std::move(mask_keys)));
     log(std::format("  mask baked: {} verts, {} tris on {}", mworld.size(), mask.tris.size(), kMaskAnchor));
-    out.bbp.resize(out.nodes.size() * 64);
+    out.bbp.resize(out.nodes.size() * bbp::kEntry);
     for (std::size_t i = 0; i < out.nodes.size(); i++) {
         for (std::size_t k = 0; k < 16; k++) {
-            SetF32(out.bbp, i * 64 + k * 4, static_cast<float>(out.nodes[i].local[k]));
+            SetF32(out.bbp, i * bbp::kEntry + k * 4, static_cast<float>(out.nodes[i].local[k]));
         }
     }
     return out;
@@ -604,7 +558,7 @@ Bytes BuildSpiritCatModel(std::span<const unsigned char> cat_bytes, std::span<co
     Bytes graft_mds = RenameRig(spl);
     for (std::size_t r = 0; r < 3; r++) {
         for (std::size_t c = 0; c < 3; c++) {
-            std::size_t at = 0x18 + 0x28 + (r * 4 + c) * 4;
+            std::size_t at = mds::kTable + mds::kRotation + r * 16 + c * 4;
             float       hidden = static_cast<float>(double(GetF32(graft_mds, at)) * kHideScale);
             SetF32(graft_mds, at, static_cast<float>(double(hidden) / kHideScale));
         }
@@ -616,8 +570,8 @@ Bytes BuildSpiritCatModel(std::span<const unsigned char> cat_bytes, std::span<co
 
     // The cat's own pack.
     Bytes mds = GraftExtraNodes(RenameRig(spl), wd.nodes);
-    auto  named = MdsNodes(mds);
-    auto  anchor = std::find_if(named.begin(), named.end(), [](const MdsNode &n) { return n.name == kCapeAnchor; });
+    std::vector<std::string> named = ReadMdsFrames(mds);
+    auto                     anchor = std::find(named.begin(), named.end(), kCapeAnchor);
     if (anchor == named.end()) {
         throw std::runtime_error("no cape anchor in the cat rig");
     }
@@ -642,16 +596,9 @@ Bytes BuildSpiritCatModel(std::span<const unsigned char> cat_bytes, std::span<co
     Bytes torch = ImgBank::Parse(ChrPack::Parse(glow_pack).Require(kGlowSourceBank).Payload()).Block(kGlowSourcePicture);
     img.entries.emplace_back(kGlowName, BuildGlowDisc(sheet, torch, kGlowCore, kGlowOuter));
 
-    ChrPack pack;
-    pack.records.push_back(ChrRecord::Make(kSpiritCatCfg, ToBytes(Cfg())));
-    pack.records.push_back(ChrRecord::Make("dbcat.mds", mds));
-    pack.records.push_back(ChrRecord::Make("dbcat.img", img.Build()));
-    pack.records.push_back(ChrRecord::Make("dbcat.mot", mot2.BuildPayload()));
-    pack.records.push_back(ChrRecord::Make("dbcat.bbp", bbp));
-    pack.records.push_back(ChrRecord::Make("dbcat.wgt", wgt2.BuildPayload()));
-    pack.records.push_back(ChrRecord::Make(kCapeClo, ToBytes(wd.clo)));
-    pack.trailer.assign(0x50, 0);
-    return pack.Rebuild();
+    return ChrPack::Build({ChrRecord::Make(kSpiritCatCfg, ToBytes(Cfg())), ChrRecord::Make("dbcat.mds", mds), ChrRecord::Make("dbcat.img", img.Build()),
+                           ChrRecord::Make("dbcat.mot", mot2.BuildPayload()), ChrRecord::Make("dbcat.bbp", bbp),
+                           ChrRecord::Make("dbcat.wgt", wgt2.BuildPayload()), ChrRecord::Make(kCapeClo, ToBytes(wd.clo))});
 }
 
 int BuildSpiritCatModels(const std::filesystem::path &data, std::FILE *log) {

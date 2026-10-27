@@ -82,8 +82,8 @@ MdtMesh MdtMesh::Parse(std::span<const unsigned char> mdt) {
     if (m.colours) {
         m.colour_values = ReadVectors(mdt, col, static_cast<std::size_t>(most_colour + 1));
     }
-    for (std::size_t i = 0; mat + (i + 1) * 0x60 <= total; i++) {
-        m.materials.emplace_back(mdt.begin() + static_cast<std::ptrdiff_t>(mat + i * 0x60), mdt.begin() + static_cast<std::ptrdiff_t>(mat + (i + 1) * 0x60));
+    for (std::size_t i = 0; mat + (i + 1) * kMaterialSize <= total; i++) {
+        m.materials.emplace_back(mdt.begin() + static_cast<std::ptrdiff_t>(mat + i * kMaterialSize), mdt.begin() + static_cast<std::ptrdiff_t>(mat + (i + 1) * kMaterialSize));
     }
     std::vector<std::pair<std::string, std::size_t>> named = {
         {"POS", pos    },
@@ -99,12 +99,12 @@ MdtMesh MdtMesh::Parse(std::span<const unsigned char> mdt) {
     }
     std::stable_sort(named.begin(), named.end(), [](const auto &a, const auto &b) { return a.second < b.second; });
     std::map<std::string, std::size_t> sizes = {
-        {"POS",  m.positions.size() * 16    },
-        {"DL",   dl_size                    },
-        {"UV",   m.normals.size() * 16      },
-        {"NORM", m.uvs.size() * 16          },
-        {"COL",  m.colour_values.size() * 16},
-        {"MAT",  m.materials.size() * 0x60  },
+        {"POS",  m.positions.size() * 16           },
+        {"DL",   dl_size                           },
+        {"UV",   m.normals.size() * 16             },
+        {"NORM", m.uvs.size() * 16                 },
+        {"COL",  m.colour_values.size() * 16       },
+        {"MAT",  m.materials.size() * kMaterialSize},
     };
     for (std::size_t i = 0; i < named.size(); i++) {
         const auto &[name, at] = named[i];
@@ -114,6 +114,14 @@ MdtMesh MdtMesh::Parse(std::span<const unsigned char> mdt) {
         m.pads[name] = next > from ? Bytes(mdt.begin() + static_cast<std::ptrdiff_t>(from), mdt.begin() + static_cast<std::ptrdiff_t>(next)) : Bytes{};
     }
     return m;
+}
+
+void MdtMesh::AlignDisplayList() {
+    std::size_t dl = 0x10;
+    for (const Submesh &sub : submeshes) {
+        dl += 0xC + sub.records.size() * (colours ? 16 : 12);
+    }
+    pads["DL"] = Bytes((16 - dl % 16) % 16, 0);
 }
 
 Bytes MdtMesh::Build() const {

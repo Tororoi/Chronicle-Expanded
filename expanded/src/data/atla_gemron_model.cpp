@@ -132,8 +132,8 @@ std::vector<MotKeyframe> Thinned(const std::vector<MotKeyframe> &keys, std::uint
 // header + 4 x image, as the files have it), the CLUT whole.
 Bytes CropTim8(std::span<const unsigned char> tim, int x0, int y0, int w, int h) {
     constexpr std::size_t p = tim8::kPicture;
-    std::size_t           clut = Get32(tim, p + 4), image = Get32(tim, p + 8), header = Get16(tim, p + 0xC);
-    std::size_t           stride = Get16(tim, p + 0x14);
+    std::size_t           clut = Get32(tim, p + tim8::kClutSize), image = Get32(tim, p + tim8::kImageSize), header = Get16(tim, p + tim8::kHeaderSize);
+    std::size_t           stride = Get16(tim, p + tim8::kWidth);
     Bytes                 out(p + header + std::size_t(w * h) + clut, 0);
     std::copy_n(tim.begin(), p + header, out.begin());
     for (int y = 0; y < h; y++) {
@@ -141,10 +141,10 @@ Bytes CropTim8(std::span<const unsigned char> tim, int x0, int y0, int w, int h)
                     out.begin() + std::ptrdiff_t(p + header + std::size_t(y * w)));
     }
     std::copy_n(tim.begin() + std::ptrdiff_t(p + header + image), clut, out.begin() + std::ptrdiff_t(p + header + std::size_t(w * h)));
-    Set32(out, p, std::uint32_t(header + 4 * std::size_t(w * h)));
-    Set32(out, p + 8, std::uint32_t(w * h));
-    Set16(out, p + 0x14, std::uint16_t(w));
-    Set16(out, p + 0x16, std::uint16_t(h));
+    Set32(out, p + tim8::kTotalSize, std::uint32_t(header + 4 * std::size_t(w * h)));
+    Set32(out, p + tim8::kImageSize, std::uint32_t(w * h));
+    Set16(out, p + tim8::kWidth, std::uint16_t(w));
+    Set16(out, p + tim8::kHeight, std::uint16_t(h));
     return out;
 }
 
@@ -152,7 +152,7 @@ Bytes CropTim8(std::span<const unsigned char> tim, int x0, int y0, int w, int h)
 Bytes Desaturate(std::span<const unsigned char> tim, double k) {
     constexpr std::size_t p = tim8::kPicture;
     Bytes                 out(tim.begin(), tim.end());
-    std::size_t           clut = p + Get16(out, p + 0xC) + Get32(out, p + 8);
+    std::size_t           clut = p + Get16(out, p + tim8::kHeaderSize) + Get32(out, p + tim8::kImageSize);
     for (std::size_t e = 0; e < 256; e++) {
         std::size_t o = clut + e * 4;
         double      lum = 0.299 * out[o] + 0.587 * out[o + 1] + 0.114 * out[o + 2];
@@ -259,9 +259,7 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
     grafts.push_back({{FrameRecord(spawn_at, kAtlaShotSpawn, 0, kIdentity, rc::kSpawnT)}, {}});
     int total = spawn_at + 1;
     pack.Require(kMds).ReplacePayload(GraftMds(mds, grafts, {}));
-    Bytes bbp = pack.Require(kBbp).Payload();
-    bbp.resize(bbp.size() + 64 * (std::size_t(total) - frames.size()), 0); // not skinned: zero
-    pack.Require(kBbp).ReplacePayload(bbp);
+    AppendBindPoses(pack, kBbp, std::size_t(total) - frames.size());
 
     // The death copied and held; the held atla out of the draw from the swap; the light on the Gemron's frames.
     DeathClip(mot, kAtlaGemronDeathStart, kClipFrom, kClipTo, kAtlaGemronDeathEnd);

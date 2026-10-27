@@ -102,10 +102,10 @@ struct PictureAt {
 
 PictureAt Locate(std::span<const unsigned char> tim) {
     constexpr std::size_t p = tim8::kPicture;
-    Slice(tim, p, 0x18, "a sheet's picture header");
-    std::size_t           clut = Get32(tim, p + 4), image = Get32(tim, p + 8), header = tim[p + 0xC] | (tim[p + 0xD] << 8);
-    int                   width = tim[p + 0x14] | (tim[p + 0x15] << 8), height = tim[p + 0x16] | (tim[p + 0x17] << 8);
-    if (tim[p + 0x13] != 5 || image != std::size_t(width * height) || clut != 256 * 4) {
+    Slice(tim, p, tim8::kGsWords, "a sheet's picture header");
+    std::size_t clut = Get32(tim, p + tim8::kClutSize), image = Get32(tim, p + tim8::kImageSize), header = Get16(tim, p + tim8::kHeaderSize);
+    int         width = Get16(tim, p + tim8::kWidth), height = Get16(tim, p + tim8::kHeight);
+    if (tim[p + tim8::kType] != tim8::kType8 || image != std::size_t(width * height) || clut != 256 * 4) {
         throw std::runtime_error("look: not an 8-bit 256-colour picture");
     }
     Slice(tim, p + header, image + clut, "a sheet's pixels and CLUT");
@@ -348,12 +348,13 @@ Bytes SheetLook::ApplyBaseToSheet(std::span<const unsigned char> tim) const {
 Bytes BuildGlowDisc(std::span<const unsigned char> templ, std::span<const unsigned char> torch, std::array<int, 3> core,
                     std::array<int, 3> outer) {
     constexpr double kCross = 0.125; // radius fraction where the mix is halfway
-    std::size_t      header = torch[0x1C] | (torch[0x1D] << 8), image = Get32(torch, 0x18);
-    int              width = torch[0x24] | (torch[0x25] << 8), height = torch[0x26] | (torch[0x27] << 8);
-    if (torch[0x23] != 3 || Get32(torch, 0x14) != 0 || width != 64 || height != 64) {
+    constexpr std::size_t p = tim8::kPicture;
+    std::size_t           header = Get16(torch, p + tim8::kHeaderSize), image = Get32(torch, p + tim8::kImageSize);
+    int                   width = Get16(torch, p + tim8::kWidth), height = Get16(torch, p + tim8::kHeight);
+    if (torch[p + tim8::kType] != tim8::kType32 || Get32(torch, p + tim8::kClutSize) != 0 || width != 64 || height != 64) {
         throw std::runtime_error("glow source is not a 64x64 32-bit TIM2");
     }
-    auto px = torch.subspan(0x10 + header, image);
+    auto px = torch.subspan(p + header, image);
     // The palette entries the GS's CLUT order leaves in place (bits 3 and 4 equal), luminance ranks onto them.
     std::vector<int> fixed;
     for (int i = 0; i < 256; i++) {

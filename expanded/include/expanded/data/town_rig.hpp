@@ -50,10 +50,6 @@ struct Bind {
     std::array<double, 3> translation;
 };
 
-// A node as these grafts read one: a record from its name on, its index and size words trailing the node before it.
-constexpr std::size_t kNodeAt = mds::kTable + mds::kName, kNodeSize = mds::kRecord - mds::kName;
-constexpr std::size_t kNodeMesh = mds::kMesh - mds::kName, kNodeParent = mds::kParent - mds::kName;
-
 // Hamilton product, w first as .mot rotations store it.
 Vec4 QuatMul(const Vec4 &a, const Vec4 &b);
 

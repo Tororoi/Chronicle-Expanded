@@ -12,6 +12,7 @@
 
 #include "expanded/data/cfg_text.hpp"
 #include "expanded/data/data_build.hpp"
+#include "expanded/data/gemron_parts.hpp"
 #include "expanded/data/model_parts.hpp"
 #include "expanded/data/sheet_look.hpp"
 
@@ -52,7 +53,6 @@ constexpr double      kGlowDiameter = 30.0;
 constexpr double      kGlowPull = 9.4;
 constexpr float       kGlowNone = 0.001f; // a scale of 0 would zero the frame's axes
 constexpr int         kGlowTextureSize = 128;
-constexpr std::size_t kBbpEntry = 64;
 // (frame, scale): none until a fuse, full at its blast, gone the frame after: the death 105-122, the self-destruct
 // 200-217. The last key lies past the self-destruct's end, as the engine plays a track only between two keys.
 constexpr std::pair<std::uint32_t, float> kGlowKeys[] = {
@@ -251,8 +251,8 @@ Bytes GlowQuad(std::span<const unsigned char> quad_mds) {
         mesh.uvs.push_back(*coordinate);
     }
     Bytes material = mesh.materials.at(0);
-    std::fill(material.begin() + 0x34, material.begin() + 0x54, 0);
-    std::copy_n(kGlowTexture, std::char_traits<char>::length(kGlowTexture), material.begin() + 0x34);
+    std::fill_n(material.begin() + MdtMesh::kMaterialTexture, 0x20, 0);
+    std::copy_n(kGlowTexture, std::char_traits<char>::length(kGlowTexture), material.begin() + MdtMesh::kMaterialTexture);
     mesh.materials = {material};
     return mesh.Build();
 }
@@ -314,9 +314,7 @@ Bytes BuildBombGemronModel(std::span<const unsigned char> gemron, std::span<cons
     pack.Require(kMds).ReplacePayload(ReplaceMeshes(mds, replaced, {
                                                                        {FrameRecord(glow, kBombGlowFrame, body->index), GlowQuad(quad_mds)}
     }));
-    Bytes bbp = pack.Require(kBbp).Payload();
-    bbp.resize(bbp.size() + kBbpEntry, 0); // its bind pose; the model is not skinned
-    pack.Require(kBbp).ReplacePayload(bbp);
+    AppendBindPoses(pack, kBbp, 1); // the glow disc's
     // The sheets in the look, the bomb's sheet and the glow disc added to the bank.
     ImgBank   bank = ImgBank::Parse(pack.Require(kImg).Payload());
     ImgBank   bomb = ImgBank::Parse(bomb_img);

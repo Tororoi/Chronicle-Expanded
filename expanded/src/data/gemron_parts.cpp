@@ -57,7 +57,7 @@ MotTrack TrackLike(const MotTrack &reference, std::uint32_t node, std::uint32_t 
 
 Bytes GraftRecord(const Bytes &raw, int index, int parent, const std::optional<Mat3> &r, const std::optional<Vec3> &t, double scale) {
     Bytes rec = raw;
-    Set32(rec, 0, std::uint32_t(index));
+    Set32(rec, mds::kIndex, std::uint32_t(index));
     Set32(rec, mds::kParent, std::uint32_t(parent));
     if (r) {
         for (int i = 0; i < 3; i++) {
@@ -83,15 +83,15 @@ Bytes ScaledMesh(std::span<const unsigned char> mds, std::size_t offset, double 
 }
 
 Bytes GraftMds(std::span<const unsigned char> mds, const std::vector<Graft> &grafts, const std::map<std::string, Bytes> &replace) {
-    int                               count = static_cast<int>(Get32(mds, 8));
-    std::size_t                       table = Get32(mds, 12);
+    int                               count = static_cast<int>(Get32(mds, mds::kCountAt));
+    std::size_t                       table = Get32(mds, mds::kTableAt);
     std::vector<Bytes>                records;
     std::vector<std::optional<Bytes>> blobs;
     std::set<std::string>             drop(std::begin(kGemDrop), std::end(kGemDrop));
     for (int i = 0; i < count; i++) {
         std::size_t at = table + std::size_t(i) * mds::kRecord;
         Bytes       raw(mds.begin() + std::ptrdiff_t(at), mds.begin() + std::ptrdiff_t(at + mds::kRecord));
-        std::string name = NameAt(raw, mds::kName, 0x20);
+        std::string name = NameAt(raw, mds::kName, mds::kNameSize);
         std::size_t off = Get32(raw, mds::kMesh);
         records.push_back(raw);
         if (drop.contains(name) || off == 0) {
@@ -110,6 +110,13 @@ Bytes GraftMds(std::span<const unsigned char> mds, const std::vector<Graft> &gra
         }
     }
     return LayOutMds(mds, std::move(records), blobs);
+}
+
+void AppendBindPoses(ChrPack &pack, std::string_view bbp_name, std::size_t count) {
+    ChrRecord &record = pack.Require(bbp_name);
+    Bytes      poses = record.Payload();
+    poses.resize(poses.size() + bbp::kEntry * count, 0);
+    record.ReplacePayload(poses);
 }
 
 void DeathClip(MotFile &mot, int start, int from, int to, int end) {

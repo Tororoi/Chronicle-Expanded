@@ -23,14 +23,14 @@ Vec3 MdsFrame::ToLocal(const Vec3 &world_direction) const {
 }
 
 std::vector<MdsFrame> ReadMdsSkeleton(std::span<const unsigned char> mds) {
-    int                   count = static_cast<int>(Get32(mds, 8));
-    std::size_t           table = Get32(mds, 12);
+    int                   count = static_cast<int>(Get32(mds, mds::kCountAt));
+    std::size_t           table = Get32(mds, mds::kTableAt);
     std::vector<MdsFrame> frames(static_cast<std::size_t>(count));
     for (int i = 0; i < count; i++) {
         std::size_t rec = table + static_cast<std::size_t>(i) * mds::kRecord;
         MdsFrame   &frame = frames[static_cast<std::size_t>(i)];
         frame.index = i;
-        frame.name = NameAt(mds, rec + mds::kName, 0x20);
+        frame.name = NameAt(mds, rec + mds::kName, mds::kNameSize);
         frame.mesh = static_cast<int>(Get32(mds, rec + mds::kMesh));
         frame.parent = GetI32(mds, rec + mds::kParent);
         if (frame.parent >= i) {
@@ -91,14 +91,14 @@ Bytes LayOutMds(std::span<const unsigned char> source, std::vector<Bytes> record
 
 Bytes ReplaceMeshes(std::span<const unsigned char> mds, const std::map<std::string, std::optional<Bytes>> &replaced,
                     const std::vector<std::pair<Bytes, Bytes>> &appended) {
-    int                               count = static_cast<int>(Get32(mds, 8));
-    std::size_t                       table = Get32(mds, 12);
+    int                               count = static_cast<int>(Get32(mds, mds::kCountAt));
+    std::size_t                       table = Get32(mds, mds::kTableAt);
     std::vector<Bytes>                records;
     std::vector<std::optional<Bytes>> meshes;
     for (int i = 0; i < count; i++) {
         std::size_t rec = table + static_cast<std::size_t>(i) * mds::kRecord;
         records.emplace_back(mds.begin() + static_cast<std::ptrdiff_t>(rec), mds.begin() + static_cast<std::ptrdiff_t>(rec + mds::kRecord));
-        std::string name = NameAt(mds, rec + mds::kName, 0x20);
+        std::string name = NameAt(mds, rec + mds::kName, mds::kNameSize);
         std::size_t off = Get32(mds, rec + mds::kMesh);
         auto        found = replaced.find(name);
         if (found != replaced.end()) {
@@ -116,10 +116,39 @@ Bytes ReplaceMeshes(std::span<const unsigned char> mds, const std::map<std::stri
     return LayOutMds(mds, std::move(records), meshes);
 }
 
+Bytes AppendMdsFrames(std::span<const unsigned char> mds, const std::vector<std::pair<Bytes, std::optional<Bytes>>> &frames) {
+    std::size_t count = Get32(mds, mds::kCountAt), meshes = mds::kTable + count * mds::kRecord;
+    std::size_t moved = frames.size() * mds::kRecord, appended_at = mds.size() + moved;
+    Bytes       out(mds.begin(), mds.begin() + static_cast<std::ptrdiff_t>(meshes));
+    Set32(out, mds::kCountAt, static_cast<std::uint32_t>(count + frames.size()));
+    for (std::size_t i = 0; i < count; i++) {
+        std::size_t at = mds::kTable + i * mds::kRecord + mds::kMesh;
+        if (std::uint32_t mesh = Get32(out, at); mesh != 0) {
+            Set32(out, at, static_cast<std::uint32_t>(mesh + moved));
+        }
+    }
+    Bytes appended;
+    for (std::size_t k = 0; k < frames.size(); k++) {
+        const auto &[source, mdt] = frames[k];
+        Bytes record = source;
+        Set32(record, mds::kIndex, static_cast<std::uint32_t>(count + k));
+        Set32(record, mds::kSize, mds::kRecord);
+        Set32(record, mds::kMesh, mdt ? static_cast<std::uint32_t>(appended_at + appended.size()) : 0u);
+        if (mdt) {
+            appended.insert(appended.end(), mdt->begin(), mdt->end());
+            PadTo16(appended);
+        }
+        out.insert(out.end(), record.begin(), record.end());
+    }
+    out.insert(out.end(), mds.begin() + static_cast<std::ptrdiff_t>(meshes), mds.end());
+    out.insert(out.end(), appended.begin(), appended.end());
+    return out;
+}
+
 Bytes FrameRecord(int index, std::string_view name, int parent, const Mat3 &rotation, const Vec3 &position) {
     Bytes record(mds::kRecord, 0);
-    Set32(record, 0, static_cast<std::uint32_t>(index));
-    Set32(record, 4, mds::kRecord);
+    Set32(record, mds::kIndex, static_cast<std::uint32_t>(index));
+    Set32(record, mds::kSize, mds::kRecord);
     std::copy(name.begin(), name.end(), record.begin() + mds::kName);
     Set32(record, mds::kParent, static_cast<std::uint32_t>(parent));
     for (std::size_t i = 0; i < 3; i++) {

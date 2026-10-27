@@ -199,13 +199,13 @@ Vec4 MatToQuat(const Mat3 &r) {
 }
 
 Bind MdsBind(std::span<const unsigned char> mds, int node) {
-    std::size_t p = kNodeAt + static_cast<std::size_t>(node) * mds::kRecord;
+    std::size_t p = mds::kTable + static_cast<std::size_t>(node) * mds::kRecord;
     double      m[16];
     for (int k = 0; k < 16; k++) {
-        m[k] = GetF32(mds, p + (mds::kRotation - mds::kName) + k * 4);
+        m[k] = GetF32(mds, p + mds::kRotation + k * 4);
     }
     return {
-        static_cast<int>(Get32(mds, p + kNodeParent)),
+        static_cast<int>(Get32(mds, p + mds::kParent)),
         {{{m[0], m[1], m[2]}, {m[4], m[5], m[6]}, {m[8], m[9], m[10]}}},
         {m[12], m[13], m[14]}
     };

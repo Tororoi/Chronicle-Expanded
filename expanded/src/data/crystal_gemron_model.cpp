@@ -122,15 +122,6 @@ Mat3 Upright(const Mat4 &w) {
     return {Cross(u, f), u, f};
 }
 
-// The padding after a display list sized so the blocks after it start 16-aligned.
-void AlignDisplayList(MdtMesh &mesh) {
-    std::size_t dl = 0x10;
-    for (const MdtMesh::Submesh &sub : mesh.submeshes) {
-        dl += 0xC + sub.records.size() * (mesh.colours ? 16 : 12);
-    }
-    mesh.pads["DL"] = Bytes((16 - dl % 16) % 16, 0);
-}
-
 // The head without the eye triangles, and the eyes: the head's strips split around them (it draws two-sided), the eyes
 // one triangle list per material.
 std::pair<Bytes, Bytes> SplitEyes(std::span<const unsigned char> mds, const MdsFrame &head) {
@@ -193,8 +184,8 @@ std::pair<Bytes, Bytes> SplitEyes(std::span<const unsigned char> mds, const MdsF
     MdtMesh head_mesh = MdtMesh::Parse(MdtAt(mds, std::size_t(head.mesh)));
     head_mesh.submeshes = keep;
     m.submeshes = eyes;
-    AlignDisplayList(head_mesh);
-    AlignDisplayList(m);
+    head_mesh.AlignDisplayList();
+    m.AlignDisplayList();
     return {head_mesh.Build(), m.Build()};
 }
 
@@ -349,9 +340,7 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
     pack.Require(kMds).ReplacePayload(GraftMds(mds, grafts, {
                                                                 {kEyeHead, head_mdt}
     }));
-    Bytes bbp = pack.Require(kBbp).Payload();
-    bbp.resize(bbp.size() + 64 * (std::size_t(at) - frames.size()), 0); // bind poses (not skinned: zero)
-    pack.Require(kBbp).ReplacePayload(bbp);
+    AppendBindPoses(pack, kBbp, std::size_t(at) - frames.size());
     DeathClip(mot, kDeathStart, kClipFrom, kClipTo, kDeathEnd);
     mot.tracks.insert(mot.tracks.end(), added.begin(), added.end());
     pack.Require(kMot).ReplacePayload(mot.BuildPayload());

@@ -41,14 +41,6 @@ std::array<double, 4> Wide(const std::array<float, 4> &v);
 // Two .mot rotation keys (w first) slerped the shorter way round, linear past 0.9995.
 std::array<double, 4> SlerpKeys(const std::array<float, 4> &a, const std::array<float, 4> &b, double t);
 
-// An .mds: its frame count @0x08 and the frame table's offset @0x0C (kTable in every pack), the records, then the
-// meshes. A record (kRecord bytes): its index, its size @4, name @kName, mesh offset @kMesh (0 for none), parent
-// @kParent, then its local matrix (rotation rows @kRotation, translation @kPosition).
-namespace mds {
-inline constexpr std::size_t kTable = 0x10, kRecord = 0x70;
-inline constexpr std::size_t kName = 0x08, kMesh = 0x28, kParent = 0x2C, kRotation = 0x30, kPosition = 0x60;
-} // namespace mds
-
 // One .mds frame record; world is its bind pose (row vectors, world = local x parent).
 struct MdsFrame {
     int         index = 0;
@@ -83,6 +75,11 @@ Bytes LayOutMds(std::span<const unsigned char> source, std::vector<Bytes> record
 Bytes ReplaceMeshes(std::span<const unsigned char> mds, const std::map<std::string, std::optional<Bytes>> &replaced,
                     const std::vector<std::pair<Bytes, Bytes>> &appended = {});
 
+// An .mds with records appended after its last (each kRecord bytes, its index, size and mesh offset laid here) and
+// their meshes (none for nullopt) after its own, each padded to 16; its own meshes keep their bytes, their offsets
+// moved past the new records.
+Bytes AppendMdsFrames(std::span<const unsigned char> mds, const std::vector<std::pair<Bytes, std::optional<Bytes>>> &frames);
+
 // A new frame record: index, name, parent, rotation rows and position, no mesh.
 inline constexpr Mat3 kIdentity = {
     {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}
@@ -92,8 +89,10 @@ Bytes FrameRecord(int index, std::string_view name, int parent, const Mat3 &rota
 // An MDT mesh read into its blocks and laid back out byte for byte (blocks in their recorded order with the padding
 // between them). A display list record is (position, normal, texture coordinate[, colour]) indices; the block the
 // header calls UV @0x18 holds the normals and the one it calls NORM @0x30 the texture coordinates, as the files have
-// them.
+// them. A material is kMaterialSize bytes, its texture's name @kMaterialTexture.
 struct MdtMesh {
+    static constexpr std::size_t kMaterialSize = 0x60, kMaterialTexture = 0x34;
+
     std::array<std::uint32_t, 16>      header{};
     bool                               colours = false;
     std::vector<std::array<double, 4>> positions, normals, uvs, colour_values;
@@ -112,6 +111,8 @@ struct MdtMesh {
 
     static MdtMesh Parse(std::span<const unsigned char> mdt);
     Bytes          Build() const;
+    // The padding after the display list sized so the blocks after it start 16-aligned.
+    void AlignDisplayList();
 };
 
 // A texture bank (IMG\0 or IM2\0): a 0x10 header (count @4), 0x30 entries (name, bank-relative offset @0x20), the TIM2
@@ -125,11 +126,16 @@ struct ImgBank {
     Bytes          Build() const;
 };
 
-// 8-bit TIM2 pictures (the picture header 0x10 into the file: CLUT size +4, image size +8, header size +0xC, type
-// +0x13, width +0x14, height +0x16).
+// 8-bit TIM2 pictures. The picture header is kPicture into the file; from it, the picture's size @kTotalSize, the CLUT's
+// @kClutSize, the image's @kImageSize, the header's own @kHeaderSize (kHeader in a vanilla 8-bit picture), its type
+// @kType (kType8, or kType32 for 32-bit colour), width @kWidth and height @kHeight, then the GS register words to the
+// header's end.
 namespace tim8 {
 
-inline constexpr int kPicture = 0x10;
+inline constexpr int         kPicture = 0x10;
+inline constexpr std::size_t kTotalSize = 0x00, kClutSize = 0x04, kImageSize = 0x08, kHeaderSize = 0x0C, kType = 0x13, kWidth = 0x14,
+                             kHeight = 0x16, kGsWords = 0x18, kHeader = 0x30;
+inline constexpr unsigned char kType8 = 5, kType32 = 3;
 
 struct Picture {
     int   width = 0, height = 0;

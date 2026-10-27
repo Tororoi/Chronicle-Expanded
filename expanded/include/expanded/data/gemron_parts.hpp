@@ -10,6 +10,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "expanded/data/chr_pack.hpp"
@@ -34,6 +35,9 @@ struct Graft {
 
 // The .mds with the gems' meshes (and glow shells) dropped, some replaced by name and the grafts' records appended.
 Bytes GraftMds(std::span<const unsigned char> mds, const std::vector<Graft> &grafts, const std::map<std::string, Bytes> &replace);
+
+// Appends count zero bind poses to the pack's .bbp, one a grafted frame (the Gemron is not skinned).
+void AppendBindPoses(ChrPack &pack, std::string_view bbp_name, std::size_t count);
 
 // The vanilla death (frames from-to) copied to start on, every track keyed on each frame of it, its last pose held to
 // end and one past it.

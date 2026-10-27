@@ -631,21 +631,21 @@ void RigNode::Bind(const std::vector<RigNode> &nodes) {
 }
 
 std::vector<RigNode> ReadSkeleton(std::span<const unsigned char> mds) {
-    int                  count = static_cast<int>(Get32(mds, 8));
+    int                  count = static_cast<int>(Get32(mds, mds::kCountAt));
     std::vector<RigNode> nodes(static_cast<std::size_t>(count));
     for (int i = 0; i < count; i++) {
-        std::size_t p = 0x18 + std::size_t(i) * 0x70;
+        std::size_t p = mds::kTable + std::size_t(i) * mds::kRecord;
         RigNode    &n = nodes[std::size_t(i)];
         for (std::size_t row = 0; row < 3; row++) {
             for (std::size_t c = 0; c < 3; c++) {
-                n.r[row][c] = GetF32(mds, p + 0x28 + row * 16 + c * 4);
+                n.r[row][c] = GetF32(mds, p + mds::kRotation + row * 16 + c * 4);
             }
         }
-        n.t = {GetF32(mds, p + 0x58), GetF32(mds, p + 0x5C), GetF32(mds, p + 0x60)};
+        n.t = {GetF32(mds, p + mds::kPosition), GetF32(mds, p + mds::kPosition + 4), GetF32(mds, p + mds::kPosition + 8)};
         n.i = i;
-        n.name = NameAt(mds, p, 0x20);
-        n.mesh_off = static_cast<int>(Get32(mds, p + 0x20));
-        n.parent = GetI32(mds, p + 0x24);
+        n.name = NameAt(mds, p + mds::kName, mds::kNameSize);
+        n.mesh_off = static_cast<int>(Get32(mds, p + mds::kMesh));
+        n.parent = GetI32(mds, p + mds::kParent);
         n.quat = MatToQuat(n.r);
     }
     for (RigNode &n : nodes) {

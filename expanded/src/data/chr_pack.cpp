@@ -96,6 +96,13 @@ const ChrRecord &ChrPack::Require(std::string_view name) const {
     return *record;
 }
 
+Bytes ChrPack::Build(std::vector<ChrRecord> records) {
+    ChrPack pack;
+    pack.records = std::move(records);
+    pack.trailer.assign(kEndRecord, 0);
+    return pack.Rebuild();
+}
+
 Bytes ChrPack::Rebuild() const {
     Bytes blob;
     for (const ChrRecord &record : records) {
@@ -207,11 +214,11 @@ MotTrack *MotFile::TrackBy(std::uint32_t joint, std::uint32_t channel) {
 }
 
 std::vector<std::string> ReadMdsFrames(std::span<const unsigned char> mds) {
-    std::uint32_t            count = Get32(mds, 0x08);
-    std::uint32_t            stride = Get32(mds, 0x14);
+    std::uint32_t            count = Get32(mds, mds::kCountAt);
+    std::uint32_t            stride = Get32(mds, mds::kTable + mds::kSize);
     std::vector<std::string> names;
     for (std::uint32_t i = 0; i < count; i++) {
-        names.push_back(NameAt(mds, 0x18 + std::size_t{i} * stride, 0x20));
+        names.push_back(NameAt(mds, mds::kTable + mds::kName + std::size_t{i} * stride, mds::kNameSize));
     }
     return names;
 }
