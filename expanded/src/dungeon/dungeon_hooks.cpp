@@ -34,6 +34,7 @@
 #include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/kick_back.hpp"
+#include "expanded/weapons/osmond/snail.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/solid_column.hpp"
 #include "expanded/weapons/toan/agas_sword.hpp"
@@ -325,9 +326,10 @@ void MonsterPoisoned(const MONSTOR &target) {
     VenomPoisoned(target);
 }
 
-void MonsterDamaged(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount) {
+void MonsterDamaged(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount) {
     EventLogDamaged(unit, monster, amount);
     CactusMonsterDamaged(unit, monster, hit, amount);
+    SnailMonsterDamaged(unit, monster, hit, amount);
 }
 
 bool HitWearsWeapon(const COLLISION_HIT &hit) {
