@@ -23,12 +23,6 @@ namespace {
 
 constexpr int kWindGem = 3; // MasekiEffect's Wind Gem burst
 
-struct Flight {
-    const CSHOT *shots = nullptr;
-    int          pellet = -1;
-    float        charge = 0.0f;
-};
-
 // The frame a stage comes at: the first whole frame at or past its share of kTyphoonShotFrames.
 constexpr int StageFrame(float share) {
     float at = share * static_cast<float>(kTyphoonShotFrames);
@@ -37,8 +31,8 @@ constexpr int StageFrame(float share) {
 }
 
 struct State {
-    ShotCharge draw{StageFrame(kTyphoonShotFull), StageFrame(kTyphoonShotEmpowered)}; // a flash at each stage
-    Flight     flights[kPelletSlots];
+    ShotCharge         draw{StageFrame(kTyphoonShotFull), StageFrame(kTyphoonShotEmpowered)}; // a flash at each stage
+    PelletSlots<float> charges;                                                               // the empowered pellets out, and how far each was
 };
 
 State state;
@@ -128,7 +122,7 @@ void TyphoonShotFired(CSHOT &shots, int slot) {
     if (slot < 0 || slot >= kPelletSlots) {
         return;
     }
-    state.flights[slot] = {}; // a pellet fired into this slot before is gone, ended or not
+    state.charges.Drop(slot); // a pellet fired into this slot before is gone, ended or not
     if (!TyphoonShotActive()) {
         return;
     }
@@ -140,21 +134,13 @@ void TyphoonShotFired(CSHOT &shots, int slot) {
     ChargedShotLetGo(); // an empowered shot's wear is a charged one's
     shots.size[slot] *= 1.0f + (kTyphoonPellet - 1.0f) * charge;
     shots.damage[slot] = static_cast<int>(static_cast<float>(shots.damage[slot]) * (1.0f + (kTyphoonShotDamage - 1.0f) * charge));
-    state.flights[slot] = {&shots, slot, charge};
+    state.charges.Keep(shots, slot, charge);
 }
 
 void TyphoonShotEnded(const CSHOT &shots, int slot, const float *point, bool struck) {
-    if (slot < 0 || slot >= kPelletSlots) {
-        return;
-    }
-    Flight &flight = state.flights[slot];
-    if (flight.shots != &shots || flight.pellet != slot) {
-        return;
-    }
-    float charge = flight.charge;
-    flight = {};
-    if (struck || MonsterNear(point, kTyphoonBurstNear)) {
-        Blast(point, charge);
+    std::optional<float> charge = state.charges.Take(shots, slot);
+    if (charge && (struck || MonsterNear(point, kTyphoonBurstNear))) {
+        Blast(point, *charge);
     }
 }
 

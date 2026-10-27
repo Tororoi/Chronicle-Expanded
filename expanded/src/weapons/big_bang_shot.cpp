@@ -64,28 +64,26 @@ enum class Charge {
 };
 
 struct Flight {
-    const CSHOT *shots = nullptr;
-    int          pellet = -1;
-    int          bomb = -1;
-    float        scale = 1.0f;
-    bool         charged = false;
+    int   bomb = -1; // the bomb that is the pellet
+    float scale = 1.0f;
+    bool  charged = false;
 };
 
 struct State {
-    int         effect = -1; // the bomb's effect, as last asked
-    Charge      charge = Charge::kIdle;
-    int         frames = 0;               // in the phase
-    GuardCharge guard;                    // the guard's charge
-    ShotCharge  draw{kChargedShotFrames}; // the slingshot drawn and held
-    int         target = -1;
-    int         hover = -1; // the hanging bomb's slot
-    float       hover_pos[4] = {};
-    float       ground = 0.0f;
-    float       speed = 0.0f;
-    float       shown = 0.0f; // the hanging bomb, 0..1
-    int         pulse = 0;    // frames it has hung fully in
-    float       flash_at[4] = {};
-    Flight      flights[kPelletSlots];
+    int                 effect = -1; // the bomb's effect, as last asked
+    Charge              charge = Charge::kIdle;
+    int                 frames = 0;               // in the phase
+    GuardCharge         guard;                    // the guard's charge
+    ShotCharge          draw{kChargedShotFrames}; // the slingshot drawn and held
+    int                 target = -1;
+    int                 hover = -1; // the hanging bomb's slot
+    float               hover_pos[4] = {};
+    float               ground = 0.0f;
+    float               speed = 0.0f;
+    float               shown = 0.0f; // the hanging bomb, 0..1
+    int                 pulse = 0;    // frames it has hung fully in
+    float               flash_at[4] = {};
+    PelletSlots<Flight> flights;
 };
 
 State state;
@@ -216,11 +214,11 @@ void BigBangShotStep() {
     }
     Bombs();
     // The bombs in the air ride their pellets.
-    for (Flight &flight : state.flights) {
-        if (flight.shots != nullptr && flight.bomb >= 0) {
-            MoveBomb(flight.bomb, flight.shots->pos[flight.pellet], flight.scale);
+    state.flights.ForEach([](const CSHOT &shots, int slot, Flight &flight) {
+        if (flight.bomb >= 0) {
+            MoveBomb(flight.bomb, shots.pos[slot], flight.scale);
         }
-    }
+    });
     // How long the slingshot was last held drawn: the shot it lets go of reads it.
     state.draw.Step(true);
     state.frames++;
@@ -292,7 +290,7 @@ void BigBangShotReset() {
 }
 
 void BigBangShotFired(CSHOT &shots, int slot) {
-    if (!BigBangShotActive()) {
+    if (slot < 0 || slot >= kPelletSlots || !BigBangShotActive()) {
         return;
     }
     if (state.charge == Charge::kPrimed) {
@@ -310,14 +308,15 @@ void BigBangShotFired(CSHOT &shots, int slot) {
         }
         return;
     }
-    Flight &flight = state.flights[slot];
-    HideBomb(flight.bomb);
-    flight.shots = &shots;
-    flight.pellet = slot;
+    if (Flight *before = state.flights.InSlot(slot)) {
+        HideBomb(before->bomb);
+    }
+    Flight flight;
     flight.charged = state.draw.Ready();
     state.draw.Reset();
     flight.scale = flight.charged ? kChargedBomb : kPlainBomb;
     flight.bomb = ShowBomb(shots.pos[slot], flight.scale, false);
+    state.flights.Keep(shots, slot, flight);
     if (flight.bomb >= 0) {
         shots.size[slot] = 0.0f; // the bomb is the pellet
     }
@@ -327,18 +326,18 @@ void BigBangShotFired(CSHOT &shots, int slot) {
 }
 
 void BigBangShotEnded(const CSHOT &shots, int slot, const float *point) {
-    Flight &flight = state.flights[slot];
-    if (flight.shots != &shots || flight.pellet != slot) {
+    Flight *flight = state.flights.Of(shots, slot);
+    if (flight == nullptr) {
         return;
     }
-    HideBomb(flight.bomb);
-    if (flight.charged) {
+    HideBomb(flight->bomb);
+    if (flight->charged) {
         Explode(point, kChargedExplosion, kChargedBlast, kChargedRing, kChargedShotWhp);
     } else {
         ExplosionAt(point, kPlainExplosion);
         RumbleBlast(BlastRumble::kLight);
     }
-    flight = {};
+    state.flights.Drop(slot);
 }
 
 void BigBangShotLight(const CCharacter &character, float *ambient) {
@@ -372,11 +371,8 @@ void BigBangShotDraw() {
 }
 
 bool BigBangShotBlasts(const CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= kPelletSlots) {
-        return false;
-    }
-    const Flight &flight = state.flights[slot];
-    return flight.shots == &shots && flight.pellet == slot && flight.charged;
+    const Flight *flight = state.flights.Of(shots, slot);
+    return flight != nullptr && flight->charged;
 }
 
 } // namespace expanded

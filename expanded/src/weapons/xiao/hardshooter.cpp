@@ -193,13 +193,7 @@ int RicochetShotEnded(CSHOT &shots, int slot, const float *point, bool struck) {
     if (from < 0) {
         return -1;
     }
-    int free = -1;
-    for (int other = 0; other < kPelletSlots; other++) {
-        if (other != slot && shots.used[other] == 0) {
-            free = other;
-            break;
-        }
-    }
+    int free = FreePelletSlot(shots, slot);
     if (free < 0) {
         return -1;
     }
@@ -229,6 +223,7 @@ int RicochetShotEnded(CSHOT &shots, int slot, const float *point, bool struck) {
     }
 
     // The game takes it once it is clear of the struck monster (RicochetStep): it never comes back at it.
+    CopyPellet(shots, slot, free);
     for (int i = 0; i < 3; i++) {
         shots.pos[free][i] = start[i];
         shots.unk_100[free][i] = start[i];
@@ -238,12 +233,6 @@ int RicochetShotEnded(CSHOT &shots, int slot, const float *point, bool struck) {
     shots.vector[free][3] = 0.0f;
     shots.halted[free] = 1;
     shots.life[free] = kRicochetLife;
-    shots.damage[free] = shots.damage[slot];
-    shots.size[free] = shots.size[slot];
-    shots.unk_340[free] = shots.unk_340[slot];
-    shots.unk_370[free] = shots.unk_370[slot];
-    shots.start_flag[free] = 0;
-    shots.used[free] = 1;
     ricochet[free] = true;
     departing[free] = from;
     departed[free] = 0;

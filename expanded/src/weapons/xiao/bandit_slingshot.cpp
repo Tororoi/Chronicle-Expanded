@@ -26,7 +26,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kXiao = 1;                 // the shot's owner, as her pellets' hits are
 constexpr int kNameMessage = 3000;       // a monster's name: CharaNameMes's name_no + 3000
 const int     kNotices[] = {10, 20, 30}; // ItemGetMes's "acquired" templates
 
@@ -148,21 +147,8 @@ void StealShotFired(CSHOT &shots, int slot) {
     if (index < 0) {
         return;
     }
-    CSHOT_EFFECT *effect = ShotEffectAt(index);
-    float         from[4] = {shots.pos[slot][0], shots.pos[slot][1], shots.pos[slot][2], 1.0f};
-    float         to[4] = {from[0] + shots.vector[slot][0], from[1] + shots.vector[slot][1], from[2] + shots.vector[slot][2], 1.0f};
-    effect->Set(from, to, kXiao, 0, -1, nullptr, -1);
-    if (effect->current_slot < 0) {
-        return;
-    }
-    effect->SetDmg(static_cast<int>(static_cast<float>(shots.damage[slot]) * kStealShotDamage));
-    if (NowWeaponHave != nullptr) {
-        // Her weapon's abilities ride with it, as on a pellet (Steal among them).
-        effect->SetWepStatus(NowWeaponHave->flags);
-        effect->SetVsMonster(NowWeaponHave->vs_monster);
-    }
-    // The stolen shot flies in the pellet's place.
-    shots.used[slot] = 0;
+    // The stolen shot flies in the pellet's place, with her weapon's abilities (Steal among them).
+    FireInPelletsPlace(*ShotEffectAt(index), shots, slot, static_cast<int>(static_cast<float>(shots.damage[slot]) * kStealShotDamage));
 }
 
 void StealShotNotice(bool naming, int item) {

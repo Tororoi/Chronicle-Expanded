@@ -29,12 +29,6 @@ enum class Charge {
     kChain, // locked on: pellets call bolts
 };
 
-struct Flight {
-    const CSHOT *shots = nullptr;
-    int          pellet = -1;
-    bool         charged = false;
-};
-
 struct State {
     Charge      charge = Charge::kIdle;
     int         frames = 0;               // in the phase
@@ -43,10 +37,10 @@ struct State {
     bool        dimmed = false;
     bool        struck = false; // a bolt came down in the window
     float       sling = 0.0f;   // the slingshot's white, 0..1
-    Flight      flights[kPelletSlots];
 };
 
-State state;
+State             state;
+PelletSlots<bool> bolts; // the pellets out that call a bolt where they come down, and whether each was charged
 
 // The live monster nearest point, within reach, or -1.
 int MonsterAt(const float *point, float reach) {
@@ -79,14 +73,11 @@ void Spend() {
     if (state.charge != Charge::kIdle || state.dimmed) {
         SceneDimEnd();
     }
-    Flight flights[kPelletSlots];
-    std::copy(std::begin(state.flights), std::end(state.flights), std::begin(flights));
-    state = {};
-    std::copy(std::begin(flights), std::end(flights), std::begin(state.flights)); // the pellets out still owe their bolts
+    state = {}; // the pellets out still owe their bolts
 }
 
 bool ChargedOut() {
-    return std::any_of(std::begin(state.flights), std::end(state.flights), [](const Flight &f) { return f.shots != nullptr && f.charged; });
+    return bolts.Any([](bool charged) { return charged; });
 }
 
 } // namespace
@@ -100,6 +91,7 @@ void ZeusShotStep() {
     if (!ZeusShotActive()) {
         if (state.charge != Charge::kIdle || state.dimmed) {
             state = {};
+            bolts.Clear();
             SceneDimEnd();
         }
         return;
@@ -167,13 +159,14 @@ void ZeusShotStep() {
 
 void ZeusShotReset() {
     state = {};
+    bolts.Clear();
 }
 
 void ZeusShotFired(CSHOT &shots, int slot) {
     if (slot < 0 || slot >= kPelletSlots) {
         return;
     }
-    state.flights[slot] = {}; // a pellet fired into this slot before is gone, ended or not
+    bolts.Drop(slot); // a pellet fired into this slot before is gone, ended or not
     if (!ZeusShotActive()) {
         return;
     }
@@ -197,20 +190,16 @@ void ZeusShotFired(CSHOT &shots, int slot) {
     }
     // A pellet that calls a bolt hurts nothing itself.
     shots.damage[slot] = 0;
-    state.flights[slot] = {&shots, slot, charged};
+    bolts.Keep(shots, slot, charged);
 }
 
 void ZeusShotEnded(const CSHOT &shots, int slot, const float *point, bool struck) {
-    if (slot < 0 || slot >= kPelletSlots) {
+    std::optional<bool> kept = bolts.Take(shots, slot);
+    if (!kept) {
         return;
     }
-    Flight &flight = state.flights[slot];
-    if (flight.shots != &shots || flight.pellet != slot) {
-        return;
-    }
-    bool charged = flight.charged;
-    flight = {};
-    int monster = struck ? MonsterAt(point, kZeusStruckReach) : -1;
+    bool charged = *kept;
+    int  monster = struck ? MonsterAt(point, kZeusStruckReach) : -1;
     // A pellet that left in the window owes its bolt even if the window lapsed while it flew; one that met nothing
     // calls none, unless it was charged.
     // The window's first bolt opens a combo, its later ones follow on.
@@ -240,7 +229,7 @@ void ZeusShotLight(const CCharacter &character, float *ambient) {
 }
 
 bool ZeusShotCallsBolt(const CSHOT &shots, int slot) {
-    return slot >= 0 && slot < kPelletSlots && state.flights[slot].shots == &shots && state.flights[slot].pellet == slot;
+    return bolts.Of(shots, slot) != nullptr;
 }
 
 } // namespace expanded

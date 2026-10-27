@@ -22,7 +22,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kXiao = 1;        // the shot's owner, as her pellets' hits are
 constexpr int kAilments = 0x1F; // a hit's flags kept: its element, not the ball's ailment
 // Xiao locked on: her stance's strafes, and her guarded steps.
 constexpr int kLockedMotions[] = {8, 9, 10, 19, 20, 21, 22, 33};
@@ -115,18 +114,11 @@ void DragonShotFired(CSHOT &shots, int slot) {
     if (index < 0) {
         return;
     }
-    CSHOT_EFFECT *effect = ShotEffectAt(index);
-    float         from[4] = {shots.pos[slot][0], shots.pos[slot][1], shots.pos[slot][2], 1.0f};
-    float         to[4] = {from[0] + shots.vector[slot][0], from[1] + shots.vector[slot][1], from[2] + shots.vector[slot][2], 1.0f};
-    effect->Set(from, to, kXiao, 0, -1, nullptr, -1);
-    if (effect->current_slot < 0) {
-        return; // no room: the pellet flies
+    int damage = static_cast<int>(std::lround(static_cast<float>(shots.damage[slot]) * kDragonShotDamage));
+    int fired = FireInPelletsPlace(*ShotEffectAt(index), shots, slot, damage);
+    if (fired >= 0) { // with no room, the pellet flies
+        struck[ball - balls][fired] = 0;
     }
-    struck[ball - balls][effect->current_slot] = 0;
-    effect->SetDmg(static_cast<int>(std::lround(static_cast<float>(shots.damage[slot]) * kDragonShotDamage)));
-    effect->SetWepStatus(NowWeaponHave->flags);
-    effect->SetVsMonster(NowWeaponHave->vs_monster);
-    shots.used[slot] = 0;
 }
 
 void DragonShotHit(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
