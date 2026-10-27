@@ -13,7 +13,9 @@
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
 
+namespace dc::game {
 extern s32 lockOnTargetNo;
+} // namespace dc::game
 
 namespace expanded::divine_beast_title {
 

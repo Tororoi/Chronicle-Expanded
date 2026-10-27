@@ -350,7 +350,7 @@ TEST_F(Mirage, TheCopyAndItsShimmerComeAndGoInTurn) {
 TEST_F(Mirage, TheCopyHoldsTheGuardWithTheWeaponInHand) {
     Move(30.0f, 40.0f);
     Plant();
-    EXPECT_EQ(loaded_path, charaNameTbl[CHARA_UNGAGA]);
+    EXPECT_EQ(loaded_path, "dun/mainchara/c10b.chr");
     EXPECT_EQ(loaded_cfg, "base.cfg");
     CCharacter *copy = mirage::CloneCharacter();
     ASSERT_NE(copy, nullptr);
@@ -432,7 +432,7 @@ TEST_F(MirageWithTheHalberd, OtherWeaponsPlantNothing) {
 TEST_F(MirageBySuperSteve, SuperSteveCarryingItsSpherePlantsXiaosDecoy) {
     Plant();
     ASSERT_TRUE(expanded::MirageDecoyUp());
-    EXPECT_EQ(loaded_path, charaNameTbl[CHARA_XIAO]);
+    EXPECT_EQ(loaded_path, "dun/mainchara/c04b.chr");
     EXPECT_EQ(expanded::MirageDecoyLife(), expanded::kMirageFrames);
     Move(-200.0f, 0.0f);
     EXPECT_FLOAT_EQ(Finds(0)[0], 0.0f);

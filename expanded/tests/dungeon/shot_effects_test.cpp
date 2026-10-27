@@ -11,7 +11,9 @@
 #include "shot_effect_pack.hpp"
 #include "userstatus.hpp"
 
+namespace dc::game {
 extern s32 mode;
+} // namespace dc::game
 
 namespace {
 

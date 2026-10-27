@@ -60,6 +60,7 @@ Each section lists this repository's own changes first, then those that come fro
 - No memory cards: each save is a file in its own numbered folder, with no 12-save limit. [Chronicle#66](https://github.com/TheMoonPeople/Chronicle/pull/66)
 - Saves from a PCSX2 memory card export can be copied in by hand. [Chronicle#66](https://github.com/TheMoonPeople/Chronicle/pull/66)
 - The game's options are global settings, no longer stored in each save. [Chronicle#67](https://github.com/TheMoonPeople/Chronicle/pull/67)
+- Autosave: the game saves to its own slot, listed first as "Auto", on arriving in a town and as each dungeon floor starts. Loading a floor's autosave enters that dungeon on that floor. A setting on the Game page turns it off. [Chronicle#185](https://github.com/TheMoonPeople/Chronicle/pull/185), [Chronicle#186](https://github.com/TheMoonPeople/Chronicle/pull/186)
 
 ## Text and languages
 
@@ -97,6 +98,9 @@ Each section lists this repository's own changes first, then those that come fro
 - A bomb's blast throws the player away from it, not always the same way. [Chronicle#181](https://github.com/TheMoonPeople/Chronicle/pull/181)
 - The HUD's weapon icon keeps its colours after closing a menu on the PAL disc in English. [Chronicle#91](https://github.com/TheMoonPeople/Chronicle/pull/91)
 - On the PAL disc, Carrot, Potato Cake, Minon, Battan and Petite Fish go on the hook as fishing bait; choosing one used it up and left the hook empty. [Chronicle#212](https://github.com/TheMoonPeople/Chronicle/pull/212)
+- Opening Norune's shop, or picking up an atla after the weapon menu, no longer crashes the game. [Chronicle#227](https://github.com/TheMoonPeople/Chronicle/pull/227)
+- Opening the town menu right after the event that gives the World Map no longer crashes in languages other than English. [Chronicle#228](https://github.com/TheMoonPeople/Chronicle/pull/228)
+- Entering Matataki's area, and other towns with few images, no longer crashes. [Chronicle#229](https://github.com/TheMoonPeople/Chronicle/pull/229)
 
 ## Game mechanics
 
@@ -372,6 +376,7 @@ Blessing Gun → Skunk ★
 ### From Chronicle
 
 - Fish sizes taper smoothly into each species' maximum instead of piling up at it. [Chronicle#141](https://github.com/TheMoonPeople/Chronicle/pull/141)
+- A cast that holds the float no longer sends the float, the camera and the player off the map and crashes the town. [Chronicle#230](https://github.com/TheMoonPeople/Chronicle/pull/230)
 
 ## Developer tools
 
@@ -384,3 +389,5 @@ Blessing Gun → Skunk ★
 - Developer/boot menu, debug mode from `config.json` or a pad chord, and debug shortcuts under Select+L2. [Chronicle#119](https://github.com/TheMoonPeople/Chronicle/pull/119), [dda4b7f0](https://github.com/TheMoonPeople/Chronicle/commit/dda4b7f0)
 - Items and weapons given at start with `--give`. [Chronicle#117](https://github.com/TheMoonPeople/Chronicle/pull/117)
 - Text wipe (F9) compares the original picture text with the new runtime text. [Chronicle#174](https://github.com/TheMoonPeople/Chronicle/pull/174)
+- Gameplay documents and datapacks: the item tables are extracted as documents that datapacks beside the data folder can override. [Chronicle#223](https://github.com/TheMoonPeople/Chronicle/pull/223)
+- `dcdata publish-sound` writes the game's sound banks as WAV and JSON in ChronicleTwo's formats. [Chronicle#226](https://github.com/TheMoonPeople/Chronicle/pull/226)

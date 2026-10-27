@@ -17,7 +17,7 @@
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/ownership.hpp"
 #include "itemdata.hpp"
-#include "localize.hpp"
+#include "localize/localize.hpp"
 #include "menu_dungeon.hpp"
 #include "menu_inventory.hpp"
 #include "menu_misc.hpp"
@@ -106,7 +106,6 @@ void WhpDown(WEAPON_HAVE &weapon, int m) {
         weapon.durability = 1;
     }
 }
-
 
 // A weapon a circle can fill: one in the slot, not a default weapon (retail fills those with nothing).
 bool Fillable(const WEAPON_HAVE &weapon) {

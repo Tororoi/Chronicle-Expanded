@@ -2,8 +2,10 @@
 
 #include "expanded/enemies/scaling.hpp"
 
+namespace dc::game {
 class CMonstorUnit;
 class CRandomItem;
+} // namespace dc::game
 
 namespace expanded {
 

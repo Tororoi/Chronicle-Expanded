@@ -6,11 +6,6 @@
 #include "collisiondata.hpp"
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/dungeon/dungeon_hooks.hpp"
-#include "expanded/dungeon/shot_effects.hpp"
-#include "expanded/weapons/super_steve.hpp"
-#endif
 #include "hit_machingun_effect.hpp"
 #include "itembombeffect.hpp"
 #include "itemdata.hpp"
@@ -35,11 +30,7 @@ int GetWeaponElementAttr(int element);
 void CSHOT::draw() {
     for (int shot = 0; shot < 12; shot++) {
         if (used[shot] != 0) {
-#ifdef CHRONICLE_EXPANDED
-            int texture_cell = expanded::PelletWeapon() - 299;
-#else
             int texture_cell = NowWeaponHave->item_no - 299;
-#endif
             texture_cell--;
 
             if (texture_cell <= 0) {
@@ -68,10 +59,6 @@ void CSHOT::step() {
             continue;
         }
 
-#ifdef CHRONICLE_EXPANDED
-        expanded::PelletStepping(*this, shot);
-#endif
-
         if (halted[shot] == 0) {
             SHOT_COLLISION_RESULT result = checkCollision(hit_position, pos[shot], vector[shot], 2, 2.0f);
 
@@ -80,23 +67,13 @@ void CSHOT::step() {
                 pos[shot][1] += vector[shot][1];
                 pos[shot][2] += vector[shot][2];
             } else {
-#ifdef CHRONICLE_EXPANDED
-                if (expanded::PelletHurts(*this, shot)) {
-#endif
-                    NowColData->Set(pos[shot], damage[shot], 1, 3.0f, 0.0f, 2, 2, 0, 0);
-                    NowColData->SetUserID(1, 0);
-                    s8              weapon_element = NowWeaponHave->best_elem;
-                    CCollisionData *attr_col = NowColData;
-                    attr_col->hit[attr_col->now_hit].flags = GetWeaponElementAttr(weapon_element);
-                    NowColData->hit[NowColData->now_hit].weapon_flags = NowWeaponHave->flags;
-                    NowColData->hit[NowColData->now_hit].vs_monster = NowWeaponHave->vs_monster;
-#ifdef CHRONICLE_EXPANDED
-                    expanded::PelletHitSet(*this, shot, NowColData->hit[NowColData->now_hit]);
-                }
-#endif
-#ifdef CHRONICLE_EXPANDED
-                expanded::PelletEnded(*this, shot, hit_position, result == SHOT_COLLISION_MONSTER);
-#endif
+                NowColData->Set(pos[shot], damage[shot], 1, 3.0f, 0.0f, 2, 2, 0, 0);
+                NowColData->SetUserID(1, 0);
+                s8              weapon_element = NowWeaponHave->best_elem;
+                CCollisionData *attr_col = NowColData;
+                attr_col->hit[attr_col->now_hit].flags = GetWeaponElementAttr(weapon_element);
+                NowColData->hit[NowColData->now_hit].weapon_flags = NowWeaponHave->flags;
+                NowColData->hit[NowColData->now_hit].vs_monster = NowWeaponHave->vs_monster;
                 used[shot] = 0;
             }
         }
@@ -104,9 +81,6 @@ void CSHOT::step() {
         life[shot]--;
 
         if (life[shot] <= 0) {
-#ifdef CHRONICLE_EXPANDED
-            expanded::PelletEnded(*this, shot, pos[shot], false);
-#endif
             used[shot] = 0;
         }
     }
@@ -192,11 +166,7 @@ void CSHOT_EFFECT::Step() {
         SHOT_COLLISION_RESULT result = SHOT_COLLISION_NONE;
 
         if (phase[slot] < 2) {
-#ifdef CHRONICLE_EXPANDED
-            result = expanded::ShotEffectCollision(*this, slot, hit_position, position);
-#else
             result = checkCollision(hit_position, position, velocity[slot], effect_data->target, effect_data->radius[phase[slot]]);
-#endif
         }
 
         if (life_time[slot] > 0) {
@@ -234,9 +204,6 @@ void CSHOT_EFFECT::Step() {
                         }
                     }
 
-#ifdef CHRONICLE_EXPANDED
-                    expanded::ShotEffectHitSet(*this, slot, NowColData->hit[hit]);
-#endif
                     wait_state[slot] = wait[slot];
                 }
             } else {
@@ -263,11 +230,7 @@ void CSHOT_EFFECT::Step() {
 
                         switch (effect_data->end_effect) {
                             case SHOT_END_EFFECT_BOMB:
-#ifdef CHRONICLE_EXPANDED
-                                expanded::ShotEffectBomb(hit_position, effect_data, user_id_2[slot]);
-#else
                                 SetBombEffect(hit_position, effect_data->target, effect_data->bomb_damage, effect_data->bomb_scale);
-#endif
                                 break;
                         }
 
@@ -296,11 +259,7 @@ void CSHOT_EFFECT::Step() {
 
                 switch (effect_data->end_effect) {
                     case SHOT_END_EFFECT_BOMB:
-#ifdef CHRONICLE_EXPANDED
-                        expanded::ShotEffectBomb(hit_position, effect_data, user_id_2[slot]);
-#else
                         SetBombEffect(hit_position, effect_data->target, effect_data->bomb_damage, effect_data->bomb_scale);
-#endif
                         break;
                 }
 
@@ -325,11 +284,7 @@ void CSHOT_EFFECT::Step() {
 
             switch (effect_data->end_effect) {
                 case SHOT_END_EFFECT_BOMB:
-#ifdef CHRONICLE_EXPANDED
-                    expanded::ShotEffectBomb(hit_position, effect_data, user_id_2[slot]);
-#else
                     SetBombEffect(hit_position, effect_data->target, effect_data->bomb_damage, effect_data->bomb_scale);
-#endif
                     break;
             }
         }
@@ -651,21 +606,13 @@ int CSHOT_EFFECT_PACK::Entry(BT_SHOT_EFFECT *description, unsigned int *resource
 
 void CSHOT_EFFECT_PACK::SetUserID2(s32 id) {
     if (current_effect != -1) {
-#ifdef CHRONICLE_EXPANDED
-        expanded::ShotEffectAt(current_effect)->SetUserID2(id);
-#else
         effect[current_effect].SetUserID2(id);
-#endif
     }
 }
 
 void CSHOT_EFFECT_PACK::SetDmg(s32 damage) {
     if (current_effect != -1) {
-#ifdef CHRONICLE_EXPANDED
-        expanded::ShotEffectAt(current_effect)->SetDmg(damage);
-#else
         effect[current_effect].SetDmg(damage);
-#endif
     }
 }
 

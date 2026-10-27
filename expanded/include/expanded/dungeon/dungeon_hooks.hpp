@@ -1,7 +1,12 @@
 #pragma once
 
+#include <optional>
+#include <string>
+
 #include "shot_utils.hpp"
 
+namespace dc::game {
+enum class MonsterDamageResult : int;
 class CCharacter;
 class CMonstorUnit;
 class CSHOT;
@@ -9,6 +14,7 @@ class CSHOT_EFFECT;
 struct COLLISION_HIT;
 struct MONSTOR;
 struct WEAPON_HAVE;
+} // namespace dc::game
 
 namespace expanded {
 
@@ -66,7 +72,7 @@ void DungeonMonstersStepped(int pause);
 void PlayerShotsStepped();
 
 // A kind's model pack as SetupBaseModel loads it: a boss's built pack or an Expanded kind's own, else as it is.
-void MonsterPackFile(char *filename, int model_no);
+void MonsterPackFile(std::string &filename, int model_no);
 
 // Around a monster's draw (DrawMonstor): its parts lit and moved before, put back after.
 void MonsterDrawing(CMonstorUnit &unit, int monster);
@@ -140,7 +146,7 @@ void MonsterSwingSet(CMonstorUnit &unit, int monster, int hit);
 
 // Another monster's hit on the current monster's sphere where no hit of the player's landed (CheckDmg): CheckDmg's
 // result, or -1 for none.
-int MonsterFriendlyHit(CMonstorUnit &unit, int sphere);
+std::optional<MonsterDamageResult> MonsterFriendlyHit(CMonstorUnit &unit, int sphere);
 
 // Whether a hit of a sword-wielder's on a monster wears the weapon (CheckDmg, landed or guarded): not the hits of the
 // effects that wear nothing.

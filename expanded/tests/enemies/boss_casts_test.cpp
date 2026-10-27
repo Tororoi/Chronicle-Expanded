@@ -56,6 +56,9 @@ protected:
 
 } // namespace
 
+// The ints every monster script shares, as the game keeps them.
+int shared_ints_[10];
+
 TEST_F(BossCasts, ComesOnlyWithRubyInThePartyAndBringsHerBarrier) {
     UserStatus->party_size = CHARA_RUBY;
     const expanded::Roster &without = LoadFloor(true, {Monster::ICE_QUEEN, Monster::CAVE_BAT});
@@ -91,10 +94,10 @@ TEST_F(BossCasts, HerScriptAndHerBarriersTalkThroughTheirOwnMailbox) {
     Spawn(7, 2);
     EXPECT_EQ(expanded::BossCastMonster(Monster::ICE_QUEEN), 4);
     EXPECT_EQ(expanded::BossCastMonster(Monster::ICE_BARRIER), 7);
-    int *mailbox = expanded::BossCastGlobals(4, GL_INT);
-    EXPECT_NE(mailbox, GL_INT);
-    EXPECT_EQ(expanded::BossCastGlobals(7, GL_INT), mailbox);
-    EXPECT_EQ(expanded::BossCastGlobals(0, GL_INT), GL_INT);
+    int *mailbox = expanded::BossCastGlobals(4, shared_ints_);
+    EXPECT_NE(mailbox, shared_ints_);
+    EXPECT_EQ(expanded::BossCastGlobals(7, shared_ints_), mailbox);
+    EXPECT_EQ(expanded::BossCastGlobals(0, shared_ints_), shared_ints_);
 
     // In her cast's scripts monster 0 is her and 1 her barrier; anyone else's are the floor's.
     EXPECT_EQ(expanded::BossCastMonsterRef(7, 0), 4);
@@ -113,7 +116,7 @@ TEST_F(BossCasts, OnHerOwnFloorHerScriptUsesTheGlobals) {
     unit_->model[0] = MonstorTable[No(Monster::ICE_QUEEN)];
     expanded::EnemyModelSetUp(*unit_, 0, No(Monster::ICE_QUEEN));
     Spawn(0, 0);
-    EXPECT_EQ(expanded::BossCastGlobals(0, GL_INT), GL_INT);
+    EXPECT_EQ(expanded::BossCastGlobals(0, shared_ints_), shared_ints_);
     EXPECT_TRUE(expanded::BossCastCountsKill(0));
 }
 
@@ -164,7 +167,7 @@ TEST_F(BossCasts, TheCoffinAndTheKingFindEachOtherAndTheCoffinHidesUnderHim) {
     EXPECT_EQ(expanded::BossCastMonsterRef(5, 1), 9);
     EXPECT_EQ(expanded::BossCastMonsterRef(9, 0), 5);
     EXPECT_EQ(expanded::BossCastMonsterRef(0, 1), 1);
-    EXPECT_EQ(expanded::BossCastGlobals(5, GL_INT), expanded::BossCastGlobals(9, GL_INT));
+    EXPECT_EQ(expanded::BossCastGlobals(5, shared_ints_), expanded::BossCastGlobals(9, shared_ints_));
     EXPECT_FALSE(expanded::BossCastCountsKill(9));
     EXPECT_TRUE(expanded::BossCastCountsKill(5));
 

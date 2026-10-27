@@ -1,10 +1,12 @@
 #pragma once
 
+namespace dc::game {
 class CCharacter;
 class CSHOT;
 class CSHOT_EFFECT;
 struct BT_SHOT_EFFECT;
 struct COLLISION_HIT;
+} // namespace dc::game
 
 namespace expanded {
 

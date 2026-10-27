@@ -14,8 +14,8 @@
 
 namespace {
 
-const options::Page *ExpandedPage() {
-    for (const options::Page &page : options::Pages()) {
+const dc::options::Page *ExpandedPage() {
+    for (const dc::options::Page &page : dc::options::Pages()) {
         if (std::string_view(page.name) == "Expanded") {
             return &page;
         }
@@ -23,8 +23,8 @@ const options::Page *ExpandedPage() {
     return nullptr;
 }
 
-const options::Row *RowOf(const options::Page &page, std::string_view key) {
-    for (const options::Row &row : page.rows) {
+const dc::options::Row *RowOf(const dc::options::Page &page, std::string_view key) {
+    for (const dc::options::Row &row : page.rows) {
         if (std::string_view(row.key) == key) {
             return &row;
         }
@@ -84,19 +84,19 @@ TEST(ExpandedOptions, ToggleRoundTripsThroughConfig) {
 
 TEST(ExpandedOptions, PageShowsAToggleAsARow) {
     ASSERT_TRUE(AddTestToggles());
-    const options::Page *page = ExpandedPage();
+    const dc::options::Page *page = ExpandedPage();
     ASSERT_NE(page, nullptr);
-    EXPECT_EQ(&options::Pages().back(), page);
+    EXPECT_EQ(&dc::options::Pages().back(), page);
     ASSERT_EQ(page->rows.size(), expanded::Toggles().size());
     ASSERT_NE(RowOf(*page, "expanded.test_toggle"), nullptr);
-    const options::Row &row = *RowOf(*page, "expanded.test_toggle");
+    const dc::options::Row &row = *RowOf(*page, "expanded.test_toggle");
 
     Config config;
-    EXPECT_EQ(options::RowValue(row, config), "Off");
-    EXPECT_TRUE(options::StepRow(row, config, -1, false));
+    EXPECT_EQ(dc::options::RowValue(row, config), "Off");
+    EXPECT_TRUE(dc::options::StepRow(row, config, -1, false));
     EXPECT_TRUE(expanded::OptionOn(config.expanded_options, "test_toggle"));
-    EXPECT_EQ(options::RowValue(row, config), "On");
-    options::ResetPage(*page, config);
+    EXPECT_EQ(dc::options::RowValue(row, config), "On");
+    dc::options::ResetPage(*page, config);
     EXPECT_EQ(config, Config{});
 }
 
@@ -125,16 +125,16 @@ TEST(ExpandedOptions, AChoiceRoundTripsThroughConfigByName) {
 
 TEST(ExpandedOptions, PageShowsAChoiceAsARowOfItsNames) {
     ASSERT_TRUE(AddTestToggles());
-    const options::Page *page = ExpandedPage();
+    const dc::options::Page *page = ExpandedPage();
     ASSERT_NE(page, nullptr);
     ASSERT_NE(RowOf(*page, "expanded.test_choice"), nullptr);
-    const options::Row &row = *RowOf(*page, "expanded.test_choice");
+    const dc::options::Row &row = *RowOf(*page, "expanded.test_choice");
 
     Config config;
-    EXPECT_EQ(options::RowValue(row, config), "Off");
-    EXPECT_TRUE(options::StepRow(row, config, 1, false));
-    EXPECT_EQ(options::RowValue(row, config), "Some");
-    EXPECT_TRUE(options::StepRow(row, config, 1, false));
+    EXPECT_EQ(dc::options::RowValue(row, config), "Off");
+    EXPECT_TRUE(dc::options::StepRow(row, config, 1, false));
+    EXPECT_EQ(dc::options::RowValue(row, config), "Some");
+    EXPECT_TRUE(dc::options::StepRow(row, config, 1, false));
     EXPECT_EQ(expanded::OptionChoice(config.expanded_options, "test_choice"), 2);
-    EXPECT_EQ(options::RowValue(row, config), "All");
+    EXPECT_EQ(dc::options::RowValue(row, config), "All");
 }

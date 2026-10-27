@@ -17,8 +17,6 @@
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
-extern CSHOT_EFFECT CharaMainEffect;
-
 namespace {
 
 using expanded::Monster;
@@ -156,26 +154,26 @@ TEST_F(VenomFromAnotherSphere, DoesNothing) {
 
 TEST_F(Venom, TheChargeShotFliesAtTheScorpionsTier) {
     BT_SHOT_EFFECT  own = {};
-    BT_SHOT_EFFECT *saved_data = CharaMainEffect.effect_data;
-    s32             saved_count = CharaMainEffect.slot_count;
+    BT_SHOT_EFFECT *saved_data = CharaMainShotEffect().effect_data;
+    s32             saved_count = CharaMainShotEffect().slot_count;
     CSHOT_EFFECT   *saved_live = NowMainEffect;
     own.speed[0] = 0.2f;
     own.radius[0] = 8.0f;
-    CharaMainEffect.effect_data = &own;
-    CharaMainEffect.slot_count = 6;
-    NowMainEffect = &CharaMainEffect;
+    CharaMainShotEffect().effect_data = &own;
+    CharaMainShotEffect().slot_count = 6;
+    NowMainEffect = &CharaMainShotEffect();
 
     expanded::TornadoChargeStep();
     EXPECT_EQ(expanded::TornadoChargeTier(), &expanded::kTornadoScorpion);
-    EXPECT_FLOAT_EQ(CharaMainEffect.effect_data->speed[0], 0.2f * 1.7f);
-    EXPECT_FLOAT_EQ(CharaMainEffect.effect_data->radius[0], 8.0f * 1.3f);
-    EXPECT_FLOAT_EQ(CharaMainEffect.chara[0].scale[0], 1.3f);
+    EXPECT_FLOAT_EQ(CharaMainShotEffect().effect_data->speed[0], 0.2f * 1.7f);
+    EXPECT_FLOAT_EQ(CharaMainShotEffect().effect_data->radius[0], 8.0f * 1.3f);
+    EXPECT_FLOAT_EQ(CharaMainShotEffect().chara[0].scale[0], 1.3f);
 
     status().cur_chara = CHARA_TOAN;
     expanded::TornadoChargeStep();
-    EXPECT_EQ(CharaMainEffect.effect_data, &own);
-    CharaMainEffect.effect_data = saved_data;
-    CharaMainEffect.slot_count = saved_count;
+    EXPECT_EQ(CharaMainShotEffect().effect_data, &own);
+    CharaMainShotEffect().effect_data = saved_data;
+    CharaMainShotEffect().slot_count = saved_count;
     NowMainEffect = saved_live;
 }
 

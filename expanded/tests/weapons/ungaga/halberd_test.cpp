@@ -13,8 +13,6 @@
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
-extern CSHOT_EFFECT CharaMainEffect;
-
 namespace {
 
 using expanded::test::TestFloor;
@@ -39,36 +37,36 @@ protected:
 
     void SetUp() override {
         floor_.status().cur_chara = static_cast<s8>(chara_);
-        CharaMainEffect.effect_data = &own_;
-        CharaMainEffect.slot_count = 6;
-        NowMainEffect = &CharaMainEffect;
+        CharaMainShotEffect().effect_data = &own_;
+        CharaMainShotEffect().slot_count = 6;
+        NowMainEffect = &CharaMainShotEffect();
         Size(1.0f);
     }
 
     void TearDown() override {
         floor_.status().cur_chara = CHARA_TOAN;
         expanded::TornadoChargeStep();
-        CharaMainEffect.effect_data = saved_data_;
-        CharaMainEffect.slot_count = saved_count_;
+        CharaMainShotEffect().effect_data = saved_data_;
+        CharaMainShotEffect().slot_count = saved_count_;
         NowMainEffect = saved_live_;
         Size(1.0f);
     }
 
     // The game entering the effect again (a floor load, a menu): its own description, its slots their own size.
     void Enter() {
-        CharaMainEffect.effect_data = &own_;
+        CharaMainShotEffect().effect_data = &own_;
         Size(1.0f);
     }
 
     static void Size(float size) {
-        for (CCharacter &slot : CharaMainEffect.chara) {
+        for (CCharacter &slot : CharaMainShotEffect().chara) {
             slot.SetScale(size, size, size);
         }
     }
 
     // Whether the effect reads its description at tier (the slots it uses drawn at its size).
     ::testing::AssertionResult AtTier(const expanded::TornadoTier &tier) {
-        const BT_SHOT_EFFECT *data = CharaMainEffect.effect_data;
+        const BT_SHOT_EFFECT *data = CharaMainShotEffect().effect_data;
         if (data == &own_) {
             return ::testing::AssertionFailure() << "it reads its own description";
         }
@@ -79,22 +77,22 @@ protected:
             }
         }
         for (int slot = 0; slot < 6; slot++) {
-            if (CharaMainEffect.chara[slot].scale[0] != tier.size) {
-                return ::testing::AssertionFailure() << "slot " << slot << " at " << CharaMainEffect.chara[slot].scale[0];
+            if (CharaMainShotEffect().chara[slot].scale[0] != tier.size) {
+                return ::testing::AssertionFailure() << "slot " << slot << " at " << CharaMainShotEffect().chara[slot].scale[0];
             }
         }
         return ::testing::AssertionSuccess();
     }
 
     // Whether it reads its own description, its slots their own size.
-    bool Own() const { return CharaMainEffect.effect_data == &own_ && CharaMainEffect.chara[0].scale[0] == 1.0f; }
+    bool Own() const { return CharaMainShotEffect().effect_data == &own_ && CharaMainShotEffect().chara[0].scale[0] == 1.0f; }
 
     BT_SHOT_EFFECT  own_ = ChargeShot();
     int             chara_;
     TestFloor       floor_;
     Wielding        wielding_;
-    BT_SHOT_EFFECT *saved_data_ = CharaMainEffect.effect_data;
-    s32             saved_count_ = CharaMainEffect.slot_count;
+    BT_SHOT_EFFECT *saved_data_ = CharaMainShotEffect().effect_data;
+    s32             saved_count_ = CharaMainShotEffect().slot_count;
     CSHOT_EFFECT   *saved_live_ = NowMainEffect;
 };
 

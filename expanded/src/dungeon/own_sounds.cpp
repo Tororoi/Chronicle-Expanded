@@ -13,12 +13,12 @@
 
 #include "audio/hdbank.hpp"
 #include "audio/mixer.hpp"
+#include "data/data_read.hpp"
 #include "dataread.hpp"
-#include "dataread_port.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/dungeon/bank_slices.hpp"
-#include "sound_port.hpp"
+#include "sound.hpp"
 
 namespace expanded {
 

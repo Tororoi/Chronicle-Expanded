@@ -25,13 +25,6 @@
 #include "texture.hpp"
 #include "weapon_buildup.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/dungeon/shot_effects.hpp"
-#include "expanded/weapons/toan/macho_sword.hpp"
-#include "expanded/weapons/toan/seven_branch_sword.hpp"
-#include "expanded/weapons/xiao/steel_slingshot.hpp"
-#endif
-
 CDataAlloc2<1> MenuEffectCashBuffer(-1);
 
 CWeaponLevelUp MenuWepLevelUp;
@@ -140,11 +133,7 @@ void WeaponLevelUpValueCalc(WEAPON_HAVE *src, WEAPON_HAVE *dst, int levels, int 
             dst->attack = weapon_data->attack_max;
         }
 
-#ifdef CHRONICLE_EXPANDED
-        dst->endurance += total.status[1] + expanded::EnduranceUpEndurance(*src, 1);
-#else
         dst->endurance += total.status[1] + 1;
-#endif
 
         if (dst->endurance >= 99) {
             dst->endurance = 99;
@@ -182,11 +171,7 @@ void WeaponLevelUpValueCalc(WEAPON_HAVE *src, WEAPON_HAVE *dst, int levels, int 
             }
         }
 
-#ifdef CHRONICLE_EXPANDED
-        dst->durability = src->durability + expanded::EnduranceUpDurability(*src, 1 + rand() % 3);
-#else
         dst->durability = src->durability + 1 + rand() % 3;
-#endif
 
         if (dst->durability > 99) {
             dst->durability = 99;
@@ -433,11 +418,7 @@ void CWeaponLevelUp::SetLevelUpWeaponData() {
         weapon->attack = weapon_data->attack_max;
     }
 
-#ifdef CHRONICLE_EXPANDED
-    weapon->endurance = weapon->endurance + expanded::EnduranceUpEndurance(*weapon, 1);
-#else
     weapon->endurance = weapon->endurance + 1;
-#endif
 
     if (weapon->endurance > 99) {
         weapon->endurance = 99;
@@ -455,21 +436,13 @@ void CWeaponLevelUp::SetLevelUpWeaponData() {
         weapon->magic = weapon_data->magic_max;
     }
 
-#ifdef CHRONICLE_EXPANDED
-    weapon->durability = weapon->durability + expanded::EnduranceUpDurability(*weapon, 1 + rand() % 3);
-#else
     weapon->durability = weapon->durability + 1 + rand() % 3;
-#endif
 
     if (weapon->durability > 99) {
         weapon->durability = 99;
     }
 
-#ifdef CHRONICLE_EXPANDED
-    weapon->experience = expanded::OvertrainingCarry(*weapon, GetWeaponMaxExp(weapon));
-#else
     weapon->experience = 0;
-#endif
 }
 
 void CWeaponLevelUp::SetStatusBreak(WEAPON_HAVE *have, CCharacter *character, CWeaponLevelUp *load_buffer, int tex_block) {
@@ -506,17 +479,11 @@ void CWeaponLevelUp::SetStatusBreak(WEAPON_HAVE *have, CCharacter *character, CW
     base_stats[2] = weapon->speed;
     base_stats[3] = weapon->magic;
 
-#ifdef CHRONICLE_EXPANDED
-    const float share = expanded::StatusBreakShare(*weapon);
-#else
-    const float share = 0.6f;
-#endif
-
     for (i = 0; i < 4; i++) {
-        status_stats[i] = share * (float) base_stats[i];
+        status_stats[i] = 0.6f * (float) base_stats[i];
     }
 
-    scale = share;
+    scale = 0.6f;
 
     for (i = 0; i < 5; i++) {
         status_elements[i] = weapon->elem[i] * scale;
@@ -946,9 +913,6 @@ void CWeaponLevelUp::Step() {
                     weapon->flags = weapon->flags | option;
                 }
 
-#ifdef CHRONICLE_EXPANDED
-                expanded::ShotEffectsWeaponsChanged();
-#endif
                 MenuExTextureReadFlag = MENU_EX_TEX_UNREAD;
                 buildup_complete = 1;
                 effect.motion_no = effect_motion;

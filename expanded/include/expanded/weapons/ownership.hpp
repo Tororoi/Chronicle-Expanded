@@ -1,7 +1,9 @@
 #pragma once
 
+namespace dc::game {
 class CUserStatus;
 class CStockItem;
+} // namespace dc::game
 
 namespace expanded {
 

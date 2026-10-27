@@ -3,9 +3,11 @@
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 
+namespace dc::game {
 class CCharacter;
 class CMonstorUnit;
 class CSHOT;
+} // namespace dc::game
 
 namespace expanded {
 

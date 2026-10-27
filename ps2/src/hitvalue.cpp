@@ -21,10 +21,6 @@
 #include "texture.hpp"
 #include "userstatus.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/weapons/toan/atlamillia_sword.hpp"
-#endif
-
 /**
  * Each character's default weapon.
  */
@@ -114,9 +110,6 @@ int BattleSubWeaponDmg(float amount, int kind) {
                     DngMessMan.message = 0xA0;
                     DngMessMan.timer = 0x1E0;
                     DngMessMan.steev_window = false;
-#ifdef CHRONICLE_EXPANDED
-                    expanded::AtlamilliaWeaponBroken(*weapon);
-#endif
                     weapon->item_no = -1;
                     return 1;
                 }
@@ -136,9 +129,6 @@ int BattleSubWeaponDmg(float amount, int kind) {
                         replacement->best_elem = 0;
                     }
 
-#ifdef CHRONICLE_EXPANDED
-                    expanded::AtlamilliaWeaponBroken(*weapon);
-#endif
                     weapon->item_no = -1;
                     return 2;
                 }

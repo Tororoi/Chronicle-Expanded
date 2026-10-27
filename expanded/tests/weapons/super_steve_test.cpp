@@ -23,7 +23,9 @@ WEAPON_HAVE SuperSteve(int sphere_weapon) {
 // Points NowWeaponHave at a weapon for one case.
 struct Wielding {
     WEAPON_HAVE *saved = NowWeaponHave;
+
     explicit Wielding(WEAPON_HAVE &weapon) { NowWeaponHave = &weapon; }
+
     ~Wielding() { NowWeaponHave = saved; }
 };
 
@@ -113,4 +115,3 @@ TEST(SuperSteve, AnEquippedWeaponIsTheMembersSlot) {
     status.equipped_weapon_slot[CHARA_XIAO] = 11;
     EXPECT_EQ(EquippedWeapon(status, CHARA_XIAO), nullptr);
 }
-

@@ -12,7 +12,9 @@
 #include "monstorunit.hpp"
 #include "snd.hpp"
 
+namespace dc::game {
 extern CHitPointMark MyHitPointMark[16];
+} // namespace dc::game
 
 namespace expanded::angel_gear {
 

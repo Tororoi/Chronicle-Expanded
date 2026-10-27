@@ -1,5 +1,4 @@
 #include "dungeon.h"
-#include "expanded/enemies/sounds.hpp"
 
 #include <algorithm>
 #include <array>
@@ -17,6 +16,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/normalize.hpp"
 #include "expanded/enemies/roster.hpp"
+#include "expanded/enemies/sounds.hpp"
 #include "expanded/enemies/species.hpp"
 #include "monstorunit.hpp"
 #include "snd.hpp"

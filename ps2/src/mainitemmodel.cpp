@@ -21,10 +21,6 @@
 #include "snd.hpp"
 #include "texture.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/weapons/toan/crysknife.hpp"
-#endif
-
 int CMainItemModel::GetFreeCashNo() {
     for (int i = 0; i < 6; i++) {
         if (cash[i] == NULL) {
@@ -254,11 +250,7 @@ void CMainItemModel::Step() {
                         SndSePlay(SE_EXPLOSION, -1, 0);
                         CSHOT_EFFECT *effect = &MasekiEffect[item_no - ITEM_FIRE_GEM];
                         effect->Set(position, up, -1, -1, 0, NULL, -1);
-#ifdef CHRONICLE_EXPANDED
-                        effect->SetDmg(expanded::CrystalAffinityDamage((int) (30.0f * (float) (selectMapNo + 1))));
-#else
                         effect->SetDmg((int) (30.0f * (float) (selectMapNo + 1)));
-#endif
                         effect->SetLifeTime(10);
                         effect->SetWait(5);
                         DeleteModel(i);

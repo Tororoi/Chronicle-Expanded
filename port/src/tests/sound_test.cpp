@@ -1,7 +1,11 @@
 #include <gtest/gtest.h>
 
 #include "audio/mixer.hpp"
-#include "sound_port.hpp"
+#include "sound.hpp"
+
+namespace dc::test {
+
+using namespace dc::game;
 
 TEST(PortVolume, ADuckPlaysQuieterWhileTheGameReadsItsOwnVolume) {
     constexpr int kPort = 3, kSpared = 9;
@@ -19,3 +23,5 @@ TEST(PortVolume, ADuckPlaysQuieterWhileTheGameReadsItsOwnVolume) {
     SetPortVolume(kPort, 0);
     SetPortVolume(kSpared, 0);
 }
+
+} // namespace dc::test

@@ -231,7 +231,7 @@ void PlayerShotsStepped() {
     SpiritBeastStep();
 }
 
-void MonsterPackFile(char *filename, int model_no) {
+void MonsterPackFile(std::string &filename, int model_no) {
     BossPackFile(filename, model_no);
     SpeciesPackFile(filename, model_no);
 }
@@ -405,7 +405,7 @@ void MonsterSwingSet(CMonstorUnit &unit, int, int hit) {
     }
 }
 
-int MonsterFriendlyHit(CMonstorUnit &unit, int sphere) {
+std::optional<MonsterDamageResult> MonsterFriendlyHit(CMonstorUnit &unit, int sphere) {
     return AllyUnit(unit) ? pocklekul::PockleHitOn(unit, sphere) : ConfuseMonsterHit(unit, sphere);
 }
 

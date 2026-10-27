@@ -362,11 +362,11 @@ TEST_F(OutOfPlaceBoss, KingsCurseSmokesOnHisFloorAndWhereARosterBringsHim) {
 }
 
 TEST(BossPack, JoeLoadsHisBuiltModelWhenTheDataHasIt) {
-    char filename[64] = "dun/monstor/c16a.chr";
+    std::string filename = "dun/monstor/c16a.chr";
     expanded::BossPackFile(filename, No(Monster::DRAN));
-    EXPECT_STREQ(filename, "dun/monstor/c16a.chr");
+    EXPECT_STREQ(filename.c_str(), "dun/monstor/c16a.chr");
     std::error_code error;
     bool            built = std::filesystem::is_regular_file(PathsDataRoot() / expanded::kJoeModelFile, error);
     expanded::BossPackFile(filename, No(Monster::MINOTAUR_JOE));
-    EXPECT_STREQ(filename, built ? expanded::kJoeModelFile : "dun/monstor/c16a.chr");
+    EXPECT_STREQ(filename.c_str(), built ? expanded::kJoeModelFile : "dun/monstor/c16a.chr");
 }

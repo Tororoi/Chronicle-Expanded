@@ -2,7 +2,9 @@
 
 #include "types.h"
 
+namespace dc::game {
 class CDungeonMap;
+} // namespace dc::game
 
 namespace expanded {
 

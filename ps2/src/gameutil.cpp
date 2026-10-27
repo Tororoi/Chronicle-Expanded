@@ -27,10 +27,6 @@
 #include "texture.hpp"
 #include "visualvu1.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/core/motion_keys.hpp"
-#endif
-
 /* Shared helpers: the IOP midi bridge, motion interpolation, collision and
  * ground queries, and 2D sprite setup. */
 
@@ -186,11 +182,6 @@ Mot_List *MotionProc(CFrame *frame, MOTION_STATE *state, Mot_List *list) {
     float t;
 
     key = SearchMotKey(list, state->frame);
-#ifdef CHRONICLE_EXPANDED
-    if (expanded::MotionTrackWaits(key, list->type)) {
-        return list->next;
-    }
-#endif
 
     if (state->next_frame == state->frame + 1) {
         u_int time;

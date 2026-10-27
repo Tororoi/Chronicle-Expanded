@@ -38,12 +38,6 @@
 #include "weaponeffect.hpp"
 #include "weaponlevelup.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/status/confuse.hpp"
-#include "expanded/weapons/abilities.hpp"
-#include "expanded/weapons/stats.hpp"
-#endif
-
 static int defWeapon[6] = {ITEM_WEAPON_DAGGER_BROKEN, ITEM_WEAPON_WOODENSLINGSHOT_BROKEN, ITEM_WEAPON_MALLET_BROKEN, ITEM_WEAPON_GOLD_RING_BROKEN, ITEM_WEAPON_FIGHTING_STICK_BROKEN, ITEM_WEAPON_MACHINE_GUN_BROKEN};
 
 int   MenuWeaponModelData[42];
@@ -466,11 +460,7 @@ int ItemUseFunc(CUserStatus *status, int item_no, int chara, int target, WEAPON_
 float GetNowWeaponRate(WEAPON_HAVE *weapon) {
     float rate = 1.0f;
 
-#ifdef CHRONICLE_EXPANDED
-    if (weapon != NULL && weapon->item_no == ITEM_WEAPON_LAMB_S_SWORD && weapon->durability_f <= expanded::kLambSwordThreshold * weapon->durability) {
-#else
     if (weapon != NULL && weapon->item_no == ITEM_WEAPON_LAMB_S_SWORD && weapon->durability_f <= 0.2f * weapon->durability) {
-#endif
         rate = 1.5f;
     }
 
@@ -542,11 +532,7 @@ void MenuWeaponSpSet(CCharacter *chara, WEAPON_HAVE *weapon) {
     int show_broken;
     int show_whole;
 
-#ifdef CHRONICLE_EXPANDED
-    if (weapon->durability_f <= expanded::kLambSwordThreshold * weapon->durability) {
-#else
     if (weapon->durability_f <= 0.2 * weapon->durability) {
-#endif
         show_broken = 1;
         show_whole = 2;
     } else {
@@ -1658,11 +1644,6 @@ int CheckWeaponOptionStatus(int options) {
 int IsWeaponOptionGoodOrBad(int option) {
     // Whether each of the fourteen weapon options is a benefit (1) or a drawback (0).
     s16 good_or_bad[14] = {0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1};
-#ifdef CHRONICLE_EXPANDED
-    if (option == expanded::kConfuseOptionBit) {
-        return 1;
-    }
-#endif
     return good_or_bad[option];
 }
 
@@ -1673,11 +1654,7 @@ int DefaultWeaponOptionSet(int weapon_no) {
         return 1;
     }
 
-#ifdef CHRONICLE_EXPANDED
-    return expanded::WeaponAbilities(weapon_no, data->flags);
-#else
     return data->flags;
-#endif
 }
 
 void WeaponOptionStatusDraw(WEAPON_HAVE *weapon, int x, int y, int alpha) {
@@ -1703,11 +1680,7 @@ void WeaponOptionStatusDraw(WEAPON_HAVE *weapon, int x, int y, int alpha) {
     int      count = 0;
     CRect_i_ source(0xEC, 0x50, 0x14, 0x14);
 
-#ifdef CHRONICLE_EXPANDED
-    for (int bit = 1; bit <= expanded::kConfuseOptionBit; bit++) {
-#else
     for (int bit = 1; bit <= 13; bit++) {
-#endif
         if (bit == 8) {
             source.x -= source.width;
         }

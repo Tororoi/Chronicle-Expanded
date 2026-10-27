@@ -2,10 +2,12 @@
 
 #include "dataalloc_fwd.hpp"
 
+namespace dc::game {
 class CFrame;
 class CMonstorUnit;
 class CSHOT_EFFECT;
 struct BT_SHOT_EFFECT;
+} // namespace dc::game
 
 namespace expanded {
 

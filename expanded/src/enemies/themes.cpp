@@ -1,5 +1,4 @@
 #include "dungeon.h"
-#include "expanded/enemies/themes.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -9,6 +8,7 @@
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/boss_record.hpp"
 #include "expanded/enemies/randomize.hpp"
+#include "expanded/enemies/themes.hpp"
 
 namespace expanded {
 

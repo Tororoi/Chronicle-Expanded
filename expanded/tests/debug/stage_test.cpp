@@ -14,7 +14,9 @@
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
+namespace dc::game {
 extern s32 gameTask;
+} // namespace dc::game
 
 namespace {
 
@@ -159,10 +161,10 @@ TEST(Stage, ItsSeedSeedsExpandedsRandomNumbers) {
 }
 
 TEST(Stage, TheEntranceTakesItsFloorOnce) {
-    EXPECT_EQ(expanded::StageEntranceFloor(), -1);
+    EXPECT_EQ(expanded::StageEntranceFloor(-1), -1);
     StageScope stage("floor = 3");
-    EXPECT_EQ(expanded::StageEntranceFloor(), 3);
-    EXPECT_EQ(expanded::StageEntranceFloor(), -1);
+    EXPECT_EQ(expanded::StageEntranceFloor(-1), 3);
+    EXPECT_EQ(expanded::StageEntranceFloor(-1), -1);
 }
 
 TEST(Stage, NoSaveIsLoadedWithoutADungeon) {

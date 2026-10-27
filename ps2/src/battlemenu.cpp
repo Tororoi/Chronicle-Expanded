@@ -51,10 +51,6 @@
 #include "weapon_buildup.hpp"
 #include "weaponlevelup.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/town/ally.hpp"
-#endif
-
 static int GetVisitInfo(int place, int menu_mode);
 
 #include <cstdlib>
@@ -68,16 +64,6 @@ static int GetVisitInfo(int place, int menu_mode);
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
 #include "vutext.hpp"
-
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/dungeon/dungeon_hooks.hpp"
-#include "expanded/dungeon/shot_effects.hpp"
-#include "expanded/status/confuse.hpp"
-#include "expanded/weapons/ruby/crystal_ring.hpp"
-#include "expanded/weapons/toan/buster_sword.hpp"
-#include "expanded/weapons/toan/chronicle_two.hpp"
-#include "expanded/weapons/toan/seven_branch_sword.hpp"
-#endif
 
 static void DrawStatusNumberNowAndMax(int *values, int x, int y, int color, int alpha);
 static void BattleMenuAppear();
@@ -780,11 +766,7 @@ void DrawSelCharaStatus(float x, float y, int chara, int alpha, int face_size, i
 
     DrawMenu2DSprite(texture, CRect_i_(px, py - 1, 0x100, 0x88), CRect_i_(0, 0, 0x100, 0x88), alpha);
     RECT digits = {0x40, 0x88, 0xC, 0xE};
-#ifdef CHRONICLE_EXPANDED
-    DrawMenuNumber(expanded::PlayerDefense(chara, BtlMenuStatusPt->defense[chara]), px + 0x5E, py + 0x72, texture, digits, 1, alpha);
-#else
     DrawMenuNumber((int) BtlMenuStatusPt->defense[chara], px + 0x5E, py + 0x72, texture, digits, 1, alpha);
-#endif
 
     px = (int) (x - 132.0f);
     py = (int) (10.0f + y);
@@ -1745,16 +1727,10 @@ int BattleMenuCharaKey() {
             MenuChara.change_counter++;
 
             if (ReadBGSync() == 0 && MenuChara.change_counter > 20) {
-#ifdef CHRONICLE_EXPANDED
-                if (BtlMenuMode == BATTLE_MENU_MODE_DUNGEON) {
-#endif
                 BtMenuLoadChara();
                 BreakReadBG();
                 StartReadBG();
                 CharaChangeInitToGL2(1);
-#ifdef CHRONICLE_EXPANDED
-                }
-#endif
                 MenuChara.state = MENU_CHARA_CHANGE_EXIT;
             }
 
@@ -1763,14 +1739,8 @@ int BattleMenuCharaKey() {
             MenuChara.change_counter++;
 
             if (ReadBGSync() == 0 && MenuChara.change_counter > 20) {
-#ifdef CHRONICLE_EXPANDED
-                if (BtlMenuMode == BATTLE_MENU_MODE_DUNGEON) {
-#endif
                 BtMenuLoad2(1);
                 LockOffTargte();
-#ifdef CHRONICLE_EXPANDED
-                }
-#endif
                 ExitBattleMenu(1);
                 return 0;
             }
@@ -1976,11 +1946,7 @@ int BattleMenuCharaKey() {
                         break;
                     }
                     default:
-#ifdef CHRONICLE_EXPANDED
-                        expanded::TownAllyMenuCommit(MenuChara.chara, BtlMenuStatusPt->party_size);
-#else
                         ComMenuSePlay(MENU_SOUND_REFUSE);
-#endif
                         break;
                 }
             }
@@ -2412,12 +2378,7 @@ void DrawWepVolumeDisplay(int x, int y, WEAPON_HAVE *weapon, int alpha) {
     values[2] = total.speed;
     values[3] = total.magic;
     float rate = GetNowWeaponRate(&total);
-#ifdef CHRONICLE_EXPANDED
-    int limit[4] = {expanded::ChronicleTwoLimit(*weapon, expanded::kStatAttack, data->attack_max), 99, 99,
-                    expanded::ChronicleTwoLimit(*weapon, expanded::kStatMagic, data->magic_max)};
-#else
     int   limit[4] = {data->attack_max, 99, 99, data->magic_max};
-#endif
     limit[0] = (int) ((float) limit[0] * rate);
     limit[3] = (int) ((float) limit[3] * rate);
 
@@ -3395,15 +3356,6 @@ static void WeaponMenuCheckElemValue(WEAPON_HAVE *weapon, WEAPON_HAVE *attachmen
 static int WeaponMenuCheckEnableSetElem(WEAPON_HAVE *weapon, WEAPON_HAVE *attachment, int elem) {
     int refused = 0;
 
-#ifdef CHRONICLE_EXPANDED
-    // A weapon its curse holds to an element refuses the others, with warning 0 (its text the curse's).
-    if (expanded::ElementRefused(*weapon, elem)) {
-        WepMenu.state = WEP_STATE_WARNING;
-        WepMenu.warning_no = 0;
-        return 1;
-    }
-#endif
-
     if (weapon->best_elem == elem) {
         if (EnableWeaponElemNone(weapon->item_no) != 0) {
             WepMenu.state = WEP_STATE_WARNING;
@@ -3680,10 +3632,6 @@ static void ExitWeaponMenuSelect() {
 void WeaponMenuSelect() {
     int direction = -1;
 
-#ifdef CHRONICLE_EXPANDED
-    expanded::CrystalRingMenuStep();
-#endif
-
     switch (WepMenu.state) {
         case WEP_STATE_OPEN:
             direction = 0;
@@ -3780,10 +3728,6 @@ void WeaponMenuSelect() {
                         break;
                     }
                     case WEP_STATE_BUILDUP_EFFECT:
-#ifdef CHRONICLE_EXPANDED
-                        expanded::CrystalRingBuiltUp(*weapon);
-                        break;
-#endif
                     case WEP_STATE_REPAIR_EFFECT:
                         break;
                 }
@@ -4095,11 +4039,7 @@ void WeaponMenuSelect() {
 
     if (WepMenu.state == WEP_STATE_WARNING) {
         s16 warnings[10] = {0xA1, 0xA2, 0xA3, 0x19B, 0x19C, 0x19D, 0xA8, 0xAA, 0xA9, 0xAB};
-#ifdef CHRONICLE_EXPANDED
-        help_no = WepMenu.warning_no == expanded::kSevenfoldWarning ? expanded::kSevenfoldRefusedMessage : warnings[WepMenu.warning_no];
-#else
         help_no = warnings[WepMenu.warning_no];
-#endif
     }
 
     if (WepMenu.state == WEP_STATE_SCRAP_CONFIRM) {
@@ -4608,15 +4548,6 @@ static int WeaponSelectKey() {
                         DNG_CONSUMABLE *items = BtlMenuStatusPt->consumable_items;
                         count = 0;
 
-#ifdef CHRONICLE_EXPANDED
-                        if (expanded::SevenfoldRefuses(*weapon)) {
-                            WepMenu.state = WEP_STATE_WARNING;
-                            WepMenu.warning_no = expanded::kSevenfoldWarning;
-                            ComMenuSePlay(MENU_SOUND_REFUSE);
-                            break;
-                        }
-#endif
-
                         for (i = 0; i < 40; i++) {
                             if (items[i].id >= ITEM_ATTACH_START) {
                                 count++;
@@ -4927,9 +4858,6 @@ static void WepAttachHaveCancel() {
             MenuDataSwap(slot, &WepMenu.board.held_attach);
             BtlHaveItemPt->item_no = item_no;
             slot->item_no = held;
-#ifdef CHRONICLE_EXPANDED
-            expanded::BusterBoostPlaced(BtlHaveItemPt->from_page == WEP_MENU_ATTACH_SOCKETS ? &DngWepHavePt[WepMenu.weapon_slot] : nullptr, *slot);
-#endif
         }
 
         if (BtlHaveItemPt->item_no < ITEM_ATTACH_START) {
@@ -5399,9 +5327,6 @@ static void WeaponMenuAttachWepKey() {
             MenuDataSwap(&WepMenu.board.held_attach, &weapon->attach[hole]);
             BtlHaveItemPt->item_no = item_no;
             weapon->attach[hole].item_no = held;
-#ifdef CHRONICLE_EXPANDED
-            expanded::BusterBoostPlaced(nullptr, WepMenu.board.held_attach);
-#endif
             BtlHaveItemPt->from_slot = WepMenu.board.cursor;
             BtlHaveItemPt->from_page = WEP_MENU_ATTACH_SOCKETS;
             WEAPON_HAVE total;
@@ -5424,17 +5349,11 @@ static void WeaponMenuAttachWepKey() {
         MenuDataSwap(&weapon->attach[hole], &WepMenu.board.held_attach);
         weapon->attach[hole].item_no = held;
         BtlHaveItemPt->item_no = item_no;
-#ifdef CHRONICLE_EXPANDED
-        expanded::BusterBoostSwapped(*weapon, weapon->attach[hole], WepMenu.board.held_attach);
-#endif
         BtlHaveItemPt->from_slot = WepMenu.board.cursor;
         BtlHaveItemPt->from_page = WepMenu.mode;
         WEAPON_HAVE total;
         WeaponAllValueSet(weapon, &total, 0);
         WeaponMenuCheckElemValue(weapon, &total);
-#ifdef CHRONICLE_EXPANDED
-        expanded::ShotEffectsWeaponsChanged();
-#endif
         return;
     }
 
@@ -8442,11 +8361,7 @@ void ItemMenuCharaStatusDraw(int x, int y, int chara, int alpha) {
     if (CharaStatus != NULL) {
         MenuTextureReload(ItemMenuWeaponIconReadBlock);
         DrawMenu2DSprite(CharaStatus, CRect_i_(x, y + 1, 0xFC, 0x85), CRect_i_(0, 0x50, 0xFC, 0x86), alpha);
-#ifdef CHRONICLE_EXPANDED
-        int level = expanded::PlayerDefense(chara, BtlMenuStatusPt->defense[chara]);
-#else
         int  level = BtlMenuStatusPt->defense[chara];
-#endif
         RECT number_rect = {0x100, 0x60, 0xC, 0xE};
         DrawMenuNumber(level, x + 0x64, y + 0x24, CharaStatus, number_rect, 1, alpha);
 
@@ -10610,17 +10525,9 @@ void MenuClsMes::NowWeaponStatus(WEAPON_HAVE *selected_weapon) {
         int clear_slot;
         int changed = 0;
 
-#ifdef CHRONICLE_EXPANDED
-        for (int bit = 1; bit <= expanded::kConfuseOptionBit; bit++) {
-#else
         for (int bit = 1; bit <= 13; bit++) {
-#endif
             if (option_flags & (1 << bit)) {
-#ifdef CHRONICLE_EXPANDED
-                int     message_no = expanded::ConfuseOptionMessage(bit);
-#else
                 int     message_no = bit + 69;
-#endif
                 ClsMes *window = message;
                 int     index = option_count;
 
@@ -10689,11 +10596,7 @@ void MenuClsMes::Draw1(int x, int y, int draw_alpha) {
                 CRect_i_  icon_src(0xEC, 0x50, 0x14, 0x14);
                 CTexture *face = TexManager.GetTexture("charaface", -1);
 
-#ifdef CHRONICLE_EXPANDED
-                for (option = 1; option <= expanded::kConfuseOptionBit; option++) {
-#else
                 for (option = 1; option <= 13; option++) {
-#endif
                     if (option == 8) {
                         icon_src.x -= icon_src.width;
                     }

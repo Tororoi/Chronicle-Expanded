@@ -7,6 +7,7 @@
 #include <set>
 
 #include "btactstatus.hpp"
+#include "charakey.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/weapons/toan/shamshir.hpp"
@@ -15,9 +16,6 @@
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "test_support.hpp"
-
-void UngagaKey_On();
-void UngagaKey_Play();
 
 using expanded::test::Wielding;
 

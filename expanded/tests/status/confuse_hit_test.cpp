@@ -16,7 +16,9 @@
 #include "shot_effect_pack.hpp"
 #include "test_support.hpp"
 
+namespace dc::game {
 extern CHitValue HitValue[32];
+} // namespace dc::game
 
 namespace {
 
@@ -105,7 +107,7 @@ protected:
         return index;
     }
 
-    int Hit() {
+    std::optional<MonsterDamageResult> Hit() {
         unit().current_monster = kVictim;
         return expanded::ConfuseMonsterHit(unit(), 0);
     }
@@ -130,7 +132,7 @@ int OwnersBlast(int) {
 TEST_F(ConfusedHit, AGuardBlocksIt) {
     Guarding();
     Swing(30);
-    EXPECT_EQ(Hit(), MONSTER_DMG_NONE);
+    EXPECT_EQ(Hit(), MonsterDamageResult::None);
     EXPECT_EQ(unit().monster[kVictim].hp, 1000);
 }
 
@@ -140,7 +142,7 @@ TEST_F(ConfusedHit, ABlindedMonstersGuardDoesNot) {
     expanded::Blind(unit(), 100);
     ASSERT_TRUE(expanded::Blinded(kVictim));
     Swing(30);
-    EXPECT_EQ(Hit(), MONSTER_DMG_HIT);
+    EXPECT_EQ(Hit(), MonsterDamageResult::Hit);
     EXPECT_EQ(unit().monster[kVictim].hp, 970);
 }
 

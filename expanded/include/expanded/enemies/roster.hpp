@@ -4,8 +4,10 @@
 
 #include "expanded/enemies/monsters.hpp"
 
+namespace dc::game {
 struct BT_ENEMY_FLOOR;
 class CMonstorUnit;
+} // namespace dc::game
 
 namespace expanded {
 

@@ -199,7 +199,6 @@ TEST(BlackKnightModel, AppendsTheDefeatsBowAndThroesWithTheScream) {
     EXPECT_EQ(mot.TrackBy(1, 0)->keys.back().Frame(), 707u);
 }
 
-
 TEST(JoeModel, ReadsTheSoundEvents) {
     std::string cfg = "EVENT 40,1,1799 //x\r\nEVENT 49.8,1,1800\r\n\tEVENT 3, 0, 2\r\n//EVENT 5,1,6\r\n";
     EXPECT_EQ(SoundEvents(Bytes(cfg.begin(), cfg.end())),
