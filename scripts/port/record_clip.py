@@ -9,7 +9,8 @@ put the frames and the sound from frame N on together. The sound is the mixer's 
 ticks (loading screens included), so a frame's place in it is its clock tick over the tick rate, both of
 which --record logs in ticks.txt; the video plays at the frames' own pace in ticks. Options after -- go
 to the game (--jump, --input, --roster, --fast-load...). Needs ffmpeg on the PATH. The game is a release
-build when one is built: a debug build records about ten times slower.
+build when one is built: a debug build records about ten times slower. A video or kept folder inside the
+repository must be somewhere git ignores, such as port/run/clips, so a recording is never committed.
 """
 import argparse
 import os
@@ -31,6 +32,18 @@ def default_exe():
     return os.path.join(ROOT, 'port', 'build', 'macos-arm64-release', name)
 
 
+def refuse_tracked(paths):
+    """Exits when any of paths is inside the repository and git would not ignore it."""
+    for path in paths:
+        path = os.path.abspath(path)
+        if os.path.commonpath([path, ROOT]) != ROOT:
+            continue
+        rel = os.path.relpath(path, ROOT)
+        if subprocess.run(['git', '-C', ROOT, 'check-ignore', '-q', rel]).returncode != 0:
+            sys.exit(f'{rel} would be in the repository and not ignored by git: record into port/run/clips '
+                     'or outside the repository')
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--out', required=True, help='the video (.mp4)')
@@ -46,6 +59,7 @@ def main():
     if shutil.which('ffmpeg') is None:
         sys.exit('ffmpeg is not on the PATH')
     game = a.game[1:] if a.game[:1] == ['--'] else a.game
+    refuse_tracked([a.out] + ([os.path.join(a.keep, 'ticks.txt')] if a.keep else []))
     work = a.keep or tempfile.mkdtemp(prefix='dc-clip-')
     os.makedirs(work, exist_ok=True)
     wav = os.path.join(work, 'audio.wav')

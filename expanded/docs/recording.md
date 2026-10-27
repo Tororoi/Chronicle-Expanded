@@ -17,8 +17,9 @@ That writes `port/run/clips/air-strike.mp4` (the run on the left, the one with W
 one's sound in its own ear), `air-strike.events.jsonl`, `air-strike.off.events.jsonl` and `air-strike.sheet.png` (a
 frame a second),
 in about half a minute. Record with a release build: a debug build is about ten times slower, most of it in writing
-the frames. `clip.py` refuses to write anything git would not ignore, and `.gitignore` ignores videos, sounds,
-frames, contact sheets and event logs wherever they are, so a recording is never committed.
+the frames. Recordings go in `port/run/clips/`, which git ignores (all of `port/run/` is), or outside the
+repository: `clip.py` and `record_clip.py` refuse to write a video, a kept folder or a log anywhere in the
+repository that git does not ignore, so a recording is never committed.
 
 ## Stages
 

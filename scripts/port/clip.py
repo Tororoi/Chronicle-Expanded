@@ -25,21 +25,10 @@ import subprocess
 import sys
 import tempfile
 
-from record_clip import default_exe
+from record_clip import default_exe, refuse_tracked
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
-
-
-def refuse_tracked(paths):
-    """Exits when any of paths is inside the repository and git would not ignore it."""
-    for path in paths:
-        path = os.path.abspath(path)
-        if os.path.commonpath([path, ROOT]) != ROOT:
-            continue
-        rel = os.path.relpath(path, ROOT)
-        if subprocess.run(['git', '-C', ROOT, 'check-ignore', '-q', rel]).returncode != 0:
-            sys.exit(f'{rel} would be in the repository and not ignored by git: record somewhere else')
 
 
 def weapon_abilities_off(save):

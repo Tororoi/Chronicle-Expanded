@@ -1,18 +1,3 @@
-# Clip recordings: videos, their sound and frames, and the event logs. scripts/port/record_clip.py works in a
-# temporary folder and the harness writes under port/run/clips/ (ignored below); these catch one written anywhere else.
-*.mp4
-*.mov
-*.webm
-*.gif
-*.wav
-*.mp3
-*.m4a
-*.y4m
-[0-9][0-9][0-9][0-9][0-9][0-9].png
-ticks.txt
-*.events.jsonl
-*.sheet.png
-
 # Build files
 /build/
 /ps2/build/*
