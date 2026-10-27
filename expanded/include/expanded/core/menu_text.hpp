@@ -28,6 +28,14 @@ void SetMenuMessage(int message_id, MenuTextProvider provider);
 // SystemMessage's), for a message the bank does not have.
 void SetSystemMessage(int message_id, MenuTextProvider provider);
 
+// The system messages Expanded adds, one id each past the bank's own.
+inline constexpr int kAtlaSphereMessage = 1000;   // dungeon/atla_drops: a sphere found in an atla
+inline constexpr int kWiseOwlMessage = 1001;      // weapons/toan/wise_owl_sword
+inline constexpr int kSkeletonKeyMessage = 1002;  // weapons/toan/bone_rapier
+inline constexpr int kKitchenKnifeBlessed = 1003; // weapons/toan/kitchen_knife: the spring's blessing …
+inline constexpr int kKitchenKnifeFaded = 1004;   // … faded …
+inline constexpr int kKitchenKnifeMended = 1005;  // … and the knife mended
+
 // Notes a pack entry as the game takes it (GetPackFile): allmenu.mes and itemshop.bin are the banks given Expanded
 // text; any other entry at the same address is not.
 void MenuTextLoaded(std::string_view name, const void *data);

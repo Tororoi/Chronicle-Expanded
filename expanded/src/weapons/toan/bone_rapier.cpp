@@ -17,10 +17,9 @@ namespace expanded {
 
 namespace {
 
-// The line when the key opens a door, a system message of its own.
-constexpr int kSkeletonKeyMessage = 1002;
 constexpr int kSkeletonKeyFrames = 240;
 
+// The line when the key opens a door, a system message of its own.
 std::optional<std::string> SkeletonKeyLine() {
     return LocalizeText("expanded.bone_rapier.door", "You can hear an ominous voice laughing 'Rattle me bones!'");
 }
