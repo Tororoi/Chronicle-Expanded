@@ -5,6 +5,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/toan/swings.hpp"
 #include "gamepad.hpp"
 #include "itemdata.hpp"
 #include "userstatus.hpp"
@@ -13,9 +14,9 @@ namespace expanded {
 
 namespace {
 
-// The opening swing (kToanFirstSwing): its step-in is set at 820 to 820.5, its trail at 824 and its hit at 825.
+// The opening swing (kToanFirstSwing): its step-in is set at 820 to 820.5, its trail at kToanFirstSwingTrail and its hit
+// at 825.
 constexpr float kSwingSteppedIn = 820.5f;
-constexpr float kSwingTrail = 824.0f;
 
 // Xiao's shot (kXiaoShot): its pellet leaves between 251 and 252.
 constexpr float kShotRelease = 251.0f;
@@ -36,8 +37,8 @@ bool QuickDrawSphere() {
 
 void QuickDrawSwing(CCharacter &chara) {
     float &time = chara.motion_type.state.time;
-    if (BtActStatus.action_no == kToanFirstSwing && time >= kSwingSteppedIn && time < kSwingTrail && QuickDrawSword()) {
-        time = kSwingTrail;
+    if (BtActStatus.action_no == kToanFirstSwing && time >= kSwingSteppedIn && time < kToanFirstSwingTrail && QuickDrawSword()) {
+        time = kToanFirstSwingTrail;
     }
 }
 

@@ -55,6 +55,7 @@
 #include "expanded/weapons/toan/tsukikage.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "expanded/weapons/ungaga/cactus.hpp"
+#include "expanded/weapons/ungaga/cactus/absorb.hpp"
 #include "expanded/weapons/ungaga/charge_shot.hpp"
 #include "expanded/weapons/ungaga/de_sanga.hpp"
 #include "expanded/weapons/ungaga/halberd.hpp"

@@ -18,6 +18,7 @@
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/wear.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"

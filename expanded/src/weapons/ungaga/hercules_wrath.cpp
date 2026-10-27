@@ -19,6 +19,7 @@
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/ungaga/mirage.hpp"
 #include "expanded/weapons/ungaga/mirage/clone.hpp"
 #include "expanded/weapons/wear.hpp"

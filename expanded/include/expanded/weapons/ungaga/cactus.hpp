@@ -9,16 +9,6 @@ struct COLLISION_HIT;
 
 namespace expanded {
 
-// Cactus "Absorb": with the Cactus in Ungaga's hand, or Super Steve carrying its SynthSphere, every hit of the wielder's
-// that takes life off a monster restores the wielder's thirst by the life it took over kAbsorbDamagePerWater (100 damage
-// = 10 = one drop on the gauge), up to the gauge's most; nothing once the gauge is full. The dry monsters, the rock, metal
-// and undead kinds (CactusDryKind), give nothing.
-inline constexpr float kAbsorbDamagePerWater = 10.0f;
-
-bool AbsorbActive();
-// Whether a monster kind (MonstorTable) gives no water.
-bool CactusDryKind(int kind);
-
 // Cactus "Desert Bloom": with the Cactus in Ungaga's hand, or Super Steve carrying its sphere, holding the guard pose
 // kBloomGuardFrames (the clock runs from the first frame in the pose while R1 stays down, and starts again once it is
 // let go) raises a giant copy of the cactus kBloomAhead ahead of the wielder, on the floor there: from its tip
@@ -74,9 +64,7 @@ float DesertBloomAlpha();
 // Whether a hit is one of the cactus's pricks (it wears no weapon HP).
 bool DesertBloomPrick(const COLLISION_HIT &hit);
 
-// Hooks: a monster's life taken by a hit (CheckDmg), amount the damage; a step (once a frame the monsters step
-// unpaused); the draw, after the units' shadows.
-void CactusMonsterDamaged(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount);
+// Hooks: a step (once a frame the monsters step unpaused); the draw, after the units' shadows.
 void DesertBloomStep();
 void DesertBloomDraw();
 

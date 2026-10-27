@@ -3,13 +3,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
-#include <vector>
 
 #include "character.hpp"
-#include "collision.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
-#include "dungeonparts.hpp"
 #include "expanded/core/frames.hpp"
 #include "expanded/data/monster_scripts.hpp"
 #include "expanded/data/spirit_cat.hpp"
@@ -17,17 +14,16 @@
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/enemies/enemy_events.hpp"
-#include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/monster_queries.hpp"
-#include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/xiao/divine_beast_title/ground.hpp"
+#include "expanded/weapons/xiao/divine_beast_title/targets.hpp"
 #include "expanded/weapons/xiao/spirit_cape.hpp"
 #include "frame.hpp"
-#include "gameutil.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "motionmodel.hpp"
@@ -36,69 +32,16 @@
 #include "userstatus.hpp"
 #include "weaponelement.hpp"
 
-extern s32 lockOnTargetNo;
-
 namespace expanded {
 
 namespace {
 
-constexpr int   kPlayOnce = 2, kCut = 4; // motion flags: hold on the last frame; start at once, unblended
-constexpr float kBlend = 0.1f;           // the engine's own cross-fade step
-constexpr float kRootTouch = 2.0f;       // the touch point's height over the root, with no head to touch with
-constexpr float kProbeUp = 8.0f, kProbeDown = 40.0f;
-constexpr float kProbeAhead = 3.0f, kProbeBehind = 2.0f; // the floor's extra casts along the cat: it stands on the highest
-constexpr int   kCharacterSkip = 1;                      // the polygons a character's floor and walls skip
-constexpr float kWallHeight = 6.0f, kWallFrames = 3.0f;  // the wall probe: this far up, this many frames of walking ahead
-constexpr float kTallScale = 1.25f;                      // a monster drawn this large or larger gets the higher arc
-// Flyers, hoverers and the tall or large, and their stronger kinds: the higher arc.
-constexpr Monster kTallLeapers[] = {
-    Monster::HORNET,
-    Monster::WITCH_HELLZA,
-    Monster::WITCH_HELLZA_ENHANCED,
-    Monster::WITCH_ILLZA,
-    Monster::GHOST,
-    Monster::LICH,
-    Monster::LICH_ENHANCED,
-    Monster::PHANTOM,
-    Monster::CAVE_BAT,
-    Monster::CAVE_BAT_ENHANCED,
-    Monster::EVIL_BAT,
-    Monster::EVIL_BAT_ENHANCED,
-    Monster::NIKAPOUS,
-    Monster::CRESCENT_BARON,
-    Monster::CRESCENT_BARON_ENHANCED,
-    Monster::MASK_OF_PRAJNA,
-    Monster::MASK_OF_PRAJNA_ENHANCED,
-    Monster::ALEXANDER,
-    Monster::ALEXANDER_ENHANCED,
-    Monster::ARTHUR,
-    Monster::ARTHUR_ENHANCED,
-    Monster::BLACK_KNIGHT,
-    Monster::BLACK_KNIGHT_MOUNT,
-    Monster::DARK_GENIE,
-    Monster::DARK_GENIE_RIGHT_HAND,
-    Monster::DARK_GENIE_FINAL,
-    Monster::MINOTAUR_JOE,
-    Monster::KINGS_CURSE,
-    Monster::KINGS_CURSE_COFFIN,
-    Monster::MASTER_UTAN,
-    Monster::DRAN,
-    Monster::GOL,
-    Monster::GOL_ENHANCED,
-    Monster::SIL,
-    Monster::SIL_ENHANCED,
-    Monster::BLIZZARD,
-    Monster::STEEL_GIANT,
-    Monster::STEEL_GIANT_ENHANCED,
-    Monster::TITAN,
-    Monster::TITAN_ENHANCED,
-    Monster::GOLEM,
-    Monster::BLACK_DRAGON,
-    Monster::BLUE_DRAGON,
-    Monster::DRAGON,
-    Monster::OPAR,
-};
-constexpr int         kGlowDelay = 4; // the torch flame's first draws are empty
+using namespace divine_beast_title;
+
+constexpr int         kPlayOnce = 2, kCut = 4; // motion flags: hold on the last frame; start at once, unblended
+constexpr float       kBlend = 0.1f;           // the engine's own cross-fade step
+constexpr float       kRootTouch = 2.0f;       // the touch point's height over the root, with no head to touch with
+constexpr int         kGlowDelay = 4;          // the torch flame's first draws are empty
 constexpr float       kGlowSize = 22.5f, kGlowPull = 5.0f;
 constexpr float       kHeadFallback[3] = {0.0f, 6.0f, 0.0f};
 constexpr const char *kHeadFrame = "cat_kao";
@@ -185,14 +128,12 @@ struct Cat {
     int              grown = 0;         // frames on the pellet before this one
     int              fade = -1;         // frames into its fade, or -1
     bool             pounce = false;    // the flight is a pounce, not the fall from the pellet
-    bool             blocked = false;
     int              target = -1;
     bool             aimed = false;
     float            aim[4] = {0, 0, 0, 1};
     int              leap_frames = kSpiritBeastLeapFrames;
     int              retarget = 0;
     bool             spent = false; // a hit was taken
-    bool             ended = false; // its pellet ended under it
     int              planted = -1;  // the hit waiting on the monster's CheckDmg
     int              planted_wait = 0;
     bool             taken = false;
@@ -202,16 +143,15 @@ struct Cat {
     const Look      *look = &kTitleLook;
 };
 
-Cat                 cat;
-ShotCharge          charge{kSpiritBeastFrames};
-CSHOT              *pending_shots = nullptr; // a charged pellet, bound once it has stepped
-int                 pending_slot = -1;
-CCharacter         *model = nullptr;
-CFrame             *wings[2] = {};
-bool                failed = false;
-float               head[3] = {kHeadFallback[0], kHeadFallback[1], kHeadFallback[2]};
-std::vector<CCPoly> polys(8192);
-int                 poly_count = 0;
+Cat         cat;
+ShotCharge  charge{kSpiritBeastFrames};
+CSHOT      *pending_shots = nullptr; // a charged pellet, bound once it has stepped
+int         pending_slot = -1;
+CCharacter *model = nullptr;
+CFrame     *wings[2] = {};
+bool        failed = false;
+float       head[3] = {kHeadFallback[0], kHeadFallback[1], kHeadFallback[2]};
+CatGround   ground;
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(SpiritBeastReset), true);
 
@@ -223,10 +163,6 @@ CCharacter *Load() {
         std::printf("divine beast title: no cat, %s could not be loaded (dcdata expanded <data> builds it)\n", kSpiritCatModelFile);
     }
     return loaded;
-}
-
-void Phase(SpiritBeastPhase phase) {
-    cat.phase = phase;
 }
 
 // The clip its motion is in, as the engine left it: a cross-fade holds it at the clip it fades out of.
@@ -258,10 +194,6 @@ void BlendStep(float step) {
     }
 }
 
-float Flat(const float *a, const float *b) {
-    return std::hypot(a[0] - b[0], a[2] - b[2]);
-}
-
 // Turns the cat to the aim point where it is now.
 void FaceAim() {
     float dx = cat.aim[0] - cat.pos[0], dz = cat.aim[2] - cat.pos[2], d = std::sqrt(dx * dx + dz * dz);
@@ -271,98 +203,16 @@ void FaceAim() {
     }
 }
 
-// The floor under the cat near its height, the way a thrown item finds it, by the character's polygons: cast at its root,
-// kProbeAhead ahead and kProbeBehind behind, the highest hit (so on stairs it rides its uphill end); unchanged over a pit.
-// The polygons gathered stay for the wall probe.
-void ProbeFloor() {
-    poly_count = 0;
-    if (NowDngMap == nullptr) {
-        return;
-    }
-    poly_count = setCollisionData(NowDngMap, polys.data(), cat.pos, 20.0f, 1.5f);
-    bool  found = false;
-    float highest = 0.0f;
-    for (float along : {0.0f, kProbeAhead, -kProbeBehind}) {
-        float x = cat.pos[0] + cat.dir[0] * along, z = cat.pos[2] + cat.dir[1] * along;
-        float from[4] = {x, cat.pos[1] + kProbeUp, z, 1.0f}, to[4] = {x, cat.pos[1] - kProbeDown, z, 1.0f}, hit[4];
-        if (poly_count > 0 && CheckHit(polys.data(), poly_count, from, to, hit, 1, kCharacterSkip) >= 0 && (!found || hit[1] > highest)) {
-            highest = hit[1];
-            found = true;
-        }
-    }
-    if (found) {
-        cat.floor = highest;
-    }
+// The flight re-aimed to come down on the aim point in t frames, the cat turned to it.
+void SteerTo(float t) {
+    cat.vel[0] = (cat.aim[0] - cat.pos[0]) / t;
+    cat.vel[2] = (cat.aim[2] - cat.pos[2]) / t;
+    FaceAim();
 }
 
-// Whether a wall stands within kWallFrames of walking along move.
-bool WallAhead(const float *move) {
-    if (poly_count <= 0) {
-        return false;
-    }
-    float y = cat.floor + kWallHeight;
-    float from[4] = {cat.pos[0], y, cat.pos[2], 1.0f}, to[4] = {cat.pos[0] + kWallFrames * move[0], y, cat.pos[2] + kWallFrames * move[1], 1.0f}, hit[4];
-    return CheckHit(polys.data(), poly_count, from, to, hit, 1, kCharacterSkip) >= 0;
-}
-
-bool Live(int monster) {
-    const MONSTOR *live = FloorMonster(monster);
-    return live != nullptr && MonsterLiving(*live);
-}
-
-// Whether the monster is a mimic not yet out of its chest and in play.
-bool Dormant(int monster) {
-    if (!Live(monster)) {
-        return false;
-    }
-    const MONSTOR &live = NowMonstorUnit->monster[monster];
-    return (live.kind == MONSTER_KIND_MIMIC_SMALL || live.kind == MONSTER_KIND_MIMIC_LARGE) && live.state != 2;
-}
-
-const CCharacter &Body(int monster) {
-    return NowMonstorUnit->chara[monster][0];
-}
-
-// The percentage of the cat's hit a sphere takes: the one it names for the cat's kick, else Xiao's.
-int CatPercent(const MONSTOR_EFFECT_STATE &effect, int sphere) {
-    return effect.body_parameter[sphere][1] == kSpiritBeastSphereKick ? effect.body_parameter[sphere][0] : effect.parameter[sphere][CHARA_XIAO];
-}
-
-// Where the cat walks and leaps to: the centre of the monster's largest hurt sphere the cat's hit damages (else its largest
-// in use), the furthest forward of equals; with none, or a monster not yet in play (a mimic in its chest), its feet.
-void AimPoint(int monster, float *out) {
-    const CCharacter           &body = Body(monster);
-    const MONSTOR_EFFECT_STATE &effect = NowMonstorUnit->effect[monster];
-    out[0] = body.pos[0], out[1] = body.pos[1], out[2] = body.pos[2], out[3] = 1.0f;
-    if (NowMonstorUnit->monster[monster].state != 2) {
-        return; // its spheres are not set up until it is in play
-    }
-    float fx = std::sin(body.rotation.y), fz = std::cos(body.rotation.y);
-    float best = -1.0f, best_forward = -INFINITY;
-    for (int pass = 0; pass < 2 && best < 0; pass++) {
-        for (int sphere = 0; sphere < kMonsterSpheres; sphere++) {
-            if (effect.timer[sphere] == 0 || (pass == 0 && CatPercent(effect, sphere) <= 0)) {
-                continue;
-            }
-            const float *c = effect.position[sphere];
-            float        r = effect.radius[sphere], forward = (c[0] - body.pos[0]) * fx + (c[2] - body.pos[2]) * fz;
-            if (r > best + 0.01f || (std::fabs(r - best) <= 0.01f && forward > best_forward)) {
-                best = r;
-                best_forward = forward;
-                out[0] = c[0], out[1] = c[1], out[2] = c[2];
-            }
-        }
-    }
-}
-
-// Whether the monster gets the higher arc: a flyer, hoverer or tall body, a miniboss, or one drawn large.
-bool TallLeap(int monster) {
-    for (Monster kind : kTallLeapers) {
-        if (IsKind(*NowMonstorUnit, monster, kind)) {
-            return true;
-        }
-    }
-    return IsMiniboss(monster) || Body(monster).scale[0] >= kTallScale;
+// How much of the cat shows: all of it until it fades.
+float Shown() {
+    return cat.fade < 0 ? 1.0f : std::max(0.0f, 1.0f - static_cast<float>(cat.fade) / kSpiritBeastFadeFrames);
 }
 
 // How near the cat crouches by its target: its look's reach, but kSpiritBeastPounce by a mimic still in its chest.
@@ -372,37 +222,11 @@ float Range() {
 
 // Whether the target cannot be hit: a mimic in its chest, or a monster in its untouchable frames.
 bool Hold() {
-    return cat.target >= 0 && (Dormant(cat.target) || NowMonstorUnit->monster[cat.target].invincible_timer > 0);
-}
-
-// The monster she has locked on to, or would lock on to, if alive.
-int LockedTarget() {
-    return Live(lockOnTargetNo) ? lockOnTargetNo : -1;
-}
-
-// That monster, else the nearest alive to her within sight, or -1.
-int PickTarget() {
-    if (NowMonstorUnit == nullptr) {
-        return -1;
-    }
-    int locked = LockedTarget();
-    if (locked >= 0) {
-        return locked;
-    }
-    int   best = -1;
-    float nearest = INFINITY;
-    for (int monster = 0; monster < kFloorMonsters; monster++) {
-        float d = Flat(Body(monster).pos, CharaMain.pos);
-        if (Live(monster) && d < nearest && d <= kSpiritBeastSight) {
-            best = monster;
-            nearest = d;
-        }
-    }
-    return best;
+    return cat.target >= 0 && Untouchable(cat.target);
 }
 
 void Aim() {
-    if (cat.target >= 0 && Live(cat.target)) {
+    if (cat.target >= 0 && Targetable(cat.target)) {
         AimPoint(cat.target, cat.aim);
         cat.aimed = true;
     }
@@ -422,7 +246,7 @@ void Target(int monster) {
 // the crouch, back to walking), and walking or sitting it finds a new target when it has none.
 void Watch() {
     bool walking = cat.phase == SpiritBeastPhase::kWalking || cat.phase == SpiritBeastPhase::kSitting;
-    if (cat.target >= 0 && !Live(cat.target)) {
+    if (cat.target >= 0 && !Targetable(cat.target)) {
         if (walking) {
             Target(PickTarget());
         } else {
@@ -432,12 +256,12 @@ void Watch() {
     Aim();
     if (cat.target >= 0 && (walking || cat.phase == SpiritBeastPhase::kReady) && ++cat.retarget >= kSpiritBeastRetarget) {
         cat.retarget = 0;
-        int locked = LockedTarget();
+        int locked = LockOnCandidate();
         if (locked >= 0 && locked != cat.target) {
             Target(locked);
             if (cat.phase == SpiritBeastPhase::kReady) {
                 Flags(0, kPlayOnce);
-                Phase(SpiritBeastPhase::kWalking);
+                cat.phase = SpiritBeastPhase::kWalking;
             }
         }
     }
@@ -530,7 +354,7 @@ void StartLand() {
     Flags(kPlayOnce | kCut);
     Key(kCatLand);
     cat.last_frame = 0.0f;
-    Phase(SpiritBeastPhase::kLanding);
+    cat.phase = SpiritBeastPhase::kLanding;
 }
 
 void FallPose() {
@@ -569,9 +393,7 @@ void Falling() {
                 cat.apex = cat.pos[1];
             }
             if ((rising || (cat.look->steers && cat.apex + cat.floor < 2.0f * cat.pos[1])) && cat.aimed) {
-                cat.vel[0] = (cat.aim[0] - cat.pos[0]) / t;
-                cat.vel[2] = (cat.aim[2] - cat.pos[2]) / t;
-                FaceAim();
+                SteerTo(t);
             }
             // The float-up held until its fade into the fall ends as the land clip starts.
             if (kSpiritBeastLandLead + kSpiritBeastFallBlend < t) {
@@ -593,7 +415,7 @@ bool Landing() {
     if (!(frame < kSpiritBeastLandEnd - 1.0f) || frame < last) {
         cat.pounce = false;
         Flags(0, kPlayOnce);
-        Phase(SpiritBeastPhase::kWalking);
+        cat.phase = SpiritBeastPhase::kWalking;
         return true;
     }
     bool airborne = cat.floor < cat.pos[1];
@@ -609,9 +431,7 @@ bool Landing() {
         if (airborne && cat.look->steers && cat.pounce && cat.aimed && cat.apex + cat.floor < 2.0f * cat.pos[1]) {
             float t = Horizon();
             if (!(t < kSpiritBeastCommitHorizon)) {
-                cat.vel[0] = (cat.aim[0] - cat.pos[0]) / t;
-                cat.vel[2] = (cat.aim[2] - cat.pos[2]) / t;
-                FaceAim();
+                SteerTo(t);
             }
         }
         cat.pos[0] += cat.vel[0];
@@ -631,11 +451,10 @@ void Walking() {
             Rate(-1.0f);
             PlayOwnSound(kSpiritBeastSitSound, false);
         }
-        cat.blocked = false;
-        Phase(SpiritBeastPhase::kSitting);
+        cat.phase = SpiritBeastPhase::kSitting;
         return;
     }
-    Phase(SpiritBeastPhase::kWalking);
+    cat.phase = SpiritBeastPhase::kWalking;
     float dx = cat.aim[0] - cat.pos[0], dz = cat.aim[2] - cat.pos[2], d = std::sqrt(dx * dx + dz * dz);
     if (d > 0.0f) {
         cat.dir[0] = dx / d;
@@ -645,13 +464,12 @@ void Walking() {
             Key(kCatReady);
             Rate(-1.0f);
             cat.last_frame = 0.0f;
-            Phase(SpiritBeastPhase::kReady);
+            cat.phase = SpiritBeastPhase::kReady;
             return;
         }
     }
     float walk = kSpiritBeastWalk * cat.look->scale, move[2] = {cat.dir[0] * walk, cat.dir[1] * walk};
-    cat.blocked = WallAhead(move);
-    if (cat.blocked) {
+    if (ground.WallAhead(cat.pos, cat.floor, move)) {
         Key(kCatStand);
         Rate(-1.0f);
     } else {
@@ -677,7 +495,7 @@ void Ready() {
         Key(kCatFloat);
         Rate(-1.0f);
         cat.last_frame = 0.0f;
-        Phase(SpiritBeastPhase::kWindUp);
+        cat.phase = SpiritBeastPhase::kWindUp;
         return;
     }
     FaceAim();
@@ -696,7 +514,7 @@ void WindUp() {
     float dx = cat.aim[0] - cat.pos[0], dz = cat.aim[2] - cat.pos[2], d = std::sqrt(dx * dx + dz * dz);
     if (!cat.aimed || (d > 0.0f && 2.0f * Range() < d)) {
         Flags(0, kPlayOnce);
-        Phase(SpiritBeastPhase::kWalking);
+        cat.phase = SpiritBeastPhase::kWalking;
         return;
     }
     if (d > 0.0f) {
@@ -711,13 +529,12 @@ void WindUp() {
     cat.apex = cat.pos[1];
     Flags(kPlayOnce);
     Key(kCatFloat);
-    Phase(SpiritBeastPhase::kLeaping);
+    cat.phase = SpiritBeastPhase::kLeaping;
 }
 
 // On the pellet: the head on its point, the cat grown by the frames before this one; at full size it breaks away.
 void Riding() {
-    if (cat.shots == nullptr || cat.shots->used[cat.slot] == 0) {
-        cat.ended = true; // full size where it was, fading
+    if (cat.shots == nullptr || cat.shots->used[cat.slot] == 0) { // its pellet ended under it: full size where it was, fading
         cat.scale = cat.look->scale;
         StartFade();
         return;
@@ -747,7 +564,7 @@ void Riding() {
     cat.shots->halted[cat.slot] = 1;
     cat.shots = nullptr;
     cat.pounce = false;
-    Phase(SpiritBeastPhase::kFalling);
+    cat.phase = SpiritBeastPhase::kFalling;
 }
 
 void Place() {
@@ -757,11 +574,10 @@ void Place() {
     if (cat.phase != SpiritBeastPhase::kRiding && cat.dir[0] * cat.dir[0] + cat.dir[1] * cat.dir[1] > 1e-6f) {
         cat.yaw = std::atan2(cat.dir[0], cat.dir[1]);
     }
-    float shown = cat.fade < 0 ? 1.0f : 1.0f - static_cast<float>(cat.fade) / kSpiritBeastFadeFrames;
     model->SetPosition(cat.pos[0], cat.pos[1], cat.pos[2]);
     model->SetRotation(0.0f, cat.yaw, 0.0f);
     model->SetScale(cat.scale, cat.scale, cat.scale);
-    model->ambient_offset[3] = 128.0f * std::max(0.0f, shown);
+    model->ambient_offset[3] = 128.0f * Shown();
     for (CFrame *wing : wings) {
         if (wing != nullptr) {
             wing->attr.draw_on = cat.look->wings ? wing->attr.draw_on & ~kSkippedByParent : wing->attr.draw_on | kSkippedByParent;
@@ -809,7 +625,7 @@ void Bind() {
     BlendStep(kBlend);
     Flags(kCut);
     Key(kCatLeap);
-    Phase(SpiritBeastPhase::kRiding);
+    cat.phase = SpiritBeastPhase::kRiding;
 }
 
 // The cat gone, a pellet it still rides let go on its way.
@@ -919,18 +735,18 @@ void SpiritBeastStep() {
                 break;
             case SpiritBeastPhase::kFalling:
             case SpiritBeastPhase::kLeaping:
-                ProbeFloor();
+                ground.Probe(cat.pos, cat.dir, cat.floor);
                 Falling();
                 break;
             case SpiritBeastPhase::kLanding:
-                ProbeFloor();
+                ground.Probe(cat.pos, cat.dir, cat.floor);
                 if (Landing()) {
                     Walking();
                 }
                 break;
             case SpiritBeastPhase::kWalking:
             case SpiritBeastPhase::kSitting:
-                ProbeFloor();
+                ground.Probe(cat.pos, cat.dir, cat.floor);
                 Walking();
                 break;
             case SpiritBeastPhase::kReady:
@@ -966,9 +782,8 @@ void SpiritBeastDraw() {
         return;
     }
     DrawFloorCharacter(*model);
-    float shown = cat.fade < 0 ? 1.0f : 1.0f - static_cast<float>(cat.fade) / kSpiritBeastFadeFrames;
     if (cat.look->cape) {
-        SpiritCapeDraw(*model, Element(), std::max(0.0f, shown));
+        SpiritCapeDraw(*model, Element(), Shown());
     }
     if (cat.age <= kGlowDelay) {
         return;
@@ -984,7 +799,7 @@ void SpiritBeastDraw() {
             middle[i] = 0.5f * (a[i] + b[i]);
         }
     }
-    DrawGlowDisc(cat.look->cape ? kElementGlows[Element()] : cat.look->glow, middle, kGlowSize * cat.look->scale * std::max(0.0f, shown), kGlowPull);
+    DrawGlowDisc(cat.look->cape ? kElementGlows[Element()] : cat.look->glow, middle, kGlowSize * cat.look->scale * Shown(), kGlowPull);
 }
 
 void SpiritBeastLight(const CCharacter &character, float *ambient) {

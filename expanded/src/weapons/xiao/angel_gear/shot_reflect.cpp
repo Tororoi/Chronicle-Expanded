@@ -172,6 +172,74 @@ SHOT_COLLISION_RESULT ReturnTest(CSHOT_EFFECT &effect, int slot, float *hit_posi
     return result;
 }
 
+// What became of a claimed shot this frame.
+enum class Fate {
+    kFlying, // still on its way, harmless
+    kCaught, // into the pouch
+    kTaken,  // quietly into her
+    kLost,   // ran out, or ended elsewhere
+};
+
+// The faced claim bent toward the pouch, its speed kept.
+void Home(CSHOT_EFFECT &effect, int slot, const float *at, const float *pouch, float to_pouch) {
+    float *v = effect.velocity[slot];
+    float  vl = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]), ql = std::sqrt(to_pouch);
+    if (vl <= 1e-3f || ql <= 1e-3f) {
+        return;
+    }
+    float n[3];
+    for (int c = 0; c < 3; c++) {
+        n[c] = v[c] / vl * (1.0f - kHomingGain) + (pouch[c] - at[c]) / ql * kHomingGain;
+    }
+    float nl = std::sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
+    if (nl > 1e-3f) {
+        for (int c = 0; c < 3; c++) {
+            v[c] = n[c] / nl * vl;
+        }
+        Face(effect, slot, v);
+    }
+}
+
+// A claim's frame: where it is now, and whether it is caught, taken into her or lost (a shot the game ended is judged
+// by where it was last seen).
+Fate FateOf(Claim &claim, bool solid, const float *her, const float *pouch) {
+    float body_reach = kAbsorbNear + claim.speed * 3.0f;
+    if (!Live(claim.shot)) {
+        if (claim.last_delay <= 1) {
+            return Fate::kLost;
+        }
+        if (Dist2(pouch, claim.last) < kEngineCatchNear * kEngineCatchNear) {
+            return Fate::kCaught;
+        }
+        return Dist2(her, claim.last) < body_reach * body_reach ? Fate::kTaken : Fate::kLost;
+    }
+    CSHOT_EFFECT *effect = Effect(claim.shot.effect);
+    int           slot = claim.shot.slot;
+    float         at[4];
+    Position(*effect, slot, at);
+    std::copy(at, at + 3, claim.last);
+    claim.last_delay = effect->phase_delay[slot];
+    float catch_reach = kCaptureRadius + claim.speed * 2.0f;
+    float to_pouch = Dist2(pouch, at);
+    if (solid && to_pouch < catch_reach * catch_reach) {
+        effect->active[slot] = 0;
+        return Fate::kCaught;
+    }
+    if (effect->phase[slot] > 1 && to_pouch < kEngineCatchNear * kEngineCatchNear) {
+        effect->active[slot] = 0; // the game stopped it at the pouch: caught there
+        return Fate::kCaught;
+    }
+    if (Dist2(her, at) < body_reach * body_reach || effect->phase[slot] > 1) {
+        effect->active[slot] = 0;
+        return Fate::kTaken;
+    }
+    if (solid && claim.shot == faced && to_pouch < kHomingRange * kHomingRange) {
+        Home(*effect, slot, at, pouch, to_pouch);
+    }
+    effect->wait_state[slot] = kHeld;
+    return Fate::kFlying;
+}
+
 } // namespace
 
 void ClaimShots(const float *her) {
@@ -229,66 +297,13 @@ void SustainClaims(bool shield_up, bool solid, const float *her, const float *po
         return;
     }
     for (int q = static_cast<int>(claims.size()) - 1; q >= 0; q--) {
-        Claim        &claim = claims[q];
-        CSHOT_EFFECT *effect = Effect(claim.shot.effect);
-        int           slot = claim.shot.slot;
-        bool          by_game = !Live(claim.shot);
-        bool          gone = by_game, caught = false;
-        float         body_reach = kAbsorbNear + claim.speed * 3.0f;
-        if (!gone) {
-            float at[4];
-            Position(*effect, slot, at);
-            std::copy(at, at + 3, claim.last);
-            claim.last_delay = effect->phase_delay[slot];
-            float catch_reach = kCaptureRadius + claim.speed * 2.0f;
-            float to_pouch = Dist2(pouch, at);
-            if (solid && to_pouch < catch_reach * catch_reach) {
-                effect->active[slot] = 0; // into the pouch
-                gone = caught = true;
-            } else if (effect->phase[slot] > 1 && to_pouch < kEngineCatchNear * kEngineCatchNear) {
-                effect->active[slot] = 0; // the game stopped it at the pouch: caught there
-                gone = caught = true;
-            } else if (Dist2(her, at) < body_reach * body_reach || effect->phase[slot] > 1) {
-                effect->active[slot] = 0; // quietly into her
-                gone = true;
-            } else if (solid && claim.shot == faced && to_pouch < kHomingRange * kHomingRange) {
-                float *v = effect->velocity[slot];
-                float  vl = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]), ql = std::sqrt(to_pouch);
-                if (vl > 1e-3f && ql > 1e-3f) {
-                    float n[3];
-                    for (int c = 0; c < 3; c++) {
-                        n[c] = v[c] / vl * (1.0f - kHomingGain) + (pouch[c] - at[c]) / ql * kHomingGain;
-                    }
-                    float nl = std::sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2]);
-                    if (nl > 1e-3f) {
-                        for (int c = 0; c < 3; c++) {
-                            v[c] = n[c] / nl * vl; // its speed kept
-                        }
-                        Face(*effect, slot, v);
-                    }
-                }
-            }
-        }
-        if (!gone) {
-            effect->wait_state[slot] = kHeld; // harmless to the end
+        Fate fate = FateOf(claims[q], solid, her, pouch);
+        if (fate == Fate::kFlying) {
             continue;
         }
-        if (by_game) {
-            // Caught when it ended at the pouch, taken into her when at her; ran out or ended elsewhere, it is lost.
-            if (claim.last_delay <= 1) {
-                claims.erase(claims.begin() + q);
-                continue;
-            }
-            if (Dist2(pouch, claim.last) < kEngineCatchNear * kEngineCatchNear) {
-                caught = true;
-            } else if (Dist2(her, claim.last) >= body_reach * body_reach) {
-                claims.erase(claims.begin() + q);
-                continue;
-            }
-        }
-        if (static_cast<int>(pending.size()) < kPendingMax) {
-            pending.push_back(claim);
-            if (!caught) {
+        if (fate != Fate::kLost && static_cast<int>(pending.size()) < kPendingMax) {
+            pending.push_back(claims[q]);
+            if (fate == Fate::kTaken) {
                 setUnitAmbientAnime(kAbsorbFlashFrames, 1.0f, kAbsorbFlash, kAbsorbFlash, kAbsorbFlash);
             }
         }

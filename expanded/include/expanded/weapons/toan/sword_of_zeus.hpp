@@ -5,6 +5,8 @@ class CCharacter;
 
 namespace expanded {
 
+struct SolarProfile;
+
 // Sword of Zeus "Lightning". A bolt is the Divine Beast Cave cutscene's lightning (gedit/s99/chara/lightning.chr)
 // coming down where it strikes, with a thunderclap: a Big Bang blast there over four fifths its reach (kBoltBlast,
 // kBoltReachShare), through any guard, as thunder whatever the weapon's selected element (its own thunder strength,
@@ -26,6 +28,13 @@ inline constexpr float kChargeHigh = 1.5f;
 inline constexpr float kChargeAhead = 40.0f;      // the bolt this far ahead of Toan, not locked on
 inline constexpr float kChargeHangHeight = 45.0f; // the hanging sword's grip over where it will land
 inline constexpr int   kChargeFallFrames = 19;    // its fall, to the hilt as the lunge comes down
+
+// Its Solar Flash: no hit of its own and an electric white eased away in two seconds; primed, the swing calls its
+// lightning. Locked on, the judgement blade (a red ring for its glow) falls to the hilt on the first swing, paced to
+// land as it comes forward, the bolt on the target; each later swing of the combo darkens the room as it winds up and
+// brings another bolt down as it comes forward, until the combo ends or the lock goes. Not locked on, the swing is a
+// volley.
+extern const SolarProfile kZeusFlash;
 
 // A bolt's thunder: the storm's first sample's second clap (a lone bolt, or a combo's first), that or its second
 // sample's first clap at random (a combo's later bolts), the first sample whole (a volley, all its bolts under one), or

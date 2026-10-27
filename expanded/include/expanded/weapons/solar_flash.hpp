@@ -55,16 +55,9 @@ struct SolarProfile {
 };
 
 extern const SolarProfile kSunSwordFlash;
-// Big Bang: twice the Sun Sword's share, a cool white, and the judgement blade (its glow on the blade alone).
-extern const SolarProfile kBigBangFlash;
 // Super Steve carrying the Sun Sword's SynthSphere: Solar Shot.
 extern const SolarProfile kSolarShotFlash;
-// The Sword of Zeus: no hit of its own and an electric white eased away in two seconds; primed, the swing calls its
-// lightning. Locked on, the judgement blade (a red ring for its glow) falls to the hilt on the first swing, paced to
-// land as it comes forward, the bolt on the target; each later swing of the combo darkens the room as it winds up and
-// brings another bolt down as it comes forward, until the combo ends or the lock goes. Not locked on, the swing is a
-// volley.
-extern const SolarProfile kZeusFlash;
+// The Big Bang's and the Sword of Zeus's: kBigBangFlash (toan/big_bang.hpp), kZeusFlash (toan/sword_of_zeus.hpp).
 
 // The charge's phase, for the tests and the other swords.
 enum class SolarPhase {

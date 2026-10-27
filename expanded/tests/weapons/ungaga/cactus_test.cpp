@@ -20,6 +20,7 @@
 #include "expanded/weapons/solid_column.hpp"
 #include "expanded/weapons/summon_smoke.hpp"
 #include "expanded/weapons/ungaga/cactus.hpp"
+#include "expanded/weapons/ungaga/cactus/absorb.hpp"
 #include "expanded/weapons/ungaga/cactus/bloom_prop.hpp"
 #include "framevu1.hpp"
 #include "itemdata.hpp"

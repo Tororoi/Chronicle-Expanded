@@ -8,6 +8,7 @@
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/status/blind.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
@@ -20,6 +21,23 @@
 #include "userstatus.hpp"
 
 namespace expanded {
+
+const SolarProfile kBigBangFlash = {
+    .weapon_no = ITEM_WEAPON_BIG_BANG,
+    .charge_frames = kSolarChargeFrames,
+    .shot = false,
+    .damage_share = 0.5f,
+    .flash_whp = 5.0f,
+    .prime_dim = 0.35f,
+    .glow = true,
+    .glow_size = 20.0f,
+    .glow_along = 0.5f,
+    .glow_axis = 0.0f,
+    .look = {.light = {236.0f, 226.0f, 255.0f}, .fog = {242.0f, 236.0f, 255.0f}, .fog_amount = 0.8f, .ease_frames = kBlindFrames},
+    .glow_look = GlowLook::kBlue,
+    .judgement = true,
+    .land_whp = 20.0f,
+};
 
 namespace {
 

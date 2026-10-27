@@ -23,6 +23,7 @@
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/toan/swings.hpp"
 #include "expanded/weapons/wear.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -31,6 +32,36 @@
 #include "weaponelement.hpp"
 
 namespace expanded {
+
+namespace {
+
+// The opening swing lets the judgement blade go on its trail, and comes forward at kZeusLandAt: the blade is paced to
+// land between them, at the swing's own step (0.3 a frame).
+constexpr float kZeusLandAt = 828.0f;
+constexpr float kSwingStep = 0.3f;
+
+} // namespace
+
+const SolarProfile kZeusFlash = {
+    .weapon_no = ITEM_WEAPON_SWORD_OF_ZEUS,
+    .charge_frames = kSolarChargeFrames,
+    .shot = false,
+    .damage_share = 0.0f,
+    .flash_whp = 0.0f, // each bolt bills its own
+    .prime_dim = 0.5f,
+    .glow = true,
+    .glow_size = 20.0f,
+    .glow_along = 0.5f,
+    .glow_axis = 0.0f,
+    .look = {.light = {228.0f, 240.0f, 255.0f}, .fog = {238.0f, 246.0f, 255.0f}, .fog_amount = 0.8f, .ease_frames = 120},
+    .glow_look = GlowLook::kRing,
+    .judgement = true,
+    .land_whp = 0.0f,
+    .primed_white = false,
+    .drop_frames = static_cast<int>((kZeusLandAt - kToanFirstSwingTrail) / kSwingStep + 0.999f),
+    .to_the_hilt = true,
+    .bolts = true,
+};
 
 namespace {
 
