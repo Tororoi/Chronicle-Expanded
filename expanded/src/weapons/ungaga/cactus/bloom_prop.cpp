@@ -9,7 +9,6 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
-#include "expanded/enemies/enemy_events.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
 #include "mglib.hpp"
@@ -28,11 +27,6 @@ struct Prop {
 Prop                      prop;
 std::vector<CCharacter *> upright; // weapons turned point-up this floor
 
-void OnFloor() {
-    PropReset();
-}
-
-[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
 
 // The weapon turned point-up: its root's rotation (the grip) turned a quarter about x, so the blade's axis, the model's +z,
 // stands straight up. The draw keeps the root's own rotation under the character's turn.

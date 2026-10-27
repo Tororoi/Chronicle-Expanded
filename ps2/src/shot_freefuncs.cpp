@@ -52,8 +52,7 @@ static int defWeapon[6] = {ITEM_WEAPON_DAGGER_BROKEN, ITEM_WEAPON_WOODENSLINGSHO
 #include "userstatus.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/weapons/curse.hpp"
-#include "expanded/weapons/toan/brave_ark.hpp"
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/weapons/toan/kitchen_knife.hpp"
 #endif
 
@@ -1079,7 +1078,7 @@ void BtSetStatusErr(int status) {
     int chara;
 
 #ifdef CHRONICLE_EXPANDED
-    if (!expanded::CurseAllowsAilment(status) || !expanded::HerosCourageAllowsAilment(status)) {
+    if (!expanded::AilmentAllowed(status)) {
         return;
     }
 #endif

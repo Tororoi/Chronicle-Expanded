@@ -22,6 +22,8 @@
 #include "texture.hpp"
 #include "userstatus.hpp"
 
+extern s32 atraGetStatus;
+
 namespace expanded {
 
 namespace {
@@ -303,7 +305,7 @@ bool AtlaDrawn(CDungeonMap &map, int atla) {
 // As CDungeonMap::DrawAtraBoll draws an atla (the port's: Moon Sea's in sight however far), after the shadow pass.
 void AtlaDropsDrawOverShadows(const float *pos) {
     CDungeonMap *map = NowDngMap;
-    if (map == nullptr || map->atra_model == nullptr) {
+    if (atraGetStatus != 0 || map == nullptr || map->atra_model == nullptr) { // not while one is being taken
         return;
     }
     bool loaded = false;

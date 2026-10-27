@@ -13,10 +13,14 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/core/options.hpp"
+#include "expanded/dungeon/scene_light.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/species.hpp"
+#include "expanded/status/blind.hpp"
+#include "expanded/weapons/judgement_blade.hpp"
+#include "expanded/weapons/solar_flash.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "platform/config.hpp"
@@ -200,6 +204,22 @@ private:
     int drive_;
     int unit_;
 };
+
+// The Solar Flash's step and reset as the dungeon's hooks run them, with the blinding, the scene light and the judgement
+// blade beside it.
+inline void SolarStep() {
+    BlindTick();
+    SceneLightStep();
+    JudgementStep();
+    SolarFlashStep();
+}
+
+inline void SolarReset() {
+    SolarFlashReset();
+    BlindReset();
+    JudgementReset();
+    SceneLightReset();
+}
 
 // A fresh save (SaveData) for a test: its dungeon status (the party's weapons) and storage.
 class TestSave {

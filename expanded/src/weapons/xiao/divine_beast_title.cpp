@@ -211,11 +211,7 @@ float               head[3] = {kHeadFallback[0], kHeadFallback[1], kHeadFallback
 std::vector<CCPoly> polys(8192);
 int                 poly_count = 0;
 
-void OnFloor() {
-    SpiritBeastReset();
-}
-
-[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(SpiritBeastReset), true);
 
 CCharacter *Load() {
     CCharacter *loaded = EnterFloorCharacter(kSpiritCatModelFile, kSpiritCatCfg);

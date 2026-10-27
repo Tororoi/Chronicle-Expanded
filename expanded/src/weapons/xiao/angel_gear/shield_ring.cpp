@@ -26,11 +26,7 @@ struct Ring {
 
 Ring ring;
 
-void OnFloor() {
-    RingReset();
-}
-
-[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(RingReset), true);
 
 } // namespace
 

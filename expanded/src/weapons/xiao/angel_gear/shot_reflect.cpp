@@ -63,15 +63,6 @@ std::vector<Flying> flying;
 Shot                faced;           // the claim the slingshot faces
 bool                testing = false; // a returned shot's collision test under way
 
-void OnFloor() {
-    claims.clear();
-    pending.clear();
-    flying.clear();
-    faced = {};
-}
-
-[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
-
 CSHOT_EFFECT *Effect(int index) {
     if (index < kRetailShotEffects && NowShotEffect == nullptr) {
         return nullptr;

@@ -37,11 +37,7 @@ struct Grace {
 
 Grace grace;
 
-void OnFloor() {
-    GuardianGraceReset();
-}
-
-[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(GuardianGraceReset), true);
 
 // The frames from tick to tick while it is on.
 int Frames() {

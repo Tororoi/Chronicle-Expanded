@@ -76,11 +76,7 @@ struct State {
 
 State state;
 
-void OnFloor() {
-    AirStrikeReset();
-}
-
-[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(AirStrikeReset), true);
 
 bool Xiao() {
     return state.chara == CHARA_XIAO;

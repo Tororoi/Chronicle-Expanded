@@ -4,9 +4,11 @@
 #include "expanded/debug/event_log.hpp"
 #include "expanded/debug/stage.hpp"
 #include "expanded/dungeon/atla_drops.hpp"
+#include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/dungeon/ground_shadow.hpp"
 #include "expanded/dungeon/navigation.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
+#include "expanded/dungeon/scene_light.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/atla_gemron.hpp"
 #include "expanded/enemies/black_knight.hpp"
@@ -22,16 +24,20 @@
 #include "expanded/enemies/steve.hpp"
 #include "expanded/status/blind.hpp"
 #include "expanded/status/confuse.hpp"
+#include "expanded/status/freeze.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/big_bang_shot.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/curse.hpp"
+#include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
+#include "expanded/weapons/kick_back.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/solid_column.hpp"
 #include "expanded/weapons/toan/agas_sword.hpp"
 #include "expanded/weapons/toan/atlamillia_sword.hpp"
+#include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
 #include "expanded/weapons/toan/claymore.hpp"
 #include "expanded/weapons/toan/cross_hinder.hpp"
@@ -39,16 +45,22 @@
 #include "expanded/weapons/toan/dusack.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
 #include "expanded/weapons/toan/heavens_cloud.hpp"
+#include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/maneater.hpp"
+#include "expanded/weapons/toan/seventh_heaven.hpp"
+#include "expanded/weapons/toan/shamshir.hpp"
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
+#include "expanded/weapons/toan/tsukikage.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "expanded/weapons/ungaga/cactus.hpp"
+#include "expanded/weapons/ungaga/charge_shot.hpp"
 #include "expanded/weapons/ungaga/de_sanga.hpp"
 #include "expanded/weapons/ungaga/halberd.hpp"
 #include "expanded/weapons/ungaga/hercules_wrath.hpp"
 #include "expanded/weapons/ungaga/javelin.hpp"
 #include "expanded/weapons/ungaga/mirage.hpp"
+#include "expanded/weapons/ungaga/partisan.hpp"
 #include "expanded/weapons/ungaga/scorpion.hpp"
 #include "expanded/weapons/xiao/angel_gear.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_ring.hpp"
@@ -65,6 +77,7 @@
 #include "expanded/weapons/xiao/steel_slingshot.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 #include "monstorunit.hpp"
+#include "shot_effect.hpp"
 
 namespace expanded {
 
@@ -77,6 +90,11 @@ void DungeonShotsStep(CMonstorUnit &unit) {
     BlackKnightStep();
     GuardianReflectorStep();
     MirageStep();
+}
+
+void DungeonFloorUnloaded() {
+    ShotEffectsClear();
+    FloorCharactersClear();
 }
 
 void DungeonFloorLoaded(CMonstorUnit &unit) {
@@ -99,10 +117,57 @@ void DungeonFrameBegins() {
     StageFrame();
 }
 
+void DungeonShadowsDrawn(const float *player) {
+    AtlaDropsDrawOverShadows(player);
+}
+
+void DungeonMonstersDrawn() {
+    DesertBloomDraw();
+}
+
+void DungeonNpcsDrawn() {
+    MirageCloneDraw();
+}
+
+void DungeonEffectsDrawn() {
+    ShotEffectsDraw();
+    ConfuseStarsDraw();
+    SolarGlowDraw();
+    BigBangShotDraw();
+    ChargingBullDraw();
+    SpiritBeastDraw();
+    GuardianReflectorDraw();
+}
+
+void DungeonRasterDrawn() {
+    MirageHazeDraw();
+}
+
+void DungeonShotsDrawn() {
+    BombGemronEffectsDraw();
+}
+
+bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
+    return PlayerHitSkipped(hit);
+}
+
+void PlayerHitReached(COLLISION_HIT &hit) {
+    BreakFreeze(&hit);
+    DivineGuardHit(hit);
+    HerosCourageHit(hit);
+}
+
+void PlayerHitReacted(bool blocked) {
+    DivineGuardBlocked(blocked);
+}
+
 void DungeonMonstersCleared(bool drop_stars) {
     ConfuseFloorReset(drop_stars);
     ShotEffectsReset();
     SolarFlashReset();
+    BlindReset();
+    JudgementReset();
+    SceneLightReset();
     BigBangShotReset();
     ZeusChargeReset();
     ZeusShotReset();
@@ -119,6 +184,9 @@ void DungeonMonstersTick() {
     GreatswordStep();
     TyphoonStep();
     HerosCourageStep();
+    BlindTick();
+    SceneLightStep();
+    JudgementStep();
     SolarFlashStep();
     BigBangShotStep();
     ZeusChargeStep();
@@ -198,6 +266,7 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
 }
 
 void PelletFired(CSHOT &shots, int slot) {
+    MoonlitFocusShot(shots.vector[slot]);
     SolarShotFired(shots, slot);
     BigBangShotFired(shots, slot);
     ZeusShotFired(shots, slot);
@@ -301,6 +370,20 @@ float ActionGaugeGain(float gain) {
     return GuardianReflectorGaugeGain(gain);
 }
 
+int HealCounter(int counter) {
+    return GuardianGraceCounter(counter, kHealPeriod);
+}
+
+bool HealsWithoutTheAbility() {
+    return GuardianGraceHeals();
+}
+
+void PlayerMotionStepping(CCharacter &chara, int chara_no) {
+    SwiftStrikesMotion(chara, chara_no);
+    QuickComboMotion(chara, chara_no);
+    LockOnSpeedMotion(chara, chara_no);
+}
+
 void HealTicked() {
     AngelGearHealTick();
 }
@@ -319,6 +402,26 @@ int MonsterSpherePercent(const CMonstorUnit &unit, int monster, int sphere, int 
 
 bool PlayerHitStaggers(const COLLISION_HIT &hit) {
     return SpiritBeastHit(hit);
+}
+
+bool LandedHitWearsWeapon(int attacker, const COLLISION_HIT &hit) {
+    return !ChargeShotHit(attacker, &hit) && HitWearsWeapon(hit);
+}
+
+void MonsterKnockedBack(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit) {
+    WeaponKickBack(unit, monster, hit);
+}
+
+void MonsterItemStolen(const CMonstorUnit &unit, int monster, int item) {
+    StealShotTaken(unit, monster, item);
+}
+
+bool KillAbsTaken(WEAPON_HAVE &weapon, int abs, int max_abs) {
+    return OvertrainingAbs(weapon, abs, max_abs);
+}
+
+bool AilmentAllowed(int ailment) {
+    return CurseAllowsAilment(ailment) && HerosCourageAllowsAilment(ailment);
 }
 
 bool MonsterCanGuard(int monster) {

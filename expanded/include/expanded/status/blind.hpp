@@ -26,13 +26,18 @@ bool BlindClipsOf(int model_no, BlindClips *clips);
 // Blinds the floor for frames from now; a blinding already running is renewed, and whoever was lowering their
 // guard raises it again.
 void Blind(CMonstorUnit &unit, int frames = kBlindFrames);
+// Blinds the floor frames from now (a landing's, once its blast's throw is over); a later call moves it.
+void BlindAfter(int frames);
 // Ends the blinding at once: every monster's script back from the top.
 void BlindEnd();
+// No blinding running or waiting (the floor's monsters put back, for tests too).
+void BlindReset();
 bool Blinding();
 int  BlindFramesLeft();
 bool Blinded(int monster);
 
-// Counts the blinding down on a frame the monsters step (MonstersStepping): an event or a hold pauses it.
+// One frame: counts a waiting blinding down, and the blinding running on a frame the monsters step (MonstersStepping):
+// an event or a hold pauses it.
 void BlindTick();
 
 // Hooks: a monster's step in place of its script while blinded; whether its guard windows block a hit.

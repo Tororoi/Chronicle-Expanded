@@ -1,5 +1,6 @@
 #include "expanded/status/blind.hpp"
 
+#include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/monsters.hpp"
@@ -69,6 +70,7 @@ struct Held {
 Held          held[kFloorMonsters];
 CMonstorUnit *blind_unit = nullptr;
 int           frames_left = 0;
+int           blind_in = 0; // frames until a waiting blinding
 
 // The frames a motion takes at its own speed.
 int MotionFrames(const CMonstorUnit &unit, int monster, int motion) {
@@ -169,10 +171,22 @@ bool Blinded(int monster) {
     return monster >= 0 && monster < kFloorMonsters && held[monster].phase != Phase::kNone;
 }
 
+void BlindAfter(int frames) {
+    blind_in = frames;
+}
+
 void BlindTick() {
+    if (blind_in > 0 && --blind_in == 0 && NowMonstorUnit != nullptr) {
+        Blind(*NowMonstorUnit);
+    }
     if (MonstersStepping() && frames_left > 0 && --frames_left == 0) {
         BlindEnd();
     }
+}
+
+void BlindReset() {
+    blind_in = 0;
+    BlindEnd();
 }
 
 bool BlindStep(CMonstorUnit &unit, int monster) {

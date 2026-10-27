@@ -154,7 +154,6 @@ struct State {
 };
 
 State state;
-int   blind_in = 0; // frames until a landing's blinding, once its blast's throw is over
 
 const SolarProfile *ActiveProfile() {
     if (UserStatus == nullptr) {
@@ -419,7 +418,7 @@ void SolarBlastFlash(const SolarProfile &profile, const float *point, float whp)
         PlantSolarHits(*NowMonstorUnit, point, base, -1, kBlastFalloff[0].reach);
     }
     WearWeapon(whp);
-    blind_in = kBlastThrowFrames;
+    BlindAfter(kBlastThrowFrames);
 }
 
 void ChargeCompleteFlash() {
@@ -427,13 +426,7 @@ void ChargeCompleteFlash() {
 }
 
 void SolarFlashStep() {
-    if (blind_in > 0 && --blind_in == 0 && NowMonstorUnit != nullptr) {
-        Blind(*NowMonstorUnit);
-    }
-    BlindTick();
-    SceneLightStep();
     GlowStep();
-    JudgementStep();
     const SolarProfile *profile = ActiveProfile();
     if (profile == nullptr || (state.profile != nullptr && state.profile != profile)) {
         Clear();
@@ -639,10 +632,6 @@ void SolarShotEnded(const CSHOT &shots, int slot, const float *point, bool struc
 
 void SolarFlashReset() {
     state = {};
-    blind_in = 0;
-    JudgementReset();
-    BlindEnd();
-    SceneLightReset();
 }
 
 bool SolarFlashOwnsLight(const CCharacter &character) {

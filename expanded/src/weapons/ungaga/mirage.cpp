@@ -47,11 +47,7 @@ struct Guard {
 Decoy decoy;
 Guard guard;
 
-void OnFloor() {
-    MirageReset();
-}
-
-[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(MirageReset), true);
 
 float PlayerYaw() {
     float rotation[4];

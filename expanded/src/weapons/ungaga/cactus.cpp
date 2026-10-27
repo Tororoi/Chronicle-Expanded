@@ -125,11 +125,7 @@ struct Bloom {
 
 Bloom bloom;
 
-void OnFloor() {
-    DesertBloomReset();
-}
-
-[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(DesertBloomReset), true);
 
 [[maybe_unused]] const bool kRegistered =
     (RegisterWeaponShotEffect(ITEM_WEAPON_CACTUS, WeaponShotForm::Weapon, SummonSmokeEffect(), kSmokeShots, kSummonSmokeFile),
