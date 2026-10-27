@@ -7,13 +7,13 @@
 
 #include "expanded/core/options.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/enemies/normalize.hpp"
 #include "expanded/enemies/species.hpp"
 #include "expanded/enemies/themes.hpp"
 
 namespace expanded {
 
 namespace {
-
 
 [[maybe_unused]] const bool kRegistered =
     AddToggle({.key = kRandomizeEnemies,
@@ -37,15 +37,12 @@ const std::vector<Monster> &Pool() {
         range(Monster::GEMRON_THUNDER, Monster::CAPTAIN_ENHANCED);
         range(Monster::GEMRON_WIND, Monster::SPACE_GYON_ENHANCED);
         range(Monster::GEMRON_HOLY, Monster::LIVING_ARMOR_ENHANCED);
-        kinds.push_back(Monster::GACIOUS_ENHANCED); // Gacious's own chance
-        kinds.push_back(Monster::BOMB_GEMRON);      // Expanded's (expanded/enemies/species.hpp)
-        kinds.push_back(Monster::CRYSTAL_GEMRON);
-        kinds.push_back(Monster::ATLA_GEMRON);
+        kinds.push_back(Monster::GACIOUS_ENHANCED);        // Gacious's own chance
+        range(Monster::BOMB_GEMRON, Monster::ATLA_GEMRON); // Expanded's (expanded/enemies/species.hpp)
         return kinds;
     }();
     return pool;
 }
-
 
 // Boss and event floors, 0 for a dungeon's first.
 const std::vector<int> kEventFloors[DUNGEON_COUNT] = {
@@ -84,14 +81,12 @@ std::span<const Monster> RandomizerPool() {
 }
 
 std::optional<DungeonMimics> MimicsOf(int dungeon, int floor) {
-    if (dungeon == DUNGEON_DEMON_SHAFT && floor >= 40) {
-        int band = DUNGEON_DEMON_SHAFT + std::min(floor / 20 - 1, 3);
-        return DungeonMimics{kMimicLine[band], kKingMimicLine[band]};
-    }
     if (dungeon < 0 || dungeon >= DUNGEON_COUNT) {
         return std::nullopt;
     }
-    return DungeonMimics{kMimicLine[dungeon], kKingMimicLine[dungeon]};
+    // Demon Shaft's own pair until its third band, then the next one each band.
+    int line = dungeon == DUNGEON_DEMON_SHAFT ? DUNGEON_DEMON_SHAFT + std::max(DemonShaftBand(floor) - 1, 0) : dungeon;
+    return DungeonMimics{kMimicLine[line], kKingMimicLine[line]};
 }
 
 bool RandomizedFloor(int dungeon, int floor) {

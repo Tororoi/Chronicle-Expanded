@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <vector>
 
 #include "dun/gameloop.hpp"
@@ -15,16 +16,28 @@ namespace expanded {
 
 namespace {
 
-
 // The chase motion of every monster.
 constexpr int kWalkMotion = 1;
 
-// Monster names (MONSTOR::name_no) of the long-reach kinds: Cannibal Plant, Pirate's Chariot, Dark Flower,
-// Cursed Rose, Rockanoff, Opar and King Prickly.
-constexpr int kLongReach[] = {11, 25, 67, 68, 77, 304, 306};
+// Monster names (MONSTOR::name_no, which an Enhanced kind shares) of the long-reach kinds.
+constexpr int kLongReach[] = {
+    11,  // Cannibal Plant
+    25,  // Pirate's Chariot
+    67,  // Dark Flower
+    68,  // Cursed Rose
+    77,  // Rockanoff
+    304, // Opar
+    306, // King Prickly
+};
 
-// The bats, whose motion 1 is a flying loop with no feet to keep pace.
-constexpr int kFlyers[] = {60, 61};
+// The bats' names, whose motion 1 is a flying loop with no feet to keep pace.
+constexpr int kFlyers[] = {
+    60, // Cave Bat
+    61, // Evil Bat
+};
+
+// Attack spheres grow with a miniboss only below this radius.
+constexpr float kGrownReachUnder = 200.0f;
 
 bool         miniboss[kFloorMonsters];
 float        range[kFloorMonsters];
@@ -180,11 +193,11 @@ void MakeMiniboss(CMonstorUnit &unit, int monster) {
 
     MONSTOR_EFFECT_STATE  &hurt = unit.effect[monster];
     MONSTOR_EFFECT_STATE2 &hits = unit.effect2[monster];
-    for (int i = 0; i < 16; i++) {
+    for (std::size_t i = 0; i < std::size(hurt.timer); i++) {
         if (hurt.timer[i] != 0) {
             hurt.radius[i] *= kMinibossSize;
         }
-        if (hits.active[i] != 0 && hits.radius[i] > 0.0f && hits.radius[i] < 200.0f) {
+        if (hits.active[i] != 0 && hits.radius[i] > 0.0f && hits.radius[i] < kGrownReachUnder) {
             hits.radius[i] *= kMinibossReach;
         }
     }
@@ -201,7 +214,7 @@ int MinibossPlacedModel(const CMonstorUnit &unit, int placement, int model_slot)
     if (!side.populated || placement < 0 || placement >= static_cast<int>(side.kinds.size())) {
         return model_slot;
     }
-    for (int slot = 0; slot < unit.model_count && slot < 9; slot++) {
+    for (int slot = 0; slot < unit.model_count && slot < kModelSlots; slot++) {
         if (ModelKind(slot) == side.kinds[placement]) {
             return slot;
         }

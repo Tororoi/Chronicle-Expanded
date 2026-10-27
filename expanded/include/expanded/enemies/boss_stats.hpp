@@ -13,8 +13,11 @@ namespace expanded {
 // A boss's (or its part's) stats on a floor of region, or none to keep its own.
 std::optional<EnemyStats> BossRegionStats(int model_no, int region);
 
-// The damage of one of the Ice Queen's pieces (its own: 69 for the arrow and meteors, 74 for the aura and
-// tornadoes) on a floor of region.
+// The Ice Queen's pieces' own damage: her arrow's and meteor's, and her aura's and tornadoes'.
+inline constexpr int kIceQueenArrowDamage = 69;
+inline constexpr int kIceQueenAuraDamage = 74;
+
+// The damage of one of the Ice Queen's pieces (its own, one of those) on a floor of region.
 int IceQueenPieceDamage(int native_damage, int region);
 
 } // namespace expanded

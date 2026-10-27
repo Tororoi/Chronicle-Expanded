@@ -99,8 +99,8 @@ TEST(Revive, StaysDownRuleKeepsEveryKill) {
 
 TEST(Revive, ScriptRollsAtTheNativeChance) {
     Harder harder;
-    Floor mummy("e50a");
-    int   revived = 0;
+    Floor  mummy("e50a");
+    int    revived = 0;
     for (int i = 0; i < 2000; i++) {
         EXPECT_EQ(expanded::ReviveCheckDmg(*mummy.unit, MONSTER_DMG_KILLED), MONSTER_DMG_KILLED);
         int roll = expanded::ReviveRoll(100, 50);
@@ -115,18 +115,25 @@ TEST(Revive, CollapsesLiesStillAndGetsUp) {
     Floor         floor("e14a");
     CMonstorUnit &unit = *floor.unit;
 
-    // About 30% of kills revive.
+    // About 30% of kills revive, the revival's commands run on the unit and the current one put back.
+    auto other = std::make_unique<CMonstorUnit>();
+    NowMonstorUnit = other.get();
     int kills = 0;
     while (expanded::ReviveCheckDmg(unit, MONSTER_DMG_KILLED) == MONSTER_DMG_KILLED) {
         ASSERT_LT(++kills, 200);
     }
+    EXPECT_EQ(NowMonstorUnit, other.get());
+    NowMonstorUnit = &unit;
     EXPECT_EQ(unit.script_state[0], 1);
     EXPECT_EQ(floor.Chara().motion_no, 9);
     EXPECT_EQ(unit.monster[0].invincible_timer, expanded::kReviveInvincibleSteps);
 
     // The collapse plays to its end.
     floor.Chara().motion_type.state.time = 175.0f;
+    NowMonstorUnit = other.get();
     EXPECT_TRUE(expanded::ReviveStep(unit, 0));
+    EXPECT_EQ(NowMonstorUnit, other.get());
+    NowMonstorUnit = &unit;
     EXPECT_TRUE(expanded::ReviveStep(unit, 0));
     floor.Chara().motion_type.state.time = 186.0f;
     EXPECT_TRUE(expanded::ReviveStep(unit, 0));
@@ -151,7 +158,7 @@ TEST(Revive, CollapsesLiesStillAndGetsUp) {
 
 TEST(Revive, AHitHandsItBackToItsScript) {
     Harder harder;
-    Floor floor("e03a");
+    Floor  floor("e03a");
     int    kills = 0;
     while (expanded::ReviveCheckDmg(*floor.unit, MONSTER_DMG_KILLED) == MONSTER_DMG_KILLED) {
         ASSERT_LT(++kills, 200);

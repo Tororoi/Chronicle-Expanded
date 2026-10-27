@@ -24,6 +24,9 @@ TEST(EnemyNormalize, RegionsAreTheDungeonsAndDemonShaftsBands) {
     EXPECT_EQ(expanded::EnemyRegion(6, 20), 7);
     EXPECT_EQ(expanded::EnemyRegion(6, 99), 10);
     EXPECT_EQ(expanded::EnemyRegion(7, 0), -1);
+    EXPECT_EQ(expanded::DemonShaftBand(39), 1);
+    EXPECT_EQ(expanded::DemonShaftBand(-5), 0);
+    EXPECT_EQ(expanded::DemonShaftBand(120), expanded::kDemonShaftBands - 1);
 }
 
 TEST(EnemyNormalize, ARegionsOwnMonstersKeepTheirStats) {

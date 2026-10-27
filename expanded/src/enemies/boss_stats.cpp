@@ -137,9 +137,7 @@ const BossLine kLines[] = {
     }},
 };
 
-// The Ice Queen's pieces' damage (her own 69 and 74) by region; {} keeps theirs.
-constexpr int kPieceArrow = 69;
-constexpr int kPieceAura = 74;
+// The Ice Queen's pieces' damage by region, the arrow's then the aura's; {} keeps theirs.
 const int kPieces[kEnemyRegions][2] = {
     {35, 45}, {50, 62}, {}, {80, 91}, {100, 110}, {120, 125},
     {126, 131}, {132, 137}, {138, 143}, {144, 149}, {150, 155},
@@ -168,10 +166,10 @@ int IceQueenPieceDamage(int native_damage, int region) {
     if (region < 0 || region >= kEnemyRegions || kPieces[region][0] == 0) {
         return native_damage;
     }
-    if (native_damage == kPieceArrow) {
+    if (native_damage == kIceQueenArrowDamage) {
         return kPieces[region][0];
     }
-    if (native_damage == kPieceAura) {
+    if (native_damage == kIceQueenAuraDamage) {
         return kPieces[region][1];
     }
     return native_damage;

@@ -1,6 +1,7 @@
 #include "expanded/enemies/miniboss_loot.hpp"
 
 #include <algorithm>
+#include <type_traits>
 #include <vector>
 
 #include "btitem.hpp"
@@ -41,6 +42,22 @@ struct DungeonWeapons {
 
 constexpr int kRarePercent = 5;
 constexpr int kCommonPercent = 30;
+
+// Without a species drop: the back floor's key, else a weapon of the dungeon, else an attachment (a gem or another),
+// else an item (a lucky one or another), each roll its percent.
+constexpr int kKeyPercent = 35;
+constexpr int kWeaponPercent = 15;
+constexpr int kAttachmentPercent = 80;
+constexpr int kGemPercent = 60;
+constexpr int kLuckyItemPercent = 60;
+
+// CRandomItem's dropped items, and how far over the floor its Set lifts one.
+constexpr int   kItemSlots = std::extent_v<decltype(CRandomItem::pickup_event)>;
+constexpr float kDropLift = 1.75f;
+
+// The party's weapon slots: CUserStatus::chara_weapons' members, and each one's weapons.
+constexpr int kCharas = std::extent_v<decltype(CUserStatus::chara_weapons), 0>;
+constexpr int kWeaponSlots = std::extent_v<decltype(CUserStatus::chara_weapons), 1>;
 
 // Ability bits in the low and high bytes of the flags.
 constexpr int kBigBucks = 0x02, kStop = 0x40, kSteal = 0x80;
@@ -351,14 +368,14 @@ MinibossDrop RollMinibossDrop(int dungeon, int floor, Monster species) {
         return tier[Roll(static_cast<int>(tier.size()))];
     }
     const DungeonWeapons &weapons = kWeapons[dungeon];
-    if (Roll(100) < 35) {
+    if (Roll(100) < kKeyPercent) {
         drop.item = kBackFloorKeys[dungeon];
-    } else if (Roll(100) < 15) {
+    } else if (Roll(100) < kWeaponPercent) {
         drop.item = Pick(weapons.weapons[weapons.first_half_floors != 0 && floor >= weapons.first_half_floors]);
-    } else if (Roll(100) < 80) {
-        drop.item = Roll(100) < 60 ? Pick(kGems) : Pick(kAttachments);
+    } else if (Roll(100) < kAttachmentPercent) {
+        drop.item = Roll(100) < kGemPercent ? Pick(kGems) : Pick(kAttachments);
     } else {
-        drop.item = Roll(100) < 60 ? Pick(kLuckyItems) : Pick(kItems);
+        drop.item = Roll(100) < kLuckyItemPercent ? Pick(kLuckyItems) : Pick(kItems);
     }
     return drop;
 }
@@ -402,12 +419,12 @@ void MinibossDropLanding(const MinibossDrop &drop, CRandomItem &items, const flo
         return;
     }
     std::erase_if(lying, [&](const Lying &l) { return l.items == &items && l.slot == slot; });
-    lying.push_back({&items, slot, drop.item, {position[0], position[1] + 1.75f, position[2]}, drop.boost});
+    lying.push_back({&items, slot, drop.item, {position[0], position[1] + kDropLift, position[2]}, drop.boost});
 }
 
 int MinibossItemEvent(CRandomItem &items) {
     picked = nullptr;
-    for (int slot = 0; slot < 32; slot++) {
+    for (int slot = 0; slot < kItemSlots; slot++) {
         if (items.pickup_event[slot] == -1) {
             continue;
         }
@@ -435,15 +452,15 @@ void MinibossDropPickUp(int dungeon, int item_no) {
         BtGetAttach_Init(dungeon, item_no);
         return;
     }
-    bool had[6][11];
-    for (int chara = 0; chara < 6; chara++) {
-        for (int slot = 0; slot < 11; slot++) {
+    bool had[kCharas][kWeaponSlots];
+    for (int chara = 0; chara < kCharas; chara++) {
+        for (int slot = 0; slot < kWeaponSlots; slot++) {
             had[chara][slot] = UserStatus->chara_weapons[chara][slot].item_no == item_no;
         }
     }
     BtGetAttach_Init(dungeon, item_no);
-    for (int chara = 0; chara < 6; chara++) {
-        for (int slot = 0; slot < 11; slot++) {
+    for (int chara = 0; chara < kCharas; chara++) {
+        for (int slot = 0; slot < kWeaponSlots; slot++) {
             WEAPON_HAVE &weapon = UserStatus->chara_weapons[chara][slot];
             if (weapon.item_no == item_no && !had[chara][slot]) {
                 BoostWeapon(weapon, *boost);

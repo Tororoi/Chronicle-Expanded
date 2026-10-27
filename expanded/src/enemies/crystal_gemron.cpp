@@ -1,6 +1,5 @@
 #include "expanded/enemies/crystal_gemron.hpp"
 
-#include <cmath>
 #include <cstring>
 
 #include "dun/gameloop.hpp"
@@ -9,6 +8,7 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/ice_shots.hpp"
+#include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/species.hpp"
 #include "frame.hpp"
@@ -43,12 +43,10 @@ BT_SHOT_EFFECT arrow_shot = {"info", 0, 1, {1.4f, 1.2f, 0.0f, 0.0f}, {2.6f, 7.0f
                              {-1, 0, 1, -1}, -1, {}, 0.0f, 0, {-1, -1, -1, -1}};
 // clang-format on
 BT_SHOT_EFFECT prison_shot = IcePrisonShot();
-constexpr int kArrows = 4;
+constexpr int  kArrows = 4;
 
-// An arrow spent within this of the player's chest, while he is frozen, encases him (its hit takes a couple of steps
-// to freeze him).
+// An arrow spent within this of the player's chest, while he is frozen, encases him once its hit has frozen him.
 constexpr float kPrisonReach = 20.0f;
-constexpr int   kArrowSettle = 2;
 
 // The eyes' glow, on the ambient for their own draw.
 constexpr float kEyeGlow[3] = {45.0f, 70.0f, 50.0f};
@@ -80,16 +78,12 @@ void OnModel(CMonstorUnit &unit, int model_slot, int model_no) {
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), AddEnemyModelListener(OnModel), true);
 
-float Distance(const float *a, const float *b) {
-    return std::sqrt((a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1]) + (a[2] - b[2]) * (a[2] - b[2]));
-}
-
 void Imprison(CMonstorUnit &unit) {
     if (shots.prison < 0 || shots.standing >= 0) {
         return;
     }
     CSHOT_EFFECT *effect = ShotEffectAt(shots.prison);
-    float feet[4];
+    float         feet[4];
     PlayerFeet(feet);
     NowShotEffect->Set(shots.prison, feet, feet);
     if (effect->current_slot < 0) {
@@ -116,15 +110,13 @@ void CrystalGemronStep(CMonstorUnit &unit) {
         }
     }
     // Arrows home in while they fly; one spent near the player may encase him.
-    float chest[4];
-    PlayerChest(chest);
     for (int slot = 0; slot < kArrows; slot++) {
         bool flying = arrows->active[slot] != 0 && arrows->phase[slot] == 1;
         if (flying) {
             SteerIceArrow(*arrows, slot);
             arrows->chara[slot].GetPosition(shots.last[slot]);
-        } else if (shots.flying[slot] && Distance(shots.last[slot], chest) <= kPrisonReach) {
-            shots.settle = kArrowSettle;
+        } else if (shots.flying[slot] && NearPlayerChest(shots.last[slot], kPrisonReach)) {
+            shots.settle = kIceArrowSettle;
         }
         shots.flying[slot] = flying;
     }
@@ -148,10 +140,10 @@ void CrystalGemronStep(CMonstorUnit &unit) {
 }
 
 void CrystalGemronDrawing(CMonstorUnit &unit, int monster) {
-    if (!IsKind(unit, monster, Monster::CRYSTAL_GEMRON) || unit.chara[monster][0].frame == nullptr) {
+    if (!IsKind(unit, monster, Monster::CRYSTAL_GEMRON)) {
         return;
     }
-    if (CFrame *eyes = unit.chara[monster][0].frame->SearchFrame(const_cast<char *>(kCrystalEyeFrame))) {
+    if (CFrame *eyes = MonsterFrame(unit, monster, kCrystalEyeFrame)) {
         SetFrameTint(eyes, kEyeGlow[0], kEyeGlow[1], kEyeGlow[2]);
     }
 }

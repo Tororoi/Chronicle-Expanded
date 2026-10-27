@@ -1,5 +1,6 @@
 #pragma once
 
+class CFrame;
 class CMonstorUnit;
 
 namespace expanded {
@@ -19,5 +20,8 @@ bool RemoveFadedMonster(CMonstorUnit &unit, int monster);
 
 // Takes a monster off the floor at once.
 void RemoveMonster(CMonstorUnit &unit, int monster);
+
+// A frame of a monster's body by name, or null (also while it has no body).
+CFrame *MonsterFrame(CMonstorUnit &unit, int monster, const char *name);
 
 } // namespace expanded
