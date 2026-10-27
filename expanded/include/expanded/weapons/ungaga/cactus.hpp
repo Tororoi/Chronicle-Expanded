@@ -12,8 +12,8 @@ namespace expanded {
 // Cactus "Desert Bloom": with the Cactus in Ungaga's hand, or Super Steve carrying its sphere, holding the guard pose
 // kBloomGuardFrames (the clock runs from the first frame in the pose while R1 stays down, and starts again once it is
 // let go) raises a giant copy of the cactus kBloomAhead ahead of the wielder, on the floor there: from its tip
-// kBloomBuried under the floor it rises in a poof of smoke (summon_smoke.hpp, kBloomSmokeScale, turned to the wielder's
-// facing) with the sound of an item box opening (SE_BOX_OPEN), the game's charge-complete flash on the wielder. It
+// kBloomBuried under the floor it rises in a poof of smoke (summon_smoke.hpp, with its sound, kBloomSmokeScale, turned to
+// the wielder's facing), the game's charge-complete flash on the wielder. It
 // comes out at kBloomSpawnShare of its size by the smoke's frame kBloomEmergedFrame (an ease, fast off the mark and
 // slow to settle), grows evenly to kBloomPeakShare of it by frame kBloomPeakFrame (held for at least a frame) and
 // settles to its size by kBloomRisenFrame, the same part of it out of the floor at every size. Risen, it stands solid

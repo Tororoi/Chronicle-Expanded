@@ -9,8 +9,8 @@ namespace expanded {
 // Pocklekul "Pockle Call": with the Pocklekul in Ruby's hand, or Super Steve carrying its sphere in Xiao's, holding the
 // guard pose kPockleGuardFrames (the clock runs while R1 stays down in the pose, and starts again once either drops)
 // summons a pockle on a quiet floor (no menu, hold or event; else on the first quiet frame of the hold): one of
-// kPockleKinds at random, stood kPockleSpawnAhead in front of the summoner in the summon smoke (summon_smoke.hpp,
-// kPockleSmokeScale, turned to the summoner's facing), with the game's charge-complete flash on the summoner and a notice
+// kPockleKinds at random, stood kPockleSpawnAhead in front of the summoner in the summon smoke (summon_smoke.hpp, with its
+// sound, kPockleSmokeScale, turned to the summoner's facing), with the game's charge-complete flash on the summoner and a notice
 // naming it for kPockleNoticeFrames (once a dungeon line showing then, Steve's say, is gone, or has held it
 // kPockleNoticeWait). It is a real pockle on a monster unit of its own (enemies/ally_unit.hpp): its own life, its own
 // script and AI, no drops, no ABS.

@@ -1,5 +1,4 @@
 #include "expanded/weapons/ungaga/cactus.hpp"
-#include "sound_effect.h"
 
 #include <algorithm>
 #include <cmath>
@@ -28,7 +27,6 @@
 #include "gamepad.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
-#include "snd.hpp"
 #include "userstatus.hpp"
 
 namespace expanded {
@@ -196,7 +194,6 @@ void Summon() {
     PropPlace(bloom.root, CopyYaw(), bloom.scale, bloom.alpha);
     SummonSmokeStart(bloom.spot, bloom.yaw, kBloomSmokeScale, &bloom);
     ChargeCompleteFlash();
-    SndSePlay(SE_BOX_OPEN, -1, 0); // the poof
 }
 
 bool ControllerGuard() {
