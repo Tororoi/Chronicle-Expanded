@@ -7,7 +7,6 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/enemies/enemy_events.hpp"
-#include "expanded/status/blind.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/player_state.hpp"
@@ -41,8 +40,7 @@ struct Flight {
 struct State {
     Charge        charge = Charge::kIdle;
     int           frames = 0; // in the phase
-    int           charged = 0;
-    int           unguarded = 0;
+    GuardCharge   guard; // the guard's charge
     ShotCharge    draw{kZeusChargedFrames}; // the slingshot drawn and held
     bool          dimmed = false;
     bool          struck = false; // a bolt came down in the window
@@ -125,24 +123,21 @@ void ZeusShotStep() {
     switch (state.charge) {
         case Charge::kIdle:
             state.sling = std::max(0.0f, state.sling - 1.0f / kSolarFadeFrames);
-            if (Guarding() && !Blinding()) {
+            if (state.guard.Start()) {
                 state.charge = Charge::kCharging;
-                state.charged = state.unguarded = state.frames = 0;
+                state.frames = 0;
             }
             break;
         case Charge::kCharging: {
-            state.unguarded = Guarding() ? 0 : state.unguarded + 1;
-            if (state.unguarded > kGuardGrace || Blinding()) {
+            GuardCharge::Step step = state.guard.Charge(kZeusGuardFrames);
+            if (step == GuardCharge::Step::kDropped) {
                 Spend();
                 break;
             }
-            if (state.unguarded == 0) {
-                state.charged++;
-            }
-            float k = std::min(1.0f, static_cast<float>(state.charged) / kZeusGuardFrames);
+            float k = state.guard.Progress(kZeusGuardFrames);
             state.sling = k;
             SceneDim(kZeusFlash.prime_dim * k);
-            if (state.charged >= kZeusGuardFrames) {
+            if (step == GuardCharge::Step::kFull) {
                 state.charge = Charge::kPrimed;
                 state.frames = 0;
                 ChargeCompleteFlash();

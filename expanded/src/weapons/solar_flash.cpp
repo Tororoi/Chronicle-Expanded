@@ -138,8 +138,7 @@ struct State {
     SolarPhase          phase = SolarPhase::kIdle;
     const SolarProfile *profile = nullptr;
     int                 frames = 0;      // in the phase
-    int                 charged = 0;     // frames guarded in the charge
-    int                 unguarded = 0;   // frames since the guard was last up
+    GuardCharge         guard;           // the guard's charge
     float               blade = 0.0f;    // the blade's white, 0..1
     float               wielder[3] = {}; // the wielder's own tint
     float               glow = 0.0f;     // the glow's size, 0..1
@@ -432,34 +431,31 @@ void SolarFlashStep() {
     switch (s.phase) {
         case SolarPhase::kIdle:
             // One flash at a time.
-            if (Guarding() && !Blinding()) {
+            if (s.guard.Start()) {
                 s.phase = SolarPhase::kCharging;
                 s.profile = profile;
-                s.frames = s.charged = s.unguarded = 0;
+                s.frames = 0;
             }
             break;
 
         case SolarPhase::kCharging: {
-            s.unguarded = Guarding() ? 0 : s.unguarded + 1;
-            if (s.unguarded > kGuardGrace || Blinding()) {
+            const int         full = profile->charge_frames;
+            GuardCharge::Step step = s.guard.Charge(full);
+            if (step == GuardCharge::Step::kDropped) {
                 Clear();
                 break;
             }
-            if (s.unguarded == 0) {
-                s.charged++;
-            }
-            const int full = profile->charge_frames;
-            float     k = std::min(1.0f, static_cast<float>(s.charged) / full);
+            float k = s.guard.Progress(full);
             s.blade = k;
             SceneDim(profile->prime_dim * k);
             // The cyan build-up over the charge's last frames.
-            float ramp = std::clamp(1.0f - static_cast<float>(full - s.charged) / kSolarRampFrames, 0.0f, 1.0f);
+            float ramp = std::clamp(1.0f - static_cast<float>(full - s.guard.Charged()) / kSolarRampFrames, 0.0f, 1.0f);
             SetWielder(kChargeColour[0] * kChargeRampPeak * ramp, kChargeColour[1] * kChargeRampPeak * ramp,
                        kChargeColour[2] * kChargeRampPeak * ramp);
             // The glow grows with the charge, full the moment it primes.
             s.glow = profile->glow ? k : 0.0f;
             s.glow_shrink = 0.0f;
-            if (s.charged >= full) {
+            if (step == GuardCharge::Step::kFull) {
                 s.phase = SolarPhase::kPrimed;
                 s.frames = 0;
                 ChargeCompleteFlash();

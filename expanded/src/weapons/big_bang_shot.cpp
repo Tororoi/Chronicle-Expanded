@@ -12,7 +12,6 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/species.hpp"
-#include "expanded/status/blind.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/pellets.hpp"
@@ -77,8 +76,7 @@ struct State {
     int    effect = -1; // the bomb's effect, as last asked
     Charge charge = Charge::kIdle;
     int    frames = 0; // in the phase
-    int    charged = 0;
-    int    unguarded = 0;
+    GuardCharge guard; // the guard's charge
     ShotCharge draw{kChargedShotFrames}; // the slingshot drawn and held
     int    target = -1;
     int    hover = -1; // the hanging bomb's slot
@@ -238,29 +236,27 @@ void BigBangShotStep() {
 
     switch (state.charge) {
         case Charge::kIdle:
-            if (Guarding() && !Blinding()) {
+            if (state.guard.Start()) {
                 state.charge = Charge::kCharging;
-                state.charged = state.unguarded = state.frames = 0;
+                state.frames = 0;
             }
             break;
-        case Charge::kCharging:
-            state.unguarded = Guarding() ? 0 : state.unguarded + 1;
-            if (state.unguarded > kGuardGrace || Blinding()) {
+        case Charge::kCharging: {
+            GuardCharge::Step step = state.guard.Charge(kBombChargeFrames);
+            if (step == GuardCharge::Step::kDropped) {
                 Spend();
                 break;
             }
-            if (state.unguarded == 0) {
-                state.charged++;
-            }
             // The bomb fades in over the target with the charge.
             Hang();
-            state.shown = std::min(1.0f, static_cast<float>(state.charged) / kBombChargeFrames);
-            if (state.charged >= kBombChargeFrames) {
+            state.shown = state.guard.Progress(kBombChargeFrames);
+            if (step == GuardCharge::Step::kFull) {
                 ChargeCompleteFlash();
                 state.charge = Charge::kPrimed;
                 state.frames = state.pulse = 0;
             }
             break;
+        }
         case Charge::kPrimed:
             Hang();
             state.shown = state.hover >= 0 ? 1.0f : 0.0f;
@@ -369,7 +365,7 @@ void BigBangShotLight(const CCharacter &character, float *ambient) {
     if (state.charge != Charge::kCharging && state.charge != Charge::kPrimed) {
         return;
     }
-    float k = state.charge == Charge::kCharging ? static_cast<float>(state.charged) / kBombChargeFrames : 1.0f;
+    float k = state.charge == Charge::kCharging ? static_cast<float>(state.guard.Charged()) / kBombChargeFrames : 1.0f;
     float add = &character == NowWeapon ? kSlingWhite * k : &character == &CharaMain ? kPrimedWhite * k
                                                                                      : 0.0f;
     for (int c = 0; c < 3; c++) {
