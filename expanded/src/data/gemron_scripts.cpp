@@ -24,14 +24,6 @@ constexpr int           kShatterSound = 312; // the life sphere breaking, in the
 constexpr float         kVanillaRange = 70.0f, kShotRange = 140.0f;
 constexpr float         kVanillaWalkIn = 50.0f, kWalkIn = 100.0f;
 
-// A label's function header, as e115a.stb has it.
-std::size_t Label(std::span<const unsigned char> script, std::uint32_t id) {
-    if (std::optional<std::size_t> header = stb::Label(script, id)) {
-        return *header;
-    }
-    throw std::runtime_error(std::format("e115a.stb has no label {}", id));
-}
-
 } // namespace
 
 } // namespace crystal
@@ -40,7 +32,7 @@ Bytes BuildCrystalGemronScript(std::span<const unsigned char> script) {
     using namespace crystal;
     std::size_t base = stb::CodeBase(script);
     // The death wait cries at frame 214, which the vanilla clip never reaches: it sounds the shatter as the ball breaks.
-    std::size_t death_call = base + Get32(script, Label(script, 120));
+    std::size_t death_call = base + Get32(script, stb::RequireLabel(script, 120, "e115a.stb"));
     if (Get32(script, death_call) != stb::kCall) {
         throw std::runtime_error("e115a.stb: label 120 does not start with a CALL");
     }
@@ -49,9 +41,9 @@ Bytes BuildCrystalGemronScript(std::span<const unsigned char> script) {
         if (Get32(script, call) == stb::kReturn) {
             throw std::runtime_error("e115a.stb: the death function has no CALL");
         }
-        call += 12;
+        call += stb::kCell;
     }
-    std::size_t push = call - 12, id = push - 24;
+    std::size_t push = call - stb::kCell, id = push - 2 * stb::kCell;
     if (Get32(script, push) != stb::kPushConst || Get32(script, push + 4) != stb::kFloat || GetF32(script, push + 8) != kCryFrame ||
         Get32(script, push - 36) != stb::kPushConst || Get32(script, push - 32) != stb::kInt || Get32(script, push - 28) != kSoundBase ||
         Get32(script, push - 12) != stb::kAdd || Get32(script, id) != stb::kPushConst || Get32(script, id + 4) != stb::kInt || Get32(script, id + 8) != kCryOffset) {
@@ -61,9 +53,9 @@ Bytes BuildCrystalGemronScript(std::span<const unsigned char> script) {
     SetF32(out, push + 8, float(kCrystalShatterFrame));
     Set32(out, id + 8, static_cast<std::uint32_t>(kShatterSound - int(kSoundBase)));
     // The AI loop (label 100) shoots within 140 and walks closer beyond it, to 100.
-    std::size_t loop = base + Get32(script, Label(script, 100));
+    std::size_t loop = base + Get32(script, stb::RequireLabel(script, 100, "e115a.stb"));
     int         ranges = 0, walks = 0;
-    for (std::size_t c = loop; c + 12 <= script.size() && Get32(script, c) != stb::kReturn; c += 12) {
+    for (std::size_t c = loop; c + stb::kCell <= script.size() && Get32(script, c) != stb::kReturn; c += stb::kCell) {
         if (Get32(script, c) == stb::kPushConst && Get32(script, c + 4) == stb::kFloat && GetF32(script, c + 8) == kVanillaRange) {
             SetF32(out, c + 8, kShotRange);
             ranges++;
@@ -98,57 +90,51 @@ std::uint32_t Bits(float f) {
     return std::bit_cast<std::uint32_t>(f);
 }
 
-void Cell(Bytes &b, std::size_t at, std::uint32_t op, std::uint32_t a1, std::uint32_t a2) {
-    Set32(b, at, op);
-    Set32(b, at + 4, a1);
-    Set32(b, at + 8, a2);
-}
-
 // The shot's aim, appended past the script's end: v2..v4 its own place (_GET_POSITION(-1)), v8..v10 its facing
 // (_GET_DIRECTION(0)), v2 += facing.x x the reach, v4 += facing.z x the reach, v3 += 7.4, then back to the _SET_SHOT.
 Bytes AimCells(std::uint32_t set_shot) {
     std::vector<std::array<std::uint32_t, 3>> cells = {
-        {3,                 1,        11              },
-        {3,                 1,        1               },
-        {11,                0,        0               },
-        {stb::kLoadAddress, kAimX,    stb::kFloatLocal},
-        {stb::kLoadAddress, kAimY,    stb::kFloatLocal},
-        {stb::kLoadAddress, kAimZ,    stb::kFloatLocal},
-        {stb::kExt,         5,        0               },
-        {3,                 1,        31              },
-        {3,                 2,        0               },
-        {stb::kLoadAddress, kAimDirX, stb::kFloatLocal},
-        {stb::kLoadAddress, kAimDirY, stb::kFloatLocal},
-        {stb::kLoadAddress, kAimDirZ, stb::kFloatLocal},
-        {stb::kExt,         5,        0               },
+        {stb::kPushConst,   stb::kInt,   stb::kGetPosition },
+        {stb::kPushConst,   stb::kInt,   1                 },
+        {stb::kNegate,      0,           0                 },
+        {stb::kLoadAddress, kAimX,       stb::kFloatLocal  },
+        {stb::kLoadAddress, kAimY,       stb::kFloatLocal  },
+        {stb::kLoadAddress, kAimZ,       stb::kFloatLocal  },
+        {stb::kExt,         5,           0                 },
+        {stb::kPushConst,   stb::kInt,   stb::kGetDirection},
+        {stb::kPushConst,   stb::kFloat, Bits(0.0f)        },
+        {stb::kLoadAddress, kAimDirX,    stb::kFloatLocal  },
+        {stb::kLoadAddress, kAimDirY,    stb::kFloatLocal  },
+        {stb::kLoadAddress, kAimDirZ,    stb::kFloatLocal  },
+        {stb::kExt,         5,           0                 },
     };
     for (auto [v, d] : {
              std::pair{kAimX, kAimDirX},
              std::pair{kAimZ, kAimDirZ}
     }) {
         cells.insert(cells.end(), {
-                                      {2, v, stb::kFloatLocal},
-                                      {1, v, stb::kFloatLocal},
-                                      {3, 2, Bits(kAimAhead) },
-                                      {1, d, stb::kFloatLocal},
-                                      {8, 0, 0               },
-                                      {6, 0, 0               },
-                                      {5, 0, 0               },
-                                      {4, 0, 0               }
+                                      {stb::kLoadAddress, v,           stb::kFloatLocal},
+                                      {stb::kLoad,        v,           stb::kFloatLocal},
+                                      {stb::kPushConst,   stb::kFloat, Bits(kAimAhead) },
+                                      {stb::kLoad,        d,           stb::kFloatLocal},
+                                      {stb::kMultiply,    0,           0               },
+                                      {stb::kAdd,         0,           0               },
+                                      {stb::kStore,       0,           0               },
+                                      {stb::kPop,         0,           0               }
         });
     }
     cells.insert(cells.end(), {
-                                  {2, kAimY, stb::kFloatLocal},
-                                  {1, kAimY, stb::kFloatLocal},
-                                  {3, 2,     Bits(kAimUp)    },
-                                  {6, 0,     0               },
-                                  {5, 0,     0               },
-                                  {4, 0,     0               }
+                                  {stb::kLoadAddress, kAimY,       stb::kFloatLocal},
+                                  {stb::kLoad,        kAimY,       stb::kFloatLocal},
+                                  {stb::kPushConst,   stb::kFloat, Bits(kAimUp)    },
+                                  {stb::kAdd,         0,           0               },
+                                  {stb::kStore,       0,           0               },
+                                  {stb::kPop,         0,           0               }
     });
     cells.push_back({stb::kJump, set_shot, 0});
-    Bytes b(cells.size() * 12);
-    for (std::size_t i = 0; i < cells.size(); i++) {
-        Cell(b, i * 12, cells[i][0], cells[i][1], cells[i][2]);
+    Bytes b;
+    for (const auto &[op, a1, a2] : cells) {
+        stb::AppendCell(b, op, a1, a2);
     }
     return b;
 }
@@ -175,10 +161,10 @@ Bytes BuildAtlaGemronScript(std::span<const unsigned char> script) {
         throw bad("no label 100");
     }
     Bytes out(script.begin(), script.end());
-    // The shot's bone: push 133, then the bone's string.
+    // The shot's bone: push _SET_SHOT, then the bone's string.
     std::vector<std::size_t> sites;
     for (std::size_t c = cb; c + 24 <= script.size(); c += 4) {
-        if (push_i(c, 133) && u(c + 12) == 3 && u(c + 16) == 3) {
+        if (push_i(c, stb::kSetShot) && u(c + 12) == stb::kPushConst && u(c + 16) == stb::kString) {
             sites.push_back(c);
         }
     }
@@ -192,26 +178,26 @@ Bytes BuildAtlaGemronScript(std::span<const unsigned char> script) {
     std::copy_n(kAtlaShotSpawn, std::strlen(kAtlaShotSpawn), out.begin() + std::ptrdiff_t(bone_at));
     // The AI loop, up to its RET.
     std::size_t start = cb + u(*label100), end = start;
-    while (end + 12 <= script.size() && u(end) != stb::kReturn) {
-        end += 12;
+    while (end + stb::kCell <= script.size() && u(end) != stb::kReturn) {
+        end += stb::kCell;
     }
     std::vector<std::size_t> ranges;
     long                     cooldown = -1, close = -1, back_off = -1, shot_call = -1;
-    for (std::size_t c = start; c < end; c += 12) {
-        if (push_f(c) && f(c + 8) == kVanillaRange && op(c + 12, stb::kLess)) {
+    for (std::size_t c = start; c < end; c += stb::kCell) {
+        if (push_f(c) && f(c + 8) == kVanillaRange && op(c + 12, stb::kCompare)) {
             ranges.push_back(c);
         }
-        if (push_i(c, 180) && push_i(c + 12, 70)) { // _GET_RAND(70, ...) then + 80
+        if (push_i(c, stb::kGetRand) && push_i(c + 12, 70)) { // _GET_RAND(70, ...) then + 80
             for (std::size_t k = c + 24; k < c + 108 && cooldown < 0; k += 12) {
                 if (push_i(k, kVanillaCooldownFrom)) {
                     cooldown = long(k);
                 }
             }
         }
-        if (push_f(c) && f(c + 8) == kCloseRange && op(c + 12, stb::kLess) && u(c + 16) == 42 && close < 0) {
+        if (push_f(c) && f(c + 8) == kCloseRange && op(c + 12, stb::kCompare) && u(c + 16) == stb::kLessThan && close < 0) {
             close = long(c);
         }
-        if (close >= 0 && back_off < 0 && long(c) > close && push_i(c, 180) && push_i(c + 12, 100)) { // _GET_RAND(100, ...) < 40
+        if (close >= 0 && back_off < 0 && long(c) > close && push_i(c, stb::kGetRand) && push_i(c + 12, 100)) { // _GET_RAND(100, ...) < 40
             for (std::size_t k = c + 24; k < c + 108 && back_off < 0; k += 12) {
                 if (push_i(k, kVanillaBackOff)) {
                     back_off = long(k);
@@ -236,13 +222,13 @@ Bytes BuildAtlaGemronScript(std::span<const unsigned char> script) {
     std::size_t sc = std::size_t(shot_call);
     std::size_t shot_func = cb + u(sc + 8), shot_code = cb + u(shot_func);
     long        hold = -1;
-    for (std::size_t c = shot_code; c < sites[0]; c += 12) {
-        if (push_i(c, 10) && u(c + 12) == stb::kLoadAddress && u(c + 16) == kAimDistance && op(c + 24, stb::kExt) && push_f(c + 48) &&
-            f(c + 56) == 20.0f && op(c + 60, stb::kLess)) {
+    for (std::size_t c = shot_code; c < sites[0]; c += stb::kCell) {
+        if (push_i(c, stb::kGetDistance) && u(c + 12) == stb::kLoadAddress && u(c + 16) == kAimDistance && op(c + 24, stb::kExt) && push_f(c + 48) &&
+            f(c + 56) == 20.0f && op(c + 60, stb::kCompare)) {
             hold = long(c);
         }
     }
-    if (hold < 0 || long(sites[0]) - hold != 12 * 15) {
+    if (hold < 0 || long(sites[0]) - hold != long(15 * stb::kCell)) {
         throw bad("the shot function's hold-fire check not as expected");
     }
     for (std::size_t c : ranges) {
@@ -257,7 +243,7 @@ Bytes BuildAtlaGemronScript(std::span<const unsigned char> script) {
     std::size_t aim = out.size();
     Bytes       tail = AimCells(std::uint32_t(sites[0] - cb));
     out.insert(out.end(), tail.begin(), tail.end());
-    Cell(out, std::size_t(hold), stb::kJump, std::uint32_t(aim - cb), 0); // to the aim
+    stb::SetCell(out, std::size_t(hold), stb::kJump, std::uint32_t(aim - cb)); // to the aim
     return out;
 }
 
