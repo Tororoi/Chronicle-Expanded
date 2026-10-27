@@ -122,7 +122,7 @@ bool PlayerHitStaggers(const COLLISION_HIT &hit);
 void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
 
 // A hit just took amount off a monster's life (CheckDmg; its life is past it, under 0 when it took more than it had).
-void MonsterDamaged(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount);
+void MonsterDamaged(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount);
 
 // Whether a hit of a sword-wielder's on a monster wears the weapon (CheckDmg, landed or guarded): not the hits of the
 // effects that wear nothing.

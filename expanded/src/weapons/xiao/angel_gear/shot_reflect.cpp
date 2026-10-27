@@ -11,7 +11,7 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_queries.hpp"
-#include "expanded/status/poison.hpp"
+#include "expanded/status/monster_ailments.hpp"
 #include "expanded/weapons/weapon_hit.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_prop.hpp"
 #include "frame.hpp"
@@ -26,7 +26,6 @@ namespace {
 
 constexpr int   kPlayerOnly = 1; // a collision test's target: the player and walls
 constexpr int   kElements = 0x1F, kAilments = 0xFF00;
-constexpr int   kFreeze = 0x100, kPoison = 0x200, kSlow = 0x800;
 constexpr float kLockOnReach = 200.0f; // a lock-on point farther than this from the monster is stale
 constexpr int   kReturnTracked = 780;  // frames a returned shot is followed at most (the mod's 260 ticks)
 
@@ -109,30 +108,6 @@ void Face(CSHOT_EFFECT &effect, int slot, const float *direction) {
     effect.chara[slot].frame->SetTransMatrix(rotation);
 }
 
-// The freeze, poison and slow of a shot, as CheckDmg gives a monster the ones its own hit carries.
-void GiveAilments(MONSTOR &live, int monster, int given) {
-    if (live.status_chance == 0) {
-        return;
-    }
-    if ((given & kPoison) != 0 && live.stop_timer == 0 && live.anger_timer == 0) {
-        Poison(&live, monster);
-    }
-    if ((given & kFreeze) != 0) {
-        if (live.stop_timer <= 0) {
-            live.stop_timer = 300;
-            live.poison_timer = 0;
-            live.slow_timer = 0;
-            live.anger_timer = 0;
-            live.movement_speed = 0.0f;
-        } else {
-            live.stop_timer = 0;
-        }
-    }
-    if ((given & kSlow) != 0 && live.stop_timer == 0 && live.poison_timer == 0 && live.anger_timer == 0) {
-        live.slow_timer = 180;
-    }
-}
-
 // A returned shot met monster at point, reaching radius: the hit planted there, and the shot's ailments given.
 void Land(const CSHOT_EFFECT &effect, const float *point, float radius, int monster) {
     if (NowColData == nullptr || NowWeaponHave == nullptr || UserStatus == nullptr) {
@@ -148,7 +123,7 @@ void Land(const CSHOT_EFFECT &effect, const float *point, float radius, int mons
         return;
     }
     if (NowMonstorUnit != nullptr) {
-        GiveAilments(NowMonstorUnit->monster[monster], monster, flags & (kFreeze | kPoison | kSlow));
+        GiveMonsterAilments(NowMonstorUnit->monster[monster], monster, flags & (kMonsterFreeze | kMonsterPoison | kMonsterGoo));
     }
 }
 
