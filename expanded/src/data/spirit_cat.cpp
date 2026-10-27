@@ -228,6 +228,46 @@ Bytes ListMdt(const MdtMesh &skin_mdt, const Bytes &mat_template, std::string_vi
     return blob;
 }
 
+// The cape's MDT: the rest lattice in the anchor's space, in the engine's width-outer order.
+Bytes CapeMdt(const std::vector<RigNode> &cat_nodes, const SkinMesh &skin_me, const MdtMesh &skin_mdt, const Bytes &mat_template) {
+    std::vector<V3> cverts0 = CapeRestLocal(cat_nodes, skin_me);
+    const int       rows = kCapeRows, cols = kCapeCols;
+    std::vector<V3> cverts;
+    for (int c = 0; c < cols; c++) {
+        for (int r = 0; r < rows; r++) {
+            cverts.push_back(cverts0[std::size_t(r * cols + c)]);
+        }
+    }
+    std::vector<Tri> ctris;
+    for (int c = 0; c < cols - 1; c++) {
+        for (int r = 0; r < rows - 1; r++) {
+            int a = c * rows + r;
+            ctris.push_back({a, a + rows, a + rows + 1});
+            ctris.push_back({a, a + rows + 1, a + 1});
+        }
+    }
+    std::vector<V4> cape_normals(cverts.size(), V4{0.5, 0.5, 1.0, 1.0}), cape_uvs(cverts.size(), V4{0.5, 0.5, 1.0, 0.0});
+    return ListMdt(skin_mdt, mat_template, kCapeTexture, cverts, cape_normals, cape_uvs, ctris);
+}
+
+// The cape's .clo: its lattice, frame, physics and collision bounds.
+std::string CapeClo(const std::vector<RigNode> &cat_nodes) {
+    const int          rows = kCapeRows, cols = kCapeCols;
+    const CapePhysics &ph = kCapePhysics;
+    std::string        clo = std::format("SIZE\t{},\t{}\r\nFRAME\t\"{}\"\r\nWINDEFFECT\t{}\r\nNORMAL\t{}\r\n", cols, rows, kCapeNode, Fixed6(ph.wind), Fixed6(ph.normal));
+    clo += std::format("GRAVITY\t{0},\t{0},\t{0}\r\nFOLLOW\t{1},\t{2},\t{3}\r\n", Fixed6(ph.gravity), Fixed6(ph.follow0), Fixed6(ph.follow1), Fixed6(ph.follow2));
+    clo += std::format("K\t{0},\t{0},\t{0}\r\nPOLYDIV\t\"{1}\"\r\n", Fixed6(ph.k), std::string(std::size_t(cols - 1), '0'));
+    std::vector<BoundLocal> bounds = CapeBoundsLocal(cat_nodes);
+    for (std::size_t k = 0; k < bounds.size(); k++) {
+        const BoundLocal &b = bounds[k];
+        // Each bound names its own bone (the mod's .clo names the cape node, then points each at its bone in this order).
+        clo += std::format("BOUND\t\"{}\"\r\n\t{},\t{},\t{}\r\n\t{},\t{},\t{}\r\n\t{},\t{},\t{}\r\n\t{},\t{},\t{}\r\n\t{}\r\n", kCapeBounds[k].bone,
+                           Fixed6(b.up[0]), Fixed6(b.up[1]), Fixed6(b.up[2]), Fixed6(b.a[0]), Fixed6(b.a[1]), Fixed6(b.a[2]), Fixed6(b.b[0]),
+                           Fixed6(b.b[1]), Fixed6(b.b[2]), Fixed6(b.radii[0]), Fixed6(b.radii[1]), Fixed6(b.radii[2]), Fixed6(b.damp));
+    }
+    return clo;
+}
+
 struct Encoded {
     std::vector<ExtraNode> nodes;
     std::vector<MotTrack>  wgt_tracks, mot_tracks;
@@ -411,47 +451,18 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
     }
 
     // The Super Steve cape: a cloth frame under the root (its bind 3x3 at kHideScale, so the cloth built from it starts
-    // collapsed) whose MDT is the rest lattice in the anchor's space, in the engine's width-outer order.
+    // collapsed) whose MDT is the rest lattice, and its .clo.
     const auto     &cat_nodes = data.cat_nodes;
     const RigNode  &skin_node = *std::find_if(cat_nodes.begin(), cat_nodes.end(), [](const RigNode &n) { return n.name == "cat_skin"; });
     auto            skin_w = LoadWeights(data.pack, "cat.wgt").at(skin_node.i);
     SkinMesh        skin_me = *BuildMeshWeighted(data.mds, skin_node, cat_nodes, skin_w);
-    std::vector<V3> cverts0 = CapeRestLocal(cat_nodes, skin_me);
-    const int       rows = kCapeRows, cols = kCapeCols;
-    std::vector<V3> cverts;
-    for (int c = 0; c < cols; c++) {
-        for (int r = 0; r < rows; r++) {
-            cverts.push_back(cverts0[std::size_t(r * cols + c)]);
-        }
-    }
-    std::vector<Tri> ctris;
-    for (int c = 0; c < cols - 1; c++) {
-        for (int r = 0; r < rows - 1; r++) {
-            int a = c * rows + r;
-            ctris.push_back({a, a + rows, a + rows + 1});
-            ctris.push_back({a, a + rows + 1, a + 1});
-        }
-    }
-    std::vector<V4> cape_normals(cverts.size(), V4{0.5, 0.5, 1.0, 1.0}), cape_uvs(cverts.size(), V4{0.5, 0.5, 1.0, 0.0});
-    Bytes           cape_mdt = ListMdt(skin_mdt, mat_template, kCapeTexture, cverts, cape_normals, cape_uvs, ctris);
+    Bytes           cape_mdt = CapeMdt(cat_nodes, skin_me, skin_mdt, mat_template);
     out.cape = {
         kCapeNode, 0, {kHideScale, 0, 0, 0, 0, kHideScale, 0, 0, 0, 0, kHideScale, 0, 0, 0, 0, 1},
           cape_mdt
     };
-    const CapePhysics &ph = kCapePhysics;
-    std::string        clo = std::format("SIZE\t{},\t{}\r\nFRAME\t\"{}\"\r\nWINDEFFECT\t{}\r\nNORMAL\t{}\r\n", cols, rows, kCapeNode, Fixed6(ph.wind), Fixed6(ph.normal));
-    clo += std::format("GRAVITY\t{0},\t{0},\t{0}\r\nFOLLOW\t{1},\t{2},\t{3}\r\n", Fixed6(ph.gravity), Fixed6(ph.follow0), Fixed6(ph.follow1), Fixed6(ph.follow2));
-    clo += std::format("K\t{0},\t{0},\t{0}\r\nPOLYDIV\t\"{1}\"\r\n", Fixed6(ph.k), std::string(std::size_t(cols - 1), '0'));
-    std::vector<BoundLocal> bounds = CapeBoundsLocal(cat_nodes);
-    for (std::size_t k = 0; k < bounds.size(); k++) {
-        const BoundLocal &b = bounds[k];
-        // Each bound names its own bone (the mod's .clo names the cape node, then points each at its bone in this order).
-        clo += std::format("BOUND\t\"{}\"\r\n\t{},\t{},\t{}\r\n\t{},\t{},\t{}\r\n\t{},\t{},\t{}\r\n\t{},\t{},\t{}\r\n\t{}\r\n", kCapeBounds[k].bone,
-                           Fixed6(b.up[0]), Fixed6(b.up[1]), Fixed6(b.up[2]), Fixed6(b.a[0]), Fixed6(b.a[1]), Fixed6(b.a[2]), Fixed6(b.b[0]),
-                           Fixed6(b.b[1]), Fixed6(b.b[2]), Fixed6(b.radii[0]), Fixed6(b.radii[1]), Fixed6(b.radii[2]), Fixed6(b.damp));
-    }
-    out.clo = clo;
-    log(std::format("  cape baked: {}x{} lattice, MDT {} B", rows, cols, cape_mdt.size()));
+    out.clo = CapeClo(cat_nodes);
+    log(std::format("  cape baked: {}x{} lattice, MDT {} B", kCapeRows, kCapeCols, cape_mdt.size()));
 
     // The mask: a ring around each eye with a hole in it, bound whole to the head.
     SkinMesh        mask = BuildMaskMesh(cat_nodes, skin_me, log);
