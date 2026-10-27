@@ -7,6 +7,7 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/menu_text.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
@@ -18,10 +19,6 @@ namespace expanded {
 
 namespace {
 
-// The lines, system messages of their own.
-constexpr int kBlessedMessage = 1003;
-constexpr int kFadedMessage = 1004;
-constexpr int kMendedMessage = 1005;
 constexpr int kMessageFrames = 240;
 
 std::optional<std::string> BlessedLine() {
@@ -37,7 +34,7 @@ std::optional<std::string> MendedLine() {
 }
 
 [[maybe_unused]] const bool kLines =
-    (SetSystemMessage(kBlessedMessage, BlessedLine), SetSystemMessage(kFadedMessage, FadedLine), SetSystemMessage(kMendedMessage, MendedLine), true);
+    (SetSystemMessage(kKitchenKnifeBlessed, BlessedLine), SetSystemMessage(kKitchenKnifeFaded, FadedLine), SetSystemMessage(kKitchenKnifeMended, MendedLine), true);
 
 // The knife's model: its root is the mesh, and the hit frames are its children, so they grow with it.
 constexpr char kKnifeModel[] = "c01w08";
@@ -91,7 +88,7 @@ void ShrinkBlade() {
 }
 
 bool KnifeOut() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_TOAN && WeaponWielded(ITEM_WEAPON_KITCHEN_KNIFE);
+    return Playing(CHARA_TOAN) && WeaponWielded(ITEM_WEAPON_KITCHEN_KNIFE);
 }
 
 // The knife's own record, whose WHP the menu shows and the swings drain.
@@ -104,7 +101,7 @@ void End(bool quietly) {
     left = 0;
     ShrinkBlade();
     if (!quietly) {
-        Say(kFadedMessage);
+        Say(kKitchenKnifeFaded);
     }
 }
 
@@ -157,9 +154,9 @@ void SpringsBlessingSoak() {
     }
 
     if (blessing) {
-        Say(kBlessedMessage);
+        Say(kKitchenKnifeBlessed);
     } else if (mended) {
-        Say(kMendedMessage);
+        Say(kKitchenKnifeMended);
     }
 }
 

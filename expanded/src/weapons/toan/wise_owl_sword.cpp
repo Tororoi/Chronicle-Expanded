@@ -16,10 +16,9 @@ namespace expanded {
 
 namespace {
 
-// The line, a system message of its own: the key's name in it.
-constexpr int kWiseOwlMessage = 1001;
 constexpr int kWiseOwlFrames = 180;
 
+// The line, a system message of its own: the key's name in it.
 std::optional<std::string> WiseOwlLine() {
     return LocalizeText("expanded.wise_owl.key", "Wise Owl senses the {insert1} nearby...");
 }

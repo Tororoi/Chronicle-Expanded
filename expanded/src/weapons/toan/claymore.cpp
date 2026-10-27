@@ -2,6 +2,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/weapons/blade_scale.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 #include "userstatus.hpp"
@@ -16,7 +17,7 @@ bool grown = false;
 } // namespace
 
 bool GreatswordActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_TOAN && NowWeapon == &MainWeapon &&
+    return Playing(CHARA_TOAN) && NowWeapon == &MainWeapon &&
            WeaponWielded(ITEM_WEAPON_CLAYMORE);
 }
 

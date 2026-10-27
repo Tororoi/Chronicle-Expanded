@@ -4,7 +4,7 @@ class CCharacter;
 
 namespace expanded::mirage {
 
-// The Mirage's copy of its wielder, as the mod's CharacterClone makes it: a second instance of the active character, its
+// The Mirage's copy of its wielder: a second instance of the active character, its
 // dungeon model loaded again from its own pack as a floor character (EnterFloorCopy), so its bones, skins, motion and cloth
 // are its own while it draws with the character's own textures, and the weapon in hand copied (its frames, sharing its
 // meshes and textures) into the copy's hand. It stands where it is put, facing the way it is put, holding the guard loop

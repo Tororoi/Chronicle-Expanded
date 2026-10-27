@@ -4,6 +4,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/weapons/pellets.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 #include "itemdata.hpp"
@@ -17,7 +18,7 @@ namespace {
 } // namespace
 
 bool DoubleImpactActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && WeaponActive(ITEM_WEAPON_DOUBLE_IMPACT);
+    return Playing(CHARA_XIAO) && WeaponActive(ITEM_WEAPON_DOUBLE_IMPACT);
 }
 
 int DoubleImpactFired(CSHOT &shots, int slot) {

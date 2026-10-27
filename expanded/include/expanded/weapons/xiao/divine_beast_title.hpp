@@ -9,7 +9,7 @@ struct MONSTOR_EFFECT_STATE;
 
 namespace expanded {
 
-// Divine Beast Title "Spirit Beast", as the mod has it: with the Divine Beast Title, the Angel Shooter or the Angel Gear in
+// Divine Beast Title "Spirit Beast": with the Divine Beast Title, the Angel Shooter or the Angel Gear in
 // hand, or Super Steve carrying one's SynthSphere, a shot held drawn kSpiritBeastFrames (the charge-complete flash) lets
 // Xiao's cat (the model built at extraction, data/spirit_cat.hpp) go with its pellet, taking away the cat that was out. Each
 // weapon's cat has a look of its own: the Title's is plain and glows blue; the Angel Shooter's wears the wings, glows white,
@@ -17,7 +17,7 @@ namespace expanded {
 // (kSpiritBeastPounce by a mimic still in its chest) and steers its pounce on past the apex, until it has fallen halfway to
 // the floor (landing, until kSpiritBeastCommitHorizon frames out); the Angel Gear's is that cat glowing gold, a warmer white,
 // kAngelGearCatScale times the size; Super Steve's with either one's sphere is that cat at that size wearing the cape and
-// mask in the selected element's colour (spirit_cape.hpp), its glow the element's. A change of look takes the cat away. Its step runs as the mod's cave does, once a frame after the pellets step:
+// mask in the selected element's colour (spirit_cape.hpp), its glow the element's. A change of look takes the cat away. Its step runs once a frame after the pellets step:
 //   - Riding: from the pellet's first step it is held, through everything, and shrinks away as the cat grows over
 //     kSpiritBeastGrowFrames with its head on it; at full size the cat breaks away with the pellet's velocity. A pellet
 //     that ends before then leaves the cat full size where it was, fading.

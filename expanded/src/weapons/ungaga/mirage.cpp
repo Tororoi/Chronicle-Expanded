@@ -44,12 +44,6 @@ GuardHold guard; // latched once it plants (or hands off): no more until R1 is l
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(MirageReset), true);
 
-float PlayerYaw() {
-    float rotation[4];
-    CharaMain.GetRotation(rotation);
-    return rotation[1];
-}
-
 bool Live(int monster) {
     const MONSTOR *live = FloorMonster(monster);
     return live != nullptr && MonsterLiving(*live);
@@ -136,13 +130,12 @@ void Update(bool fresh) {
     CloneStep(MirageCloneAlpha());
 }
 
-} // namespace
-
-bool MirageActive() {
+// Whether the decoy can be planted: the Mirage or Hercules' Wrath in hand, or as Super Steve's sphere.
+bool Active() {
     return WeaponActive(ITEM_WEAPON_MIRAGE) || WeaponActive(ITEM_WEAPON_HERCULES_WRATH);
 }
 
-bool MirageLineReachActive() {
+bool LineReachActive() {
     for (int weapon : {ITEM_WEAPON_MIRAGE, ITEM_WEAPON_TERRA_SWORD, ITEM_WEAPON_HERCULES_WRATH, ITEM_WEAPON_BABEL_S_SPEAR}) {
         if (WeaponActive(weapon)) {
             return true;
@@ -151,8 +144,10 @@ bool MirageLineReachActive() {
     return false;
 }
 
+} // namespace
+
 float MirageLineReachRate(float rate) {
-    return MirageLineReachActive() ? rate * kMirageLineReach : rate;
+    return LineReachActive() ? rate * kMirageLineReach : rate;
 }
 
 void MirageStep() {
@@ -163,7 +158,7 @@ void MirageStep() {
     if (decoy.up && UserStatus->cur_chara != decoy.chara) {
         End("the party member changed");
     }
-    if (!MirageActive()) {
+    if (!Active()) {
         if (decoy.up) {
             End("the weapon is put away");
         }

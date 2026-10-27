@@ -55,7 +55,7 @@ bool PropLoad(const BloomModel &bloom) {
     }
     CCharacter *model = EnterFloorCharacter(path.c_str(), cfg.c_str());
     if (model == nullptr || model->frame == nullptr) {
-        std::printf("desert bloom: no %s, %s could not be loaded\n", bloom.name, path.c_str());
+        std::fprintf(stderr, "desert bloom: no %s, %s could not be loaded\n", bloom.name, path.c_str());
         return false;
     }
     PropDown();

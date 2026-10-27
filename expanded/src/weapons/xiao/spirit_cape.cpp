@@ -99,10 +99,6 @@ bool SpiritCapeTake(CCharacter &cat) {
     return true;
 }
 
-CCloth *SpiritCape() {
-    return cape.cloth;
-}
-
 void SpiritCapeSize(float scale) {
     if (cape.cloth == nullptr || scale == cape.sized) {
         return;

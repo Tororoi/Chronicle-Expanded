@@ -9,6 +9,7 @@
 #include "edit.hpp"
 #include "editloop.hpp"
 #include "expanded/town/ally.hpp"
+#include "itemdata.hpp"
 #include "mathutil.hpp"
 #include "snd.hpp"
 
@@ -19,12 +20,6 @@
 namespace expanded {
 
 namespace {
-
-constexpr int kXiao = 1;
-constexpr int kGoro = 2;
-constexpr int kRuby = 3;
-constexpr int kUngaga = 4;
-constexpr int kOsmond = 5;
 
 // Motion flag: play once and hold the last frame.
 constexpr int kPlayOnce = 2;
@@ -442,9 +437,9 @@ void RubyLadder(Builder &b, const Ladder &ladder) {
 
 // The ladder refusal in slot 7, played where the player stands.
 void Refusal(Builder &b, int ally) {
-    int frames = ally == kXiao ? 175 : ally == kGoro ? 65
-                                   : ally == kRuby   ? 105
-                                                     : 190;
+    int frames = ally == CHARA_XIAO ? 175 : ally == CHARA_GORO ? 65
+                                        : ally == CHARA_RUBY   ? 105
+                                                               : 190;
     b.Motion(kRefusal);
     b.Wait(frames);
     b.Motion(kIdle, -1.0f, 0);
@@ -468,15 +463,15 @@ TownLadder TownLadderSequence(int ally, const float position[3], float yaw, cons
     }
 
     Builder b(ladder);
-    if (ally == kXiao && read) {
+    if (ally == CHARA_XIAO && read) {
         XiaoLadder(b, ladder);
-    } else if (ally == kGoro && read) {
+    } else if (ally == CHARA_GORO && read) {
         GoroLadder(b, ladder);
-    } else if (ally == kRuby && read) {
+    } else if (ally == CHARA_RUBY && read) {
         RubyLadder(b, ladder);
-    } else if (ally == kOsmond && read) {
+    } else if (ally == CHARA_OSMOND && read) {
         OsmondLadder(b, ladder);
-    } else if (ally >= kXiao && ally <= kUngaga) {
+    } else if (ally >= CHARA_XIAO && ally <= CHARA_UNGAGA) {
         Refusal(b, ally);
     }
     return b.sequence;

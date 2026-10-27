@@ -108,7 +108,7 @@ int FriendlyHit(CMonstorUnit &unit, int i, int hit) {
     monster.last_hit_id = -1;
     monster.hit_element = WEAPON_ELEMENT_NONE;
 
-    if (record->knockback_mode == 2) {
+    if (record->knockback_mode == kKnockbackFromOrigin) {
         sceVu0FVECTOR knockback_position, knockback_origin;
         unit.chara[slot][0].GetPosition(knockback_position);
         sceVu0CopyVector(knockback_origin, record->knockback_origin);

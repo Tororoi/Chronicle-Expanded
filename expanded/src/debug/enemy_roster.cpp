@@ -193,7 +193,7 @@ bool SetDebugRoster(std::string_view text, std::string *why) {
     spec = Trim(text);
     roster = parsed;
     set_in_visit = RosterVisits();
-    std::printf("debug enemy roster: %s\n", spec.empty() ? "cleared" : spec.c_str());
+    std::fprintf(stderr, "debug enemy roster: %s\n", spec.empty() ? "cleared" : spec.c_str());
     return true;
 }
 

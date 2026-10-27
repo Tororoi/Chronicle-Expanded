@@ -4,7 +4,7 @@ class CCharacter;
 
 namespace expanded::angel_gear {
 
-// The Guardian Reflector's giant slingshot, as the mod's SlingshotProp makes it: the weapon in Xiao's hand loaded again from
+// The Guardian Reflector's giant slingshot: the weapon in Xiao's hand loaded again from
 // its own character pack (commenu/weapon/c04wNN.chr, Super Steve's own model for its sphere) as a floor character, so its
 // mesh, motion and keys are its own and the slingshot in her hand is never touched. It stands kPropAhead units out from her
 // along its orbit bearing and kPropUp above her feet, kPropScale times the size, facing along the bearing, upright as the

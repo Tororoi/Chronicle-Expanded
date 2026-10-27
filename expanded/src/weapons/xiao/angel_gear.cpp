@@ -8,6 +8,7 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/abilities.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_prop.hpp"
@@ -24,7 +25,6 @@ namespace {
 
 using namespace angel_gear;
 
-constexpr int   kHealAbility = 0x800; // the weapon flags' Heal
 constexpr float kFullGauge = 100.0f;
 constexpr float kXiaoGaugeRate = 1.5f; // the refill's own rate for Xiao
 constexpr float kOutOfReach = 1.0e6f;
@@ -44,12 +44,6 @@ struct Reflector {
 Reflector reflector;
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(GuardianReflectorReset), true);
-
-float HerYaw() {
-    float rotation[4];
-    CharaMain.GetRotation(rotation);
-    return rotation[1];
-}
 
 // Everything put back as the game has it.
 void TakeDown() {
@@ -144,7 +138,7 @@ void FireCycle(bool guarding, const float *her) {
 } // namespace
 
 bool GuardianReflectorActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && BtEventMode == 0 && NowMonstorUnit != nullptr &&
+    return Playing(CHARA_XIAO) && BtEventMode == 0 && NowMonstorUnit != nullptr &&
            WeaponActive(ITEM_WEAPON_ANGE_GEAR);
 }
 
@@ -163,7 +157,7 @@ void GuardianReflectorStep() {
     PropLoad(); // ahead of her guard
     bool  guarding = Guarding();
     float her[4] = {CharaMain.pos[0], CharaMain.pos[1], CharaMain.pos[2], 1.0f};
-    float yaw = HerYaw();
+    float yaw = PlayerYaw();
 
     RingStep();
     // The gauge is the standing shield's health (a hit on her fills it: put back); after a break it refills, then is free.
@@ -239,7 +233,7 @@ void GuardianReflectorPlayerPoint(float *point) {
 
 void AngelGearHealTick() {
     if (UserStatus == nullptr || UserStatus->cur_chara != CHARA_XIAO || !WeaponActive(ITEM_WEAPON_ANGE_GEAR) || NowWeaponHave == nullptr ||
-        (NowWeaponHave->flags & kHealAbility) == 0) {
+        (NowWeaponHave->flags & kAbilityHeal) == 0) {
         return;
     }
     if (UserStatus->step_disable != 0 || BtActStatus.in_presentation != 0 || BtEventMode != 0) {

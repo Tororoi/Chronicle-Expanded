@@ -198,8 +198,7 @@ void Land() {
 } // namespace
 
 bool BigBangShotActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && WeaponWielded(ITEM_WEAPON_SUPER_STEVE) &&
-           SuperSteveSphere() == ITEM_WEAPON_BIG_BANG;
+    return Playing(CHARA_XIAO) && SuperSteveSphere() == ITEM_WEAPON_BIG_BANG;
 }
 
 bool BigBangShotHanging() {

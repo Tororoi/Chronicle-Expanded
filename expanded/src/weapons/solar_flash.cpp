@@ -93,19 +93,16 @@ struct State {
 State state;
 
 const SolarProfile *ActiveProfile() {
-    if (UserStatus == nullptr) {
-        return nullptr;
-    }
-    if (UserStatus->cur_chara == CHARA_TOAN && WeaponWielded(ITEM_WEAPON_SUN_SWORD)) {
+    if (Playing(CHARA_TOAN) && WeaponWielded(ITEM_WEAPON_SUN_SWORD)) {
         return &kSunSwordFlash;
     }
-    if (UserStatus->cur_chara == CHARA_TOAN && WeaponWielded(ITEM_WEAPON_BIG_BANG)) {
+    if (Playing(CHARA_TOAN) && WeaponWielded(ITEM_WEAPON_BIG_BANG)) {
         return &kBigBangFlash;
     }
-    if (UserStatus->cur_chara == CHARA_TOAN && WeaponWielded(ITEM_WEAPON_SWORD_OF_ZEUS)) {
+    if (Playing(CHARA_TOAN) && WeaponWielded(ITEM_WEAPON_SWORD_OF_ZEUS)) {
         return &kZeusFlash;
     }
-    if (UserStatus->cur_chara == CHARA_XIAO && WeaponWielded(ITEM_WEAPON_SUPER_STEVE) && SuperSteveSphere() == ITEM_WEAPON_SUN_SWORD) {
+    if (Playing(CHARA_XIAO) && SuperSteveSphere() == ITEM_WEAPON_SUN_SWORD) {
         return &kSolarShotFlash;
     }
     return nullptr;

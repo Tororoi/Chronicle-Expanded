@@ -139,8 +139,8 @@ void BossPackFile(char *filename, int model_no) {
             std::strcpy(filename, pack.file);
         } else if (!logged_missing) {
             logged_missing = true;
-            std::printf("bosses: the data lacks %s; the boss falls with %s (dcdata expanded <data> adds the new one)\n",
-                        pack.file, pack.death);
+            std::fprintf(stderr, "bosses: the data lacks %s; the boss falls with %s (dcdata expanded <data> adds the new one)\n",
+                         pack.file, pack.death);
         }
     }
 }

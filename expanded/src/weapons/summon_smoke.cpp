@@ -55,7 +55,7 @@ bool SummonSmokeStart(const float *spot, float yaw, float scale, const void *own
     PutOut();
     int index = ShotEffectIndex(&smoke);
     if (index < 0) {
-        std::printf("summon smoke: not loaded on this floor\n");
+        std::fprintf(stderr, "summon smoke: not loaded on this floor\n");
         return false;
     }
     CSHOT_EFFECT *effect = ShotEffectAt(index);

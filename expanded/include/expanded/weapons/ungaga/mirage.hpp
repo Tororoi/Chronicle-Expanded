@@ -2,7 +2,7 @@
 
 namespace expanded {
 
-// Mirage "Decoy", as the mod has it: with the Mirage or Hercules' Wrath in Ungaga's hand, or Super Steve carrying either's
+// Mirage "Decoy": with the Mirage or Hercules' Wrath in Ungaga's hand, or Super Steve carrying either's
 // SynthSphere, the guard pose held kMirageGuardFrames (the clock starting on its first frame and running while the guard
 // button stays down) flashes the wielder with the charge-complete flash and plants a decoy where they stand: a copy of them
 // holding the guard (mirage/clone.hpp) under a heat shimmer (mirage/heat_haze.hpp). One plant a guard: letting the guard
@@ -33,10 +33,6 @@ inline constexpr int kMirageGuardLoop = 9;
 // The Mirage line, the Mirage and what is built from it (the Terra Sword, Hercules' Wrath, Babel's Spear), in hand or as
 // Super Steve's sphere: monsters can be locked on from kMirageLineReach times as far.
 inline constexpr float kMirageLineReach = 2.0f;
-
-// Whether the decoy can be planted: the Mirage or Hercules' Wrath in hand, or as Super Steve's sphere.
-bool MirageActive();
-bool MirageLineReachActive();
 
 // Hooks: a dungeon step, after the monsters' shots stepped; a monster took a hit (CheckDmg); where a monster's script finds
 // the player (_GET_POSITION, _GET_DISTANCE), true when the decoy sets it; the active character's lock-on range scale

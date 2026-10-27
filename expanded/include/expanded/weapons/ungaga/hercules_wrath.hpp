@@ -70,8 +70,6 @@ inline constexpr float       kSparkleSecondStart = 21.0f, kSparkleSecondEnd = 80
 inline constexpr float       kSparkleDarkFrom = 21.0f, kSparkleBlastFrame = 36.0f;
 inline constexpr float       kSparkleFadeFrom = 60.0f, kSparkleFadeTo = 68.0f;
 
-bool AirStrikeActive();
-
 enum class AirStrikePhase {
     kIdle,
     kCharging,

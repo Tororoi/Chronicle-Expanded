@@ -70,8 +70,8 @@ void FindModels() {
 
     if (!missing.empty() && !logged_missing) {
         logged_missing = true;
-        std::printf("town: the data lacks %s; those allies walk in their disc bodies (dcdata expanded <data> builds them)\n",
-                    missing.c_str());
+        std::fprintf(stderr, "town: the data lacks %s; those allies walk in their disc bodies (dcdata expanded <data> builds them)\n",
+                     missing.c_str());
     }
 }
 

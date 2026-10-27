@@ -160,7 +160,7 @@ CCharacter *Load() {
     static bool logged_missing = false;
     if (loaded == nullptr && !logged_missing) {
         logged_missing = true;
-        std::printf("divine beast title: no cat, %s could not be loaded (dcdata expanded <data> builds it)\n", kSpiritCatModelFile);
+        std::fprintf(stderr, "divine beast title: no cat, %s could not be loaded (dcdata expanded <data> builds it)\n", kSpiritCatModelFile);
     }
     return loaded;
 }
@@ -242,8 +242,8 @@ void Target(int monster) {
     }
 }
 
-// What the mod's thread does around the cave each frame: the aim follows the target, a lock-on made since is taken (from
-// the crouch, back to walking), and walking or sitting it finds a new target when it has none.
+// Each frame: the aim follows the target, a lock-on made since is taken (from the crouch, back to walking), and walking
+// or sitting it finds a new target when it has none.
 void Watch() {
     bool walking = cat.phase == SpiritBeastPhase::kWalking || cat.phase == SpiritBeastPhase::kSitting;
     if (cat.target >= 0 && !Targetable(cat.target)) {
@@ -640,7 +640,7 @@ void TakeAway() {
 } // namespace
 
 bool SpiritBeastActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && BtEventMode == 0 && LookNow() != nullptr;
+    return Playing(CHARA_XIAO) && BtEventMode == 0 && LookNow() != nullptr;
 }
 
 float SpiritBeastScale() {

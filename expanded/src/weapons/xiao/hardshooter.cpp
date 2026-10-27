@@ -7,6 +7,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/weapons/pellets.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -105,7 +106,7 @@ int NextTarget(const CMonstorUnit &unit, int struck, int avoid, const float *poi
 } // namespace
 
 bool RicochetActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO &&
+    return Playing(CHARA_XIAO) &&
            (WeaponActive(ITEM_WEAPON_HARDSHOOTER) || WeaponActive(ITEM_WEAPON_DOUBLE_IMPACT));
 }
 

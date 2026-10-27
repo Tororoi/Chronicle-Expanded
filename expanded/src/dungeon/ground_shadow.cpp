@@ -33,7 +33,7 @@ CCharacter *Disc() {
     if (shadow.disc == nullptr && !shadow.failed) {
         shadow.disc = EnterFloorCharacter(kShadowDiscFile, kShadowDiscCfg);
         if (shadow.disc == nullptr || shadow.disc->shadow_frame == nullptr) {
-            std::printf("ground shadow: no shadow disc, %s could not be loaded\n", kShadowDiscFile);
+            std::fprintf(stderr, "ground shadow: no shadow disc, %s could not be loaded\n", kShadowDiscFile);
             shadow.disc = nullptr;
             shadow.failed = true;
         }

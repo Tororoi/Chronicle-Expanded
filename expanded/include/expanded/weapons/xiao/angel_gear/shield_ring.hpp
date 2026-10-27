@@ -4,7 +4,7 @@
 
 namespace expanded::angel_gear {
 
-// The shield, as the mod's ShieldRing, ShieldPatches and MeleeHitWatch have it, while the slingshot stands:
+// The shield, while the slingshot stands:
 //   - Every monster spawned with life farther than kRingRadius from Xiao finds her at its own point of a ring of that
 //     radius about her (along the line to it), so it walks straight at her and stops and swings on reaching the slingshot;
 //     one nearer finds her where she is. A monster's body stops kRingRadius from her, not the game's 6 units.
@@ -14,11 +14,9 @@ namespace expanded::angel_gear {
 //     shot's blast reaching it is spent silently, as is every swing while it clears.
 inline constexpr float kPropHitRadius = 6.0f, kPropHitHeight = 14.0f, kPropHitBelow = 2.0f;
 inline constexpr float kRingRadius = kPropAhead + kPropHitRadius;
-inline constexpr float kGameBlockRadius = 6.0f;
 inline constexpr int   kStrikeFrames = 12;
 
 void RingUp(bool up);
-bool RingIsUp();
 // The swings and blasts reaching the slingshot spent; whether one struck it (never while quiet).
 bool SpendOnShield(bool quiet);
 // A frame passing: the wait after a strike.

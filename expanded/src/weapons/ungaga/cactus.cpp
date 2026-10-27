@@ -37,7 +37,6 @@ namespace {
 
 using namespace cactus;
 
-constexpr int kKickAway = 2;    // thrown away from the hit's origin
 constexpr int kHitReserve = 16; // free hit records a prick leaves the game
 
 // The smoke's frames as game frames from the summon.
@@ -98,12 +97,6 @@ Bloom bloom;
 
 const BloomShape &Shape() {
     return bloom.form->shape;
-}
-
-float HerYaw() {
-    float rotation[4];
-    CharaMain.GetRotation(rotation);
-    return rotation[1];
 }
 
 // The copy's turn: the wielder's facing at the summon and the form's own, within a half-turn either way.
@@ -194,7 +187,7 @@ void Prick(CMonstorUnit &unit, int monster) {
     }
     record->weapon_flags |= kPrickMark;
     float origin[4] = {bloom.spot[0], bloom.spot[1], bloom.spot[2], 1.0f};
-    NowColData->SetKickBack(origin, kBloomKick.speed, kBloomKick.decay, kKickAway);
+    NowColData->SetKickBack(origin, kBloomKick.speed, kBloomKick.decay, kKnockbackFromOrigin);
 }
 
 void Pricks() {
@@ -223,7 +216,7 @@ void TakeDown() {
 
 void Summon() {
     TakeDown(); // one standing moves
-    bloom.yaw = HerYaw();
+    bloom.yaw = PlayerYaw();
     bloom.spot[0] = CharaMain.pos[0] + std::sin(bloom.yaw) * kBloomAhead;
     bloom.spot[2] = CharaMain.pos[2] + std::cos(bloom.yaw) * kBloomAhead;
     if (!FloorUnder(bloom.spot[0], bloom.spot[2], CharaMain.pos[1] + kFloorAbove, &bloom.spot[1])) {
@@ -324,12 +317,12 @@ void End() {
     bloom = Bloom{};
 }
 
-} // namespace
-
-bool DesertBloomActive() {
-    return UserStatus != nullptr && NowMonstorUnit != nullptr && (UserStatus->cur_chara == CHARA_UNGAGA || UserStatus->cur_chara == CHARA_XIAO) &&
+bool Active() {
+    return NowMonstorUnit != nullptr && (Playing(CHARA_UNGAGA) || Playing(CHARA_XIAO)) &&
            WeaponActive(ITEM_WEAPON_CACTUS);
 }
+
+} // namespace
 
 bool DesertBloomUp() {
     return bloom.up;
@@ -356,7 +349,7 @@ bool DesertBloomPrick(const COLLISION_HIT &hit) {
 }
 
 void DesertBloomStep() {
-    bool active = DesertBloomActive();
+    bool active = Active();
     if (bloom.chara >= 0 && (!active || UserStatus->cur_chara != bloom.chara)) {
         End(); // a change of wielder ends it: the next one's starts afresh
     }

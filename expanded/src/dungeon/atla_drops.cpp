@@ -1,5 +1,4 @@
 #include "dungeon.h"
-#include "expanded/dungeon/atla_drops.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -12,6 +11,7 @@
 #include "dun/gameloop.hpp"
 #include "dungeonmap.hpp"
 #include "expanded/core/menu_text.hpp"
+#include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/weapons/abilities.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
@@ -33,14 +33,13 @@ constexpr float kPickupRadius = 13.0f; // SetAtraBoll's
 constexpr float kLift = 24.0f;         // 6 at the middle of the way
 constexpr int   kAtlaTextureBlock = 0x16;
 constexpr int   kMessageFrames = 0x28;
-// The SynthSphere's line, a system message of its own (the bank has none past 78): the weapon's name in it.
-constexpr int kSphereMessage = 1000;
 
+// The SynthSphere's line, a system message of its own (the bank has none past 78): the weapon's name in it.
 std::optional<std::string> SphereLine() {
     return LocalizeText("expanded.atla_drop.sphere", "{icon-orb}\"{insert1}\" SynthSphere acquired.");
 }
 
-[[maybe_unused]] const bool kSphereLine = (SetSystemMessage(kSphereMessage, SphereLine), true);
+[[maybe_unused]] const bool kSphereLine = (SetSystemMessage(kAtlaSphereMessage, SphereLine), true);
 // A SynthSphere's values: a sixth of its weapon's, rounded up.
 constexpr double kSphereShare = 6.0;
 
@@ -153,7 +152,7 @@ void Name(const AtlaDrop &drop) {
         return;
     }
     int args[4] = {WeaponMessage(drop.weapon), -1, -1, -1};
-    SetSystemMes(kSphereMessage, kMessageFrames, MES_POS_BOTTOM, 1, args, nullptr);
+    SetSystemMes(kAtlaSphereMessage, kMessageFrames, MES_POS_BOTTOM, 1, args, nullptr);
 }
 
 } // namespace

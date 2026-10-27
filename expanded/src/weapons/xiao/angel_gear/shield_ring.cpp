@@ -35,10 +35,6 @@ void RingUp(bool up) {
     ring.up = up;
 }
 
-bool RingIsUp() {
-    return ring.up;
-}
-
 bool SpendOnShield(bool quiet) {
     if (NowColData == nullptr || ring.strike_wait > 0) {
         return false; // a strike's wait: no swing is looked at
