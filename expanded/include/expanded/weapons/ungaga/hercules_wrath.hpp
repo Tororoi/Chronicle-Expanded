@@ -1,5 +1,7 @@
 #pragma once
 
+#include "expanded/dungeon/own_sounds.hpp"
+
 class CCharacter;
 class CSHOT;
 struct BT_SHOT_EFFECT;
@@ -9,13 +11,16 @@ namespace expanded {
 // Hercules' Wrath "Air Strike", the guard charge's second level. With Hercules' Wrath in Ungaga's hand, or Super Steve
 // carrying its SynthSphere, the guard held kMirageGuardFrames plants the Mirage's decoy (mirage.hpp, the first level;
 // it stands kHerculesMirageFrames). Held kAirStrikeChargeFrames more, the room darkens toward kAirStrikeDim and the
-// weapon turns gold (kAirStrikeGold added to its light, on a ramp that barely moves at first and is full at the end), the
-// copy's weapon with it; letting the guard go before then drops it all. Charged, the game's charge-complete flash plays
-// and the strike is primed for as long as a decoy stands: a new decoy keeps it, and as the last one dissolves the dark and
-// the gold go with it, and the strike with them. One charge a hold of the guard.
-//   - Ungaga's: his next combo swing reaching kAirStrikeSwingFrame (the end of his first swing's hit window) calls it on
-//     the decoy. A sparkle (gedit/s78's cutscene e508_ex, kSparkleFile) plays its first clip at the copy's spear tip
-//     (its dcol0), following it, then its second at kSparkleSecondRate where the tip was, at the decoy's height. Along
+// weapon turns gold (kAirStrikeGold added to its light, on a ramp that barely moves at first and is full at the end),
+// the copy's weapon with it; letting the guard go before then eases the dark and the gold back over
+// kAirStrikeReleaseFrames. Charged, the game's charge-complete flash plays and the strike is primed for as long as a
+// decoy stands: a new decoy keeps it, and as the last one dissolves the dark and the gold go with it, and the strike
+// with them. One charge a hold of the guard.
+//   - Ungaga's: his next combo swing reaching kAirStrikeSwingFrame (the end of his first swing's hit window) calls it
+//     on the decoy. A sparkle (gedit/s78's cutscene e508_ex, kSparkleFile) plays its first clip at the copy's spear tip
+//     (its dcol0), following it, with a twinkle (kAirStrikeTwinkle), then its second at kSparkleSecondRate where the
+//     tip was, at the decoy's height, with the sound the light makes in the Black Knight's defeat scene
+//     (kAirStrikeSound, its first kAirStrikeSoundFrames fading out over their last kAirStrikeSoundFadeFrames). Along
 //     the second the room plunges from the dim to black (frames kSparkleDarkFrom to kSparkleBlastFrame), then the blast
 //     lands there: Big Bang's falloff at kAirStrikeReach times its reach (4, 3, 2 and 1 times the attack within 20, 50,
 //     80 and 100), through any guard, felt as nothing and wearing no weapon HP as it lands; the strike bills
@@ -38,6 +43,20 @@ inline constexpr float kAirStrikeReach = 2.0f;
 inline constexpr float kAirStrikeWhp = 20.0f;
 inline constexpr int   kAirStrikeMissFrames = 180;
 inline constexpr float kAirStrikeFloorAbove = 10.0f;
+inline constexpr int   kAirStrikeReleaseFrames = 30;
+
+// The light's sound in event 508 (sound 2588: program 121, note 31 of the Demon Shaft boss room's set): its first
+// kAirStrikeSoundFrames, faded out over the last kAirStrikeSoundFadeFrames of them.
+inline constexpr int    kAirStrikeSoundFrames = 150;
+inline constexpr int    kAirStrikeSoundFadeFrames = 20;
+inline constexpr OwnCut kAirStrikeSoundCut[] = {
+    {31, 0.0f, kAirStrikeSoundFrames / 60.0f, kAirStrikeSoundFadeFrames / 60.0f}
+};
+inline constexpr OwnSound kAirStrikeSound = {"sound/set/snd207.snd", "d07f_g.hd", 121, 31, kAirStrikeSoundFrames, 1, kAirStrikeSoundCut, 1};
+
+// The glint's twinkle, played whole as the sparkle's first clip starts: the dungeons' Ice Gem sound (program 30, note 22
+// of the Divine Beast Cave set's bank).
+inline constexpr OwnSound kAirStrikeTwinkle = {"sound/set/snd100.snd", "d01a_i.hd", 30, 22, 27};
 
 // The sparkle: its first clip (KEY 0, frames 2 to 16) at its own 0.3 a frame, its second (KEY 1, frames 21 to 80) at
 // kSparkleSecondRate. Its third (81 to 96) never plays.

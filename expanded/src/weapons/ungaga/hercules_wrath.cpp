@@ -47,7 +47,8 @@ BT_SHOT_EFFECT sparkle = {"e508_ex", 0, 0, {}, {}, -1, 0, 0, 3, kMonsters, {2, -
 
 [[maybe_unused]] const bool kRegistered =
     (RegisterWeaponShotEffect(ITEM_WEAPON_HERCULES_WRATH, WeaponShotForm::Weapon, &sparkle, kSparkleShots, kSparkleFile),
-     RegisterWeaponShotEffect(ITEM_WEAPON_HERCULES_WRATH, WeaponShotForm::Sphere, &sparkle, kSparkleShots, kSparkleFile), true);
+     RegisterWeaponShotEffect(ITEM_WEAPON_HERCULES_WRATH, WeaponShotForm::Sphere, &sparkle, kSparkleShots, kSparkleFile),
+     RegisterOwnSound(kAirStrikeSound), RegisterOwnSound(kAirStrikeTwinkle), true);
 
 struct State {
     AirStrikePhase phase = AirStrikePhase::kIdle;
@@ -56,6 +57,10 @@ struct State {
     bool           spent = false; // a charge ended with R1 still down: no other until it is let go
     bool           swung = false; // this swing has called the strike, or come past its frame
     float          gold = 0.0f;
+    float          dim = 0.0f;  // the room's dark from the charge
+    int            release = 0; // frames left of the dark and the gold easing back after a charge let go
+    float          release_dim = 0.0f;
+    float          release_gold = 0.0f;
     float          place[4] = {};   // the decoy's spot (the last one's once it has gone)
     float          landed[4] = {};  // where Xiao's primed pellet is, then where it ended
     float          ground = 0.0f;   // the floor under that
@@ -144,6 +149,7 @@ bool Burst(const float *at) {
     model.SetScale(1.0f, 1.0f, 1.0f);
     FadeUnlitFrames(model.frame, 1.0f); // a slot an earlier sparkle faded, back to full
     Clip(0, kSparkleFirstStart, kOwnRate);
+    PlayOwnSound(kAirStrikeTwinkle, false); // the glint
     return true;
 }
 
@@ -262,6 +268,7 @@ void Play() {
             state.spot[0] = tip[0];
             state.spot[1] = tip[2];
             Clip(1, kSparkleSecondStart, kSparkleSecondRate);
+            PlayOwnSound(kAirStrikeSound, false); // the light comes down
         }
         return;
     }
@@ -311,6 +318,18 @@ bool SwingReached() {
     return true;
 }
 
+// A frame of the dark and the gold easing back after a charge was let go.
+void Release() {
+    state.release--;
+    float k = static_cast<float>(state.release) / kAirStrikeReleaseFrames;
+    state.gold = state.release_gold * k;
+    if (state.release > 0) {
+        SceneDim(state.release_dim * k);
+    } else {
+        SceneDimEnd();
+    }
+}
+
 float GoldRamp(float charge) {
     return static_cast<float>((std::exp(kAirStrikeGoldCurve * charge) - 1.0) / (std::exp(kAirStrikeGoldCurve) - 1.0));
 }
@@ -350,18 +369,28 @@ void AirStrikeStep() {
     switch (state.phase) {
         case AirStrikePhase::kIdle:
             if (!state.spent && state.held >= kMirageGuardFrames) {
+                state.release = 0;
                 state.phase = AirStrikePhase::kCharging;
                 std::fprintf(stderr, "air strike: charging\n");
+            } else if (state.release > 0) {
+                Release();
             }
             break;
 
         case AirStrikePhase::kCharging: {
             if (state.held < 0) {
-                Cancel("the guard was let go before the charge");
+                // Let go before it charged: the dark and the gold ease back from where they are.
+                float dim = state.dim, gold = state.gold;
+                Finish();
+                state.release = kAirStrikeReleaseFrames;
+                state.release_dim = dim;
+                state.release_gold = state.gold = gold;
+                std::fprintf(stderr, "air strike: off (the guard was let go before the charge)\n");
                 break;
             }
             float charge = std::min(1.0f, static_cast<float>(state.held - kMirageGuardFrames) / kAirStrikeChargeFrames);
-            SceneDim(kAirStrikeDim * charge);
+            state.dim = kAirStrikeDim * charge;
+            SceneDim(state.dim);
             state.gold = GoldRamp(charge);
             if (charge >= 1.0f) {
                 state.phase = AirStrikePhase::kPrimed;

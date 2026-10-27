@@ -1,11 +1,15 @@
 #include <gtest/gtest.h>
 #include <libpad.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <vector>
 
+#include "audio/mixer.hpp"
 #include "btactstatus.hpp"
 #include "character.hpp"
 #include "collisiondata.hpp"
@@ -350,15 +354,38 @@ TEST_F(AirStrike, TheGoldIsOnTheSpearAndTheDecoysAlone) {
     EXPECT_FLOAT_EQ(Gold(*mirage::CloneCharacter()), 0.0f);
 }
 
-TEST_F(AirStrike, LettingTheGuardGoEarlyDropsItAll) {
+TEST_F(AirStrike, LettingTheGuardGoEarlyEasesItAllBack) {
     Plant();
     Steps(100);
+    float dark = expanded::SceneDarkness(), gold = expanded::AirStrikeGold();
+    ASSERT_GT(dark, 0.0f);
+    ASSERT_GT(gold, 0.0f);
     LetGo();
-    Steps(1);
+    Steps(1); // the charge dropped where it stood
     EXPECT_EQ(expanded::AirStrikeState(), AirStrikePhase::kIdle);
+    EXPECT_FLOAT_EQ(expanded::SceneDarkness(), dark);
+    EXPECT_FLOAT_EQ(expanded::AirStrikeGold(), gold);
+    Steps(expanded::kAirStrikeReleaseFrames / 2);
+    EXPECT_NEAR(expanded::SceneDarkness(), dark * 0.5f, 1e-5f);
+    EXPECT_NEAR(expanded::AirStrikeGold(), gold * 0.5f, 1e-5f);
+    Steps(expanded::kAirStrikeReleaseFrames / 2);
     EXPECT_FLOAT_EQ(expanded::SceneDarkness(), 0.0f);
     EXPECT_FLOAT_EQ(expanded::AirStrikeGold(), 0.0f);
     EXPECT_TRUE(expanded::MirageDecoyUp()); // the first level stands
+}
+
+TEST_F(AirStrike, ANewChargeTakesOverTheEase) {
+    Plant();
+    Steps(100);
+    LetGo();
+    Steps(5);
+    GuardButton(true);
+    Guard(true);
+    Plant(); // a new hold: a hand-off to a new decoy, and a new charge
+    EXPECT_EQ(expanded::AirStrikeState(), AirStrikePhase::kCharging);
+    Steps(expanded::kAirStrikeReleaseFrames);
+    EXPECT_EQ(expanded::AirStrikeState(), AirStrikePhase::kCharging);
+    EXPECT_GT(expanded::AirStrikeGold(), 0.0f); // the charge's own gold, not eased away
 }
 
 TEST_F(AirStrike, PrimedItWaitsAsLongAsADecoyStandsAndGoesAsItDissolves) {
@@ -614,4 +641,48 @@ TEST_F(AirStrikeBySuperSteveWithTheMirage, AMirageSphereChargesNoStrike) {
     Prime();
     EXPECT_TRUE(expanded::MirageDecoyUp());
     EXPECT_EQ(expanded::AirStrikeState(), AirStrikePhase::kIdle);
+}
+
+TEST(AirStrikeSound, TheLightsSoundIsCutAndFadedOut) {
+    // A cut sounds for its own stretch of the note (an own sound's frames only time the duck).
+    ASSERT_EQ(expanded::kAirStrikeSound.cut_count, 1);
+    const expanded::OwnCut &cut = expanded::kAirStrikeSound.cuts[0];
+    EXPECT_EQ(cut.note, expanded::kAirStrikeSound.note);
+    EXPECT_FLOAT_EQ(cut.from, 0.0f);
+    EXPECT_FLOAT_EQ(cut.to * 60.0f, static_cast<float>(expanded::kAirStrikeSoundFrames));
+    EXPECT_FLOAT_EQ(cut.fade * 60.0f, static_cast<float>(expanded::kAirStrikeSoundFadeFrames));
+    // The glint's twinkle plays whole.
+    EXPECT_EQ(expanded::kAirStrikeTwinkle.cut_count, 0);
+}
+
+// The loudest sample of the mixer's next seconds of output.
+float Peak(float seconds) {
+    audio::Mixer      &mixer = audio::DefaultMixer();
+    int                frames = static_cast<int>(seconds * static_cast<float>(mixer.Rate()));
+    std::vector<float> out(2 * static_cast<std::size_t>(frames));
+    mixer.Render(out.data(), frames);
+    float peak = 0.0f;
+    for (float sample : out) {
+        peak = std::max(peak, std::abs(sample));
+    }
+    return peak;
+}
+
+// DC_TEST_DATA, an extracted data directory: both sounds load from their sets' banks and sound, the light's going
+// silent as its cut ends.
+TEST(AirStrikeSound, BothSoundsPlayFromTheirBanks) {
+    const char *data = std::getenv("DC_TEST_DATA");
+    if (data == nullptr) {
+        GTEST_SKIP() << "DC_TEST_DATA is not set";
+    }
+    expanded::test::DataRootScope root(data);
+    ASSERT_TRUE(expanded::LoadOwnSound(expanded::kAirStrikeTwinkle));
+    ASSERT_TRUE(expanded::LoadOwnSound(expanded::kAirStrikeSound));
+    ASSERT_TRUE(expanded::PlayOwnSound(expanded::kAirStrikeTwinkle, false));
+    EXPECT_GT(Peak(0.2f), 0.0f);
+    Peak(1.0f); // played out
+    ASSERT_TRUE(expanded::PlayOwnSound(expanded::kAirStrikeSound, false));
+    EXPECT_GT(Peak(0.5f), 0.0f);
+    Peak(static_cast<float>(expanded::kAirStrikeSoundFrames) / 60.0f - 0.5f + 0.05f);
+    EXPECT_EQ(Peak(1.0f), 0.0f);
 }
