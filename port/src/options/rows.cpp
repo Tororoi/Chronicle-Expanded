@@ -673,11 +673,21 @@ const Row kAndroidDisplayRows[] = {
     kDisplayRows[10],
     kDisplayRows[11],
 };
+#elif defined(__SWITCH__)
+const Row kSwitchDisplayRows[] = {
+    kDisplayRows[5],
+    kDisplayRows[7],
+    kDisplayRows[8],
+    kDisplayRows[9],
+    kDisplayRows[10],
+};
 #endif
 
 std::span<const Row> DisplayRows() {
 #if defined(__ANDROID__)
     return kAndroidDisplayRows;
+#elif defined(__SWITCH__)
+    return kSwitchDisplayRows;
 #else
     return kDisplayRows;
 #endif
@@ -804,6 +814,7 @@ std::string ActionName(std::string_view action) {
         {"fps_toggle",     "Toggle FPS"       },
         {"developer_menu", "Developer Menu"   },
         {"debug_menu",     "Debug Menu"       },
+        {"walk",           "Walk"             },
         {"gyro_hold",      "Gyro Hold"        },
         {"zoom_reset",     "Reset Zoom"       },
     };
@@ -833,12 +844,13 @@ void RemoveBinding(Config &config, std::string_view action) {
 }
 
 // One row per action, in the order the game reads them. The whole-axis actions (lx ly rx ry) only
-// take MouseX/MouseY, so a key cannot go on them, and Reset Zoom is edited by its own Controls row.
+// take MouseX/MouseY, so a key cannot go on them, Reset Zoom is edited by its own Controls row, and
+// Dark Cloud 2's mode debug menu and quick loadout have nothing to do in this game.
 std::span<const Row> BindingRows() {
     static const std::vector<Row> rows = [] {
         std::vector<Row> list;
         for (const InputActionInfo &info : InputActions()) {
-            if (info.whole_axis || info.action == "zoom_reset") {
+            if (info.whole_axis || info.action == "zoom_reset" || info.action == "mode_debug_menu" || info.action == "quick_loadout") {
                 continue;
             }
             Row row;

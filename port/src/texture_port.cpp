@@ -1,12 +1,24 @@
+// Parse JSON before the game headers introduce single-letter graphics macros.
+// clang-format off
+#include <nlohmann/json.hpp>
 #include "texture_port.hpp"
+// clang-format on
 
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <optional>
+#include <span>
 #include <string>
+#include <unordered_map>
 
+#include "dataread_port.hpp"
 #include "mglib_port.hpp"
+#include "platform/load_work_profile.hpp"
+#include "platform/png_image.hpp"
 #include "screen.hpp"
 #include "texture.hpp"
 
@@ -20,6 +32,102 @@ constexpr unsigned kPsmT4 = SCE_GS_PSMT4;
 constexpr unsigned kPsmT8H = 27;
 constexpr unsigned kPsmT4HL = 36;
 constexpr unsigned kPsmT4HH = 44;
+
+std::unordered_map<std::string, std::vector<std::uint8_t>> texture_cluts;
+
+using BakedLoadClock = std::chrono::steady_clock;
+
+bool BakedLoadPerfEnabled() {
+    static const bool enabled = [] {
+        const char *value = std::getenv("DC_PERF_LOAD");
+        return value != nullptr && std::strcmp(value, "1") == 0;
+    }();
+    return enabled;
+}
+
+double BakedLoadMilliseconds(BakedLoadClock::time_point start, BakedLoadClock::time_point end) {
+    return std::chrono::duration<double, std::milli>(end - start).count();
+}
+
+// A texture bundle commonly supplies several consecutive pictures. Keep only the last
+// small document per loading thread, and still read/compare its complete bytes each time.
+std::shared_ptr<const nlohmann::json> ParseBakedDocument(std::span<const std::uint8_t> bytes, bool &cache_hit) {
+    static const bool enabled = [] {
+        const char *value = std::getenv("DC_TEXTURE_JSON_CACHE");
+        return value == nullptr || std::strcmp(value, "1") == 0;
+    }();
+
+    struct CachedDocument {
+        std::vector<std::uint8_t>             bytes;
+        std::shared_ptr<const nlohmann::json> parsed;
+    };
+
+    thread_local CachedDocument cached;
+    cache_hit = enabled && cached.parsed && cached.bytes.size() == bytes.size() &&
+                std::equal(bytes.begin(), bytes.end(), cached.bytes.begin());
+    if (cache_hit) {
+        return cached.parsed;
+    }
+    auto parsed = std::make_shared<const nlohmann::json>(
+        nlohmann::json::parse(bytes.begin(), bytes.end(), nullptr, false));
+    if (enabled && bytes.size() <= 64 * 1024 && !parsed->is_discarded()) {
+        try {
+            std::vector<std::uint8_t> key(bytes.begin(), bytes.end());
+            cached.bytes = std::move(key);
+            cached.parsed = parsed;
+        } catch (const std::bad_alloc &) {
+            // Retaining a parsed document is optional; this load can still proceed.
+        }
+    }
+    return parsed;
+}
+
+struct BakedLoadTrace {
+    std::string_view           document;
+    std::string_view           name;
+    unsigned                   picture_index;
+    std::size_t                json_bytes = 0;
+    bool                       json_cache_hit = false;
+    std::size_t                png_reads = 0;
+    std::size_t                png_decodes = 0;
+    std::size_t                png_cache_hits = 0;
+    std::uint64_t              png_bytes = 0;
+    std::uint64_t              rgba_bytes = 0;
+    double                     json_read_ms = 0.0;
+    double                     json_parse_schema_ms = 0.0;
+    double                     png_read_ms = 0.0;
+    double                     png_decode_ms = 0.0;
+    bool                       success = false;
+    BakedLoadClock::time_point started;
+
+    BakedLoadTrace(std::string_view document, std::string_view name, unsigned picture_index)
+        : document(document), name(name), picture_index(picture_index), started(BakedLoadClock::now()) {}
+
+    ~BakedLoadTrace() {
+        if (!success) {
+            return;
+        }
+        const auto            finished = BakedLoadClock::now();
+        const double          total_ms = BakedLoadMilliseconds(started, finished);
+        const double          other_ms = total_ms - json_read_ms - json_parse_schema_ms - png_read_ms - png_decode_ms;
+        const auto            cache = PngDecodeCacheGetStats();
+        constexpr std::size_t max_text = 512;
+        std::fprintf(stderr,
+                     "perf load texture success picture %u mips %zu json_reads 1 json_bytes %zu "
+                     "png_reads %zu png_bytes %llu png_decodes %zu rgba_bytes %llu total_wall_ms %.6f "
+                     "json_read_wall_ms %.6f json_parse_schema_wall_ms %.6f png_read_wall_ms %.6f "
+                     "png_decode_wall_ms %.6f selection_assembly_other_wall_ms %.6f png_cache_hits %zu "
+                     "png_cache_resident_bytes %zu png_cache_entries %zu json_cache_hit %d "
+                     "doc_len %zu name_len %zu doc %.*s name %.*s\n",
+                     picture_index, png_reads, json_bytes, png_reads, static_cast<unsigned long long>(png_bytes),
+                     png_decodes, static_cast<unsigned long long>(rgba_bytes), total_ms, json_read_ms,
+                     json_parse_schema_ms, png_read_ms, png_decode_ms, other_ms, png_cache_hits,
+                     cache.resident_bytes, cache.entries, json_cache_hit,
+                     document.size(), name.size(), static_cast<int>(std::min(document.size(), max_text)),
+                     document.empty() ? "" : document.data(), static_cast<int>(std::min(name.size(), max_text)),
+                     name.empty() ? "" : name.data());
+    }
+};
 
 enum class EntryKind : uint8_t {
     Free,
@@ -259,7 +367,9 @@ bool ResolveSide(unsigned tbp, unsigned psm, Side &side) {
         side.palette = entry;
         return true;
     }
-    if (IndexPsm(psm) != (entry->format == gfx::TextureFormat::Index8)) {
+    // A baked image is RGBA whatever PSM the game copies it as, so an index PSM may name either; a
+    // colour PSM never names an index image.
+    if (!IndexPsm(psm) && entry->format == gfx::TextureFormat::Index8) {
         return false;
     }
     side.texture = EntryTexture(*entry);
@@ -268,6 +378,198 @@ bool ResolveSide(unsigned tbp, unsigned psm, Side &side) {
 }
 
 } // namespace
+
+bool PortLegacyTexturePath() {
+    static const bool legacy = [] {
+        const std::vector<std::string> files = DataReadListFiles();
+        const bool has_baked = std::any_of(files.begin(), files.end(), [](const std::string &path) {
+            return path.starts_with("textures/") && path.ends_with(".json");
+        });
+        if (!has_baked) {
+            std::fprintf(stderr, "texture: the data has no baked texture documents; decoding the raw textures\n");
+        }
+        return !has_baked;
+    }();
+    return legacy;
+}
+
+void PortRememberTextureClut(std::string_view name, const u_char *clut, std::size_t clut_bytes) {
+    if (clut == nullptr || clut_bytes == 0) {
+        return;
+    }
+    texture_cluts[std::string(name)] = std::vector<std::uint8_t>(clut, clut + clut_bytes);
+}
+
+bool PortLoadBakedTexture(std::string_view document, std::string_view name, unsigned picture_index,
+                          unsigned width, unsigned height, unsigned level_count,
+                          const u_char *clut, std::size_t clut_bytes,
+                          PortDecodedTexture &out, std::string &error,
+                          std::optional<unsigned> entry_index, int source_bpp) {
+    // Declared before parsed/local buffers so successful timing includes their teardown.
+    std::optional<BakedLoadTrace> trace;
+    if (BakedLoadPerfEnabled()) {
+        trace.emplace(document, name, picture_index);
+    }
+    (void)level_count;
+    using Json = nlohmann::json;
+    std::vector<std::uint8_t> json_bytes;
+    const auto json_read_start = trace ? BakedLoadClock::now() : BakedLoadClock::time_point{};
+    if (!DataReadReadFile(document, json_bytes)) {
+        error = "missing texture document " + std::string(document);
+        return false;
+    }
+    const auto json_read_end = trace ? BakedLoadClock::now() : BakedLoadClock::time_point{};
+    bool        json_cache_hit = false;
+    const auto  parsed = ParseBakedDocument(json_bytes, json_cache_hit);
+    const Json &root = *parsed;
+    if (root.is_discarded() || !root.is_object() || root.value("schema_version", 0) != 3 ||
+        !root.contains("groups") || !root["groups"].is_array() || !root.contains("entries") ||
+        !root["entries"].is_array()) {
+        error = "invalid schema-3 texture document " + std::string(document);
+        return false;
+    }
+    const auto json_schema_end = trace ? BakedLoadClock::now() : BakedLoadClock::time_point{};
+    if (trace) {
+        trace->json_bytes = json_bytes.size();
+        trace->json_cache_hit = json_cache_hit;
+        trace->json_read_ms = BakedLoadMilliseconds(json_read_start, json_read_end);
+        trace->json_parse_schema_ms = BakedLoadMilliseconds(json_read_end, json_schema_end);
+    }
+    const Json *entry = nullptr;
+    if (entry_index) {
+        if (*entry_index >= root["entries"].size()) {
+            error = "baked texture entry ordinal is out of range in " + std::string(document);
+            return false;
+        }
+        const Json &candidate = root["entries"][*entry_index];
+        if (!candidate.is_object() || candidate.value("name", std::string{}) != name) {
+            error = "baked texture entry ordinal does not match " + std::string(name);
+            return false;
+        }
+        entry = &candidate;
+    } else {
+        for (const Json &candidate : root["entries"]) {
+            if (candidate.is_object() && candidate.value("name", std::string{}) == name) {
+                if (entry != nullptr) {
+                    error = "ambiguous texture entry " + std::string(name) + " in " + std::string(document);
+                    return false;
+                }
+                entry = &candidate;
+            }
+        }
+    }
+    if (entry == nullptr || !entry->contains("pictures") || !(*entry)["pictures"].is_array() ||
+        picture_index >= (*entry)["pictures"].size()) {
+        error = "missing texture picture " + std::string(name) + " in " + std::string(document);
+        return false;
+    }
+    const Json &picture = (*entry)["pictures"][picture_index];
+    if (picture.is_object() && picture.contains("canvas") && !picture.contains("levels")) {
+        error = "canvas texture keeps its runtime backing";
+        return false;
+    }
+    if (!picture.is_object() || !picture.contains("levels") || !picture["levels"].is_array()) {
+        error = "texture picture has no baked levels: " + std::string(document);
+        return false;
+    }
+    const Json *levels = &picture["levels"];
+    if (picture.contains("variants") && picture["variants"].is_array() && clut != nullptr && clut_bytes != 0) {
+        const Json *selected = nullptr;
+        std::string selected_name;
+        for (const Json &variant : picture["variants"]) {
+            if (!variant.is_object() || !variant.contains("selector") || !variant["selector"].is_string()) {
+                continue;
+            }
+            const std::string selector = variant["selector"].get<std::string>();
+            const auto palette = texture_cluts.find(selector);
+            if (palette != texture_cluts.end() && palette->second.size() == clut_bytes &&
+                std::memcmp(palette->second.data(), clut, clut_bytes) == 0) {
+                if (selected != nullptr && selected_name != selector) {
+                    error = "ambiguous baked palette variant for texture " + std::string(name);
+                    return false;
+                }
+                selected = &variant;
+                selected_name = selector;
+            }
+        }
+        if (selected != nullptr) {
+            if (!selected->contains("levels") || !(*selected)["levels"].is_array()) {
+                error = "invalid baked palette variant for texture " + std::string(name);
+                return false;
+            }
+            levels = &(*selected)["levels"];
+        }
+    }
+    if (levels->empty()) {
+        error = "baked texture has no mip levels: " + std::string(name);
+        return false;
+    }
+
+    const std::size_t slash = document.rfind('/');
+    const std::string parent = slash == std::string_view::npos ? std::string{} : std::string(document.substr(0, slash + 1));
+    out = PortDecodedTexture{};
+    out.format = gfx::TextureFormat::Rgba8;
+    out.has_alpha = source_bpp < 0 || source_bpp != 3;
+    for (unsigned level = 0; level < levels->size(); level++) {
+        const Json &level_path = (*levels)[level];
+        if (!level_path.is_string()) {
+            error = "invalid baked level path in " + std::string(document);
+            return false;
+        }
+        const std::string relative = level_path.get<std::string>();
+        if (relative.empty() || relative.front() == '/' || relative.find('\\') != std::string::npos ||
+            relative.find(':') != std::string::npos || relative.find("../") != std::string::npos ||
+            relative == ".." || relative.starts_with("./")) {
+            error = "unsafe baked level path " + relative;
+            return false;
+        }
+        std::vector<std::uint8_t> png_bytes;
+        const std::string png_path = parent + relative;
+        const auto png_read_start = trace ? BakedLoadClock::now() : BakedLoadClock::time_point{};
+        if (!DataReadReadFile(png_path, png_bytes)) {
+            error = "missing baked PNG " + png_path;
+            return false;
+        }
+        const auto png_read_end = trace ? BakedLoadClock::now() : BakedLoadClock::time_point{};
+        if (trace) {
+            ++trace->png_reads;
+            trace->png_bytes += png_bytes.size();
+            trace->png_read_ms += BakedLoadMilliseconds(png_read_start, png_read_end);
+        }
+        int decoded_width = 0;
+        int decoded_height = 0;
+        std::vector<std::uint8_t> rgba;
+        const auto png_decode_start = trace ? BakedLoadClock::now() : BakedLoadClock::time_point{};
+        bool                      png_cache_hit = false;
+        if (!PngDecodeRgba(png_bytes, decoded_width, decoded_height, rgba, &png_cache_hit)) {
+            error = "invalid baked PNG " + png_path;
+            return false;
+        }
+        const auto png_decode_end = trace ? BakedLoadClock::now() : BakedLoadClock::time_point{};
+        if (trace) {
+            trace->png_decodes += !png_cache_hit;
+            trace->png_cache_hits += png_cache_hit;
+            trace->rgba_bytes += rgba.size();
+            trace->png_decode_ms += BakedLoadMilliseconds(png_decode_start, png_decode_end);
+        }
+        if (level == 0) {
+            out.width = width == 0 ? static_cast<unsigned>(decoded_width) : width;
+            out.height = height == 0 ? static_cast<unsigned>(decoded_height) : height;
+        }
+        const unsigned expected_width = std::max(1u, out.width >> level);
+        const unsigned expected_height = std::max(1u, out.height >> level);
+        if (decoded_width != static_cast<int>(expected_width) ||
+            decoded_height != static_cast<int>(expected_height)) {
+            error = "baked PNG dimensions differ for " + png_path;
+            return false;
+        }
+        out.levels.push_back(std::move(rgba));
+    }
+    if (trace) {
+        trace->success = true;
+    }
+    return true;
+}
 
 void PortUnswizzle8(int width, int height, const u_char *swizzled, u_char *linear) {
     for (int y = 0; y < height; y++) {
@@ -315,6 +617,7 @@ bool PortDecodeTexture(int bpp, int width, int height, const u_char *const *leve
 }
 
 unsigned PortCreateTexture(const PortDecodedTexture &decoded, PortTextureOwner owner, unsigned *palette_key) {
+    const dc::load_profile::Span profile(dc::load_profile::Kind::Texture);
     if (palette_key) {
         *palette_key = 0;
     }

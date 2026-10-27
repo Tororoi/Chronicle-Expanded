@@ -125,7 +125,7 @@ endif()
 # out, and supplies or renames what the unit takes from MWCC alone.
 foreach(unit IN LISTS PS2_SOURCES)
     set(private_overrides "")
-    if(unit STREQUAL "editloop3.cpp")
+    if(unit STREQUAL "editloop3.cpp" OR unit STREQUAL "chararead.cpp" OR unit STREQUAL "itemdata.cpp")
         set(private_overrides --private-variables --private-functions)
     endif()
     set(copy ${CMAKE_BINARY_DIR}/ps2_src/${unit})
@@ -155,6 +155,7 @@ set(PORT_OVERRIDES_CHECKED ${CMAKE_BINARY_DIR}/port_overrides.checked)
 add_custom_command(OUTPUT ${PORT_OVERRIDES_CHECKED}
     COMMAND ${Python3_EXECUTABLE} ${PORT_OVERRIDE_SCRIPT} check --overrides ${PORT_OVERRIDES}
         --private-variables --private-functions --private-function-unit editloop3.cpp
+        --private-function-unit chararead.cpp --private-function-unit itemdata.cpp
         --stubs ${CMAKE_SOURCE_DIR}/port/include/stubs ${port_override_defines} ${PS2_DIR}
         -o ${PORT_OVERRIDES_CHECKED}
     DEPENDS ${PS2_ORIGINALS} ${PORT_OVERRIDES} ${PORT_OVERRIDE_SOURCES} ${PORT_OVERRIDE_SCRIPT}

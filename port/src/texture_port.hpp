@@ -5,11 +5,15 @@
 #include <libgraph.h>
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
 class CTexture;
+struct DataReadSource;
 
 // What the renderer needs to sample one of the game's textures. The game passes textures
 // around as TEX0/TEX1 register values and as registry handles; the texture manager keeps the
@@ -54,6 +58,22 @@ struct PortDecodedTexture {
     std::array<uint32_t, 256>         palette = {};
     bool                              four_bit = false;
 };
+
+// True when the data has no baked texture documents at all (a fresh extraction), so every texture
+// decodes from its raw source bytes instead. Decided once, from the data root, at the first load.
+bool PortLegacyTexturePath();
+std::optional<std::string> PortTextureDocumentFromSource(const DataReadSource &source);
+std::string PortTextureDocumentFromAlias(std::string_view source_alias);
+std::optional<unsigned> PortTextureEntryIndexFromSource(const DataReadSource &source);
+
+// Reads one schema-3 document and its RGBA levels through the active data VFS.
+bool PortLoadBakedTexture(std::string_view document, std::string_view name, unsigned picture_index,
+                          unsigned width, unsigned height, unsigned level_count,
+                          const u_char *clut, std::size_t clut_bytes,
+                          PortDecodedTexture &out, std::string &error,
+                          std::optional<unsigned> entry_index = std::nullopt,
+                          int source_bpp = -1);
+void PortRememberTextureClut(std::string_view name, const u_char *clut, std::size_t clut_bytes);
 
 // bpp as CTexture keeps it: 0 IDTEX4, 1 IDTEX8, 2 RGB16, 3 RGB24, 4 RGB32. levels[0] is the base,
 // each further one half the size of the one before. swizzled: 8-bit pixels in the "IM2" layout

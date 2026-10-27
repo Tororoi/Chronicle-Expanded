@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -45,9 +47,14 @@ gfx::TextureHandle Draw3DLastFrameCopy();
 unsigned           Draw3DFrameCopies();
 gfx::TextureHandle Draw3DFramePicture();
 
-// Shadow passes 1 and 2 draw only between MGBeginDrawShadow and MGEndDrawShadow, into the target
-// the former picked; with no target they are dropped rather than brightening the frame.
+// Shadow passes 1 and 2 draw only between MGBeginDrawShadow and MGEndDrawShadow, counting into the
+// stencil of the target being drawn; outside them they are dropped rather than brightening the
+// frame.
 bool Draw3DShadowTargetActive();
+
+// Makes state a shadow counting draw: no colour, depth or blend, the stencil incremented (or
+// decremented, when subtract) wherever the depth test passes. Retail's Cs + Cd and Cd - Cs of 1.
+void Draw3DShadowCount(gfx::DrawState &state, bool subtract);
 
 // The shadow microprogram the running MGDrawShadow* call stands for. All three extrude caster
 // triangles into prisms down to the shadow plane: Vu_shadow (MGDrawShadowFast) every triangle of
@@ -132,13 +139,29 @@ struct Draw3DStrip {
     bool        ground_uv_flip_v = false;
 };
 
+/**
+ * One adjacent set of strips with compatible materials and contiguous indices.
+ * Runs keep the mesh's original strip order for drawing.
+ */
+struct Draw3DStripRun {
+    std::size_t first_strip = 0;
+    std::size_t strip_count = 0;
+    uint32_t    index_count = 0;
+};
+
 struct Draw3DVisual {
-    gfx::MeshHandle            mesh = gfx::kNullMesh;
-    std::vector<Draw3DStrip>   strips;
-    std::vector<gfx::Vertex3D> vertices;
-    std::vector<uint32_t>      indices; // kept only for immediate (per-frame) visuals
-    bool                       vertex_colour = false;
-    bool                       immediate = false;
+    gfx::MeshHandle             mesh = gfx::kNullMesh;
+    std::vector<Draw3DStrip>    strips;
+    std::vector<Draw3DStripRun> strip_runs;
+    std::vector<gfx::Vertex3D>  vertices;
+    std::vector<uint32_t>       indices; // kept only for immediate (per-frame) visuals
+    // A shadow mesh's triangles' neighbours across each edge (corner i to i + 1): the one other
+    // triangle sharing it, as triangle * 4 + its edge, else -1.
+    std::vector<std::array<int32_t, 3>> shadow_neighbours;
+    bool                        vertex_colour = false;
+    bool                        immediate = false;
+    bool                        cache_strip_runs_on_finish = false; /**< Model builders opt in before finalization. */
+    bool                        strip_runs_cached = false;          /**< Whether cached runs match the current strips. */
 };
 
 Draw3DVisual *Draw3DFindVisual(const void *block);
@@ -150,6 +173,11 @@ Draw3DVisual &Draw3DRegisterVisual(unsigned int *block, bool transient);
 void Draw3DSweepVisuals();
 // Uploads the record's vertices and indices as a mesh, or keeps them for immediate draws.
 void Draw3DFinishVisual(Draw3DVisual &visual);
+/**
+ * Discards cached strip boundaries after a visual's materials or strip layout changes.
+ * Future draws use the current strip data directly.
+ */
+void Draw3DInvalidateStripRuns(Draw3DVisual &visual);
 void Draw3DDrawVisual(const Draw3DVisual &visual, const float model[4][4], const RenderInfo &info, int program);
 
 // Strip index order into a triangle list, every triangle wound as the strip's first.

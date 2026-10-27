@@ -12,6 +12,7 @@
 #include "draw3d.hpp"
 #include "mdt.hpp"
 #include "mglib.hpp"
+#include "platform/load_work_profile.hpp"
 #include "renderinfo.hpp"
 #include "texture.hpp"
 #include "visual.hpp"
@@ -39,6 +40,25 @@ bool SameMaterial(const Draw3DStrip &a, const Draw3DStrip &b) {
            std::memcmp(a.specular, b.specular, sizeof(a.specular)) == 0 &&
            a.ground_transition == b.ground_transition && a.ground_world_uv == b.ground_world_uv &&
            a.ground_uv_period == b.ground_uv_period && a.ground_uv_flip_v == b.ground_uv_flip_v;
+}
+
+void BuildStripRuns(Draw3DVisual &visual) {
+    visual.strip_runs.clear();
+    for (size_t strip_index = 0; strip_index < visual.strips.size();) {
+        const size_t       first_strip = strip_index;
+        const Draw3DStrip &strip = visual.strips[strip_index++];
+        uint32_t           index_count = strip.index_count;
+        while (strip_index < visual.strips.size()) {
+            const Draw3DStrip &next = visual.strips[strip_index];
+            if (strip.first_index + index_count != next.first_index || !SameMaterial(strip, next)) {
+                break;
+            }
+            index_count += next.index_count;
+            ++strip_index;
+        }
+        visual.strip_runs.push_back({first_strip, strip_index - first_strip, index_count});
+    }
+    visual.strip_runs_cached = true;
 }
 
 // CreateVisual places the block right behind a visual whose host size outgrows the two or three
@@ -452,12 +472,24 @@ void Draw3DSweepVisuals() {
 }
 
 void Draw3DFinishVisual(Draw3DVisual &visual) {
-    if (visual.immediate || visual.vertices.empty() || visual.indices.empty()) {
+    const dc::load_profile::Span profile(dc::load_profile::Kind::Mesh);
+    if (visual.immediate) {
+        return;
+    }
+    if (visual.cache_strip_runs_on_finish) {
+        BuildStripRuns(visual);
+    }
+    if (visual.vertices.empty() || visual.indices.empty()) {
         return;
     }
     visual.mesh = gfx::CreateMesh(visual.vertices, visual.indices);
     visual.indices.clear();
     visual.indices.shrink_to_fit();
+}
+
+void Draw3DInvalidateStripRuns(Draw3DVisual &visual) {
+    visual.strip_runs.clear();
+    visual.strip_runs_cached = false;
 }
 
 void Draw3DStripToList(std::vector<uint32_t> &indices, uint32_t first_vertex, uint32_t count) {
@@ -507,25 +539,36 @@ void Draw3DDrawVisual(const Draw3DVisual &visual, const float model[4][4], const
     if (!projected && (info.clip_flags & 4) != 0) {
         state.cull = gfx::CullMode::Back;
     }
-    if (projected) {
-        // The first of the two passes SetShadowData hands VU1: Cs * 0x80 / 128 + Cd, so whatever
-        // the projection covers turns the black target non-black.
-        state.alpha = {0, 2, 2, 1, 0x80};
+    if (projected || (info.shadow_pass == 8 && Draw3DShadowTargetActive())) {
+        // The first of the two passes SetShadowData hands VU1, counted once wherever the
+        // projection covers; a shade frame covers the volumes' stencil the same way.
+        Draw3DShadowCount(state, false);
     }
 
     static const float kWhite[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     uint32_t           base_flags = constants.flags;
+    size_t             strip_run_index = 0;
     for (size_t strip_index = 0; strip_index < visual.strips.size();) {
-        const Draw3DStrip &strip = visual.strips[strip_index++];
-        uint32_t           index_count = strip.index_count;
-        while (strip_index < visual.strips.size()) {
-            const Draw3DStrip &next = visual.strips[strip_index];
-            if (strip.first_index + index_count != next.first_index || !SameMaterial(strip, next)) {
-                break;
+        const Draw3DStrip *strip_ptr;
+        uint32_t           index_count;
+        if (visual.strip_runs_cached) {
+            const Draw3DStripRun &run = visual.strip_runs[strip_run_index++];
+            strip_ptr = &visual.strips[run.first_strip];
+            index_count = run.index_count;
+            strip_index += run.strip_count;
+        } else {
+            strip_ptr = &visual.strips[strip_index++];
+            index_count = strip_ptr->index_count;
+            while (strip_index < visual.strips.size()) {
+                const Draw3DStrip &next = visual.strips[strip_index];
+                if (strip_ptr->first_index + index_count != next.first_index || !SameMaterial(*strip_ptr, next)) {
+                    break;
+                }
+                index_count += next.index_count;
+                ++strip_index;
             }
-            index_count += next.index_count;
-            ++strip_index;
         }
+        const Draw3DStrip &strip = *strip_ptr;
         if (index_count == 0) {
             continue;
         }
@@ -624,6 +667,7 @@ PORT_OVERRIDE int CVisualVu1::DrawVu1(u_int *packet, float (*matrix)[4], RenderI
 // wound as their first triangle, other prims are lists already. A strip whose material is -1 keeps
 // the previous strip's material and texture, as VU1's memory did.
 PORT_OVERRIDE int CVisualVu1::CreateVUdataFromMDT(u_int *block, u_int *data, int unknown0, int unknown1) {
+    const dc::load_profile::Span profile(dc::load_profile::Kind::Visual);
     vu_data = block;
     vu_size = kDraw3DBlockQuads;
     Draw3DVisual &visual = Draw3DRegisterVisual(block, false);
@@ -689,6 +733,7 @@ PORT_OVERRIDE int CVisualVu1::CreateVUdataFromMDT(u_int *block, u_int *data, int
             strip.ground_uv_flip_v = true;
         }
     }
+    visual.cache_strip_runs_on_finish = true;
     Draw3DFinishVisual(visual);
     return vu_size;
 }
@@ -733,6 +778,7 @@ PORT_OVERRIDE int CVisualVu1::CreateVUdataFromMDTRemake(u_int *block, u_int *dat
         }
     }
     // Record stationary poses too: a display frame needs both ends when animation starts or stops.
+    Draw3DInvalidateStripRuns(*visual);
     if (visual->mesh != gfx::kNullMesh) {
         gfx::UpdateMeshVertices(visual->mesh, 0, visual->vertices);
     }

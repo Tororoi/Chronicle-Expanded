@@ -1,10 +1,12 @@
 #include <SDL3/SDL.h>
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cstring>
 #include <memory>
 #include <thread>
+#include <vector>
 
 #include "cloth.hpp"
 #include "draw3d.hpp"
@@ -107,7 +109,7 @@ TEST(ChroniclePresentation, ClothTurnsWithItsAttachmentWithoutBlendingAcrossTheB
                 }
             }
         }
-        previous = mesh.vertices;
+        previous.assign(mesh.vertices.begin(), mesh.vertices.end());
     }
     Draw3DSweepVisuals();
 }
@@ -138,10 +140,67 @@ TEST(ChroniclePresentation, AsyncPublishesAndStopsTheWorker) {
     EXPECT_EQ(GamePresentStatistics().display_frames, stopped);
 }
 
-TEST(ChroniclePresentation, AdjacentMatchingStripsBatchWithoutReorderingMaterials) {
+TEST(GfxGpuChroniclePresentation, AsyncPresentationReleasesDestroyedTexturesAtStop) {
+    dc::test::GfxFixture fixture(64, 48, 1.0f,
+                                 dc::test::GfxOptions{.offscreen = true, .texture_slots = 24, .render_thread = gfx::RenderThreadMode::Async});
+    ClockSetUnbounded(false);
+    ClockSetTickRate(60);
+    ClockReset();
+    GameSetPresentSettings({});
+    std::vector<std::weak_ptr<const gfx::DisplayList>> frames;
+    constexpr unsigned                                 count = 40;
+    {
+        // Keep the worker parked while recordings release their owned texture resources.
+        gfx::RenderLease lease;
+        for (unsigned tick = 0; tick < count; ++tick) {
+            gfx::BeginRecording();
+            const uint8_t clear[] = {0, 0, 0, 128};
+            gfx::Clear(true, clear, true, 0);
+            auto cpu_list = gfx::EndRecording();
+            frames.emplace_back(cpu_list);
+            GameRenderTick(std::move(cpu_list));
+            const auto texture = gfx::CreateTexture({1, 1});
+            ASSERT_NE(texture, gfx::kNullTexture);
+            const auto texel = dc::test::Rgba(static_cast<uint8_t>(40 + tick), 80, 120);
+            ASSERT_TRUE(gfx::UpdateTexture(texture, 0, 0, 0, 1, 1, &texel));
+            gfx::BeginRecording();
+            gfx::Clear(true, clear, true, 0);
+            gfx::TextureBinding binding;
+            binding.texture = texture;
+            const auto quad = dc::test::Quad(0, 0, 640, 480, {128, 128, 128, 128}, 0, 0, 1, 1);
+            gfx::Draw2D(gfx::Primitive::Quads, quad, binding, {});
+            gfx::DestroyTexture(texture);
+            auto list = gfx::EndRecording();
+            frames.emplace_back(list);
+            GameRenderTick(std::move(list));
+        }
+        EXPECT_LE(std::ranges::count_if(frames, [](const auto &frame) { return !frame.expired(); }), 8);
+    }
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    while (!frames.front().expired() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    EXPECT_TRUE(frames.front().expired());
+    GameStopPresentation();
+    for (size_t i = 0; i + 2 < frames.size(); ++i) {
+        EXPECT_TRUE(frames[i].expired()) << i;
+    }
+    ASSERT_TRUE(gfx::ReadbackFrame(fixture.pixels, fixture.width, fixture.height));
+    EXPECT_TRUE(fixture.PixelNear(fixture.width / 2, fixture.height / 2, 40 + count - 1, 80, 120, 1));
+}
+
+TEST(ChroniclePresentation, CachedAdjacentStripsRetainOrderAfterMaterialChanges) {
     dc::test::GfxFixture fixture(64, 48, 1.0f, dc::test::GfxOptions{.offscreen = true});
-    Draw3DVisual         visual;
-    visual.immediate = true;
+    Draw3DVisual         external_visual;
+    external_visual.vertices.resize(3);
+    external_visual.indices = {0, 1, 2};
+    external_visual.strips.push_back({.first_index = 0, .index_count = 3});
+    Draw3DFinishVisual(external_visual);
+    EXPECT_FALSE(external_visual.strip_runs_cached);
+    gfx::DestroyMesh(external_visual.mesh);
+
+    Draw3DVisual visual;
+    visual.cache_strip_runs_on_finish = true;
     visual.vertices.resize(3);
     visual.indices = {0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2};
     for (uint32_t first = 0; first < 12; first += 3) {
@@ -153,6 +212,10 @@ TEST(ChroniclePresentation, AdjacentMatchingStripsBatchWithoutReorderingMaterial
         }
         visual.strips.push_back(strip);
     }
+    Draw3DFinishVisual(visual);
+    ASSERT_TRUE(visual.strip_runs_cached);
+    ASSERT_EQ(visual.strip_runs.size(), 3u);
+
     RenderInfo info;
     std::memset(&info, 0, sizeof(info));
     float model[4][4] = {};
@@ -161,15 +224,57 @@ TEST(ChroniclePresentation, AdjacentMatchingStripsBatchWithoutReorderingMaterial
         info.view_scaled[axis][axis] = 1;
     }
     info.scale[0] = info.scale[1] = 1;
-    gfx::BeginRecording();
-    Draw3DDrawVisual(visual, model, info, 0);
-    const auto list = gfx::EndRecording();
-    EXPECT_EQ(gfx::ListStats(*list).mesh_draws, 3u);
-    std::vector<uint32_t> counts;
-    for (const auto &entry : list->entries) {
-        if (const auto *mesh = std::get_if<gfx::detail::MeshEntry>(&entry)) {
-            counts.push_back(mesh->index_count);
+
+    struct Draw {
+        uint32_t first_index;
+        uint32_t index_count;
+        float    diffuse;
+    };
+
+    auto record_draws = [&] {
+        gfx::BeginRecording();
+        Draw3DDrawVisual(visual, model, info, 0);
+        auto              list = gfx::EndRecording();
+        std::vector<Draw> draws;
+        for (const auto &entry : list->entries) {
+            if (const auto *mesh = std::get_if<gfx::detail::MeshEntry>(&entry)) {
+                draws.push_back({mesh->first_index, mesh->index_count, mesh->constants.diffuse[0]});
+            }
         }
+        return draws;
+    };
+
+    const std::vector<Draw> expected_initial = {
+        {0, 6, 1.0f},
+        {6, 3, 0.5f},
+        {9, 3, 1.0f}
+    };
+    const auto first_draw = record_draws();
+    ASSERT_EQ(first_draw.size(), expected_initial.size());
+    for (size_t i = 0; i < first_draw.size(); i++) {
+        EXPECT_EQ(first_draw[i].first_index, expected_initial[i].first_index);
+        EXPECT_EQ(first_draw[i].index_count, expected_initial[i].index_count);
+        EXPECT_FLOAT_EQ(first_draw[i].diffuse, expected_initial[i].diffuse);
     }
-    EXPECT_EQ(counts, (std::vector<uint32_t>{6, 3, 3}));
+    const auto second_draw = record_draws();
+    ASSERT_EQ(second_draw.size(), first_draw.size());
+    for (size_t i = 0; i < first_draw.size(); i++) {
+        EXPECT_EQ(second_draw[i].first_index, first_draw[i].first_index);
+        EXPECT_EQ(second_draw[i].index_count, first_draw[i].index_count);
+        EXPECT_FLOAT_EQ(second_draw[i].diffuse, first_draw[i].diffuse);
+    }
+
+    visual.strips[1].diffuse[0] = 0.25f;
+    Draw3DInvalidateStripRuns(visual);
+    ASSERT_FALSE(visual.strip_runs_cached);
+    ASSERT_TRUE(visual.strip_runs.empty());
+    const auto changed_draw = record_draws();
+    ASSERT_EQ(changed_draw.size(), 4u);
+    const float expected_diffuse[] = {1.0f, 0.25f, 0.5f, 1.0f};
+    for (size_t i = 0; i < changed_draw.size(); i++) {
+        EXPECT_EQ(changed_draw[i].first_index, i * 3);
+        EXPECT_EQ(changed_draw[i].index_count, 3u);
+        EXPECT_FLOAT_EQ(changed_draw[i].diffuse, expected_diffuse[i]);
+    }
+    gfx::DestroyMesh(visual.mesh);
 }

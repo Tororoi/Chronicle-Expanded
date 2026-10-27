@@ -17,6 +17,7 @@
 #include "dataread_port.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/debug/event_log.hpp"
+#include "expanded/dungeon/bank_slices.hpp"
 #include "sound_port.hpp"
 
 namespace expanded {
@@ -45,7 +46,7 @@ Duck duck;
 
 // The stretches a sound is made of, as a bank of their own.
 std::shared_ptr<const audio::Bank> Cut(const audio::Bank &whole, const OwnSound &sound) {
-    std::vector<audio::BankSlice> slices;
+    std::vector<BankSlice> slices;
     for (int i = 0; i < sound.cut_count; i++) {
         const OwnCut               &cut = sound.cuts[i];
         std::array<audio::Layer, 8> layers;
@@ -54,7 +55,7 @@ std::shared_ptr<const audio::Bank> Cut(const audio::Bank &whole, const OwnSound 
         }
         slices.push_back({layers[0], cut.note, cut.from, cut.to, cut.fade});
     }
-    return audio::Bank::CreateSlices(slices);
+    return CreateBankSlices(slices);
 }
 
 void Send(std::array<std::uint8_t, 8> message) {
@@ -95,7 +96,7 @@ bool LoadOwnSound(const OwnSound &sound) {
                 bank = Cut(*bank, sound);
             }
         }
-        DataReadForgetPack(pack.data());
+        DataReadForgetPackCapacities(pack.data());
     }
     // Each bank keeps a CC 0 of its own: binding over a bound bank silences the port.
     int select = static_cast<int>(own_banks.size());
@@ -126,7 +127,7 @@ bool PlayOwnSound(const OwnSound &sound, bool ducked, int cut) {
         if (cut < 0 || cut >= sound.cut_count) {
             cut = ModRoll(sound.cut_count);
         }
-        note = audio::SliceNote(cut) + (sound.variants > 1 ? ModRoll(sound.variants) - sound.variants / 2 : 0);
+        note = SliceNote(cut) + (sound.variants > 1 ? ModRoll(sound.variants) - sound.variants / 2 : 0);
     }
     Send({0xFD, 0x10, 0, static_cast<std::uint8_t>(note), 0, 0x7F, 0});
     if (ducked) {

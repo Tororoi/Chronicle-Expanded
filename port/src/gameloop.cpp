@@ -15,6 +15,10 @@
 #include <thread>
 #include <vector>
 
+#if defined(__SWITCH__)
+#include "switch_main.hpp"
+#endif
+
 #include "battle_globals.hpp"
 #include "battlemenu.hpp"
 #include "btsysscript.hpp"
@@ -25,11 +29,14 @@
 #include "dngstatusdata.hpp"
 #include "draw2d_port.hpp"
 #include "dun/gameloop.hpp"
+#include "editground.hpp"
 #include "editloop.hpp"
+#include "editloop3.hpp"
 #include "exitcodes.hpp"
 #include "gamemode.hpp"
 #include "gamepad.hpp"
 #include "gametext.hpp"
+#include "gfx/displaylist.hpp"
 #include "langset.hpp"
 #include "localize.hpp"
 #include "main.hpp"
@@ -54,6 +61,7 @@
 #include "title/opening.hpp"
 #include "title/rushmovi.hpp"
 #include "title/title.hpp"
+#include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/core/save.hpp"
@@ -62,8 +70,11 @@
 
 int  EditInit(void *param);
 int  EditLoop();
+int          run_event_check();
+unsigned int GameRandomStateForTrace();
 void SndInit();
 bool TakeBattleMenuLoadRequest();
+bool TakeBattleMenuTitleRequest();
 
 extern s32 mode;
 extern s32 gameTask;
@@ -72,6 +83,42 @@ extern s32 mc_mode;
 extern s32 NextMapNo;
 
 namespace {
+
+using LoadTraceClock = std::chrono::steady_clock;
+
+struct LoadTrace {
+    bool                       active = false;
+    bool                       controls_seen = false;
+    bool                       fade_clear_seen = false;
+    unsigned                   sequence = 0;
+    const char                *kind = "mode";
+    int                        target = -1;
+    LoadTraceClock::time_point started;
+    LoadTraceClock::time_point previous;
+} load_trace;
+
+bool LoadTraceEnabled() {
+    static const bool enabled = [] {
+        const char *value = std::getenv("DC_PERF_TRANSITIONS");
+        return value != nullptr && std::strcmp(value, "1") == 0;
+    }();
+    return enabled;
+}
+
+void BeginLoadTrace(const char *kind, int target) {
+    if (!LoadTraceEnabled()) {
+        return;
+    }
+    load_trace.active = true;
+    load_trace.controls_seen = false;
+    load_trace.fade_clear_seen = false;
+    ++load_trace.sequence;
+    load_trace.kind = kind;
+    load_trace.target = target;
+    load_trace.started = load_trace.previous = LoadTraceClock::now();
+    std::fprintf(stderr, "perf transition begin id %u kind %s source %d target %d frame %lld fast_load %d\n",
+                 load_trace.sequence, kind, MapNo, target, static_cast<long long>(GameFrameCount()), GameFastLoad());
+}
 
 // Words of CSaveData::config that main() reads and writes directly.
 constexpr int kConfigVibrationOff = 7;
@@ -95,6 +142,182 @@ bool                g_tick_shown = true;
 GamePresentStats    g_stats;
 
 using PresentClock = std::chrono::steady_clock;
+
+// --perf-log: the game thread's share of each tick, reported with the renderer's timings once a second.
+struct PerfLog {
+    bool                     on = false;
+    PresentClock::time_point window_start;
+    PresentClock::time_point tick_end;
+    PresentClock::time_point render_end;
+    gfx::FrameTimings::Span  interval; // tick end to tick end
+    gfx::FrameTimings::Span  work;     // tick end to the canonical render: the mode's logic and recording
+    gfx::FrameTimings::Span  render;   // the canonical render, waiting for the render thread included
+    gfx::FrameTimings::Span  wait;     // the render's end to the tick's end: the wait for the next tick
+    std::uint32_t            late = 0; // intervals longer than 1.25 ticks
+    gfx::FrameTimings::Span  tail_total;
+    gfx::FrameTimings::Span  tail_stats;
+    gfx::FrameTimings::Span  tail_refs;
+    gfx::FrameTimings::Span  tail_overlay;
+    gfx::FrameTimings::Span  tail_publish_lock;
+    gfx::FrameTimings::Span  tail_publish_assign;
+    gfx::FrameTimings::Span  tail_publish_list;
+    gfx::FrameTimings::Span  tail_publish_previous;
+    gfx::FrameTimings::Span  tail_publish_overlay;
+    gfx::FrameTimings::Span  tail_publish_settings;
+#if defined(__SWITCH__)
+    std::uint64_t           thread_tick_end = 0;
+    std::uint64_t           thread_render_end = 0;
+    bool                    thread_tick_valid = false;
+    bool                    thread_render_valid = false;
+    gfx::FrameTimings::Span thread_interval;
+    gfx::FrameTimings::Span thread_work;
+    gfx::FrameTimings::Span thread_render;
+    gfx::FrameTimings::Span thread_tail;
+#endif
+};
+
+PerfLog g_perf;
+
+std::string PerfSpan(const gfx::FrameTimings::Span &span) {
+    return std::format("{:.2f}/{:.2f}", span.Average(), span.max_ms);
+}
+
+bool PerfTickTailEnabled() {
+    static const bool enabled = [] {
+        const char *value = std::getenv("DC_PERF_TICK_TAIL");
+        return value != nullptr && std::strcmp(value, "1") == 0;
+    }();
+    return enabled;
+}
+
+// KZ_GPU_SCOPES: the costliest segments of the window, per scoped frame, one line each.
+void PerfScopes(const gfx::FrameTimings &gpu) {
+    if (gpu.scopes.empty() || gpu.scope_frames == 0) {
+        return;
+    }
+    std::vector<const gfx::FrameTimings::Scope *> order;
+    for (const gfx::FrameTimings::Scope &scope : gpu.scopes) {
+        order.push_back(&scope);
+    }
+    std::sort(order.begin(), order.end(), [](const auto *a, const auto *b) { return a->span.total_ms > b->span.total_ms; });
+    const double frames = gpu.scope_frames;
+    std::string  head = std::format("perf scopes: {} frames, {:.1f} passes {:.1f} barriers per frame\n", gpu.scope_frames,
+                                    static_cast<double>(gpu.passes) / frames, static_cast<double>(gpu.barriers) / frames);
+    std::fwrite(head.data(), 1, head.size(), stderr);
+    for (size_t i = 0; i < order.size() && i < 40; i++) {
+        const gfx::FrameTimings::Scope &scope = *order[i];
+        const std::string               line = std::format("perf scope {:6.3f} ms/f x{:.1f} draws {:.1f} barriers {:.1f} max {:.3f} | {}\n",
+                                                           scope.span.total_ms / frames, scope.span.count / frames,
+                                                           static_cast<double>(scope.draws) / frames,
+                                                           static_cast<double>(scope.barriers) / frames, scope.span.max_ms, scope.name);
+        std::fwrite(line.data(), 1, line.size(), stderr);
+    }
+}
+
+void PerfReport(PresentClock::time_point now) {
+    const double              seconds = std::chrono::duration<double>(now - g_perf.window_start).count();
+    const gfx::FrameTimings   gpu = gfx::TakeFrameTimings();
+    const gfx::LogicalMapping target = gfx::GetLogicalMapping(gfx::kMainTarget);
+    const double              busy = seconds > 0.0 ? (gpu.canonical_gpu.total_ms + gpu.display_gpu.total_ms) / (seconds * 10.0) : 0.0;
+    // One write, so the line reaches the log whole.
+    const std::string line = std::format(
+        "perf {:.2f}s mode {} target {}x{}: ticks {} late {} interval {} work {} render {} wait {} | rt canon {} disp {} | "
+        "gpu{} canon {} disp {} busy {:.0f}% | acquire {} present {} fence {} | presents {} [{} {} {} {}] interval {} | "
+        "syncs {}\n",
+        seconds, mode, target.pixel_width, target.pixel_height, g_perf.interval.count, g_perf.late, PerfSpan(g_perf.interval),
+        PerfSpan(g_perf.work), PerfSpan(g_perf.render), PerfSpan(g_perf.wait), PerfSpan(gpu.canonical_cpu),
+        PerfSpan(gpu.display_cpu), gpu.gpu_timestamps ? "" : " (none)", PerfSpan(gpu.canonical_gpu),
+        PerfSpan(gpu.display_gpu), busy, PerfSpan(gpu.acquire), PerfSpan(gpu.queue_present), PerfSpan(gpu.fence_wait),
+        gpu.queue_present.count, gpu.interval_buckets[0], gpu.interval_buckets[1], gpu.interval_buckets[2],
+        gpu.interval_buckets[3], PerfSpan(gpu.present_interval), gpu.sync_waits);
+    std::fwrite(line.data(), 1, line.size(), stderr);
+    PerfScopes(gpu);
+    if (g_perf.tail_total.count != 0) {
+        const std::string tail = std::format(
+            "cpu tick tail wall ms: total {} stats {} refs {} overlay {} publish_lock {} publish_assign {} | samples {} {} {} {} {} {}\n",
+            PerfSpan(g_perf.tail_total), PerfSpan(g_perf.tail_stats), PerfSpan(g_perf.tail_refs),
+            PerfSpan(g_perf.tail_overlay), PerfSpan(g_perf.tail_publish_lock), PerfSpan(g_perf.tail_publish_assign),
+            g_perf.tail_total.count, g_perf.tail_stats.count, g_perf.tail_refs.count, g_perf.tail_overlay.count,
+            g_perf.tail_publish_lock.count, g_perf.tail_publish_assign.count);
+        std::fwrite(tail.data(), 1, tail.size(), stderr);
+        const std::string publish = std::format(
+            "cpu tick publish wall ms: list {} previous {} overlay {} settings {} | samples {} {} {} {}\n",
+            PerfSpan(g_perf.tail_publish_list), PerfSpan(g_perf.tail_publish_previous),
+            PerfSpan(g_perf.tail_publish_overlay), PerfSpan(g_perf.tail_publish_settings),
+            g_perf.tail_publish_list.count, g_perf.tail_publish_previous.count, g_perf.tail_publish_overlay.count,
+            g_perf.tail_publish_settings.count);
+        std::fwrite(publish.data(), 1, publish.size(), stderr);
+    }
+#if defined(__SWITCH__)
+    if (g_perf.thread_interval.count != 0) {
+        const std::string scheduled = std::format(
+            "cpu main scheduled ms: interval {} work {} render {} tail {} | wall work {} render {} tail {} | samples {} {} {}\n",
+            PerfSpan(g_perf.thread_interval), PerfSpan(g_perf.thread_work), PerfSpan(g_perf.thread_render),
+            PerfSpan(g_perf.thread_tail), PerfSpan(g_perf.work), PerfSpan(g_perf.render), PerfSpan(g_perf.wait),
+            g_perf.thread_work.count, g_perf.thread_render.count, g_perf.thread_tail.count);
+        std::fwrite(scheduled.data(), 1, scheduled.size(), stderr);
+    }
+    SwitchLogClockRates();
+    const std::uint64_t thread_tick_end = g_perf.thread_tick_end;
+    const bool          thread_tick_valid = g_perf.thread_tick_valid;
+#endif
+    const bool on = g_perf.on;
+    g_perf = {};
+    g_perf.on = on;
+    g_perf.window_start = now;
+    g_perf.tick_end = now;
+#if defined(__SWITCH__)
+    g_perf.thread_tick_end = thread_tick_end;
+    g_perf.thread_tick_valid = thread_tick_valid;
+#endif
+}
+
+// The end of a tick: MGEndFrame's wait for the next one is over.
+void PerfTickEnd() {
+    if (!g_perf.on) {
+        return;
+    }
+    const PresentClock::time_point now = PresentClock::now();
+#if defined(__SWITCH__)
+    std::uint64_t thread_now = 0;
+    const bool    thread_valid = SwitchReadThreadTicks(thread_now);
+#endif
+    if (g_perf.window_start == PresentClock::time_point{}) {
+        g_perf.window_start = now;
+        g_perf.tick_end = now;
+#if defined(__SWITCH__)
+        g_perf.thread_tick_end = thread_now;
+        g_perf.thread_tick_valid = thread_valid;
+#endif
+        gfx::TakeFrameTimings();
+        return;
+    }
+    const double interval = std::chrono::duration<double, std::milli>(now - g_perf.tick_end).count();
+    g_perf.interval.Add(interval);
+    if (interval > 1.25 * 1000.0 / ClockTickRate()) {
+        ++g_perf.late;
+    }
+    if (g_perf.render_end > g_perf.tick_end) {
+        g_perf.wait.Add(std::chrono::duration<double, std::milli>(now - g_perf.render_end).count());
+#if defined(__SWITCH__)
+        if (thread_valid && g_perf.thread_render_valid && thread_now >= g_perf.thread_render_end) {
+            g_perf.thread_tail.Add(SwitchThreadTicksMilliseconds(thread_now - g_perf.thread_render_end));
+        }
+#endif
+    }
+#if defined(__SWITCH__)
+    if (thread_valid && g_perf.thread_tick_valid && thread_now >= g_perf.thread_tick_end) {
+        g_perf.thread_interval.Add(SwitchThreadTicksMilliseconds(thread_now - g_perf.thread_tick_end));
+    }
+    g_perf.thread_tick_end = thread_now;
+    g_perf.thread_tick_valid = thread_valid;
+#endif
+    g_perf.tick_end = now;
+    if (now - g_perf.window_start >= std::chrono::seconds(1)) {
+        PerfReport(now);
+    }
+}
+
 PresentClock::time_point g_last_present;
 
 struct PublishedFrame {
@@ -292,6 +515,7 @@ bool PresentCanonicalFrame() {
 
 struct Jump {
     bool set = false;
+    bool preset = false;
     int  mode = GAME_MODE_MENU;
     int  map = 0;
 };
@@ -355,6 +579,10 @@ void ModeInit(int &title_ran, int &exist_data, bool &skip_title) {
             }
             break;
         case GAME_MODE_EDIT:
+            if (g_jump.preset) {
+                old_main_mode = GAME_MODE_MENU;
+                main_select_padrup = 0;
+            }
             EditInit(nullptr);
             break;
         case GAME_MODE_MENU:
@@ -459,6 +687,9 @@ void ApplyJump() {
         case GAME_MODE_EDIT:
             main_select_menu_no = g_jump.map;
             MapNo = g_jump.map;
+            if (g_jump.preset) {
+                std::snprintf(main_select_param, sizeof(main_select_param), "e%02d", g_jump.map + 1);
+            }
             if (g_jump.map != 99) {
                 LocalMapNo = g_jump.map;
             }
@@ -490,6 +721,20 @@ void ApplyJump() {
     NextMapNo = -1;
 }
 
+// Quit from the pause menu: the town or dungeon is left where it stands, as the developer menu leaves
+// it (GameEnterDeveloperMenu), and the title screen loads as it does at start-up.
+void ReturnToTitle() {
+    while (ReadBGSync() != 0) {
+        ClockSyncV();
+    }
+    SndExit();
+    MGScisioringForce(0);
+    GamePad.KeyLock(0);
+    MGSetBGColor(0.0f, 0.0f, 0.0f, 128.0f);
+    StartEventNo = -1;
+    MapJump(800, -1);
+}
+
 bool FrameBoundaryStop() {
     return g_stop || (g_frame_budget >= 0 && g_frames >= g_frame_budget);
 }
@@ -505,6 +750,69 @@ void ResetSaveKeepingConfig(CSaveData &save) {
     save.Initialize();
     save.InvertConfig(&config);
     static_cast<s32 *>(save.GetConfigData())[kConfigLastFile] = last_file;
+}
+
+void GameLoadTraceLaunch() { BeginLoadTrace("launch", -1); }
+
+void GameLoadTraceRequest(int map_no) {
+    if (!LoadTraceEnabled() || (load_trace.active && load_trace.kind == std::string_view("world") && load_trace.target == map_no)) {
+        return;
+    }
+    BeginLoadTrace("world", map_no);
+}
+
+void GameLoadTraceCheckpoint(const char *stage) {
+    if (!load_trace.active) {
+        return;
+    }
+    const auto now = LoadTraceClock::now();
+    std::fprintf(stderr,
+                 "perf transition stage id %u kind %s map %d stage %s frame %lld clock_tick %lld elapsed_wall_ms %.3f delta_wall_ms %.3f\n",
+                 load_trace.sequence, load_trace.kind, MapNo, stage, static_cast<long long>(GameFrameCount()),
+                 static_cast<long long>(ClockTickCount()),
+                 std::chrono::duration<double, std::milli>(now - load_trace.started).count(),
+                 std::chrono::duration<double, std::milli>(now - load_trace.previous).count());
+    load_trace.previous = now;
+    if (std::strcmp(stage, "mode_init_done") == 0 || std::strcmp(stage, "revealed_walk") == 0) {
+        std::fprintf(stderr, "perf transition random id %u stage %s state %u wind_gust %.9f wind_velocity %.9f\n",
+                     load_trace.sequence, stage, GameRandomStateForTrace(), EdWind.gust, EdWind.velocity);
+    }
+}
+
+void GameLoadTraceControlsReady() {
+    if (load_trace.active && (load_trace.target < 0 || load_trace.target == MapNo) && run_event_check() == 0) {
+        if (!load_trace.controls_seen) {
+            GameLoadTraceCheckpoint("controls_ready");
+            load_trace.controls_seen = true;
+        }
+        float fade[4];
+        EdGetFadeColor(fade);
+        if (fade[3] <= 0.0f && load_trace.fade_clear_seen) {
+            GameLoadTraceCheckpoint("revealed_walk");
+            load_trace.active = false;
+        }
+        load_trace.fade_clear_seen = fade[3] <= 0.0f;
+    }
+}
+
+void GameLoadTraceWorldMapSelection(int cursor, int state, int target) {
+    if (!LoadTraceEnabled()) {
+        return;
+    }
+    static int last_cursor = -1, last_state = -1;
+    if (cursor != last_cursor || state != last_state) {
+        if (state == MENU_MOVE_STATE_SELECT && last_state != state) {
+            for (int place = 0; place < WORLD_PLACE_COUNT; ++place) {
+                const auto &position = TownOrDngPos[place];
+                std::fprintf(stderr, "perf world position place %d target %d x %d y %d visited %d\n",
+                             place, MenuGrobalMapNoTbl[place], position.x, position.y, position.visited);
+            }
+        }
+        std::fprintf(stderr, "perf world selection cursor %d state %d target %d frame %lld\n",
+                     cursor, state, target, static_cast<long long>(GameFrameCount()));
+        last_cursor = cursor;
+        last_state = state;
+    }
 }
 
 void GameFollowMapJump() {
@@ -685,8 +993,16 @@ bool GameSetJump(const char *spec) {
     if (!numbered && !number.empty()) {
         return false;
     }
-    if (name == "edit") {
+    if (name == "edit" || name == "e01" || name == "e03" || name == "e04") {
         jump.mode = GAME_MODE_EDIT;
+        jump.preset = name != "edit";
+        if (name == "e01") {
+            jump.map = TOWN_NORUNE;
+        } else if (name == "e03") {
+            jump.map = TOWN_QUEENS;
+        } else if (name == "e04") {
+            jump.map = TOWN_MUSKA_LACKA;
+        }
     } else if (name == "dungeon" && jump.map <= 6) {
         jump.mode = GAME_MODE_DUNGEON;
     } else if (name == "title") {
@@ -824,8 +1140,43 @@ void GameSetPresentSettings(const GamePresentSettings &settings) {
 
 void GameRenderTick(gfx::DisplayListRef list) {
     PresentClock::time_point start = PresentClock::now();
+#if defined(__SWITCH__)
+    std::uint64_t thread_start = 0;
+    const bool    thread_start_valid = g_perf.on && g_perf.window_start != PresentClock::time_point{} &&
+                                       SwitchReadThreadTicks(thread_start);
+#endif
     gfx::RenderList(*list, 1.0f, {.canonical = true});
     g_stats.canonical_seconds += SecondsSince(start);
+    if (g_perf.on && g_perf.window_start != PresentClock::time_point{}) {
+        g_perf.render_end = PresentClock::now();
+        g_perf.work.Add(std::chrono::duration<double, std::milli>(start - g_perf.tick_end).count());
+        g_perf.render.Add(std::chrono::duration<double, std::milli>(g_perf.render_end - start).count());
+#if defined(__SWITCH__)
+        std::uint64_t thread_end = 0;
+        const bool    thread_end_valid = SwitchReadThreadTicks(thread_end);
+        if (thread_start_valid && g_perf.thread_tick_valid && thread_start >= g_perf.thread_tick_end) {
+            g_perf.thread_work.Add(SwitchThreadTicksMilliseconds(thread_start - g_perf.thread_tick_end));
+        }
+        if (thread_start_valid && thread_end_valid && thread_end >= thread_start) {
+            g_perf.thread_render.Add(SwitchThreadTicksMilliseconds(thread_end - thread_start));
+        }
+        g_perf.thread_render_end = thread_end;
+        g_perf.thread_render_valid = thread_end_valid;
+#endif
+    }
+    const bool               measure_tail = g_perf.on && g_perf.window_start != PresentClock::time_point{} && PerfTickTailEnabled();
+    PresentClock::time_point tail_start;
+    PresentClock::time_point phase_start;
+    if (measure_tail) {
+        tail_start = phase_start = PresentClock::now();
+    }
+    const auto note_tail = [&](gfx::FrameTimings::Span &span) {
+        if (measure_tail) {
+            const auto end = PresentClock::now();
+            span.Add(std::chrono::duration<double, std::milli>(end - phase_start).count());
+            phase_start = end;
+        }
+    };
     g_stats.ticks++;
     gfx::DisplayListStats counts = gfx::ListStats(*list);
     g_stats.mesh_draws += counts.mesh_draws;
@@ -835,26 +1186,67 @@ void GameRenderTick(gfx::DisplayListRef list) {
     g_stats.max_draws = std::max<std::uint64_t>(g_stats.max_draws, counts.mesh_draws + counts.draws_2d);
     g_stats.last_draws = counts.mesh_draws + counts.draws_2d;
     g_fps.ticks.Count(PresentClock::now());
+    note_tail(g_perf.tail_stats);
     g_previous_list = std::move(g_list);
     g_list = std::move(list);
     g_tick_shown = false;
+    note_tail(g_perf.tail_refs);
     if (PresentAsync()) {
         FpsOverlayList();
+        note_tail(g_perf.tail_overlay);
         const auto length = std::chrono::duration_cast<PresentClock::duration>(
             std::chrono::duration<double>(1.0 / ClockTickRate()));
         const auto elapsed = std::chrono::duration_cast<PresentClock::duration>(
             std::chrono::duration<double>(ClockTickFraction() / ClockTickRate()));
+        PresentClock::time_point lock_start;
+        PresentClock::time_point locked;
+        PresentClock::time_point published;
+        PresentClock::time_point list_published;
+        PresentClock::time_point previous_published;
+        PresentClock::time_point overlay_published;
+        if (measure_tail) {
+            lock_start = PresentClock::now();
+        }
         {
             std::lock_guard lock(g_publish_mutex);
+            if (measure_tail) {
+                locked = PresentClock::now();
+            }
             g_published.list = g_list;
+            if (measure_tail) {
+                list_published = PresentClock::now();
+            }
             g_published.previous = g_previous_list;
+            if (measure_tail) {
+                previous_published = PresentClock::now();
+            }
             g_published.overlay = g_fps.on ? g_fps.list : nullptr;
+            if (measure_tail) {
+                overlay_published = PresentClock::now();
+            }
             g_published.settings = g_present;
             g_published.start = PresentClock::now() - elapsed;
             g_published.length = length;
             ++g_published.serial;
+            if (measure_tail) {
+                published = PresentClock::now();
+            }
+        }
+        if (measure_tail) {
+            g_perf.tail_publish_lock.Add(std::chrono::duration<double, std::milli>(locked - lock_start).count());
+            g_perf.tail_publish_assign.Add(std::chrono::duration<double, std::milli>(published - locked).count());
+            g_perf.tail_publish_list.Add(std::chrono::duration<double, std::milli>(list_published - locked).count());
+            g_perf.tail_publish_previous.Add(
+                std::chrono::duration<double, std::milli>(previous_published - list_published).count());
+            g_perf.tail_publish_overlay.Add(
+                std::chrono::duration<double, std::milli>(overlay_published - previous_published).count());
+            g_perf.tail_publish_settings.Add(
+                std::chrono::duration<double, std::milli>(published - overlay_published).count());
         }
         gfx::WakeRenderThread();
+    }
+    if (measure_tail) {
+        g_perf.tail_total.Add(std::chrono::duration<double, std::milli>(PresentClock::now() - tail_start).count());
     }
 }
 
@@ -896,6 +1288,7 @@ bool GamePresentBetweenTicks(double fraction, std::chrono::steady_clock::time_po
 }
 
 void GamePresentTickEnd() {
+    PerfTickEnd();
     if (PresentAsync()) {
         return;
     }
@@ -913,6 +1306,12 @@ void GamePresentTickEnd() {
     g_tick_shown = true;
 }
 
+void GameSetPerfLog(bool on) {
+    g_perf = {};
+    g_perf.on = on;
+    gfx::SetFrameTimingEnabled(on);
+}
+
 GamePresentStats GamePresentStatistics() {
     auto stats = g_stats;
     stats.display_frames += g_async_frames.load();
@@ -923,8 +1322,13 @@ GamePresentStats GamePresentStatistics() {
 void GameStopPresentation() {
     gfx::SetRenderIdleHook(nullptr, nullptr);
     gfx::RenderLease lease;
-    std::lock_guard  lock(g_publish_mutex);
-    g_published = {};
+    if (g_perf.on && std::getenv("DC_PERF_HOLD") != nullptr && g_list) {
+        PresentCanonicalFrame();
+    }
+    {
+        std::lock_guard lock(g_publish_mutex);
+        g_published = {};
+    }
 }
 
 bool GameShowingFps() {
@@ -1035,12 +1439,17 @@ int RunGame(int argc, char **argv) {
     bool data_loaded = false;
     bool skip_title = false;
     for (;;) {
+        if (!load_trace.active) {
+            BeginLoadTrace("mode", MapNo);
+        }
+        GameLoadTraceCheckpoint("mode_begin");
         // A language chosen on the Options screen takes hold here, where the next area is about to load.
         LocalizeApplyPendingLanguage();
         if (mode != GAME_MODE_UNUSED_12 && !data_loaded) {
             initialize_data();
             data_loaded = true;
         }
+        GameLoadTraceCheckpoint("common_data_done");
         InitReadBG();
         SndInit();
 
@@ -1050,6 +1459,7 @@ int RunGame(int argc, char **argv) {
         }
 
         LoadOverlay(mode);
+        GameLoadTraceCheckpoint("overlay_done");
         MGSetRenderInfo(800.0f, 10.0f, 65535.0f);
         switch (mode) {
             case GAME_MODE_LOADER:
@@ -1065,6 +1475,7 @@ int RunGame(int argc, char **argv) {
         if (mode != GAME_MODE_UNUSED_12 && StartEventNo < 0) {
             init_now_loading(MapNo);
         }
+        GameLoadTraceCheckpoint("loading_card_started");
         GamePad.StopVibration();
         if (DebugMode) {
             LoadSystemMessage();
@@ -1074,11 +1485,13 @@ int RunGame(int argc, char **argv) {
         GameOptionsApply(ConfigGet().options);
         bool event_start = StartEventNo >= 0;
         ModeInit(title_ran, exist_data, skip_title);
+        GameLoadTraceCheckpoint("mode_init_done");
 
         NextMapNo = -1;
         // check_now_loading pumps the clock while the loading screen runs.
         while (check_now_loading() == 0) {
         }
+        GameLoadTraceCheckpoint("loading_card_done");
 
         MGInitVSyncCallBack(PlayTimeCount);
         LoadDrawEnv();
@@ -1090,9 +1503,17 @@ int RunGame(int argc, char **argv) {
         }
 
         int result;
+        bool first_tick = true;
         do {
             if (FrameBoundaryStop()) {
                 return kExitOk;
+            }
+            if (first_tick) {
+                GameLoadTraceCheckpoint("first_mode_tick");
+                first_tick = false;
+                if (mode != GAME_MODE_EDIT) {
+                    load_trace.active = false;
+                }
             }
             MGAdjustScreen(ConfigWords()[kConfigScreenX], ConfigWords()[kConfigScreenY]);
             ConfigWords()[kConfigGameClear] = GameClearFlag;
@@ -1123,6 +1544,11 @@ int RunGame(int argc, char **argv) {
                 NextMapNo = -1;
                 StartEventNo = -1;
                 GameApplyLoopResult(GAME_MODE_TITLE, 2);
+                break;
+            }
+
+            if (result == 0 && TakeBattleMenuTitleRequest()) {
+                ReturnToTitle();
                 break;
             }
 
