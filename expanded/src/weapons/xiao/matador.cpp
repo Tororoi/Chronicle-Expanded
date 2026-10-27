@@ -12,10 +12,10 @@
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
-#include "expanded/weapons/charge.hpp"
 #include "frame.hpp"
 #include "framevu1.hpp"
 #include "gameutil.hpp"
@@ -36,7 +36,7 @@ constexpr int   kWeaponTextureBlock = 0x1D;
 constexpr int   kArenaQuads = 0x4000; // 256 KB for the copy's frames
 constexpr float kGlowPull = 6.0f;
 constexpr float kHalfPi = 1.57079632679f;
-constexpr char  kPouch[] = "null24"; // the elastic's pouch bone
+constexpr char  kPouch[] = "null24";           // the elastic's pouch bone
 constexpr float kCupNudge[2] = {-0.3f, -0.3f}; // from the pouch bone to its cup: up, and along the flight
 constexpr float kOrange[3] = {120.0f, 45.0f, 0.0f};
 

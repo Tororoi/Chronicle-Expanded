@@ -2,9 +2,11 @@
 
 namespace expanded {
 
-// The charges the weapons build, and the game's charge-complete flash on the party as one is ready (Toan's sword charge's,
-// Goro's): a pulse of kChargeColour, the cyan a charge builds up toward.
+// The cyan a charge builds up toward.
 inline constexpr float kChargeColour[3] = {0.0f, 122.0f, 208.0f};
+
+// The game's charge-complete flash on the party as a charge is ready (Toan's sword charge's, Goro's): a pulse of
+// kChargeColour.
 void ChargeCompleteFlash();
 
 // A hold of the guard: counted from the first frame in the guard pose with R1 down, every frame R1 stays down; latched
@@ -21,6 +23,7 @@ public:
     bool Reached(int frames) const;
 
     void Latch() { latched_ = true; }
+
     bool Latched() const { return latched_; }
 
     void Reset() {
@@ -40,7 +43,11 @@ inline constexpr int kGuardGrace = 10;
 
 class GuardCharge {
 public:
-    enum class Step { kHolding, kDropped, kFull };
+    enum class Step {
+        kHolding,
+        kDropped,
+        kFull
+    };
 
     // Starts a charge when the guard is up and nothing is blinded; false otherwise.
     bool Start();
@@ -48,7 +55,8 @@ public:
     Step Charge(int frames);
 
     // The frames it has, and how far that is toward frames (0 to 1).
-    int   Charged() const { return charged_; }
+    int Charged() const { return charged_; }
+
     float Progress(int frames) const;
 
 private:
@@ -77,7 +85,8 @@ public:
 
     // Whether it is drawn now, and how long it has been this time.
     bool Holding() const { return hold_ > 0; }
-    int  Drawn() const { return hold_; }
+
+    int Drawn() const { return hold_; }
 
     // The shot let go counts as charged whatever the hold (a primed charge's).
     void MarkReady() { held_ = frames_; }

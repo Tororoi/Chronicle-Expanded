@@ -18,11 +18,9 @@
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
 
-
 namespace expanded {
 
 namespace {
-
 
 enum class Charge {
     kIdle,
@@ -38,14 +36,14 @@ struct Flight {
 };
 
 struct State {
-    Charge        charge = Charge::kIdle;
-    int           frames = 0; // in the phase
-    GuardCharge   guard; // the guard's charge
-    ShotCharge    draw{kZeusChargedFrames}; // the slingshot drawn and held
-    bool          dimmed = false;
-    bool          struck = false; // a bolt came down in the window
-    float         sling = 0.0f;   // the slingshot's white, 0..1
-    Flight        flights[kPelletSlots];
+    Charge      charge = Charge::kIdle;
+    int         frames = 0;               // in the phase
+    GuardCharge guard;                    // the guard's charge
+    ShotCharge  draw{kZeusChargedFrames}; // the slingshot drawn and held
+    bool        dimmed = false;
+    bool        struck = false; // a bolt came down in the window
+    float       sling = 0.0f;   // the slingshot's white, 0..1
+    Flight      flights[kPelletSlots];
 };
 
 State state;

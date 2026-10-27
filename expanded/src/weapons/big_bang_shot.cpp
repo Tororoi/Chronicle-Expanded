@@ -24,7 +24,6 @@
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
 
-
 namespace expanded {
 
 namespace {
@@ -73,20 +72,20 @@ struct Flight {
 };
 
 struct State {
-    int    effect = -1; // the bomb's effect, as last asked
-    Charge charge = Charge::kIdle;
-    int    frames = 0; // in the phase
-    GuardCharge guard; // the guard's charge
-    ShotCharge draw{kChargedShotFrames}; // the slingshot drawn and held
-    int    target = -1;
-    int    hover = -1; // the hanging bomb's slot
-    float  hover_pos[4] = {};
-    float  ground = 0.0f;
-    float  speed = 0.0f;
-    float  shown = 0.0f; // the hanging bomb, 0..1
-    int    pulse = 0;    // frames it has hung fully in
-    float  flash_at[4] = {};
-    Flight flights[kPelletSlots];
+    int         effect = -1; // the bomb's effect, as last asked
+    Charge      charge = Charge::kIdle;
+    int         frames = 0;               // in the phase
+    GuardCharge guard;                    // the guard's charge
+    ShotCharge  draw{kChargedShotFrames}; // the slingshot drawn and held
+    int         target = -1;
+    int         hover = -1; // the hanging bomb's slot
+    float       hover_pos[4] = {};
+    float       ground = 0.0f;
+    float       speed = 0.0f;
+    float       shown = 0.0f; // the hanging bomb, 0..1
+    int         pulse = 0;    // frames it has hung fully in
+    float       flash_at[4] = {};
+    Flight      flights[kPelletSlots];
 };
 
 State state;

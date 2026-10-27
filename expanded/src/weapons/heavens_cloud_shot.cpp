@@ -8,9 +8,9 @@
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
-#include "expanded/weapons/charge.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -21,7 +21,7 @@ namespace expanded {
 
 namespace {
 
-constexpr int kWindGem = 3;     // MasekiEffect's Wind Gem burst
+constexpr int kWindGem = 3; // MasekiEffect's Wind Gem burst
 
 struct Flight {
     const CSHOT *shots = nullptr;

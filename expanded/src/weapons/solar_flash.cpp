@@ -26,7 +26,6 @@
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
 
-
 namespace expanded {
 
 const SolarProfile kSunSwordFlash = {
@@ -137,16 +136,16 @@ constexpr float kJudgementGlowNearer = 4.0f; // the hanging blade's glow before 
 struct State {
     SolarPhase          phase = SolarPhase::kIdle;
     const SolarProfile *profile = nullptr;
-    int                 frames = 0;      // in the phase
-    GuardCharge         guard;           // the guard's charge
-    float               blade = 0.0f;    // the blade's white, 0..1
-    float               wielder[3] = {}; // the wielder's own tint
-    float               glow = 0.0f;     // the glow's size, 0..1
+    int                 frames = 0;         // in the phase
+    GuardCharge         guard;              // the guard's charge
+    float               blade = 0.0f;       // the blade's white, 0..1
+    float               wielder[3] = {};    // the wielder's own tint
+    float               glow = 0.0f;        // the glow's size, 0..1
     float               glow_shrink = 0.0f; // what it loses each frame while it shrinks away
-    const CSHOT        *shots = nullptr; // the charged pellet's pool and slot while it flies
+    const CSHOT        *shots = nullptr;    // the charged pellet's pool and slot while it flies
     int                 pellet = -1;
-    sceVu0FVECTOR       landed = {}; // where it ended
-    int                 struck = -1; // the monster it struck there, or -1
+    sceVu0FVECTOR       landed = {};         // where it ended
+    int                 struck = -1;         // the monster it struck there, or -1
     int                 chain_action = -1;   // the Sword of Zeus's combo: the swing that last came forward …
     bool                chain_fired = false; // … and whether its bolt came down
 };

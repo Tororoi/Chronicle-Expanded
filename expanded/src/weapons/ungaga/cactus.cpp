@@ -71,8 +71,8 @@ constexpr Monster kDryKinds[] = {
     Monster::LIVING_ARMOR_ENHANCED,
 };
 
-constexpr int kKickAway = 2;           // thrown away from the hit's origin
-constexpr int kHitReserve = 16;        // free hit records a prick leaves the game
+constexpr int kKickAway = 2;    // thrown away from the hit's origin
+constexpr int kHitReserve = 16; // free hit records a prick leaves the game
 
 // The smoke's frames as game frames from the summon.
 constexpr float kEmergeFrames = (kBloomEmergedFrame - kSmokeClipStart) / kSmokeRate;
@@ -107,8 +107,7 @@ const Form kTreesForm = {
 struct Bloom {
     int         chara = -1; // whose it is (-1: no wielder)
     const Form *form = nullptr;
-    int         held = -1; // frames since the guard pose was first held while R1 stayed down, or -1
-    bool        latched = false;
+    GuardHold   guard; // latched once it raises one, until R1 is let go
     bool        up = false;
     int         age = 0;
     float       spot[3] = {};      // x, ground, z
@@ -303,23 +302,9 @@ GuardButtonHeld guard_button = ControllerGuard;
 
 // The guard pose held long enough raises one; R1 let go, the next hold may.
 void Charge() {
-    if (!guard_button()) {
-        bloom.latched = false;
-        bloom.held = -1;
-        return;
-    }
-    if (bloom.held >= 0) {
-        bloom.held++;
-    }
-    if (!Guarding() || bloom.latched) {
-        return;
-    }
-    if (bloom.held < 0) {
-        bloom.held = 0;
-        return;
-    }
-    if (bloom.held >= kBloomGuardFrames) {
-        bloom.latched = true;
+    bloom.guard.Step(guard_button());
+    if (bloom.guard.Reached(kBloomGuardFrames)) {
+        bloom.guard.Latch();
         Summon();
     }
 }

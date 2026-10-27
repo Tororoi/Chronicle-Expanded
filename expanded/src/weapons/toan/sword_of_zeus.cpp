@@ -29,7 +29,6 @@
 #include "userstatus.hpp"
 #include "weaponelement.hpp"
 
-
 namespace expanded {
 
 namespace {

@@ -53,8 +53,7 @@ BT_SHOT_EFFECT sparkle = {"e508_ex", 0, 0, {}, {}, -1, 0, 0, 3, kHitsMonsters, {
 struct State {
     AirStrikePhase phase = AirStrikePhase::kIdle;
     int            chara = -1;    // the wielder
-    int            held = -1;     // frames since the guard pose was first taken with R1 down, or -1
-    bool           spent = false; // a charge ended with R1 still down: no other until it is let go
+    GuardHold      guard;         // latched as a charge ends with R1 still down: no other until it is let go
     bool           swung = false; // this swing has called the strike, or come past its frame
     float          gold = 0.0f;
     float          dim = 0.0f;  // the room's dark from the charge
@@ -165,7 +164,9 @@ void Finish() {
     state.pellet = -1;
     state.blasted = false;
     state.gold = 0.0f;
-    state.spent = state.held >= 0;
+    if (state.guard.Held() >= 0) {
+        state.guard.Latch();
+    }
 }
 
 // A charge or a strike dropped: the dark lifts with it, unless the strike's flash has taken over the light.
@@ -292,14 +293,7 @@ void Play() {
 }
 
 void GuardStep() {
-    if (GamePad.On(PAD_R1) == 0) {
-        state.held = -1;
-        state.spent = false;
-    } else if (state.held >= 0) {
-        state.held++;
-    } else if (Guarding()) {
-        state.held = 0;
-    }
+    state.guard.Step(GamePad.On(PAD_R1) != 0);
 }
 
 // Ungaga's swing reaching the strike's frame, once a swing.
@@ -367,7 +361,7 @@ void AirStrikeStep() {
     bool swing = SwingReached();
     switch (state.phase) {
         case AirStrikePhase::kIdle:
-            if (!state.spent && state.held >= kMirageGuardFrames) {
+            if (!state.guard.Latched() && state.guard.Held() >= kMirageGuardFrames) {
                 state.release = 0;
                 state.phase = AirStrikePhase::kCharging;
                 std::fprintf(stderr, "air strike: charging\n");
@@ -377,7 +371,7 @@ void AirStrikeStep() {
             break;
 
         case AirStrikePhase::kCharging: {
-            if (state.held < 0) {
+            if (state.guard.Held() < 0) {
                 // Let go before it charged: the dark and the gold ease back from where they are.
                 float dim = state.dim, gold = state.gold;
                 Finish();
@@ -387,7 +381,7 @@ void AirStrikeStep() {
                 std::fprintf(stderr, "air strike: off (the guard was let go before the charge)\n");
                 break;
             }
-            float charge = std::min(1.0f, static_cast<float>(state.held - kMirageGuardFrames) / kAirStrikeChargeFrames);
+            float charge = std::min(1.0f, static_cast<float>(state.guard.Held() - kMirageGuardFrames) / kAirStrikeChargeFrames);
             state.dim = kAirStrikeDim * charge;
             SceneDim(state.dim);
             state.gold = GoldRamp(charge);

@@ -46,8 +46,8 @@ struct SolarProfile {
     float     glow_axis;     // … or, when not 0, this far along the model's own length axis (the Sun Sword's hilt emblem)
     FlashLook look;
     GlowLook  glow_look = GlowLook::kGold;
-    bool      judgement = false; // locked on, the judgement blade hangs over the target and the first swing drops it
-    float     land_whp = 0.0f;   // what the blade's landing bills, in place of the flash's
+    bool      judgement = false;   // locked on, the judgement blade hangs over the target and the first swing drops it
+    float     land_whp = 0.0f;     // what the blade's landing bills, in place of the flash's
     bool      primed_white = true; // the wielder keeps a slight white while primed
     int       drop_frames = 0;     // the judgement blade's fall, paced to land in this many frames (0 = under gravity) …
     bool      to_the_hilt = false; // … and into the ground to the hilt
@@ -71,11 +71,11 @@ enum class SolarPhase {
     kIdle,
     kCharging,
     kPrimed,
-    kWindup,  // the primed swing under way
+    kWindup,   // the primed swing under way
     kDropping, // the judgement blade falling
     kChain,    // the Sword of Zeus's combo, a bolt on each swing
-    kFlying,  // the charged pellet out
-    kLanding, // the pellet ended: the room plunges to black before the flash
+    kFlying,   // the charged pellet out
+    kLanding,  // the pellet ended: the room plunges to black before the flash
     kFading,
 };
 
