@@ -67,7 +67,6 @@ void TouchOverlayPoll();
 #include "expanded/debug/enemy_roster.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/debug/stage.hpp"
-#include "expanded/weapons/super_steve.hpp"
 #endif
 
 int  EditInit(void *param);
@@ -100,7 +99,6 @@ struct Options {
     const char  *roster = nullptr;
     const char  *stage = nullptr;
     const char  *event_log = nullptr;
-    bool         plain_weapons = false;
 #endif
 };
 
@@ -145,7 +143,6 @@ Options g_options;
                  "  --stage FILE       start a staged recording: the save's game on a dungeon floor with a\n"
                  "                     party member, weapon and monsters set out (DC_STAGE); see\n"
                  "                     expanded/docs/recording.md\n"
-                 "  --plain-weapons    Expanded's weapon effects off, for a recording's before (DC_PLAIN_WEAPONS=1)\n"
                  "  --event-log FILE   write damage, kills, life, weapon HP and sounds as JSON lines (DC_EVENT_LOG)\n"
 #endif
                  ,
@@ -201,8 +198,6 @@ Options ParseOptions(int argc, const char **argv) {
             options.stage = value();
         } else if (arg == "--event-log") {
             options.event_log = value();
-        } else if (arg == "--plain-weapons") {
-            options.plain_weapons = true;
 #endif
         } else if (arg == "--fast-load") {
             options.fast_load = true;
@@ -483,8 +478,6 @@ int Run(int argc, const char **argv) {
         std::fprintf(stderr, "bad --event-log %s: %s\n", options.event_log, why.c_str());
         std::exit(kExitUsage);
     }
-    const char *plain = std::getenv("DC_PLAIN_WEAPONS");
-    expanded::SetPlainWeapons(options.plain_weapons || (plain != nullptr && *plain != '\0' && *plain != '0'));
     if (std::string why; options.roster != nullptr && !expanded::SetDebugRoster(options.roster, &why)) {
         std::fprintf(stderr, "bad --roster %s: %s\n", options.roster, why.c_str());
         std::exit(kExitUsage);

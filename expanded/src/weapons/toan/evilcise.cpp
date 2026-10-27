@@ -18,7 +18,7 @@ bool Cursing(const CUserStatus &status, int chara) {
 
     const WEAPON_HAVE &weapon = status.chara_weapons[chara][slot];
     if (chara == CHARA_TOAN) {
-        return weapon.item_no == ITEM_WEAPON_EVILCISE && !PlainWeapons();
+        return weapon.item_no == ITEM_WEAPON_EVILCISE && WeaponAbilitiesOn();
     }
     return chara == CHARA_XIAO && weapon.item_no == ITEM_WEAPON_SUPER_STEVE && SphereWeapon(weapon) == ITEM_WEAPON_EVILCISE;
 }

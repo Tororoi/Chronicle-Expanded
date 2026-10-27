@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""Record a staged clip of an Expanded feature, and with --compare the same run with plain weapons beside it.
+"""Record a staged clip of an Expanded feature, and with --compare the same run with Weapon Abilities off beside it.
 
     clip.py NAME --stage FILE --input FILE --from N --length M [--compare] [--out DIR]
             [--exe PATH] [--data DIR] [--save DIR] [-- darkcloud options...]
 
 Runs darkcloud (Expanded, release build by default) on the stage with the input script and an event log,
-through record_clip.py, in a copy of the save so the runs leave it as it was. With --compare a second run with
---plain-weapons goes at the same time. Writes, in --out (default port/run/clips, which git ignores):
+through record_clip.py, in a copy of the save so the runs leave it as it was. With --compare a second run goes at
+the same time with the Weapon Abilities option off (expanded.weapon_abilities in its copy's config.json). Writes, in
+--out (default port/run/clips, which git ignores):
 
-    NAME.mp4                the run; with --compare the run on the left and the plain run on the right, each
-                            one's sound in its own ear
-    NAME.events.jsonl       the run's event log (NAME.plain.events.jsonl for the plain run)
+    NAME.mp4                the run; with --compare the run on the left and the one without weapon abilities on
+                            the right, each one's sound in its own ear
+    NAME.events.jsonl       the run's event log (NAME.off.events.jsonl for the one without)
     NAME.sheet.png          one frame a second of NAME.mp4
 
 An --out inside the repository that git does not ignore is refused, so a recording is never committed.
 See expanded/docs/recording.md.
 """
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -40,14 +42,24 @@ def refuse_tracked(paths):
             sys.exit(f'{rel} would be in the repository and not ignored by git: record somewhere else')
 
 
-def record(a, out, events, plain, save, game):
+def weapon_abilities_off(save):
+    """Turns the Weapon Abilities option off in the save folder's config.json, keeping its other settings."""
+    path = os.path.join(save, 'config.json')
+    config = {}
+    if os.path.exists(path):
+        with open(path) as f:
+            config = json.load(f)
+    config.setdefault('expanded', {})['weapon_abilities'] = False
+    with open(path, 'w') as f:
+        json.dump(config, f, indent=4)
+
+
+def record(a, out, events, save, game):
     cmd = [sys.executable, os.path.join(HERE, 'record_clip.py'), '--exe', a.exe, '--out', out,
            '--from', str(a.start), '--length', str(a.length), '--save', save]
     if a.data:
         cmd += ['--data', a.data]
     cmd += ['--', '--fast-load', '--stage', a.stage, '--input', a.input, '--event-log', events]
-    if plain:
-        cmd.append('--plain-weapons')
     return subprocess.Popen(cmd + game, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
 
@@ -58,7 +70,7 @@ def main():
     ap.add_argument('--input', required=True, help='the input script (--input)')
     ap.add_argument('--from', dest='start', type=int, required=True, help='first frame recorded')
     ap.add_argument('--length', type=int, required=True, help='frames recorded')
-    ap.add_argument('--compare', action='store_true', help='also record the run with plain weapons, side by side')
+    ap.add_argument('--compare', action='store_true', help='also record the run with Weapon Abilities off, side by side')
     ap.add_argument('--out', default=os.path.join(ROOT, 'port', 'run', 'clips'))
     ap.add_argument('--exe', default=default_exe())
     ap.add_argument('--data', default=os.environ.get('DC_DATA'))
@@ -71,18 +83,20 @@ def main():
         sys.exit('--save (or DC_SAVE) is needed: the stage starts from a save')
     a.stage, a.input = os.path.abspath(a.stage), os.path.abspath(a.input)
     base = os.path.join(a.out, a.name)
-    suffixes = ['.mp4', '.sheet.png', '.events.jsonl'] + (['.plain.events.jsonl'] if a.compare else [])
+    suffixes = ['.mp4', '.sheet.png', '.events.jsonl'] + (['.off.events.jsonl'] if a.compare else [])
     refuse_tracked([base + suffix for suffix in suffixes])
     os.makedirs(a.out, exist_ok=True)
     work = tempfile.mkdtemp(prefix='dc-clip-')
     try:
-        runs = [('', False)] + ([('.plain', True)] if a.compare else [])
+        runs = [''] + (['.off'] if a.compare else [])
         jobs = []
-        for suffix, plain in runs:
+        for suffix in runs:
             save = os.path.join(work, 'save' + suffix)
             shutil.copytree(a.save, save)
+            if suffix:
+                weapon_abilities_off(save)
             video = os.path.join(work, f'run{suffix}.mp4')
-            jobs.append((video, record(a, video, f'{base}{suffix}.events.jsonl', plain, save, game)))
+            jobs.append((video, record(a, video, f'{base}{suffix}.events.jsonl', save, game)))
         for video, job in jobs:
             output, _ = job.communicate()
             if job.returncode != 0:

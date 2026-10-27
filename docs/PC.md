@@ -578,9 +578,8 @@ For tests and debugging only; nothing the game does depends on them.
   Moon Signets. A bad list exits with status 2.
 - Expanded builds add `--roster KIND,...` (every dungeon floor's monster kinds,
   in debug mode), and for recording a feature `--stage FILE` (a save's party
-  started on a dungeon floor with a member, weapon and monsters set out),
-  `--plain-weapons` (Expanded's weapon effects off) and `--event-log FILE`
-  (damage, kills, life, weapon HP and sounds as JSON lines); see
+  started on a dungeon floor with a member, weapon and monsters set out) and
+  `--event-log FILE` (damage, kills, life, weapon HP and sounds as JSON lines); see
   `expanded/docs/recording.md`. `scripts/port/record_clip.py` and
   `scripts/port/clip.py` use a release build when one is built.
 

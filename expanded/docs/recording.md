@@ -2,7 +2,7 @@
 
 A feature's clip is a headless run of the release build: a **stage** puts a save's party on a dungeon floor with
 the member, weapon and monsters it needs, an **input script** plays the feature, an **event log** gives the numbers
-for its caption, and **plain weapons** record the same run without Expanded's weapon effects for a before and after.
+for its caption, and the same run with the **Weapon Abilities** option off is the before to its after.
 `scripts/port/clip.py` does all of it in one command:
 
 ```
@@ -13,8 +13,9 @@ python3 scripts/port/clip.py air-strike --compare \
     --from 600 --length 920 --data <game data> --save <a save folder with a late-game save in slot 1>
 ```
 
-That writes `port/run/clips/air-strike.mp4` (the run on the left, the plain run on the right, each one's sound in its
-own ear), `air-strike.events.jsonl`, `air-strike.plain.events.jsonl` and `air-strike.sheet.png` (a frame a second),
+That writes `port/run/clips/air-strike.mp4` (the run on the left, the one with Weapon Abilities off on the right, each
+one's sound in its own ear), `air-strike.events.jsonl`, `air-strike.off.events.jsonl` and `air-strike.sheet.png` (a
+frame a second),
 in about half a minute. Record with a release build: a debug build is about ten times slower, most of it in writing
 the frames. `clip.py` refuses to write anything git would not ignore, and `.gitignore` ignores videos, sounds,
 frames, contact sheets and event logs wherever they are, so a recording is never committed.
@@ -69,9 +70,11 @@ count the main loop, as `--input`, `--record` and `--from` do.
 
 A feature can add its own with `expanded::LogEvent` (`expanded/debug/event_log.hpp`).
 
-## Plain weapons
+## The before: Weapon Abilities off
 
-`--plain-weapons` (or `DC_PLAIN_WEAPONS=1`) has `WeaponWielded`, `WeaponActive`, `HeldWeapon`, `SphereWeapon` and
-the ownership tests answer no weapon, so every Expanded weapon effect that asks them stays off, the Mirage's decoy
-and Super Steve's spheres included, and the run plays as the game's own weapons do. A weapon's upgrades in the menus
-(the Steel Slingshot's endurance, the Seven Branch Sword's build-ups) are untouched.
+`--compare` records a second run at the same time with the Expanded page's Weapon Abilities option off
+(`"expanded": {"weapon_abilities": false}` in its save copy's `config.json`). Off, `WeaponWielded`, `WeaponActive`,
+`HeldWeapon`, `SphereWeapon` and the ownership tests answer no weapon, so every Expanded weapon effect stays off, the
+Mirage's decoy and Super Steve's spheres included, and the run plays as the game's own weapons do. What a weapon was
+given when it was made or built up (an ability Expanded adds, the Steel Slingshot's endurance, the Seven Branch
+Sword's build-ups) stays with it.

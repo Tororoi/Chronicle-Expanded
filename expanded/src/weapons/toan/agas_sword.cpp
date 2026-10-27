@@ -16,7 +16,7 @@ int DefensiveLegacyDefense(int chara, int defense) {
         return defense;
     }
     const WEAPON_HAVE &weapon = UserStatus->chara_weapons[chara][slot];
-    bool               legacy = (weapon.item_no == ITEM_WEAPON_AGA_S_SWORD && !PlainWeapons()) ||
+    bool               legacy = (weapon.item_no == ITEM_WEAPON_AGA_S_SWORD && WeaponAbilitiesOn()) ||
                                 (weapon.item_no == ITEM_WEAPON_SUPER_STEVE && SphereWeapon(weapon) == ITEM_WEAPON_AGA_S_SWORD);
     return legacy ? defense + kDefensiveLegacy : defense;
 }

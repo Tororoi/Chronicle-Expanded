@@ -1,6 +1,7 @@
 #include "expanded/weapons/super_steve.hpp"
 
 #include "dun/gameloop.hpp"
+#include "expanded/core/options.hpp"
 #include "expanded/weapons/xiao/double_impact.hpp"
 #include "itemdata.hpp"
 #include "mglib.hpp"
@@ -23,7 +24,10 @@ constexpr int kIconX = 29;
 constexpr int kIconY = 399;
 constexpr int kIconSize = 20;
 
-bool plain = false;
+[[maybe_unused]] const bool kRegistered = AddToggle({.key = kWeaponAbilities,
+                                                     .label = "Weapon Abilities",
+                                                     .help = "\"Weapon Abilities\"\nEach weapon's special\nability. Off, weapons\nwork as in the\noriginal game.",
+                                                     .on = true});
 
 // The active character's equipped weapon record.
 const WEAPON_HAVE *EquippedWeapon() {
@@ -48,7 +52,7 @@ int SuperSteveSphere(const WEAPON_HAVE *weapon) {
 
 // A weapon holds one SynthSphere at most, so the first is the one.
 int SphereWeapon(const WEAPON_HAVE &weapon) {
-    if (plain) {
+    if (!WeaponAbilitiesOn()) {
         return 0;
     }
     for (const ATTACH_LIST &attach : weapon.attach) {
@@ -65,19 +69,15 @@ int SuperSteveSphere() {
 }
 
 int HeldWeapon() {
-    return plain || NowWeaponHave == nullptr ? 0 : NowWeaponHave->item_no;
+    return NowWeaponHave == nullptr || !WeaponAbilitiesOn() ? 0 : NowWeaponHave->item_no;
 }
 
 bool WeaponWielded(int weapon_no) {
     return weapon_no != 0 && HeldWeapon() == weapon_no;
 }
 
-void SetPlainWeapons(bool on) {
-    plain = on;
-}
-
-bool PlainWeapons() {
-    return plain;
+bool WeaponAbilitiesOn() {
+    return OptionOn(kWeaponAbilities);
 }
 
 bool WeaponActive(int weapon_no) {

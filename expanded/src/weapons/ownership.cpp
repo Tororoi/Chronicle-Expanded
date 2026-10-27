@@ -32,7 +32,7 @@ int WeaponsOwned(int weapon_no) {
 }
 
 int WeaponsOwned(const CUserStatus *status, const CStockItem *stock, int weapon_no) {
-    if (weapon_no <= 0 || PlainWeapons()) {
+    if (weapon_no <= 0 || !WeaponAbilitiesOn()) {
         return 0;
     }
 

@@ -3,6 +3,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
+#include "test_support.hpp"
 
 using namespace expanded;
 
@@ -66,18 +67,21 @@ TEST(SuperSteve, SlingshotSphereLendsItsPellet) {
     EXPECT_EQ(PelletWeapon(), ITEM_WEAPON_SUPER_STEVE);
 }
 
-// Plain weapons: nothing is wielded, channelled or owned as Expanded's effects ask, and back after.
-TEST(SuperSteve, PlainWeaponsWieldNothing) {
+// The Weapon Abilities option is on by default; off, nothing is wielded or channelled as Expanded's effects ask, and
+// back on after.
+TEST(SuperSteve, WeaponAbilitiesOffWieldNothing) {
     WEAPON_HAVE weapon = SuperSteve(ITEM_WEAPON_BASELARD);
     Wielding wielding(weapon);
-    SetPlainWeapons(true);
-    EXPECT_TRUE(PlainWeapons());
+    EXPECT_TRUE(WeaponAbilitiesOn());
+    expanded::test::OptionScope options;
+    ASSERT_TRUE(options.Set(kWeaponAbilities, false));
+    EXPECT_FALSE(WeaponAbilitiesOn());
     EXPECT_EQ(HeldWeapon(), 0);
     EXPECT_EQ(SphereWeapon(weapon), 0);
     EXPECT_EQ(SuperSteveSphere(), 0);
     EXPECT_FALSE(WeaponWielded(ITEM_WEAPON_SUPER_STEVE));
     EXPECT_FALSE(WeaponActive(ITEM_WEAPON_BASELARD));
-    SetPlainWeapons(false);
+    ASSERT_TRUE(options.Set(kWeaponAbilities, true));
     EXPECT_EQ(HeldWeapon(), ITEM_WEAPON_SUPER_STEVE);
     EXPECT_TRUE(WeaponWielded(ITEM_WEAPON_SUPER_STEVE));
     EXPECT_TRUE(WeaponActive(ITEM_WEAPON_BASELARD));
