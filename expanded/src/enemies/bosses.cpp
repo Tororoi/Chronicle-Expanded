@@ -8,6 +8,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/data/boss_model.hpp"
+#include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/black_knight.hpp"
 #include "expanded/enemies/boss_casts.hpp"
 #include "expanded/enemies/boss_moves.hpp"
@@ -117,7 +118,7 @@ bool BossSupported(int model_no) {
 }
 
 bool BossOutOfPlace(int monster) {
-    return monster >= 0 && monster < kFloorMonsters && out_of_place[monster] != nullptr;
+    return monster >= 0 && monster < kFloorMonsters && out_of_place[monster] != nullptr && !AllyStepping();
 }
 
 int MotionCount(const CCharacter &character) {
@@ -160,6 +161,9 @@ bool BossPlace(CMonstorUnit &unit, int monster, float *position) {
 }
 
 bool BossSmokes(int monster, int model_slot) {
+    if (AllyStepping()) {
+        return false;
+    }
     if (UserStatus->cur_georama == DUNGEON_SUN_MOON_TEMPLE && UserStatus->cur_floor == kKingsCurseFloor && monster == kKingsCurseKing) {
         return true;
     }

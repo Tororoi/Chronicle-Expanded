@@ -44,11 +44,6 @@ constexpr float kEmergeFrames = (kBloomEmergedFrame - kSmokeClipStart) / kSmokeR
 constexpr float kPeakFrames = (kBloomPeakFrame - kSmokeClipStart) / kSmokeRate;
 constexpr float kRisenFrames = (kBloomRisenFrame - kSmokeClipStart) / kSmokeRate;
 
-// The body test's reach: a sphere farther than this from its monster has not been posed this frame; a monster with none
-// is its root, this wide.
-constexpr float kUnposed = 80.0f;
-constexpr float kBodyFallback = 10.0f;
-
 // The floor under the spot: the highest at or below the wielder's height plus this.
 constexpr float kFloorAbove = 20.0f;
 
@@ -124,47 +119,6 @@ void RootAcross(float s, float *root) {
     root[2] = bloom.spot[2] - (-n * Shape().base_x + c * Shape().base_z) * s;
 }
 
-// How far (x, z) is across the ground from the nearest edge of a monster's posed body spheres (0 inside one); with none,
-// from its root less kBodyFallback.
-float BodyEdge(CMonstorUnit &unit, int monster, float x, float z) {
-    const MONSTOR_EFFECT_STATE &body = unit.effect[monster];
-    float                       at[4];
-    unit.chara[monster][0].GetPosition(at);
-    bool  posed = false;
-    float nearest = 0.0f;
-    for (int i = 0; i < kMonsterSpheres; i++) {
-        const float *centre = body.position[i];
-        if (body.timer[i] == 0 || std::fabs(centre[0] - at[0]) > kUnposed || std::fabs(centre[2] - at[2]) > kUnposed) {
-            continue;
-        }
-        float edge = std::hypot(centre[0] - x, centre[2] - z) - body.radius[i];
-        nearest = posed ? std::min(nearest, edge) : edge;
-        posed = true;
-    }
-    if (!posed) {
-        nearest = std::hypot(at[0] - x, at[2] - z) - kBodyFallback;
-    }
-    return std::max(0.0f, nearest);
-}
-
-// A monster's largest posed body sphere (its centre into centre, its radius); its root and kBodyFallback with none.
-float BodyCentre(CMonstorUnit &unit, int monster, float *centre) {
-    const MONSTOR_EFFECT_STATE &body = unit.effect[monster];
-    float                       at[4];
-    unit.chara[monster][0].GetPosition(at);
-    centre[0] = at[0], centre[1] = at[1] + kBodyFallback, centre[2] = at[2], centre[3] = 1.0f;
-    float radius = kBodyFallback, best = 0.0f;
-    for (int i = 0; i < kMonsterSpheres; i++) {
-        const float *sphere = body.position[i];
-        if (body.timer[i] == 0 || body.radius[i] <= best || std::fabs(sphere[0] - at[0]) > kUnposed || std::fabs(sphere[2] - at[2]) > kUnposed) {
-            continue;
-        }
-        best = radius = body.radius[i];
-        std::copy(sphere, sphere + 3, centre);
-    }
-    return radius;
-}
-
 int FreeHits() {
     int free = 0;
     for (int active : NowColData->active) {
@@ -179,7 +133,7 @@ void Prick(CMonstorUnit &unit, int monster) {
         return;
     }
     float          centre[4];
-    float          radius = std::max(kBloomHitRadius, BodyCentre(unit, monster, centre));
+    float          radius = std::max(kBloomHitRadius, MonsterBodyCentre(unit, monster, centre));
     int            damage = std::max(1, static_cast<int>(std::nearbyint(static_cast<double>(NowWeaponHave->attack * kBloomHitShare))));
     COLLISION_HIT *record = PlantWeaponHit(centre, damage, 1, radius);
     if (record == nullptr) {
@@ -196,7 +150,7 @@ void Pricks() {
     }
     for (int monster = 0; monster < kFloorMonsters; monster++) {
         if (MonsterLiving(NowMonstorUnit->monster[monster]) &&
-            BodyEdge(*NowMonstorUnit, monster, bloom.spot[0], bloom.spot[2]) <= Shape().block_radius + kBloomHitReach) {
+            MonsterBodyEdge(*NowMonstorUnit, monster, bloom.spot[0], bloom.spot[2]) <= Shape().block_radius + kBloomHitReach) {
             Prick(*NowMonstorUnit, monster);
         }
     }

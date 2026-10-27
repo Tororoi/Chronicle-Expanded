@@ -9,6 +9,7 @@
 #include "expanded/core/frame_tint.hpp"
 #include "expanded/data/gemron_models.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/monsters.hpp"
@@ -151,7 +152,7 @@ void Blast(CMonstorUnit &unit, int monster) {
 } // namespace
 
 void BombGemronAim(const CMonstorUnit &unit, int monster, float *target) {
-    if (monster >= 0 && monster < kFloorMonsters && gemrons[monster].bomb && unit.monster[monster].hp > 0) {
+    if (monster >= 0 && monster < kFloorMonsters && gemrons[monster].bomb && unit.monster[monster].hp > 0 && !AllyUnit(unit)) {
         target[1] += kAimHeight - kHolyAimHeight;
     }
 }

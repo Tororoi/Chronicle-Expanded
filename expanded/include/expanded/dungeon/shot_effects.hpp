@@ -34,6 +34,13 @@ int FireShotEffect(int index, float *position, float *target, int owner = -1);
 // from), with user and first phase as given. Its slot, or -1 when no slot is free.
 int SpawnStill(CSHOT_EFFECT &effect, const float *at, int user = 0, int phase = 0);
 
+// A shot struck at at, as CSHOT_EFFECT::Step ends one on its target: its impact phase's motion from its start, on at its
+// impact speed (its sound with it), or, with no impact motion, gone (a bomb's in its blast).
+void ShotEffectStrike(CSHOT_EFFECT &effect, int slot, float *at);
+
+// The shot that planted hit (a monster's), struck where the hit is: false when none is near enough.
+bool ShotEffectStrikeHit(int hit);
+
 // Stops a shot where it is.
 void StopShot(CSHOT_EFFECT &effect, int slot);
 

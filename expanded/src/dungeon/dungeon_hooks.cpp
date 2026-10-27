@@ -10,6 +10,7 @@
 #include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/atla_gemron.hpp"
 #include "expanded/enemies/black_knight.hpp"
 #include "expanded/enemies/bomb_gemron.hpp"
@@ -35,6 +36,8 @@
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/kick_back.hpp"
 #include "expanded/weapons/osmond/snail.hpp"
+#include "expanded/weapons/ruby/pocklekul.hpp"
+#include "expanded/weapons/ruby/pocklekul/fights.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/solid_column.hpp"
 #include "expanded/weapons/toan/agas_sword.hpp"
@@ -92,9 +95,11 @@ void DungeonShotsStep(CMonstorUnit &unit) {
     BlackKnightStep();
     GuardianReflectorStep();
     MirageStep();
+    PocklekulShotsStep();
 }
 
 void DungeonFloorUnloaded() {
+    PocklekulReset();
     ShotEffectsClear();
     FloorCharactersClear();
 }
@@ -124,6 +129,7 @@ void DungeonShadowsDrawn(const float *player) {
 }
 
 void DungeonMonstersDrawn() {
+    AllyDraw();
     DesertBloomDraw();
 }
 
@@ -164,6 +170,7 @@ void PlayerHitReacted(bool blocked) {
 }
 
 void DungeonMonstersCleared(bool drop_stars) {
+    PocklekulReset();
     ConfuseFloorReset(drop_stars);
     ShotEffectsReset();
     SolarFlashReset();
@@ -207,6 +214,11 @@ void DungeonMonstersTick() {
     EventLogStep();
 }
 
+void DungeonMonstersStepped(int pause) {
+    PocklekulStep(pause);
+    AllyStep(pause);
+}
+
 void PlayerShotsStepped() {
     SpiritBeastStep();
 }
@@ -217,17 +229,26 @@ void MonsterPackFile(char *filename, int model_no) {
 }
 
 void MonsterDrawing(CMonstorUnit &unit, int monster) {
+    if (AllyUnit(unit)) {
+        return;
+    }
     BombGemronDrawing(unit, monster);
     CrystalGemronDrawing(unit, monster);
     AtlaGemronDrawing(unit, monster);
 }
 
 void MonsterDrawn(CMonstorUnit &unit, int monster) {
+    if (AllyUnit(unit)) {
+        return;
+    }
     BombGemronDrawn(unit, monster);
     AtlaGemronDrawn(unit, monster);
 }
 
 bool MonsterKilled(const CMonstorUnit &unit, int monster) {
+    if (AllyUnit(unit)) {
+        return false;
+    }
     EventLogKilled(unit, monster);
     BossRecordKill(unit, monster);
     VampireKill(unit, monster);
@@ -235,22 +256,39 @@ bool MonsterKilled(const CMonstorUnit &unit, int monster) {
 }
 
 int MonsterDropItem(const CMonstorUnit &unit, int monster, int drop_item) {
+    if (AllyUnit(unit)) {
+        return drop_item;
+    }
     return SolarHarvestDrop(unit, monster, drop_item);
 }
 
 int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs) {
-    return MarineHunterAbs(unit, monster, SanctifierAbs(unit, monster, JacketHunterAbs(unit, monster, abs)));
+    if (AllyUnit(unit)) {
+        return abs;
+    }
+    int result = MarineHunterAbs(unit, monster, SanctifierAbs(unit, monster, JacketHunterAbs(unit, monster, abs)));
+    pocklekul::PockleKillAbs(monster, result);
+    return result;
 }
 
 float MonsterWeaponDamage(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, float damage) {
+    if (AllyUnit(unit)) {
+        return damage;
+    }
     return SanctifierDamage(unit, monster, hit, damage);
 }
 
 int MonsterDefense(const CMonstorUnit &unit, int monster, int defense) {
+    if (AllyUnit(unit)) {
+        return defense;
+    }
     return MarineHunterDefense(unit, monster, defense);
 }
 
 int MonsterHardness(const CMonstorUnit &unit, int monster, int hardness) {
+    if (AllyUnit(unit)) {
+        return hardness;
+    }
     return MarineHunterHardness(unit, monster, hardness);
 }
 
@@ -263,6 +301,9 @@ float PlayerLockOnRange(float rate) {
 }
 
 bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
+    if (AllyUnit(unit)) {
+        return false;
+    }
     return BossDeathStep(unit, monster) || BombGemronStep(unit, monster) || ReviveStep(unit, monster) ||
            BlindStep(unit, monster);
 }
@@ -313,23 +354,46 @@ bool TargetNameHidden() {
     return JudgementHanging() || JudgementFalling() || BigBangShotHanging();
 }
 
-bool MonsterHitRefused(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {
-    return DragonShotRefused(monster, hit);
+bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit) {
+    if (AllyUnit(unit)) {
+        return pocklekul::PockleRefuses(hit);
+    }
+    return pocklekul::PockleHitMeantElsewhere(monster, hit) || DragonShotRefused(monster, hit);
 }
 
-void MonsterHitTaken(const CMonstorUnit &, int monster, const COLLISION_HIT &hit) {
+void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit) {
+    if (AllyUnit(unit)) {
+        return;
+    }
     SpiritBeastHitTaken(hit);
     MirageHitTaken(monster);
 }
 
 void MonsterPoisoned(const MONSTOR &target) {
+    if (AllyStepping()) {
+        return;
+    }
     VenomPoisoned(target);
 }
 
 void MonsterDamaged(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount) {
+    if (AllyUnit(unit)) {
+        return;
+    }
     EventLogDamaged(unit, monster, amount);
     CactusMonsterDamaged(unit, monster, hit, amount);
     SnailMonsterDamaged(unit, monster, hit, amount);
+    pocklekul::PockleMonsterDamaged(monster, hit, amount);
+}
+
+void MonsterSwingSet(CMonstorUnit &unit, int, int hit) {
+    if (AllyUnit(unit)) {
+        pocklekul::PockleSwingSet(unit, hit);
+    }
+}
+
+int MonsterFriendlyHit(CMonstorUnit &unit, int sphere) {
+    return AllyUnit(unit) ? pocklekul::PockleHitOn(unit, sphere) : ConfuseMonsterHit(unit, sphere);
 }
 
 bool HitWearsWeapon(const COLLISION_HIT &hit) {
@@ -337,19 +401,24 @@ bool HitWearsWeapon(const COLLISION_HIT &hit) {
 }
 
 void MonsterMoveChecked(CMonstorUnit &unit, int monster) {
-    SolidColumnMonsterMove(unit, monster);
+    pocklekul::PockleMoveChecked(unit, monster);
+    if (!AllyUnit(unit)) {
+        SolidColumnMonsterMove(unit, monster);
+    }
 }
 
 void PlayerMoveChecked(const float *position, float *velocity) {
+    AllyPlayerMove(position, velocity);
     SolidColumnPlayerMove(position, velocity);
 }
 
 void DungeonShadowsDrawing() {
+    AllyShadow();
     GroundShadowDraw();
 }
 
 void ScriptPlayerPosition(float *position) {
-    if (NowMonstorUnit != nullptr && (angel_gear::RingTarget(NowMonstorUnit->current_monster, position) ||
+    if (NowMonstorUnit != nullptr && (PocklekulScriptTarget(position) || angel_gear::RingTarget(NowMonstorUnit->current_monster, position) ||
                                       MirageTarget(NowMonstorUnit->current_monster, position))) {
         return;
     }
@@ -400,6 +469,9 @@ float XiaoShotWear(float wear) {
 }
 
 int MonsterSpherePercent(const CMonstorUnit &unit, int monster, int sphere, int owner, const COLLISION_HIT &hit, int percent) {
+    if (AllyUnit(unit)) {
+        return percent;
+    }
     return SpiritBeastSpherePercent(unit.effect[monster], sphere, owner, hit, percent);
 }
 
@@ -412,10 +484,16 @@ bool LandedHitWearsWeapon(int attacker, const COLLISION_HIT &hit) {
 }
 
 void MonsterKnockedBack(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit) {
+    if (AllyUnit(unit)) {
+        return;
+    }
     WeaponKickBack(unit, monster, hit);
 }
 
 void MonsterItemStolen(const CMonstorUnit &unit, int monster, int item) {
+    if (AllyUnit(unit)) {
+        return;
+    }
     StealShotTaken(unit, monster, item);
 }
 
@@ -432,6 +510,9 @@ bool MonsterCanGuard(int monster) {
 }
 
 bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, int window, const COLLISION_HIT &hit) {
+    if (AllyUnit(unit)) {
+        return true;
+    }
     return MonsterCanGuard(monster) && !BlastHit(hit) && !ChargingBullHit(hit) && !SpiritBeastHit(hit) && !GuardCrushActive() &&
            !NoFoolsGoldOpens(unit, monster, window);
 }

@@ -5821,6 +5821,9 @@ void motionDrive() {
 
     if (BtEventMode == 0) {
         NowMonstorUnit->Step(driveStepHold | CMonUnitHold);
+#ifdef CHRONICLE_EXPANDED
+        expanded::DungeonMonstersStepped(driveStepHold | CMonUnitHold);
+#endif
     }
 
     if (BtActStatus.player_visible != 0 && EdEventInfo.player_draw != 0) {

@@ -7,6 +7,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/core/options.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_actions.hpp"
 #include "monstorunit.hpp"
@@ -209,6 +210,10 @@ bool StaysDown(const CMonstorUnit &unit, int monster_no) {
 }
 
 int ReviveCheckDmg(CMonstorUnit &unit, int result) {
+    if (AllyUnit(unit)) {
+        return result;
+    }
+
     int monster_no = unit.current_monster;
 
     forced_roll[monster_no] = -1;
@@ -291,7 +296,7 @@ bool ReviveStep(CMonstorUnit &unit, int monster_no) {
 }
 
 int ReviveRoll(int bound, int roll) {
-    if (NowMonstorUnit == nullptr || bound != 100) {
+    if (NowMonstorUnit == nullptr || bound != 100 || AllyStepping()) {
         return roll;
     }
 
@@ -308,6 +313,10 @@ int ReviveRoll(int bound, int roll) {
 }
 
 void ReviveClear() {
+    if (AllyStepping()) {
+        return;
+    }
+
     for (int i = 0; i < kFloorMonsters; i++) {
         reviving[i] = {};
         forced_roll[i] = -1;

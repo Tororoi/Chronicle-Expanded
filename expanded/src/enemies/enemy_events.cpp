@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/scaling.hpp"
 #include "monstorunit.hpp"
 
@@ -27,7 +28,7 @@ int ModelKind(int model_slot) {
 }
 
 bool IsKind(const CMonstorUnit &unit, int monster, Monster kind) {
-    return monster >= 0 && monster < kFloorMonsters && unit.monster[monster].state != -1 &&
+    return !AllyUnit(unit) && monster >= 0 && monster < kFloorMonsters && unit.monster[monster].state != -1 &&
            ModelKind(unit.monster[monster].base_model) == No(kind);
 }
 
@@ -44,7 +45,7 @@ void AddEnemySpawnListener(EnemySpawnListener listener) {
 }
 
 void EnemyModelSetUp(CMonstorUnit &unit, int model_slot, int model_no) {
-    if (model_slot < 0 || model_slot >= kModelSlots) {
+    if (model_slot < 0 || model_slot >= kModelSlots || AllyUnit(unit)) {
         return;
     }
     if (model_slot == 0) {
@@ -60,7 +61,7 @@ void EnemyModelSetUp(CMonstorUnit &unit, int model_slot, int model_no) {
 }
 
 void EnemySpawned(CMonstorUnit &unit, int monster) {
-    if (monster < 0 || monster >= kFloorMonsters) {
+    if (monster < 0 || monster >= kFloorMonsters || AllyUnit(unit)) {
         return;
     }
     ResetMonsterScale(unit, monster);

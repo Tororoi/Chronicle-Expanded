@@ -1171,6 +1171,9 @@ int CMonstorUnit::CheckDmg() {
                             NowColData->SetVelocity(hit, forward, 1.0f);
                         }
                     }
+#ifdef CHRONICLE_EXPANDED
+                    expanded::MonsterSwingSet(*this, current_monster, hit);
+#endif
                 }
             }
         }
@@ -1773,7 +1776,7 @@ int CMonstorUnit::CheckDmg() {
                 }
 
 #ifdef CHRONICLE_EXPANDED
-                int friendly = expanded::ConfuseMonsterHit(*this, i);
+                int friendly = expanded::MonsterFriendlyHit(*this, i);
 
                 if (friendly != -1) {
                     if (friendly != MONSTER_DMG_NONE) {

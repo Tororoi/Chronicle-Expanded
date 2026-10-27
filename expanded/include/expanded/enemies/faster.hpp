@@ -15,13 +15,13 @@ inline constexpr float kFasterHitWindowMargin = 1.0f;
 // Whether the Faster Enemies option is on.
 bool FasterEnemiesOn();
 
-// A _SET_MOVE speed, scaled with Faster Enemies on.
+// A _SET_MOVE speed, scaled with Faster Enemies on (a summoned ally's, ally_unit.hpp, never).
 float FasterMoveSpeed(float speed);
 
 // Whether monster_no's motion is at frame time of one of its hit windows, give or take the margin.
 bool FasterInHitWindow(const CMonstorUnit &unit, int monster_no, float time);
 
-// Steps a monster's character's motion, faster outside its hit windows with Faster Enemies on.
+// Steps a monster's character's motion, faster outside its hit windows with Faster Enemies on (a summoned ally's never).
 void FasterMotionStep(CMonstorUnit &unit, int monster_no, CCharacter &character);
 
 } // namespace expanded

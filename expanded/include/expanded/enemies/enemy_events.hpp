@@ -27,7 +27,8 @@ void AddEnemyFloorListener(EnemyFloorListener listener);
 void AddEnemyModelListener(EnemyModelListener listener);
 void AddEnemySpawnListener(EnemySpawnListener listener);
 
-// Hooks: SetupBaseModel set a kind up, SetupViewMonstor set a monster up.
+// Hooks: SetupBaseModel set a kind up, SetupViewMonstor set a monster up (a summoned ally's, ally_unit.hpp, tells no
+// listener).
 void EnemyModelSetUp(CMonstorUnit &unit, int model_slot, int model_no);
 void EnemySpawned(CMonstorUnit &unit, int monster);
 

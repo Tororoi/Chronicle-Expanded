@@ -24,4 +24,14 @@ int NearestMonster(CMonstorUnit &unit, const float *point, float reach);
 // sphere, when given, is that sphere.
 int MonsterTouching(const CMonstorUnit &unit, const float *point, float reach, int *sphere = nullptr);
 
+// A monster's body as its hurt spheres posed this frame give it (a sphere farther than kUnposedSphere from its root
+// across the ground was not posed this frame): how far (x, z) is across the ground from the nearest one's edge (0 inside
+// one; with none, from its root less kBodyFallback), and its largest one (centre into centre, its radius returned; its
+// root raised kBodyFallback and that wide with none) — where a hit planted on it surely lands.
+inline constexpr float kUnposedSphere = 80.0f;
+inline constexpr float kBodyFallback = 10.0f;
+
+float MonsterBodyEdge(const CMonstorUnit &unit, int monster, float x, float z);
+float MonsterBodyCentre(const CMonstorUnit &unit, int monster, float *centre);
+
 } // namespace expanded

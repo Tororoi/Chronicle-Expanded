@@ -29,7 +29,7 @@ inline constexpr float kMinibossRangeWide = 1.5f;
 // Its walk plays this many times slower, so its longer strides keep pace with the ground.
 inline constexpr float kMinibossWalkSlowdown = 1.3f;
 
-// Whether the floor's monster is a miniboss.
+// Whether the floor's monster is a miniboss (none while a summoned ally steps, ally_unit.hpp).
 bool IsMiniboss(int monster);
 
 // Makes the floor's monster a miniboss, carrying a drop rolled from its species' loot.
@@ -45,7 +45,7 @@ int MinibossPlacedModel(const CMonstorUnit &unit, int placement, int model_slot)
 // The end of ArrangementPos: the floor or its back floor was populated.
 void MinibossesArranged(CMonstorUnit &unit);
 
-// Step: a monster was defeated.
+// Step: a monster was defeated (a summoned ally's is no miniboss).
 void MinibossDefeated(CMonstorUnit &unit, int monster);
 
 // Step, before CRandomItem::Set: a defeated monster's drop about to be put on the floor at position.

@@ -6,9 +6,9 @@ namespace expanded {
 
 // The poof a summon appears in: gedit/e03's cutscene smoke (e228ex) as one of Expanded's shot effects, burst at a spot at
 // the summoner's scale, turned to the summoner's facing, its one clip (frames kSmokeClipStart to kSmokeClipEnd, authored
-// at 0.2 a frame) played at kSmokeRate, held at its spot, and from frame kSmokeFadeFrom faded until it is gone at
-// kSmokeClipEnd, where the effect ends it. It is the visual alone: it hits nothing. One plays at a time. What rises in it
-// is timed on its frames.
+// at 0.2 a frame) played at kSmokeRate, held at its spot (which its summon may move), and from frame kSmokeFadeFrom faded
+// until it is gone at kSmokeClipEnd, where the effect ends it. It is the visual alone: it hits nothing. One plays at a
+// time. What rises in it is timed on its frames.
 inline constexpr const char *kSummonSmokeFile = "gedit/e03/chara/e228ex.chr";
 inline constexpr float       kSmokeClipStart = 1.0f, kSmokeClipEnd = 50.0f, kSmokeFadeFrom = 32.0f;
 inline constexpr float       kSmokeRate = 0.6f;
@@ -22,6 +22,8 @@ BT_SHOT_EFFECT *SummonSmokeEffect();
 bool SummonSmokeStart(const float *spot, float yaw, float scale, const void *owner);
 // One step (once a frame the monsters step unpaused): held at its spot, at its rate, faded past kSmokeFadeFrom.
 void SummonSmokeStep();
+// Its spot moved to spot (its ground), if it plays for owner: what rises in it walks off in it.
+void SummonSmokeMove(const float *spot, const void *owner);
 // Put out now, if it plays for owner: another summon's smoke plays on.
 void SummonSmokeEnd(const void *owner);
 bool SummonSmokePlaying();

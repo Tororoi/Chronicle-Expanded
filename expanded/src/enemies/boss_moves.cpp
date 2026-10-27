@@ -7,6 +7,7 @@
 #include "dun/gameloop.hpp"
 #include "dungeonmap.hpp"
 #include "expanded/dungeon/navigation.hpp"
+#include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/boss_table.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -116,7 +117,7 @@ void OnSpawn(CMonstorUnit &unit, int monster) {
 } // namespace
 
 void BossPointIn(CMonstorUnit &unit, int monster, float *point, BossPoint use) {
-    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].arena) {
+    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].arena || AllyUnit(unit)) {
         return;
     }
     Mover &mover = movers[monster];
@@ -138,11 +139,11 @@ void BossPointIn(CMonstorUnit &unit, int monster, float *point, BossPoint use) {
 }
 
 bool BossInArenaFrame(int monster) {
-    return monster >= 0 && monster < kFloorMonsters && movers[monster].arena;
+    return monster >= 0 && monster < kFloorMonsters && movers[monster].arena && !AllyStepping();
 }
 
 void BossPointOut(int monster, float *point) {
-    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].arena) {
+    if (!BossInArenaFrame(monster)) {
         return;
     }
     for (int i = 0; i < 3; i++) {
@@ -151,7 +152,7 @@ void BossPointOut(int monster, float *point) {
 }
 
 void BossMoveGoal(int monster, const float *goal) {
-    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].active) {
+    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].active || AllyStepping()) {
         return;
     }
     std::copy(goal, goal + 3, movers[monster].goal);
@@ -159,7 +160,7 @@ void BossMoveGoal(int monster, const float *goal) {
 }
 
 void BossSteer(CMonstorUnit &unit, int monster) {
-    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].active) {
+    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].active || AllyUnit(unit)) {
         return;
     }
     Mover   &mover = movers[monster];
@@ -207,7 +208,7 @@ void BossSteer(CMonstorUnit &unit, int monster) {
 }
 
 bool BossLineClear(CMonstorUnit &unit, int monster, const float *to) {
-    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].active) {
+    if (monster < 0 || monster >= kFloorMonsters || !movers[monster].active || AllyUnit(unit)) {
         return true;
     }
     float at[4];

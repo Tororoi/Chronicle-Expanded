@@ -92,6 +92,12 @@ void SummonSmokeStep() {
     }
 }
 
+void SummonSmokeMove(const float *spot, const void *owner) {
+    if (puff.owner == owner && puff.slot >= 0) {
+        std::copy(spot, spot + 3, puff.spot);
+    }
+}
+
 void SummonSmokeEnd(const void *owner) {
     if (puff.owner == owner) {
         PutOut();
