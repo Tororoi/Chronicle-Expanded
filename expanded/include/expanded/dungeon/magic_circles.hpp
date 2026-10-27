@@ -15,8 +15,33 @@ namespace expanded {
 // strength.
 int CircleMagnitude();
 
-// Hook: Run_TrapCircle, with the circle's kind (a default weapon's stamina already in): runs an amplified circle, or
-// any ABS full, on the active character's weapon, its sound too; false leaves the circle to retail.
-bool AmplifiedCircle(int kind, WEAPON_HAVE &weapon);
+// The Secret Armlet's "Favoured Circles": while it is owned (in hand, a bag or storage; a sphere doesn't pass it on),
+// every bad circle is dealt as a good one, at the circles' strength:
+// - money down as money up, the maximum WHP loss as its gain and the WHP loss as the WHP cure, each with that circle's
+//   message;
+// - the stat loss as a gain of the same rolls: the stat and one element and anti of each group go up, to 99 at most
+//   (one past 99 already stays as it is);
+// - the monsters' rage as every monster slowed (gooed) for kCircleSlowFrames times the strength, with its own
+//   message. A monster gooed already keeps its goo, which never wears off.
+bool CirclesFavoured();
+
+// Monster steps the favoured rage circle slows the monsters for at retail strength: 5 s.
+inline constexpr int kCircleSlowFrames = 300;
+
+// The system message a circle shows is this far past what Run_TrapCircle gives, the circle's kind.
+inline constexpr int kCircleMessages = 0x12C;
+
+// Hook: Run_TrapCircle, with the circle's kind (a default weapon's stamina already in): the kind it is dealt as, a
+// favoured money down, maximum WHP loss or WHP loss's good counterpart.
+int DealtCircle(int kind);
+
+// Hook: Run_TrapCircle, with the kind dealt: runs an amplified or favoured circle, or any ABS full, on the active
+// character's weapon, its sound too. Gives what Run_TrapCircle returns (its message less kCircleMessages), or -1 to
+// leave the circle to retail.
+int ExpandedCircle(int kind, WEAPON_HAVE &weapon);
+
+// One frame: the favoured rage circle's slow counted down on a frame the monsters step (MonstersStepping), and ended
+// on every monster still slowed by it.
+void CircleSlowStep();
 
 } // namespace expanded

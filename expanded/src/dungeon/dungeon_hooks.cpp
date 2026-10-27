@@ -6,6 +6,7 @@
 #include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/dungeon/ground_shadow.hpp"
+#include "expanded/dungeon/magic_circles.hpp"
 #include "expanded/dungeon/navigation.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/dungeon/scene_light.hpp"
@@ -194,6 +195,7 @@ void DungeonMonstersTick() {
     TyphoonStep();
     HerosCourageStep();
     BlindTick();
+    CircleSlowStep();
     SceneLightStep();
     JudgementStep();
     SolarFlashStep();

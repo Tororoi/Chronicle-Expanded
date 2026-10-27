@@ -41,6 +41,9 @@ constexpr float kWalkStep = 10.0f; // and how far it goes a step (further flings
 constexpr int   kBigRoomCells = 9;
 constexpr float kAway = 2000.0f; // where monsters not set out are sent
 
+// How far in front of the member the stage's magic circle is set out.
+constexpr float kCircleAhead = 40.0f;
+
 std::optional<Stage> active;
 
 // The stage's progress through a run.
@@ -51,6 +54,7 @@ struct Run {
     bool  walking = false;
     float to[2] = {};
     bool  placed = false;
+    bool  circled = false; // the magic circle set out
 };
 
 Run run;
@@ -133,6 +137,7 @@ constexpr Key kKeys[] = {
     {"place_after", [](std::string_view v, Stage &s) { return Count(v, s.place_after); }                    },
     {"big_room",    [](std::string_view v, Stage &s) { return Flag(v, s.big_room); }                        },
     {"keep_alive",  [](std::string_view v, Stage &s) { return Flag(v, s.keep_alive); }                      },
+    {"circle",      [](std::string_view v, Stage &s) { return Within(v, s.circle, 0, 9); }                  },
 };
 
 // One key's value into stage; false for an unknown key or a bad value.
@@ -218,6 +223,19 @@ void Place(const Stage &stage) {
             unit.chara[m][0].SetPosition(CharaMain.pos[0] + kAway, CharaMain.pos[1], CharaMain.pos[2] + kAway);
         }
     }
+}
+
+// The floor's first magic circle, set to the stage's kind and moved in front of the member, waiting to be stepped on.
+void SetOutCircle(const Stage &stage) {
+    MAP_TRAP_CIRCLE &circle = NowDngMap->trap_circle[0];
+    float            a = CharaMain.rotation.y;
+    circle.pos[0] = CharaMain.pos[0] + kCircleAhead * std::sin(a);
+    circle.pos[1] = CharaMain.pos[1];
+    circle.pos[2] = CharaMain.pos[2] + kCircleAhead * std::cos(a);
+    circle.pos[3] = 1.0f;
+    circle.state = 1;
+    circle.kind = stage.circle;
+    circle.timer = 0.0f;
 }
 
 // The floor in play with no action or event running: when a member can be brought out.
@@ -378,6 +396,12 @@ void StageStep() {
         Place(*active);
         run.placed = true;
         LogEvent("stage", "\"step\":\"placed\"");
+    }
+    bool circle_due = active->circle >= 0 && !run.circled && run.steps >= active->place_after && !run.walking;
+    if (circle_due && NowDngMap != nullptr) {
+        SetOutCircle(*active);
+        run.circled = true;
+        LogEvent("stage", "\"step\":\"circle\"");
     }
 }
 

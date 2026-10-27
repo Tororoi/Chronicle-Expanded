@@ -116,10 +116,10 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 | ps2/src/dataread.cpp:617 | LoadFile2 | replaced | round-trip | `(int)buffer` | parameter | compare: GT |
 | ps2/src/dun/gameloop.cpp:5030 | DunMoveChara | replaced | resolved | `(unsigned int)NowDngMap` | global pointer | store: address (read back only in DunMoveChara) |
 | ps2/src/dun/gameloop.cpp:5034 | DunMoveChara | replaced | resolved | `(unsigned int)NowDngMap` | global pointer | store: address (read back only in DunMoveChara) |
-| ps2/src/dun/gameloop.cpp:7271 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
-| ps2/src/dun/gameloop.cpp:7296 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
-| ps2/src/dun/gameloop.cpp:7321 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
-| ps2/src/dun/gameloop.cpp:7346 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
+| ps2/src/dun/gameloop.cpp:7274 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
+| ps2/src/dun/gameloop.cpp:7299 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
+| ps2/src/dun/gameloop.cpp:7324 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
+| ps2/src/dun/gameloop.cpp:7349 | BtCheckDamageProc | replaced | resolved | `(unsigned int)who` | global pointer | store: address (read back only in BtCheckDamageProc) |
 | ps2/src/dungeonmap.cpp:3175 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
 | ps2/src/dungeonmap.cpp:3190 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
 | ps2/src/dungeonmap.cpp:3203 | CDungeonMap::BuildCharaSpecialParts | replaced | resolved | `(unsigned int)this` | this | store: address (read back only in CDungeonMap::BuildCharaSpecialParts) |
@@ -243,10 +243,10 @@ pointer where it is stored, or resolve the integer where it comes back.
 | ps2/src/dataread.cpp:513 | InitCDFile | replaced | `(char *)records[i].name` | records[i].name |
 | ps2/src/dun/gameloop.cpp:5030 | DunMoveChara | replaced | `(CDungeonMap *)(offset + address)` | address |
 | ps2/src/dun/gameloop.cpp:5034 | DunMoveChara | replaced | `(CDungeonMap *)(offset + address)` | address |
-| ps2/src/dun/gameloop.cpp:7272 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
-| ps2/src/dun/gameloop.cpp:7297 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
-| ps2/src/dun/gameloop.cpp:7322 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
-| ps2/src/dun/gameloop.cpp:7347 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
+| ps2/src/dun/gameloop.cpp:7275 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
+| ps2/src/dun/gameloop.cpp:7300 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
+| ps2/src/dun/gameloop.cpp:7325 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
+| ps2/src/dun/gameloop.cpp:7350 | BtCheckDamageProc | replaced | `(CUserStatus *)address` | address |
 | ps2/src/dungeonmap.cpp:3176 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
 | ps2/src/dungeonmap.cpp:3191 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |
 | ps2/src/dungeonmap.cpp:3204 | CDungeonMap::BuildCharaSpecialParts | replaced | `(CDungeonMap *)address` | address |

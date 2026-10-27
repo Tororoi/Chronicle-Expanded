@@ -8934,8 +8934,9 @@ int Run_TrapCircle(MAP_TRAP_CIRCLE *trap) {
     }
 
 #ifdef CHRONICLE_EXPANDED
-    if (expanded::AmplifiedCircle(kind, *weapon)) {
-        return kind;
+    kind = expanded::DealtCircle(kind);
+    if (int shown = expanded::ExpandedCircle(kind, *weapon); shown >= 0) {
+        return shown;
     }
 #endif
 
