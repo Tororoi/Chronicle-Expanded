@@ -7,6 +7,7 @@
 #include "expanded/dungeon/ground_shadow.hpp"
 #include "expanded/dungeon/navigation.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
+#include "expanded/dungeon/scene_light.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/atla_gemron.hpp"
 #include "expanded/enemies/black_knight.hpp"
@@ -158,6 +159,9 @@ void DungeonMonstersCleared(bool drop_stars) {
     ConfuseFloorReset(drop_stars);
     ShotEffectsReset();
     SolarFlashReset();
+    BlindReset();
+    JudgementReset();
+    SceneLightReset();
     BigBangShotReset();
     ZeusChargeReset();
     ZeusShotReset();
@@ -174,6 +178,9 @@ void DungeonMonstersTick() {
     GreatswordStep();
     TyphoonStep();
     HerosCourageStep();
+    BlindTick();
+    SceneLightStep();
+    JudgementStep();
     SolarFlashStep();
     BigBangShotStep();
     ZeusChargeStep();

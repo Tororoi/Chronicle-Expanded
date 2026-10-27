@@ -89,7 +89,8 @@ void ChargeCompleteFlash();
 
 // One step of the charge (once a frame the monsters step unpaused).
 void SolarFlashStep();
-// The floor changed or its monsters were put back: everything back as it was.
+// The floor changed or its monsters were put back: the charge and the flash back as they were (the blinding, the
+// scene light and the judgement blade reset with the dungeon's hooks).
 void SolarFlashReset();
 
 // The flash from point: the white, the light hits (all but the monster except), the bill (whp, or the profile's

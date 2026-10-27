@@ -42,18 +42,18 @@ struct Scene {
         floor.unit().chara[0][0].SetPosition(100.0f, 0.0f, 0.0f);
         floor.unit().chara[1][0].SetPosition(400.0f, 0.0f, 0.0f);
         BtActStatus = {};
-        expanded::SolarFlashReset();
+        expanded::test::SolarReset();
     }
 
     ~Scene() {
-        expanded::SolarFlashReset();
+        expanded::test::SolarReset();
         BtActStatus = {};
         NowColData = saved_hits;
     }
 
     void Steps(int n) {
         for (int i = 0; i < n; i++) {
-            expanded::SolarFlashStep();
+            expanded::test::SolarStep();
         }
     }
 

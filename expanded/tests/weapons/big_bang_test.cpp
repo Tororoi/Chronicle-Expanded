@@ -41,7 +41,7 @@ struct Floor {
         floor.unit().chara[0][0].body_height = 20.0f;
         floor.unit().chara[0][0].motion_type.motion_info = motions;
         BtActStatus = {};
-        expanded::SolarFlashReset();
+        expanded::test::SolarReset();
         expanded::JudgementReset();
         expanded::BigBangShotReset();
     }
@@ -122,7 +122,7 @@ TEST(BigBang, ItsSolarFlashHangsTheBladeOverTheLockedTarget) {
     lockOnTargetNo = 0;
     BtActStatus.guard_mode = 5;
     for (int i = 0; i <= expanded::kSolarChargeFrames + 1; i++) {
-        expanded::SolarFlashStep();
+        expanded::test::SolarStep();
     }
     EXPECT_EQ(expanded::SolarFlashPhase(), expanded::SolarPhase::kPrimed);
     EXPECT_TRUE(expanded::JudgementHanging());
@@ -153,7 +153,7 @@ TEST(BigBangShot, SuperSteveGuardsThreeSecondsThenHerShotFlashes) {
     }
     EXPECT_FALSE(expanded::BigBangShotHanging());
     EXPECT_TRUE(expanded::SceneFlashing());
-    expanded::SolarFlashReset();
+    expanded::test::SolarReset();
 }
 
 TEST(BigBangShot, AGuardStopsTheChargedShotsBlast) {
@@ -194,10 +194,10 @@ TEST(BigBang, ALandingBlindsOnlyOnceItsThrowIsOver) {
     // The Jacket under the landing is the blast's alone: no light hit on it.
     EXPECT_EQ(floor.hits->hit[0].life, 0);
     for (int i = 1; i < expanded::kBlastThrowFrames; i++) {
-        expanded::SolarFlashStep();
+        expanded::test::SolarStep();
     }
     EXPECT_FALSE(expanded::Blinding());
-    expanded::SolarFlashStep();
+    expanded::test::SolarStep();
     EXPECT_TRUE(expanded::Blinding());
-    expanded::SolarFlashReset();
+    expanded::test::SolarReset();
 }

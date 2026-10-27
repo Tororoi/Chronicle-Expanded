@@ -40,13 +40,13 @@ struct Floor {
         floor.unit().chara[0][0].body_height = 20.0f;
         floor.unit().chara[0][0].motion_type.motion_info = motions;
         BtActStatus = {};
-        expanded::SolarFlashReset();
+        expanded::test::SolarReset();
         expanded::ZeusChargeReset();
         expanded::ZeusShotReset();
     }
 
     ~Floor() {
-        expanded::SolarFlashReset();
+        expanded::test::SolarReset();
         expanded::ZeusChargeReset();
         expanded::ZeusShotReset();
         BtActStatus = {};
@@ -98,7 +98,7 @@ TEST(SwordOfZeus, ItsSolarFlashHangsTheBladeOverTheLockedTarget) {
     BtActStatus.guard_mode = 5;
     // The charge attack's step runs beside it every frame and leaves its blade be.
     for (int i = 0; i <= expanded::kSolarChargeFrames + expanded::kJudgementFadeFrames; i++) {
-        expanded::SolarFlashStep();
+        expanded::test::SolarStep();
         expanded::ZeusChargeStep();
     }
     EXPECT_EQ(expanded::SolarFlashPhase(), expanded::SolarPhase::kPrimed);
