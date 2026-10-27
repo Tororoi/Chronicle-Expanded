@@ -56,37 +56,6 @@ float Wrap(float a) {
     return a;
 }
 
-// The grip's rotation, turned by the preset's quarter-turns, set into the root's children: the draw sets the root's own
-// rotation from the character's, so the pose has to live below it.
-void Orient(CFrame *root) {
-    float g[3][3];
-    float length = std::sqrt(root->local[0][0] * root->local[0][0] + root->local[0][1] * root->local[0][1] + root->local[0][2] * root->local[0][2]);
-    for (int r = 0; r < 3; r++) {
-        float p[3] = {root->local[r][0], root->local[r][1], root->local[r][2]};
-        for (float &v : p) {
-            v = length > 1e-6f ? v / length : v;
-        }
-        for (int q = kPropPreset & 3; q > 0; q--) { // pitch
-            float p1 = p[2], p2 = -p[1];
-            p[1] = p1, p[2] = p2;
-        }
-        for (int t = (kPropPreset >> 2) & 3; t > 0; t--) { // yaw
-            float p0 = p[2], p2 = -p[0];
-            p[0] = p0, p[2] = p2;
-        }
-        std::copy(p, p + 3, g[r]);
-    }
-    for (CFrame *child = root->child; child != nullptr; child = child->brother) {
-        for (int row = 0; row < 4; row++) {
-            float a[3] = {child->local[row][0], child->local[row][1], child->local[row][2]};
-            for (int c = 0; c < 3; c++) {
-                child->local[row][c] = a[0] * g[0][c] + a[1] * g[1][c] + a[2] * g[2][c];
-            }
-        }
-        child->world_valid = false;
-    }
-}
-
 // The pouch track's draw window rescaled about the rest so the draw travels kPropPull, then the draw re-pathed to run from
 // the catch pose to full draw as an impact (a cubic ease-out) and everything past the catch held on it: no slack rest.
 void RepathPull(Mot_List &track) {
@@ -149,7 +118,7 @@ void Prepare(CCharacter &model) {
         return;
     }
     prepared.push_back(&model);
-    Orient(model.frame);
+    PoseBelowRoot(*model.frame, kPropPreset & 3, (kPropPreset >> 2) & 3);
     if (MOTION_INFO *keys = model.motion_type.motion_info) {
         keys[kPropKeyIdle] = MOTION_INFO{static_cast<s32>(kIdleFrame), static_cast<s32>(kIdleFrame), 0.0f, 0};
     }

@@ -1,10 +1,12 @@
 #include <libvu0.h>
 
 #include <cstdio>
+#include <format>
 
 #include "collisiondata.hpp"
 #include "dngstatusdata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/debug/event_log.hpp"
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
@@ -95,6 +97,7 @@ int FriendlyHit(CMonstorUnit &unit, int i, int hit) {
     }
 
     monster.hp -= amount;
+    LogEvent("confuse", std::format("\"step\":\"hit\",\"by\":{},\"monster\":{},\"amount\":{},\"life\":{}", Attacker(*record), slot, amount, monster.hp));
 
     if (monster.hp <= 0) {
         monster.last_attacker = -1;

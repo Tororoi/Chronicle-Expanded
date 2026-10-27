@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <limits>
+
 #include "expanded/enemies/monster_queries.hpp"
 #include "monstorunit.hpp"
 #include "test_support.hpp"
@@ -59,6 +61,28 @@ TEST(MonsterQueries, APointTouchingAShownMonstersSphere) {
     EXPECT_EQ(expanded::MonsterTouching(unit, point, 8.0f, &sphere), 3);
     EXPECT_EQ(sphere, 2);
     EXPECT_EQ(expanded::MonsterTouching(unit, point, 7.0f), -1);
+}
+
+TEST(MonsterQueries, ABodysUndersideAndHowNearAPointIs) {
+    expanded::test::TestFloor floor;
+    CMonstorUnit             &unit = floor.unit();
+    unit.monster[1] = Monster(2, 10, -1);
+    float root[4] = {100.0f, 2.0f, 0.0f, 1.0f};
+    unit.chara[1][0].SetPosition(root);
+    // No sphere posed: its root's height, and nothing near.
+    EXPECT_FLOAT_EQ(expanded::MonsterBodyUnderside(unit, 1), 2.0f);
+    float point[3] = {100.0f, 10.0f, 0.0f};
+    EXPECT_EQ(expanded::MonsterBodyDistance(unit, 1, point), std::numeric_limits<float>::max());
+    // Two spheres: radius 3 at height 8, radius 1 at height 5; and one left from another frame's pose, far off.
+    MONSTOR_EFFECT_STATE &body = unit.effect[1];
+    body.timer[0] = body.timer[1] = body.timer[2] = 1;
+    body.position[0][0] = 100.0f, body.position[0][1] = 8.0f, body.radius[0] = 3.0f;
+    body.position[1][0] = 100.0f, body.position[1][1] = 5.0f, body.position[1][2] = 4.0f, body.radius[1] = 1.0f;
+    body.position[2][0] = 0.0f, body.position[2][1] = -50.0f, body.radius[2] = 1.0f;
+    EXPECT_FLOAT_EQ(expanded::MonsterBodyUnderside(unit, 1), 4.0f);
+    EXPECT_FLOAT_EQ(expanded::MonsterBodyDistance(unit, 1, point), -1.0f); // inside the first, 2 from its centre
+    float beside[3] = {100.0f, 5.0f, 10.0f};
+    EXPECT_FLOAT_EQ(expanded::MonsterBodyDistance(unit, 1, beside), 5.0f);
 }
 
 } // namespace

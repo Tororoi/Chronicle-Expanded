@@ -147,10 +147,10 @@ TEST_F(ShotEffects, AFloorLoadsTheEffectsOfCarriedWeaponsAndSuperStevesSphere) {
     static BT_SHOT_EFFECT carried = Described("carried");
     static BT_SHOT_EFFECT left = Described("left");
     static BT_SHOT_EFFECT sphere = Described("sphere");
-    expanded::RegisterWeaponShotEffect(ITEM_WEAPON_BABEL_S_SPEAR, expanded::WeaponShotForm::Weapon, &carried, 2);
+    expanded::RegisterWeaponShotEffect(ITEM_WEAPON_PARTISAN, expanded::WeaponShotForm::Weapon, &carried, 2);
     expanded::RegisterWeaponShotEffect(ITEM_WEAPON_CHRONICLE_SWORD, expanded::WeaponShotForm::Weapon, &left, 2);
     expanded::RegisterWeaponShotEffect(ITEM_WEAPON_CHRONICLE_SWORD, expanded::WeaponShotForm::Sphere, &sphere, 2);
-    status_->chara_weapons[3][4].item_no = ITEM_WEAPON_BABEL_S_SPEAR;
+    status_->chara_weapons[3][4].item_no = ITEM_WEAPON_PARTISAN;
     WEAPON_HAVE &steve = status_->chara_weapons[1][7];
     steve.item_no = ITEM_WEAPON_SUPER_STEVE;
     steve.attach[0].item_no = ITEM_ATTACH_SYNTHESIS_SPHERE;

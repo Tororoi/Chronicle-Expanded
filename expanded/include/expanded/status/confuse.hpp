@@ -31,6 +31,16 @@ void ConfuseStep(CMonstorUnit &unit, int slot);
 // A landed hit: confuses the monster 5% of the time when the hit carries Confuse.
 void ConfuseRoll(CMonstorUnit &unit, int slot);
 
+// Confuses a monster for steps more (a later end it has already stands): one in play with life left, never a boss.
+// False when it cannot be.
+bool ConfuseMonster(CMonstorUnit &unit, int slot, int steps);
+
+// Whether a monster of unit is confused.
+bool MonsterConfused(const CMonstorUnit &unit, int slot);
+
+// Every monster's confusion ended, and what a confused one provoked.
+void ConfuseEndAll();
+
 // The position a monster's script sees as the player's: false to keep the player's.
 bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position);
 
@@ -47,6 +57,9 @@ int ConfuseMonsterHit(CMonstorUnit &unit, int sphere);
 
 // Draws the stars over the confused monsters.
 void ConfuseStarsDraw();
+
+// The stars at fade of their size (1 their own).
+void ConfuseStarsFade(float fade);
 
 // Lays the Confuse icon into the charaface sheet's empty tile beside Steal.
 void ConfuseIconTexture(const char *name, PortDecodedTexture &texture);

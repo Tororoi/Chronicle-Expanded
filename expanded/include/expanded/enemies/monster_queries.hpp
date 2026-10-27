@@ -34,4 +34,10 @@ inline constexpr float kBodyFallback = 10.0f;
 float MonsterBodyEdge(const CMonstorUnit &unit, int monster, float x, float z);
 float MonsterBodyCentre(const CMonstorUnit &unit, int monster, float *centre);
 
+// The same body, its underside: the lowest of its posed spheres' bottoms (its root's height with none); and how near a
+// point (x, y, z) is to it, the least distance to a posed sphere's surface (below 0 inside one; the largest float with
+// none).
+float MonsterBodyUnderside(const CMonstorUnit &unit, int monster);
+float MonsterBodyDistance(const CMonstorUnit &unit, int monster, const float *point);
+
 } // namespace expanded

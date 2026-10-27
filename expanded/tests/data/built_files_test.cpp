@@ -27,6 +27,7 @@ constexpr Built kBuilt[] = {
     {"chara/shadow_disc.chr",     5584,    0xd148f318c2a885c2ULL},
     {"chara/spirit_cat.chr",      437152,  0x6d1be3bc3aff86c5ULL},
     {"effect/atla_s.chr",         228304,  0xf08713b17be8b175ULL},
+    {"effect/babel_beam.chr",     59744,   0xc8e2a64f097d90a3ULL},
     {"effect/bomb_throw.chr",     46544,   0x141e8686c98c4655ULL},
     {"enemies/script_damage.txt", 2475,    0x95ea0a4a8b6351fdULL},
     {"monstor/c16a.chr",          1137920, 0x30b9ff47a953e4bcULL},

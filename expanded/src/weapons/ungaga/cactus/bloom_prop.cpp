@@ -7,6 +7,7 @@
 
 #include "character.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/frames.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
@@ -24,22 +25,13 @@ struct Prop {
 Prop                      prop;
 std::vector<CCharacter *> upright; // weapons turned point-up this floor
 
-// The weapon turned point-up: its root's rotation (the grip) turned a quarter about x, so the blade's axis, the model's +z,
-// stands straight up. The draw keeps the root's own rotation under the character's turn.
+// The weapon turned point-up, once (frames.hpp).
 void PointUp(CCharacter &model) {
     if (std::find(upright.begin(), upright.end(), &model) != upright.end()) {
         return;
     }
     upright.push_back(&model);
-    CFrame *root = model.frame;
-    float   row1[3], row2[3];
-    std::copy(root->local[1], root->local[1] + 3, row1);
-    std::copy(root->local[2], root->local[2] + 3, row2);
-    for (int c = 0; c < 3; c++) {
-        root->local[1][c] = -row2[c];
-        root->local[2][c] = row1[c];
-    }
-    root->world_valid = false;
+    TurnPointUp(*model.frame);
 }
 
 } // namespace

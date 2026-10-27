@@ -60,6 +60,7 @@
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
+#include "expanded/weapons/ungaga/babels_spear.hpp"
 #include "expanded/weapons/ungaga/cactus.hpp"
 #include "expanded/weapons/ungaga/cactus/absorb.hpp"
 #include "expanded/weapons/ungaga/charge_shot.hpp"
@@ -135,6 +136,7 @@ void DungeonShadowsDrawn(const float *player) {
 void DungeonMonstersDrawn() {
     AllyDraw();
     DesertBloomDraw();
+    CurseOfBabelDraw();
 }
 
 void DungeonNpcsDrawn() {
@@ -211,6 +213,7 @@ void DungeonMonstersTick() {
     TornadoChargeStep();
     GuardianGraceStep();
     DesertBloomStep();
+    CurseOfBabelStep();
     AirStrikeStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
@@ -406,7 +409,7 @@ int MonsterFriendlyHit(CMonstorUnit &unit, int sphere) {
 }
 
 bool HitWearsWeapon(const COLLISION_HIT &hit) {
-    return !DesertBloomPrick(hit) && !UngagaBlastHit(hit);
+    return !DesertBloomPrick(hit) && !CurseOfBabelCatch(hit) && !UngagaBlastHit(hit);
 }
 
 void MonsterMoveChecked(CMonstorUnit &unit, int monster) {
