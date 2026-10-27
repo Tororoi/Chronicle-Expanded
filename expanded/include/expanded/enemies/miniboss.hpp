@@ -35,19 +35,27 @@ bool IsMiniboss(int monster);
 // Makes the floor's monster a miniboss, carrying a drop rolled from its species' loot.
 void MakeMiniboss(CMonstorUnit &unit, int monster);
 
-// Hooks: a new floor's monsters are about to be placed (BtArrengeMonstor), the model slot ArrangementPos picked
-// for its placement n (the first placements on a return take the living minibosses' kinds), the floor or its
-// back floor was populated (end of ArrangementPos), a monster was defeated (Step), its drop about to be put on
-// the floor at position (Step, before CRandomItem::Set), the distance a monster's script measures
-// (_GET_DISTANCE; argument_count 1 for the player's), and a drawn monster about to step its motions
-// (DrawMonstor).
-void  MinibossFloorEntered();
-int   MinibossPlacedModel(const CMonstorUnit &unit, int placement, int model_slot);
-void  MinibossesArranged(CMonstorUnit &unit);
-void  MinibossDefeated(CMonstorUnit &unit, int monster);
-void  MinibossDropSet(int monster, CRandomItem &items, const float *position);
+// BtArrengeMonstor: a new floor's monsters are about to be placed.
+void MinibossFloorEntered();
+
+// ArrangementPos picked the model slot for its placement n: the first placements on a return take the living
+// minibosses' kinds.
+int MinibossPlacedModel(const CMonstorUnit &unit, int placement, int model_slot);
+
+// The end of ArrangementPos: the floor or its back floor was populated.
+void MinibossesArranged(CMonstorUnit &unit);
+
+// Step: a monster was defeated.
+void MinibossDefeated(CMonstorUnit &unit, int monster);
+
+// Step, before CRandomItem::Set: a defeated monster's drop about to be put on the floor at position.
+void MinibossDropSet(int monster, CRandomItem &items, const float *position);
+
+// _GET_DISTANCE: the distance a monster's script measures (argument_count 1 for the player's).
 float MinibossScriptDistance(int monster, int argument_count, float distance);
-void  MinibossMotion(CMonstorUnit &unit, int monster);
+
+// DrawMonstor: a drawn monster about to step its motions.
+void MinibossMotion(CMonstorUnit &unit, int monster);
 
 // The new floor's draws: whether a species passes its chance, and a pick from 0 to count - 1 (the next species
 // to roll, then its miniboss). Null restores the random ones (for tests).

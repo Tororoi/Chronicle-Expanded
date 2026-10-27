@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iterator>
+
 namespace expanded {
 
 // MonstorTable's rows.
@@ -207,5 +209,7 @@ inline constexpr Monster kKingMimicLine[] = {
     Monster::KING_MIMIC_DS_ENHANCED_TWICE,
     Monster::KING_MIMIC_DS_ENHANCED_THRICE,
 };
+inline constexpr int kMimicLineLength = static_cast<int>(std::size(kMimicLine));
+static_assert(std::size(kKingMimicLine) == std::size(kMimicLine));
 
 } // namespace expanded

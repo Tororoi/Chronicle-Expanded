@@ -16,7 +16,7 @@ namespace {
 constexpr float kArrowSpeed = 1.2f;
 constexpr float kArrowTurn = 0.12f;
 constexpr float kArrowCone = 0.5f;
-constexpr float kChest = 10.1f;
+constexpr float kPlayerChest = 10.1f;
 constexpr float kShatterSpeed = 0.5f;
 constexpr int   kFreezeSounds[] = {1772, 1777};
 constexpr int   kShatterSound = 1776;
@@ -31,13 +31,22 @@ BT_SHOT_EFFECT IcePrisonShot() {
 
 void PlayerChest(float *chest) {
     sceVu0CopyVector(chest, CharaMain.pos);
-    chest[1] += kChest;
+    chest[1] += kPlayerChest;
     chest[3] = 1.0f;
 }
 
 void PlayerFeet(float *feet) {
     sceVu0CopyVector(feet, CharaMain.pos);
     feet[3] = 1.0f;
+}
+
+bool NearPlayerChest(const float *point, float reach) {
+    float chest[4];
+    PlayerChest(chest);
+    float dx = point[0] - chest[0];
+    float dy = point[1] - chest[1];
+    float dz = point[2] - chest[2];
+    return std::sqrt(dx * dx + dy * dy + dz * dz) <= reach;
 }
 
 bool PlayerFrozen() {

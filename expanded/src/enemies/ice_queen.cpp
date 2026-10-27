@@ -1,6 +1,8 @@
 #include "expanded/enemies/ice_queen.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <iterator>
 
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
@@ -24,7 +26,6 @@ namespace expanded {
 
 namespace {
 
-
 // Her mailbox, as her script and the companions' use it (values past retail's mark a shot under way).
 enum Mail {
     kPhase = 0,   // her state: 0 attack, 1 arrow flying, 3 player imprisoned, 4 meteor done, 5 barrier hit
@@ -40,13 +41,13 @@ constexpr int kTornadoes = 3;
 
 // The companions' packs, played as shots: model "info" names each pack's own info.cfg.
 // clang-format off
-BT_SHOT_EFFECT arrow_shot = {"info", 0, 1, {0.0f, 1.2f, 0.0f, 0.0f}, {0.0f, 10.0f, 0.0f, 0.0f}, 360, 69, 0x100, 2, 1,
+BT_SHOT_EFFECT arrow_shot = {"info", 0, 1, {0.0f, 1.2f, 0.0f, 0.0f}, {0.0f, 10.0f, 0.0f, 0.0f}, 360, kIceQueenArrowDamage, 0x100, 2, 1,
                              {-1, 0, 1, 1}, 0, {}, 0.0f, 0, {-1, -1, -1, -1}};
-BT_SHOT_EFFECT meteor_shot = {"info", 0, 0, {}, {0.0f, 30.0f, 0.0f, 0.0f}, 63, 69, 2, 2, 1,
+BT_SHOT_EFFECT meteor_shot = {"info", 0, 0, {}, {0.0f, 30.0f, 0.0f, 0.0f}, 63, kIceQueenArrowDamage, 2, 2, 1,
                               {0, 1, 2, 2}, 0, {}, 0.0f, 0, {-1, -1, -1, -1}};
-BT_SHOT_EFFECT aura_shot = {"info", 1, 0, {}, {60.0f, 0.0f, 0.0f, 0.0f}, -1, 74, 2, 3, 1,
+BT_SHOT_EFFECT aura_shot = {"info", 1, 0, {}, {60.0f, 0.0f, 0.0f, 0.0f}, -1, kIceQueenAuraDamage, 2, 3, 1,
                             {0, -1, -1, -1}, 0, {}, 0.0f, 0, {-1, -1, -1, -1}};
-BT_SHOT_EFFECT tornado_shot = {"info", 1, 0, {}, {0.0f, 20.0f, 0.0f, 0.0f}, -1, 74, 2, 3, 1,
+BT_SHOT_EFFECT tornado_shot = {"info", 1, 0, {}, {0.0f, 20.0f, 0.0f, 0.0f}, -1, kIceQueenAuraDamage, 2, 3, 1,
                                {0, 1, 2, 2}, 0, {}, 0.0f, 0, {-1, -1, -1, -1}};
 // clang-format on
 BT_SHOT_EFFECT prison_shot = IcePrisonShot();
@@ -77,8 +78,6 @@ const EffectSpec kSpecs[kEffects] = {
 
 // The arrow, fired this far ahead of her.
 constexpr float kArrowLead = 15.0f;
-constexpr float kChest = 10.1f;
-constexpr int   kArrowSettle = 2; // steps the arrow's hit takes to reach the player
 constexpr float kMeteorHeight = 50.0f;
 constexpr float kMeteorFall = 1.6f;
 constexpr float kMeteorStrike = 36.0f;
@@ -92,10 +91,13 @@ constexpr int kMeteorSound = 1764;
 constexpr int kMeteorHitSound = 1774;
 constexpr int kTornadoSounds[] = {1767, 1766};
 
+// Her companions' effects entered for the floor, by Effect, or -1.
+int entered[kEffects] = {-1, -1, -1, -1, -1};
+
+// The fight under way: her monster, her cast's mailbox and the slots of her companions' shots.
 struct Fight {
     int  queen = -1;
     int *mailbox = nullptr;
-    int  effect[kEffects] = {-1, -1, -1, -1, -1};
     int  arrow = -1;
     int  arrow_landed = 0;
     int  prison = -1;
@@ -106,13 +108,12 @@ struct Fight {
 
 Fight fight;
 
-
 void Play(int sound) {
     SndSePlay(sound, -1, 0);
 }
 
 CSHOT_EFFECT *EffectOf(Effect which) {
-    return fight.effect[which] >= 0 ? ShotEffectAt(fight.effect[which]) : nullptr;
+    return entered[which] >= 0 ? ShotEffectAt(entered[which]) : nullptr;
 }
 
 // Fires one of her effects from position toward target as her own shot; the shot's slot, or -1.
@@ -121,7 +122,7 @@ int Fire(Effect which, float *position, float *target) {
     if (effect == nullptr) {
         return -1;
     }
-    NowShotEffect->Set(fight.effect[which], position, target);
+    NowShotEffect->Set(entered[which], position, target);
     int slot = effect->current_slot;
     if (slot == -1) {
         return -1;
@@ -158,13 +159,6 @@ void PaceMotions() {
     }
 }
 
-float Distance(const float *a, const float *b) {
-    float dx = a[0] - b[0];
-    float dy = a[1] - b[1];
-    float dz = a[2] - b[2];
-    return std::sqrt(dx * dx + dy * dy + dz * dz);
-}
-
 // The arrow: fired 15 ahead of her toward the player, steered while flying; once it is spent, a frozen
 // player is imprisoned, else she attacks again.
 void StepArrow(CMonstorUnit &unit) {
@@ -178,7 +172,7 @@ void StepArrow(CMonstorUnit &unit) {
             toward[0] /= length;
             toward[2] /= length;
         }
-        float from[4] = {queen[0] + toward[0] * kArrowLead, queen[1] + kChest, queen[2] + toward[2] * kArrowLead, 1.0f};
+        float from[4] = {queen[0] + toward[0] * kArrowLead, queen[1] + kIceQueenChest, queen[2] + toward[2] * kArrowLead, 1.0f};
         float chest[4];
         PlayerChest(chest);
         fight.arrow = Fire(kArrowShot, from, chest);
@@ -197,7 +191,7 @@ void StepArrow(CMonstorUnit &unit) {
         return;
     }
     // Spent: burst, worn out or gone; once its hit has reached the player.
-    if (++fight.arrow_landed < kArrowSettle) {
+    if (++fight.arrow_landed < kIceArrowSettle) {
         return;
     }
     fight.arrow_landed = 0;
@@ -233,8 +227,7 @@ void StepPrison() {
         }
         return;
     }
-    if (effect->phase[slot] == 1) {
-        HoldIcePrison(*effect, slot);
+    if (HoldIcePrison(*effect, slot)) {
         if (fight.mailbox[kPrison] == 4) {
             fight.mailbox[kPrison] = 3;
             fight.mailbox[kPhase] = 3;
@@ -280,11 +273,9 @@ void StepMeteor() {
         return;
     }
     float position[4];
-    float chest[4];
     effect->chara[slot].GetPosition(position);
-    PlayerChest(chest);
     Play(kMeteorSound);
-    if (Distance(position, chest) <= kMeteorStrike) {
+    if (NearPlayerChest(position, kMeteorStrike)) {
         Play(kMeteorHitSound);
     }
     fight.meteor = -1;
@@ -365,6 +356,7 @@ bool Fighting(const CMonstorUnit &unit) {
 
 void OnFloor() {
     fight = {};
+    std::fill(std::begin(entered), std::end(entered), -1);
 }
 
 void OnModel(CMonstorUnit &, int, int model_no) {
@@ -372,7 +364,7 @@ void OnModel(CMonstorUnit &, int, int model_no) {
         return;
     }
     for (int which = 0; which < kEffects; which++) {
-        fight.effect[which] = EnterShotEffect(kSpecs[which].description, kSpecs[which].shots, kSpecs[which].path);
+        entered[which] = EnterShotEffect(kSpecs[which].description, kSpecs[which].shots, kSpecs[which].path);
     }
 }
 
@@ -398,11 +390,7 @@ void IceQueenDefeated() {
             effect->OffEffect(-1);
         }
     }
-    Fight cleared;
-    for (int which = 0; which < kEffects; which++) {
-        cleared.effect[which] = fight.effect[which];
-    }
-    fight = cleared;
+    fight = {};
 }
 
 } // namespace expanded

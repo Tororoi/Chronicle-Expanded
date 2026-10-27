@@ -2,11 +2,12 @@
 
 #include <algorithm>
 #include <cmath>
+#include <type_traits>
 
 #include "dun/gameloop.hpp"
 #include "dungeonmap.hpp"
 #include "expanded/dungeon/navigation.hpp"
-#include "expanded/enemies/bosses.hpp"
+#include "expanded/enemies/boss_table.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "monstorunit.hpp"
@@ -23,8 +24,12 @@ constexpr int   kAimSteps = 2;       // an aimed point steers this long after th
 constexpr int   kRegionLimit = 4000; // cells of the floor an arena boss's reach is worked out for
 constexpr int   kRegionBudget = 25;  // cells of it taken in each step (4 tests each)
 
-// Bosses whose scripts work in their arena's coordinates.
-constexpr Monster kArenaFrame[] = {Monster::DRAN};
+// A turn this near the target is a turn to it.
+constexpr float kTurningToTarget = 4.0f;
+
+// A dungeon tile's width (dungeon/navigation.hpp's grid), and the rooms a floor can have.
+constexpr float kTile = 160.0f;
+constexpr int   kRooms = std::extent_v<decltype(CDungeonMap::rooms)>;
 
 struct Mover {
     bool  active = false;
@@ -47,7 +52,8 @@ float Clearance(const CMonstorUnit &unit, int monster) {
     return std::max(live.body_radius, live.collision_radius) + kBodyBuffer;
 }
 
-float Distance2(const float *a, const float *b) {
+// The distance between two points across the floor (x and z).
+float DistanceXZ(const float *a, const float *b) {
     float dx = a[0] - b[0];
     float dz = a[2] - b[2];
     return std::sqrt(dx * dx + dz * dz);
@@ -60,10 +66,10 @@ bool LargestRoom(const float *at, float *middle) {
     }
     int   best = -1;
     float best_distance = 0.0f;
-    for (int i = 0; i < NowDngMap->room_num && i < 16; i++) {
+    for (int i = 0; i < NowDngMap->room_num && i < kRooms; i++) {
         const ROOM_INFO &room = NowDngMap->rooms[i];
-        float            x = 160.0f * (static_cast<float>(room.x) + static_cast<float>(room.width - 1) / 2.0f);
-        float            z = 160.0f * (static_cast<float>(room.y) + static_cast<float>(room.height - 1) / 2.0f);
+        float            x = kTile * (static_cast<float>(room.x) + static_cast<float>(room.width - 1) / 2.0f);
+        float            z = kTile * (static_cast<float>(room.y) + static_cast<float>(room.height - 1) / 2.0f);
         float            distance = std::hypot(x - at[0], z - at[2]);
         int              area = room.width * room.height;
         int              best_area = best < 0 ? 0 : NowDngMap->rooms[best].width * NowDngMap->rooms[best].height;
@@ -81,29 +87,28 @@ bool LargestRoom(const float *at, float *middle) {
 void OnSpawn(CMonstorUnit &unit, int monster) {
     Mover &mover = movers[monster];
     mover = {};
-    int kind = ModelKind(unit.monster[monster].base_model);
-    if (LoadedRoster() == nullptr || kind < 0 || !BossSupported(kind)) {
+    const BossEntry *boss = BossEntryOf(ModelKind(unit.monster[monster].base_model));
+    if (LoadedRoster() == nullptr || boss == nullptr) {
         return;
     }
     mover.active = true;
-    for (Monster framed : kArenaFrame) {
-        if (No(framed) == kind) {
-            // His arena is the floor's largest room, him in its middle.
-            mover.arena = true;
-            float at[4];
-            unit.chara[monster][0].GetPosition(at);
-            float middle[3];
-            if (LargestRoom(at, middle)) {
-                float spot[3];
-                NavigateNearest(middle, middle, Clearance(unit, monster), at[1], spot);
-                at[0] = spot[0];
-                at[2] = spot[2];
-                unit.chara[monster][0].SetPosition(at);
-            }
-            std::copy(at, at + 3, mover.anchor);
-            mover.region = NavigateRegion(mover.anchor, Clearance(unit, monster), at[1], kRegionLimit);
-        }
+    if (!boss->arena_frame) {
+        return;
     }
+    // Its arena is the floor's largest room, the boss in its middle.
+    mover.arena = true;
+    float at[4];
+    unit.chara[monster][0].GetPosition(at);
+    float middle[3];
+    if (LargestRoom(at, middle)) {
+        float spot[3];
+        NavigateNearest(middle, middle, Clearance(unit, monster), at[1], spot);
+        at[0] = spot[0];
+        at[2] = spot[2];
+        unit.chara[monster][0].SetPosition(at);
+    }
+    std::copy(at, at + 3, mover.anchor);
+    mover.region = NavigateRegion(mover.anchor, Clearance(unit, monster), at[1], kRegionLimit);
 }
 
 [[maybe_unused]] const bool kListening = (AddEnemySpawnListener(OnSpawn), true);
@@ -171,11 +176,11 @@ void BossSteer(CMonstorUnit &unit, int monster) {
     float        at[4];
     unit.chara[monster][0].GetPosition(at);
     // Within a step of it: on as the script set (past where it moves to, as in retail).
-    if (Distance2(at, target) <= std::max(live.movement_speed, kWaypointReached)) {
+    if (DistanceXZ(at, target) <= std::max(live.movement_speed, kWaypointReached)) {
         mover.moving = aiming;
         return;
     }
-    if (--mover.replan <= 0 || Distance2(target, mover.planned_for) > kReplanMove || Distance2(at, mover.waypoint) < kWaypointReached) {
+    if (--mover.replan <= 0 || DistanceXZ(target, mover.planned_for) > kReplanMove || DistanceXZ(at, mover.waypoint) < kWaypointReached) {
         float reached[3];
         float ground = mover.arena ? mover.anchor[1] : at[1];
         NavigateTowards(at, target, Clearance(unit, monster), ground, mover.waypoint, reached);
@@ -189,13 +194,13 @@ void BossSteer(CMonstorUnit &unit, int monster) {
         return;
     }
     // Up or down as the script meant, spread over the way to its target.
-    float rise = (target[1] - at[1]) / std::max(Distance2(at, target), 1.0f) * across;
+    float rise = (target[1] - at[1]) / std::max(DistanceXZ(at, target), 1.0f) * across;
     float length = std::sqrt(across * across + rise * rise);
     live.movement[0] = dx / length;
     live.movement[1] = live.falls != 0 ? live.movement[1] : rise / length;
     live.movement[2] = dz / length;
     // Turning to the target turns to the way there.
-    if (live.turn_speed > 0.0f && Distance2(live.turn_target, target) < 4.0f) {
+    if (live.turn_speed > 0.0f && DistanceXZ(live.turn_target, target) < kTurningToTarget) {
         live.turn_target[0] = mover.waypoint[0];
         live.turn_target[2] = mover.waypoint[2];
     }

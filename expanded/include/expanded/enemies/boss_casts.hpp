@@ -10,9 +10,10 @@ namespace expanded {
 
 struct Roster;
 
-// A boss fought as several monsters whose scripts talk to each other (expanded/docs/bosses.md): the Ice Queen
-// and her barrier, King's Curse's coffin and king, the Black Knight's mount and the Knight. On a regular floor a cast keeps together: its scripts
-// share a mailbox of their own instead of the floor's globals, and a script's monster n is the cast's nth.
+// A boss fought as several monsters whose scripts talk to each other (expanded/docs/bosses.md): the Ice Queen and her
+// barrier, King's Curse's coffin and king, the Black Knight's mount and the Knight. On a regular floor a cast keeps
+// together: its scripts share a mailbox of their own instead of the floor's globals, and a script's monster n is the
+// cast's nth.
 
 // Globals a cast's mailbox holds, as many as the floor's.
 inline constexpr int kBossMailbox = 10;
@@ -44,24 +45,34 @@ bool BossCastMember(int monster);
 int  BossCastMonster(Monster kind);
 int *BossCastMailbox(Monster kind);
 
-// Hooks: _SET_GLOBAL_INT and _GET_GLOBAL_INT (the globals the monster's script uses), the opcodes taking a
-// monster's number (_GET_/_SET_MONSTOR_*, _SET_/_DEL_REFERENCE: the monster it means; a partner that did not
-// come is the member itself), _SET_POSITION (true
-// drops it, else it may move the position: a cast member setting up keeps its spot, and a hiding place is
-// taken by its partner's side), a monster's life running out (false when it is no kill: the boss's partners),
-// the dungeon step (a dormant follower waits by its partner, to wake with it) and the boss's defeat (its
-// partners leave with it).
+// _SET_GLOBAL_INT and _GET_GLOBAL_INT: the globals the monster's script uses.
 int *BossCastGlobals(int monster, int *globals);
-int  BossCastMonsterRef(int monster, int target);
+
+// The opcodes taking a monster's number (_GET_/_SET_MONSTOR_*, _SET_/_DEL_REFERENCE): the monster it means; a partner
+// that did not come is the member itself.
+int BossCastMonsterRef(int monster, int target);
+
+// _SET_POSITION: true drops it; else it may move the position: a cast member setting up keeps its spot, and a hiding
+// place is taken by its partner's side.
 bool BossCastPlace(CMonstorUnit &unit, int monster, float *position);
+
+// A monster's life running out: false when it is no kill (the boss's partners).
 bool BossCastCountsKill(int monster);
+
+// The dungeon step: a dormant follower waits by its partner, to wake with it.
 void BossCastStep(CMonstorUnit &unit);
-// _SET_REFERENCE and _DEL_REFERENCE: a member attached to its partner (-1: let go) sits on the anchor, and
-// wakes and sleeps by where the partner is (DrawMonstor's distance), not by its offset there.
+
+// _SET_REFERENCE and _DEL_REFERENCE: a member attached to its partner (-1: let go) sits on the anchor.
 void BossCastAttached(CMonstorUnit &unit, int monster, int partner);
+
 // _SET_REFERENCE to a partner of the roster still to spawn: the member is attached once it does.
 void BossCastReferLater(int monster, int target, const char *frame);
+
+// DrawMonstor's distance to the player: an attached member wakes and sleeps by where its partner is, not by its offset
+// there.
 void BossCastWakePosition(CMonstorUnit &unit, int monster, float *position);
+
+// The boss's defeat: its partners leave with it.
 void BossCastDefeated(CMonstorUnit &unit, int monster);
 
 } // namespace expanded

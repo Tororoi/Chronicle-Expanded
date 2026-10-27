@@ -27,7 +27,7 @@ bool BossDefeated(Monster kind) {
     if (std::find(defeated.begin(), defeated.end(), No(kind)) != defeated.end()) {
         return true;
     }
-    return SaveData != nullptr && boss->dungeon < 5 && SaveData->QuestDungeon(boss->dungeon + 1, 0) > 0;
+    return SaveData != nullptr && boss->dungeon <= DUNGEON_MOON_SEA && SaveData->QuestDungeon(boss->dungeon + 1, 0) > 0;
 }
 
 void BossRecordKill(const CMonstorUnit &unit, int monster) {

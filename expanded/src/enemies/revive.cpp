@@ -7,6 +7,8 @@
 #include "dun/gameloop.hpp"
 #include "expanded/core/options.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_actions.hpp"
 #include "monstorunit.hpp"
 #include "runscript.hpp"
 #include "runscript_opcodes.hpp"
@@ -19,39 +21,46 @@ namespace {
                                                      .label = "Harder Enemy AI",
                                                      .help = "\"Harder Enemy AI\"\nFallen monsters may\nget back up."});
 
+// The cards' death sounds, each the twelfth of the card's own.
+constexpr int kHeartDeath = 1418 + 11;
+constexpr int kClubDeath = 1437 + 11;
+constexpr int kDiamondDeath = 1456 + 11;
+constexpr int kSpadeDeath = 1475 + 11;
+constexpr int kJokerDeath = 1494 + 11;
+
 // Every monster with a real get-up (10); those whose death throws them back collapse with their knockdown (9).
 constexpr ReviveSpecies kSpecies[] = {
-    {"e01a",  Revival::kScript, 0,  -1,        false}, // Master Jacket
-    {"e03a",  Revival::kGetUp,  11, -1,        false}, // Skeleton Soldier
-    {"e14a",  Revival::kGetUp,  9,  -1,        false}, // Sunday
-    {"e15a",  Revival::kGetUp,  9,  -1,        false}, // Monday
-    {"e16a",  Revival::kGetUp,  9,  -1,        false}, // Tuesday
-    {"e17a",  Revival::kGetUp,  9,  -1,        false}, // Wednesday
-    {"e18a",  Revival::kGetUp,  9,  -1,        false}, // Thursday
-    {"e19a",  Revival::kGetUp,  9,  -1,        false}, // Friday
-    {"e20a",  Revival::kGetUp,  9,  -1,        false}, // Saturday
-    {"e44a",  Revival::kGetUp,  9,  1418 + 11, false}, // Heart
-    {"e45a",  Revival::kGetUp,  9,  1437 + 11, false}, // Club
-    {"e46a",  Revival::kGetUp,  9,  1456 + 11, false}, // Diamond
-    {"e47a",  Revival::kGetUp,  9,  1475 + 11, false}, // Spade
-    {"e48a",  Revival::kGetUp,  9,  1494 + 11, false}, // Joker
-    {"e50a",  Revival::kScript, 0,  -1,        false}, // Mummy
-    {"e52a",  Revival::kGetUp,  9,  -1,        false}, // Curse Dancer
-    {"e62a",  Revival::kGetUp,  9,  -1,        false}, // Hell Pockle
-    {"e77a",  Revival::kGetUp,  11, -1,        true }, // Rockanoff
-    {"e106a", Revival::kGetUp,  9,  -1,        true }, // King Prickly
-    {"e117a", Revival::kScript, 0,  -1,        false}, // Gacious (Enhanced)
-    {"e118a", Revival::kScript, 0,  -1,        false}, // Silver Gear
-    {"e119a", Revival::kScript, 0,  -1,        false}, // Horn Head
-    {"e124a", Revival::kScript, 0,  -1,        false}, // Gacious
-    {"e129a", Revival::kScript, 0,  -1,        false}, // Master Jacket (Enhanced)
-    {"e131a", Revival::kScript, 0,  -1,        false}, // Mummy (Enhanced)
-    {"e132a", Revival::kGetUp,  9,  1456 + 11, false}, // Diamond (Enhanced)
-    {"e134a", Revival::kGetUp,  11, -1,        true }, // Rockanoff (Enhanced)
-    {"e138a", Revival::kGetUp,  9,  1437 + 11, false}, // Club (Enhanced)
-    {"e144a", Revival::kGetUp,  9,  1475 + 11, false}, // Spade (Enhanced)
-    {"e150a", Revival::kGetUp,  9,  1418 + 11, false}, // Heart (Enhanced)
-    {"e161a", Revival::kGetUp,  9,  1494 + 11, false}, // Joker (Enhanced)
+    {.script = "e01a", .revival = Revival::kScript}, // Master Jacket
+    {.script = "e03a", .revival = Revival::kGetUp, .collapse_motion = 11}, // Skeleton Soldier
+    {.script = "e14a", .revival = Revival::kGetUp, .collapse_motion = 9}, // Sunday
+    {.script = "e15a", .revival = Revival::kGetUp, .collapse_motion = 9}, // Monday
+    {.script = "e16a", .revival = Revival::kGetUp, .collapse_motion = 9}, // Tuesday
+    {.script = "e17a", .revival = Revival::kGetUp, .collapse_motion = 9}, // Wednesday
+    {.script = "e18a", .revival = Revival::kGetUp, .collapse_motion = 9}, // Thursday
+    {.script = "e19a", .revival = Revival::kGetUp, .collapse_motion = 9}, // Friday
+    {.script = "e20a", .revival = Revival::kGetUp, .collapse_motion = 9}, // Saturday
+    {.script = "e44a", .revival = Revival::kGetUp, .collapse_motion = 9, .death_sound = kHeartDeath}, // Heart
+    {.script = "e45a", .revival = Revival::kGetUp, .collapse_motion = 9, .death_sound = kClubDeath}, // Club
+    {.script = "e46a", .revival = Revival::kGetUp, .collapse_motion = 9, .death_sound = kDiamondDeath}, // Diamond
+    {.script = "e47a", .revival = Revival::kGetUp, .collapse_motion = 9, .death_sound = kSpadeDeath}, // Spade
+    {.script = "e48a", .revival = Revival::kGetUp, .collapse_motion = 9, .death_sound = kJokerDeath}, // Joker
+    {.script = "e50a", .revival = Revival::kScript}, // Mummy
+    {.script = "e52a", .revival = Revival::kGetUp, .collapse_motion = 9}, // Curse Dancer
+    {.script = "e62a", .revival = Revival::kGetUp, .collapse_motion = 9}, // Hell Pockle
+    {.script = "e77a", .revival = Revival::kGetUp, .collapse_motion = 11, .drops_loop_sound = true}, // Rockanoff
+    {.script = "e106a", .revival = Revival::kGetUp, .collapse_motion = 9, .drops_loop_sound = true}, // King Prickly
+    {.script = "e117a", .revival = Revival::kScript}, // Gacious (Enhanced)
+    {.script = "e118a", .revival = Revival::kScript}, // Silver Gear
+    {.script = "e119a", .revival = Revival::kScript}, // Horn Head
+    {.script = "e124a", .revival = Revival::kScript}, // Gacious
+    {.script = "e129a", .revival = Revival::kScript}, // Master Jacket (Enhanced)
+    {.script = "e131a", .revival = Revival::kScript}, // Mummy (Enhanced)
+    {.script = "e132a", .revival = Revival::kGetUp, .collapse_motion = 9, .death_sound = kDiamondDeath}, // Diamond (Enhanced)
+    {.script = "e134a", .revival = Revival::kGetUp, .collapse_motion = 11, .drops_loop_sound = true}, // Rockanoff (Enhanced)
+    {.script = "e138a", .revival = Revival::kGetUp, .collapse_motion = 9, .death_sound = kClubDeath}, // Club (Enhanced)
+    {.script = "e144a", .revival = Revival::kGetUp, .collapse_motion = 9, .death_sound = kSpadeDeath}, // Spade (Enhanced)
+    {.script = "e150a", .revival = Revival::kGetUp, .collapse_motion = 9, .death_sound = kHeartDeath}, // Heart (Enhanced)
+    {.script = "e161a", .revival = Revival::kGetUp, .collapse_motion = 9, .death_sound = kJokerDeath}, // Joker (Enhanced)
 };
 
 // Where a reviving monster is.
@@ -67,19 +76,33 @@ struct Reviving {
     int   steps = 0; // steps in the phase; for kLie, steps left
 };
 
-Reviving reviving[16];
+Reviving reviving[kFloorMonsters];
 
 // The roll a kill decided for a death script's revival: -1 none, 0 stays down, 1 revives.
-int forced_roll[16] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+int forced_roll[kFloorMonsters] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 
 std::vector<StaysDownRule> &Rules() {
     static std::vector<StaysDownRule> rules;
     return rules;
 }
 
+// NowMonstorUnit pointed at a unit while its monster's script commands run, then put back.
+class CurrentUnit {
+public:
+    explicit CurrentUnit(CMonstorUnit &unit) : saved_(NowMonstorUnit) { NowMonstorUnit = &unit; }
+
+    ~CurrentUnit() { NowMonstorUnit = saved_; }
+
+    CurrentUnit(const CurrentUnit &) = delete;
+    CurrentUnit &operator=(const CurrentUnit &) = delete;
+
+private:
+    CMonstorUnit *saved_;
+};
+
 // A percent roll as the game's scripts make it.
 int Percent() {
-    return (int) (100.0f * GameFraction());
+    return static_cast<int>(100.0f * GameFraction());
 }
 
 // Runs one of the monster script commands for the current monster.
@@ -110,7 +133,7 @@ RS_STACKDATA Float(float value) {
 
 // Plays a motion once from its start at its own speed, as the death scripts do.
 void PlayOnce(int motion) {
-    Command(_SET_MOTION, {Int(motion), Float(-1.0f), Int(2 | 4)});
+    Command(_SET_MOTION, {Int(motion), Float(-1.0f), Int(kMotionHoldLast | kMotionCut)});
 }
 
 // Whether monster_no's motion has reached the margin before its end.
@@ -119,7 +142,8 @@ bool MotionEnding(CMonstorUnit &unit, int monster_no) {
     const MOTION_INFO &info = character.motion_type.motion_info[character.motion_no];
     float              time = character.motion_type.state.time;
 
-    return time >= (float) info.start && time <= (float) info.end && time >= (float) info.end - kReviveMotionEndMargin;
+    return time >= static_cast<float>(info.start) && time <= static_cast<float>(info.end) &&
+           time >= static_cast<float>(info.end) - kReviveMotionEndMargin;
 }
 
 // Starts monster_no's revival in place of its death script, which it opens as the script does.
@@ -222,10 +246,8 @@ int ReviveCheckDmg(CMonstorUnit &unit, int result) {
         return result;
     }
 
-    CMonstorUnit *now = NowMonstorUnit;
-    NowMonstorUnit = &unit;
+    CurrentUnit current(unit);
     ReviveStart(unit, monster_no, *species);
-    NowMonstorUnit = now;
     return MONSTER_DMG_NONE;
 }
 
@@ -238,14 +260,13 @@ bool ReviveStep(CMonstorUnit &unit, int monster_no) {
         return false;
     }
 
-    CMonstorUnit *now = NowMonstorUnit;
-    NowMonstorUnit = &unit;
+    CurrentUnit current(unit);
 
     switch (state.phase) {
         case Phase::kCollapse:
             // A step first, for the motion to start.
             if (++state.steps > 1 && MotionEnding(unit, monster_no)) {
-                state = {Phase::kLie, kReviveLieSteps + (int) ((float) kReviveLieSpread * GameFraction())};
+                state = {Phase::kLie, kReviveLieSteps + static_cast<int>(static_cast<float>(kReviveLieSpread) * GameFraction())};
             }
             break;
         case Phase::kLie:
@@ -266,7 +287,6 @@ bool ReviveStep(CMonstorUnit &unit, int monster_no) {
             break;
     }
 
-    NowMonstorUnit = now;
     return true;
 }
 
@@ -288,7 +308,7 @@ int ReviveRoll(int bound, int roll) {
 }
 
 void ReviveClear() {
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < kFloorMonsters; i++) {
         reviving[i] = {};
         forced_roll[i] = -1;
     }

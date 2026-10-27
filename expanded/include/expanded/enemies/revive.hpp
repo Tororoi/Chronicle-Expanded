@@ -31,9 +31,9 @@ enum class Revival {
 struct ReviveSpecies {
     const char *script;
     Revival     revival;
-    int         collapse_motion;
-    int         death_sound;      // sound its death plays first, or -1
-    bool        drops_loop_sound; // its death lets go of its loop sound
+    int         collapse_motion = 0;
+    int         death_sound = -1;         // sound its death plays first, or -1
+    bool        drops_loop_sound = false; // its death lets go of its loop sound
 };
 
 // Whether the Harder Enemy AI option is on.

@@ -193,6 +193,8 @@ constexpr float kSpeciesHeights[] = {
     19.0f, // 169 Atla Gemron
 };
 // clang-format on
+static_assert(std::size(kSpeciesHeights) == kSpeciesCount);
+static_assert(std::size(MonstorTable) == kRetailSpecies);
 
 struct Entry {
     ExpandedSpecies species;

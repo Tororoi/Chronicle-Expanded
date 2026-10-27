@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "bt_shot_effect.hpp"
+#include "dun/gameloop.hpp"
 #include "expanded/enemies/ice_shots.hpp"
 #include "test_support.hpp"
 
@@ -34,4 +35,21 @@ TEST(IceShots, TheFreezeIsTheCurrentMembersAndAnyAilmentKeepsThePrison) {
     EXPECT_TRUE(expanded::PlayerAfflicted());
     status.ailment_frames[2] = 0;
     EXPECT_FALSE(expanded::PlayerAfflicted());
+}
+
+TEST(IceShots, ReachIsMeasuredToThePlayersChest) {
+    float saved[4];
+    sceVu0CopyVector(saved, CharaMain.pos);
+    CharaMain.pos[0] = 100.0f;
+    CharaMain.pos[1] = 5.0f;
+    CharaMain.pos[2] = -40.0f;
+    const float chest[3] = {100.0f, 15.1f, -40.0f};
+    const float beside[3] = {100.0f, 15.1f, -20.0f};
+    const float feet[3] = {100.0f, 5.0f, -40.0f};
+    EXPECT_TRUE(expanded::NearPlayerChest(chest, 0.0f));
+    EXPECT_TRUE(expanded::NearPlayerChest(beside, 20.0f));
+    EXPECT_FALSE(expanded::NearPlayerChest(beside, 19.9f));
+    EXPECT_FALSE(expanded::NearPlayerChest(feet, 10.0f));
+    EXPECT_TRUE(expanded::NearPlayerChest(feet, 10.2f));
+    sceVu0CopyVector(CharaMain.pos, saved);
 }
