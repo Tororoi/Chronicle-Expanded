@@ -29,12 +29,10 @@
 #include "frame.hpp"
 #include "gameutil.hpp"
 #include "itemdata.hpp"
-#include "mglib.hpp"
 #include "monstorunit.hpp"
 #include "motionmodel.hpp"
 #include "shot_effect.hpp"
 #include "shot_utils.hpp"
-#include "texture.hpp"
 #include "userstatus.hpp"
 #include "weaponelement.hpp"
 
@@ -967,8 +965,7 @@ void SpiritBeastDraw() {
     if (model == nullptr || model->frame == nullptr || cat.phase == SpiritBeastPhase::kNone) {
         return;
     }
-    TexManager.ReloadTexture(Vif1Packet, kFloorCharacterBlock);
-    model->Draw();
+    DrawFloorCharacter(*model);
     float shown = cat.fade < 0 ? 1.0f : 1.0f - static_cast<float>(cat.fade) / kSpiritBeastFadeFrames;
     if (cat.look->cape) {
         SpiritCapeDraw(*model, Element(), std::max(0.0f, shown));

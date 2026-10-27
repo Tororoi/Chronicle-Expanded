@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-#include "btmisc.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/frames.hpp"
@@ -15,8 +14,6 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "frame.hpp"
 #include "gameutil.hpp"
-#include "mglib.hpp"
-#include "texture.hpp"
 #include "userstatus.hpp"
 
 namespace expanded::angel_gear {
@@ -204,10 +201,9 @@ bool PropLoad() {
     if (prop.model != nullptr && prop.weapon == NowWeaponHave->item_no) {
         return true;
     }
-    char chr[64] = {}, cfg[64] = {};
-    BtGetWeaponNamePath3(chr, cfg, NowWeaponHave->item_no);
-    std::string path = std::string("commenu/weapon/") + chr;
-    CCharacter *model = EnterFloorCharacter(path.c_str(), cfg);
+    std::string cfg;
+    std::string path = WeaponPackPath(NowWeaponHave->item_no, cfg);
+    CCharacter *model = EnterFloorCharacter(path.c_str(), cfg.c_str());
     if (model == nullptr || model->frame == nullptr) {
         static bool logged = false;
         if (!logged) {
@@ -309,8 +305,7 @@ void PropDraw() {
     if (!prop.up || prop.model == nullptr || prop.model->frame == nullptr) {
         return;
     }
-    TexManager.ReloadTexture(Vif1Packet, kFloorCharacterBlock);
-    prop.model->Draw();
+    DrawFloorCharacter(*prop.model);
 }
 
 void PropRoot(float *out) {
