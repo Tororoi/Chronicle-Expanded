@@ -73,6 +73,7 @@ static int GetVisitInfo(int place, int menu_mode);
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/status/confuse.hpp"
+#include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/toan/buster_sword.hpp"
 #include "expanded/weapons/toan/chronicle_two.hpp"
 #include "expanded/weapons/toan/seven_branch_sword.hpp"
@@ -3394,6 +3395,15 @@ static void WeaponMenuCheckElemValue(WEAPON_HAVE *weapon, WEAPON_HAVE *attachmen
 static int WeaponMenuCheckEnableSetElem(WEAPON_HAVE *weapon, WEAPON_HAVE *attachment, int elem) {
     int refused = 0;
 
+#ifdef CHRONICLE_EXPANDED
+    // A weapon its curse holds to an element refuses the others, with warning 0 (its text the curse's).
+    if (expanded::ElementRefused(*weapon, elem)) {
+        WepMenu.state = WEP_STATE_WARNING;
+        WepMenu.warning_no = 0;
+        return 1;
+    }
+#endif
+
     if (weapon->best_elem == elem) {
         if (EnableWeaponElemNone(weapon->item_no) != 0) {
             WepMenu.state = WEP_STATE_WARNING;
@@ -3670,6 +3680,10 @@ static void ExitWeaponMenuSelect() {
 void WeaponMenuSelect() {
     int direction = -1;
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::CrystalRingMenuStep();
+#endif
+
     switch (WepMenu.state) {
         case WEP_STATE_OPEN:
             direction = 0;
@@ -3766,6 +3780,10 @@ void WeaponMenuSelect() {
                         break;
                     }
                     case WEP_STATE_BUILDUP_EFFECT:
+#ifdef CHRONICLE_EXPANDED
+                        expanded::CrystalRingBuiltUp(*weapon);
+                        break;
+#endif
                     case WEP_STATE_REPAIR_EFFECT:
                         break;
                 }
