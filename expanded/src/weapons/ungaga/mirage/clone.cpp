@@ -9,7 +9,6 @@
 #include "dun/gameloop.hpp"
 #include "expanded/core/frames.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
-#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/ungaga/mirage.hpp"
 #include "frame.hpp"
 #include "framevu1.hpp"
@@ -48,11 +47,6 @@ CCharacter weapon;
 alignas(64) u_long128 arena_store[kArenaQuads];
 CDataAlloc2<1> arena;
 
-void OnFloor() {
-    CloneReset();
-}
-
-[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
 
 bool WeaponCurrent() {
     return clone.armed && NowWeapon != nullptr && NowWeapon->frame == clone.weapon_source && NowWeaponHave != nullptr &&

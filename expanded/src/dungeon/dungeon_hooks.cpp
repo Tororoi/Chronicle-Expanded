@@ -4,6 +4,7 @@
 #include "expanded/debug/event_log.hpp"
 #include "expanded/debug/stage.hpp"
 #include "expanded/dungeon/atla_drops.hpp"
+#include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/dungeon/ground_shadow.hpp"
 #include "expanded/dungeon/navigation.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
@@ -89,6 +90,11 @@ void DungeonShotsStep(CMonstorUnit &unit) {
     BlackKnightStep();
     GuardianReflectorStep();
     MirageStep();
+}
+
+void DungeonFloorUnloaded() {
+    ShotEffectsClear();
+    FloorCharactersClear();
 }
 
 void DungeonFloorLoaded(CMonstorUnit &unit) {

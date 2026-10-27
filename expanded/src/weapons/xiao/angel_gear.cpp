@@ -43,11 +43,7 @@ struct Reflector {
 
 Reflector reflector;
 
-void OnFloor() {
-    GuardianReflectorReset();
-}
-
-[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(GuardianReflectorReset), true);
 
 float HerYaw() {
     float rotation[4];

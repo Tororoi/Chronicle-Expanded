@@ -45,11 +45,7 @@ struct Prop {
 Prop                      prop;
 std::vector<CCharacter *> prepared; // copies set up this floor (one per weapon loaded)
 
-void OnFloor() {
-    PropReset();
-}
-
-[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(PropReset), true);
 
 float Wrap(float a) {
     constexpr float kTwoPi = 2.0f * std::numbers::pi_v<float>;

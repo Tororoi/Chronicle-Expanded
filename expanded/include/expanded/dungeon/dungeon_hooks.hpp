@@ -12,12 +12,19 @@ struct WEAPON_HAVE;
 
 namespace expanded {
 
-// The game's dungeon hooks, each calling the features that act there in turn.
+// The game's dungeon hooks, each calling the features that act there in turn. A game point that features share goes
+// through a hook here; a feature that alone replaces or adjusts one piece of the game may be called from there directly.
+//
+// A floor's state is reset one of two ways: in an enemy floor listener (AddEnemyFloorListener, enemy_events.hpp), as the
+// next floor's kinds start being set up, for anything kept per floor; and, for what must also stop as the floor is left
+// (effects drawn, sounds playing, lights), in DungeonMonstersCleared too.
 
 // The dungeon's step, after the monsters' shot effects stepped: Expanded's shots and the Expanded monsters' own.
 void DungeonShotsStep(CMonstorUnit &unit);
 
-// A floor's monsters loaded (BtLoadMonstor, after its kinds were set up).
+// The models a floor loaded for Expanded released (a dungeon visit begins, or the next floor's monsters are about to
+// load), and a floor's monsters loaded (BtLoadMonstor, after its kinds were set up).
+void DungeonFloorUnloaded();
 void DungeonFloorLoaded(CMonstorUnit &unit);
 
 // The party's status taken up as a dungeon visit begins (GameInit, after UserStatus->Init): a stage's weapons.
