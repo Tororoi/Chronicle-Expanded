@@ -8,6 +8,7 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_prop.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_ring.hpp"
@@ -23,7 +24,6 @@ namespace {
 
 using namespace angel_gear;
 
-constexpr int   kGuarding = 5;        // BtActStatus.guard_mode while the guard is up
 constexpr int   kHealAbility = 0x800; // the weapon flags' Heal
 constexpr float kFullGauge = 100.0f;
 constexpr float kXiaoGaugeRate = 1.5f; // the refill's own rate for Xiao
@@ -165,7 +165,7 @@ void GuardianReflectorStep() {
         reflector.live = true;
     }
     PropLoad(); // ahead of her guard
-    bool  guarding = BtActStatus.guard_mode == kGuarding;
+    bool  guarding = Guarding();
     float her[4] = {CharaMain.pos[0], CharaMain.pos[1], CharaMain.pos[2], 1.0f};
     float yaw = HerYaw();
 

@@ -1,6 +1,7 @@
 #include "expanded/weapons/ownership.hpp"
 
 #include "dngstatusdata.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "savedata.hpp"
 #include "stockitem.hpp"
@@ -11,7 +12,6 @@ namespace expanded {
 namespace {
 
 // Slots 0-9 of each character's weapons; slot 10 holds a weapon waiting for room.
-constexpr int kBagSlots = 10;
 
 } // namespace
 

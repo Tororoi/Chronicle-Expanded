@@ -5,6 +5,7 @@
 #include "bt_shot_effect.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
 #include "itemdata.hpp"
@@ -19,7 +20,6 @@ namespace {
 
 constexpr int kPhases = 4;
 constexpr int kSlots = 8;
-constexpr int kShots = 12;
 
 // Ungaga's charge effect at a tier: his main effect reads a copy of its own description, scaled.
 struct Charge {
@@ -124,7 +124,7 @@ void TornadoChargeStep() {
 
 void TornadoShotFired(CSHOT &shots, int slot) {
     const TornadoTier *tier = TornadoShotTier();
-    if (slot < 0 || slot >= kShots || tier == nullptr || !shot.TakeCharged()) {
+    if (slot < 0 || slot >= kPelletSlots || tier == nullptr || !shot.TakeCharged()) {
         return;
     }
     shots.size[slot] *= tier->size;

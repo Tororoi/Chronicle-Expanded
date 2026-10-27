@@ -10,13 +10,17 @@
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "dungeonparts.hpp"
+#include "expanded/core/frames.hpp"
 #include "expanded/data/monster_scripts.hpp"
 #include "expanded/data/spirit_cat.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/monsters.hpp"
+#include "expanded/weapons/hit_marks.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
 #include "expanded/weapons/xiao/spirit_cape.hpp"
@@ -93,9 +97,6 @@ constexpr Monster kTallLeapers[] = {
     Monster::DRAGON,
     Monster::OPAR,
 };
-constexpr int         kMark = 0x08000000; // in a hit's weapon flags: the cat's
-constexpr int         kMonsters = 2;
-constexpr int         kHitKind = 2;   // the reaction kind a pellet's entry carries
 constexpr int         kGlowDelay = 4; // the torch flame's first draws are empty
 constexpr float       kGlowSize = 22.5f, kGlowPull = 5.0f;
 constexpr float       kHeadFallback[3] = {0.0f, 6.0f, 0.0f};
@@ -307,7 +308,7 @@ bool WallAhead(const float *move) {
 }
 
 bool Live(int monster) {
-    if (NowMonstorUnit == nullptr || monster < 0 || monster >= 16) {
+    if (NowMonstorUnit == nullptr || monster < 0 || monster >= kFloorMonsters) {
         return false;
     }
     const MONSTOR &live = NowMonstorUnit->monster[monster];
@@ -344,7 +345,7 @@ void AimPoint(int monster, float *out) {
     float fx = std::sin(body.rotation.y), fz = std::cos(body.rotation.y);
     float best = -1.0f, best_forward = -INFINITY;
     for (int pass = 0; pass < 2 && best < 0; pass++) {
-        for (int sphere = 0; sphere < 16; sphere++) {
+        for (int sphere = 0; sphere < kMonsterSpheres; sphere++) {
             if (effect.timer[sphere] == 0 || (pass == 0 && CatPercent(effect, sphere) <= 0)) {
                 continue;
             }
@@ -395,7 +396,7 @@ int PickTarget() {
     }
     int   best = -1;
     float nearest = INFINITY;
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         float d = Flat(Body(monster).pos, CharaMain.pos);
         if (Live(monster) && d < nearest && d <= kSpiritBeastSight) {
             best = monster;
@@ -457,7 +458,7 @@ void Watch() {
 // The cat's touch point: its head as last posed, else its root.
 void HeadPoint(float *point) {
     point[0] = cat.pos[0], point[1] = cat.pos[1] + kRootTouch, point[2] = cat.pos[2], point[3] = 1.0f;
-    CFrame *kao = model != nullptr && model->frame != nullptr ? model->frame->SearchFrame(const_cast<char *>(kHeadFrame)) : nullptr;
+    CFrame *kao = model != nullptr ? FrameNamed(model->frame, kHeadFrame) : nullptr;
     if (kao != nullptr) {
         sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, at;
         kao->GetWorldPosition(at, origin);
@@ -469,11 +470,11 @@ void HeadPoint(float *point) {
 SHOT_COLLISION_RESULT TouchTest(float *point, float *move) {
     float out[4];
     if (NowDngMap != nullptr) {
-        return checkCollision(out, point, move, kMonsters, kSpiritBeastTouch);
+        return checkCollision(out, point, move, kHitsMonsters, kSpiritBeastTouch);
     }
-    for (int m = 0; m < 16; m++) { // with no map, its monster test alone
+    for (int m = 0; m < kFloorMonsters; m++) { // with no map, its monster test alone
         const MONSTOR &live = NowMonstorUnit->monster[m];
-        for (int sphere = 0; live.state != -1 && live.revealed != 0 && sphere < 16; sphere++) {
+        for (int sphere = 0; live.state != -1 && live.revealed != 0 && sphere < kMonsterSpheres; sphere++) {
             const MONSTOR_EFFECT_STATE &effect = NowMonstorUnit->effect[m];
             if (effect.timer[sphere] != 0 && DistVector(const_cast<float *>(effect.position[sphere]), point) <= kSpiritBeastTouch + effect.radius[sphere]) {
                 return SHOT_COLLISION_MONSTER;
@@ -495,14 +496,14 @@ void Touch() {
     }
     int element = NowWeaponHave->best_elem;
     int attribute = element >= 0 && element < 5 && NowWeaponHave->elem[element] > 0 ? GetWeaponElementAttr(element) : 0;
-    int hit = NowColData->Set(point, std::max(1, cat.damage), 1, kSpiritBeastHitRadius, 0.0f, kMonsters, kHitKind, attribute, 0);
+    int hit = NowColData->Set(point, std::max(1, cat.damage), 1, kSpiritBeastHitRadius, 0.0f, kHitsMonsters, kSwingReaction, attribute, 0);
     if (hit < 0) {
         return;
     }
     COLLISION_HIT &record = NowColData->hit[hit];
     record.owner = CHARA_XIAO;
     record.attack_no = 0;
-    record.weapon_flags = NowWeaponHave->flags | kMark;
+    record.weapon_flags = NowWeaponHave->flags | kSpiritBeastMark;
     record.vs_monster = NowWeaponHave->vs_monster;
     sceVu0CopyVector(record.knockback_origin, point);
     record.knockback_speed = kSpiritBeastKickSpeed;
@@ -785,7 +786,7 @@ void Place() {
 // Where the head rests in the cat's own space: its rest pose's matrices up to the root.
 void FindHead() {
     head[0] = kHeadFallback[0], head[1] = kHeadFallback[1], head[2] = kHeadFallback[2];
-    CFrame *kao = model != nullptr && model->frame != nullptr ? model->frame->SearchFrame(const_cast<char *>(kHeadFrame)) : nullptr;
+    CFrame *kao = model != nullptr ? FrameNamed(model->frame, kHeadFrame) : nullptr;
     if (kao == nullptr) {
         return;
     }
@@ -888,7 +889,7 @@ void SpiritBeastStep() {
             FindHead();
             Key(kCatLeap);
             for (int i = 0; i < 2; i++) {
-                wings[i] = model->frame != nullptr ? model->frame->SearchFrame(const_cast<char *>(kWingFrames[i])) : nullptr;
+                wings[i] = FrameNamed(model->frame, kWingFrames[i]);
             }
             SpiritCapeTake(*model); // off the cat's own cloth list, its mask out of the cat's draw: only a caped cat wears them
         }
@@ -966,7 +967,7 @@ void SpiritBeastStep() {
 }
 
 void SpiritBeastFired(CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= 12 || !SpiritBeastActive() || !charge.TakeCharged() || model == nullptr) {
+    if (slot < 0 || slot >= kPelletSlots || !SpiritBeastActive() || !charge.TakeCharged() || model == nullptr) {
         return;
     }
     pending_shots = &shots;
@@ -987,8 +988,8 @@ void SpiritBeastDraw() {
         return;
     }
     float   middle[4] = {cat.pos[0], cat.pos[1] + kRootTouch, cat.pos[2], 1.0f};
-    CFrame *hips = model->frame->SearchFrame(const_cast<char *>(kHipsFrame));
-    CFrame *spine = model->frame->SearchFrame(const_cast<char *>(kSpineFrame));
+    CFrame *hips = FrameNamed(model->frame, kHipsFrame);
+    CFrame *spine = FrameNamed(model->frame, kSpineFrame);
     if (hips != nullptr && spine != nullptr) {
         sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, a, b;
         hips->GetWorldPosition(a, origin);
@@ -1010,7 +1011,7 @@ void SpiritBeastLight(const CCharacter &character, float *ambient) {
 }
 
 bool SpiritBeastHit(const COLLISION_HIT &hit) {
-    return (hit.weapon_flags & kMark) != 0;
+    return (hit.weapon_flags & kSpiritBeastMark) != 0;
 }
 
 void SpiritBeastHitTaken(const COLLISION_HIT &hit) {

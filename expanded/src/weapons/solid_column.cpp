@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "bt_shot_effect.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -11,7 +12,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int   kPlayerShot = 2; // a shot aimed at the monsters
 constexpr float kHeadOn = 0.01f; // what is left along the column, squared, below which the slide takes the perpendicular
 
 struct Column {
@@ -96,7 +96,7 @@ void SolidColumnPlayerMove(const float *position, float *velocity) {
 
 SHOT_COLLISION_RESULT SolidColumnShot(const CSHOT_EFFECT &effect, int slot, SHOT_COLLISION_RESULT result, float *hit_position,
                                       const float *position) {
-    if (result != SHOT_COLLISION_NONE || !column.armed || effect.effect_data == nullptr || effect.effect_data->target == kPlayerShot) {
+    if (result != SHOT_COLLISION_NONE || !column.armed || effect.effect_data == nullptr || effect.effect_data->target == kHitsMonsters) {
         return result;
     }
     const float *velocity = effect.velocity[slot];

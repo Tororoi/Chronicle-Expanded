@@ -8,8 +8,12 @@
 #include "collisiondata.hpp"
 #include "dataalloc.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/frames.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/hit_marks.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
 #include "frame.hpp"
@@ -28,8 +32,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int   kShots = 12;
-constexpr int   kMark = 0x20000000; // in a hit's weapon flags: a charged pellet's
 constexpr int   kWeaponTextureBlock = 0x1D;
 constexpr int   kArenaQuads = 0x4000; // 256 KB for the copy's frames
 constexpr float kGlowPull = 6.0f;
@@ -41,7 +43,7 @@ constexpr float kOrange[3] = {120.0f, 45.0f, 0.0f};
 struct State {
     ShotCharge    charge{kChargingBullFrames};
     const CSHOT  *shots = nullptr;
-    bool          charged[kShots] = {};
+    bool          charged[kPelletSlots] = {};
     bool          copied = false;
     const CFrame *source = nullptr; // the slingshot in hand it was copied from
 };
@@ -139,7 +141,7 @@ bool Copy() {
 }
 
 bool Ours(const CSHOT &shots, int slot) {
-    return slot >= 0 && slot < kShots && &shots == state.shots && state.charged[slot];
+    return slot >= 0 && slot < kPelletSlots && &shots == state.shots && state.charged[slot];
 }
 
 } // namespace
@@ -153,7 +155,7 @@ void ChargingBullStep() {
 }
 
 void ChargingBullFired(CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= kShots) {
+    if (slot < 0 || slot >= kPelletSlots) {
         return;
     }
     if (&shots == state.shots) {
@@ -177,7 +179,7 @@ void ChargingBullHit(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     if (!Ours(shots, slot)) {
         return;
     }
-    hit.weapon_flags |= kMark;
+    hit.weapon_flags |= kChargingBullMark;
     // Shoved along its flight, from a point back down its line.
     const float *v = shots.vector[slot];
     float        length = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
@@ -190,7 +192,7 @@ void ChargingBullHit(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     hit.knockback_origin[3] = 1.0f;
     hit.knockback_speed = kChargingBullKickSpeed;
     hit.knockback_decay = kChargingBullKickDecay;
-    hit.knockback_mode = 2;
+    hit.knockback_mode = kKnockbackFromOrigin;
 }
 
 void ChargingBullEnded(const CSHOT &shots, int slot) {
@@ -200,7 +202,7 @@ void ChargingBullEnded(const CSHOT &shots, int slot) {
 }
 
 bool ChargingBullHit(const COLLISION_HIT &hit) {
-    return (hit.weapon_flags & kMark) != 0;
+    return (hit.weapon_flags & kChargingBullMark) != 0;
 }
 
 bool ChargingBullCharged(const CSHOT &shots, int slot) {
@@ -211,7 +213,7 @@ void ChargingBullDraw() {
     if (state.shots == nullptr) {
         return;
     }
-    for (int slot = 0; slot < kShots; slot++) {
+    for (int slot = 0; slot < kPelletSlots; slot++) {
         if (!state.charged[slot] || state.shots->used[slot] == 0) {
             continue;
         }
@@ -222,7 +224,7 @@ void ChargingBullDraw() {
             // Upright, fork up, its face turned along its flight as it is held; then slid so its pouch is on the pellet.
             copy.SetPosition(at[0], at[1], at[2]);
             copy.SetRotation(-kHalfPi, std::atan2(v[0], v[2]) + kHalfPi, 0.0f);
-            if (CFrame *pouch = copy.frame->SearchFrame(const_cast<char *>(kPouch))) {
+            if (CFrame *pouch = FrameNamed(copy.frame, kPouch)) {
                 sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, on;
                 pouch->GetWorldPosition(on, origin);
                 // The pouch bone sits a little over and ahead of the cup the pellet shows in.

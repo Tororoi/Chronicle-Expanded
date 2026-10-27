@@ -9,6 +9,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/wear.hpp"
@@ -24,8 +25,7 @@ namespace {
 
 constexpr float kRingLift = 2.0f; // the shock ring over the blast's point, as the bomb drop's
 
-// Toan's charge: the meter runs from 1 to 3 while action 14 builds it.
-constexpr int   kChargeAction = 0xE;
+// Toan's charge: the meter runs from 1 to 3 while the wind-up builds it.
 constexpr float kMeterFloor = 1.0f;
 constexpr float kMeterCap = 3.0f;
 // A bomb's blast: kind 3, waiting on phase 10 (SetBombEffect).
@@ -107,7 +107,7 @@ bool PlayerHitSkipped(const COLLISION_HIT &hit) {
 }
 
 void DetonateChargeLight(const CCharacter &character, float *ambient) {
-    if (&character != NowWeapon || !Detonates() || BtActStatus.action_on == 0 || BtActStatus.action_no != kChargeAction) {
+    if (&character != NowWeapon || !Detonates() || BtActStatus.action_on == 0 || BtActStatus.action_no != kToanWindup) {
         return;
     }
     float k = std::clamp((BtActStatus.charge_time - kMeterFloor) / (kMeterCap - kMeterFloor), 0.0f, 1.0f);

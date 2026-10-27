@@ -7,7 +7,10 @@
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
+#include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/hit_marks.hpp"
 #include "gamepad.hpp"
 #include "itembombeffect.hpp"
 #include "itemdata.hpp"
@@ -21,7 +24,6 @@ namespace expanded {
 namespace {
 
 // An unguardable blast's hit carries this bit in its weapon flags, above the ones a weapon's record has.
-constexpr int kBlastMark = 0x40000000;
 
 // The game's own rumbles on the big motor, as BtCheckDamageProc gives the player: a knockdown blow, and a lighter hit.
 constexpr int kRumbleMotor = 1;
@@ -31,7 +33,7 @@ constexpr int kLightStrength = 0xDC;
 constexpr int kLightFrames = 12;
 
 bool HitFree() {
-    for (int i = 0; i < 96; i++) {
+    for (int i = 0; i < kHitRecords; i++) {
         if (NowColData->active[i] == 0) {
             return true;
         }
@@ -44,7 +46,7 @@ bool HitFree() {
 float BlastDistance(const CMonstorUnit &unit, int monster, const float *point) {
     const MONSTOR_EFFECT_STATE &body = unit.effect[monster];
     float                       nearest = -1.0f;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < kMonsterSpheres; i++) {
         if (body.timer[i] == 0) {
             continue;
         }
@@ -83,7 +85,7 @@ int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOp
         RumbleBlast(BlastRumble::kKnockdown);
     }
     int reached = 0;
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         const MONSTOR &live = unit.monster[monster];
         if (monster == options.except || (options.spared >> monster & 1) != 0 || live.state == -1 || live.hp <= 0 ||
             live.revealed != -1) {

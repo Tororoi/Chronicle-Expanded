@@ -8,6 +8,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/weapons/blade_scale.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
@@ -19,10 +20,8 @@ namespace expanded {
 
 namespace {
 
-// Toan's charge (ToanKey_Play): the wind-up, the whirlwind's charge level and the whirlwind itself.
-constexpr int kWindup = 0xE;
+// Toan's charge level for the whirlwind (ToanKey_Play), and the tornado effect's phases (a hit radius each).
 constexpr int kWhirlCharge = 2;
-constexpr int kWhirlwind = 0x18;
 constexpr int kPhases = 4;
 
 struct Typhoon {
@@ -85,7 +84,7 @@ void TyphoonStep() {
         Reset();
         return;
     }
-    if (BtActStatus.action_no == kWindup && BtActStatus.charge_level == kWhirlCharge) {
+    if (BtActStatus.action_no == kToanWindup && BtActStatus.charge_level == kWhirlCharge) {
         typhoon.frames = std::min(typhoon.frames + 1, kTyphoonFrames);
         float t = static_cast<float>(typhoon.frames) / static_cast<float>(kTyphoonFrames);
         typhoon.scale = 1.0f + (kTyphoonScale - 1.0f) * std::pow(t, kTyphoonCurve);
@@ -96,7 +95,7 @@ void TyphoonStep() {
         ScaleSwordInHand(typhoon.scale);
         return;
     }
-    if (BtActStatus.action_no == kWhirlwind && typhoon.scale > 1.0f) {
+    if (BtActStatus.action_no == kToanWhirlwind && typhoon.scale > 1.0f) {
         // The whirlwind keeps the size the charge reached, its tornado with it.
         ScaleSwordInHand(typhoon.scale);
         if (typhoon.tornado >= 0 && NowMainEffect != nullptr && NowMainEffect->active[typhoon.tornado] != 0) {
@@ -108,7 +107,7 @@ void TyphoonStep() {
 }
 
 void TyphoonHits(const float *hit_pos) {
-    if (Active() && BtActStatus.action_no == kWhirlwind) {
+    if (Active() && BtActStatus.action_no == kToanWhirlwind) {
         PlantAlongBlade(hit_pos, typhoon.scale);
     }
 }

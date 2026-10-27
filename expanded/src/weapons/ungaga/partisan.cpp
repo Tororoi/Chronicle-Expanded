@@ -1,6 +1,7 @@
 #include "expanded/weapons/ungaga/partisan.hpp"
 
 #include "character.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/shamshir.hpp"
 #include "itemdata.hpp"
@@ -10,8 +11,6 @@ namespace expanded {
 namespace {
 
 // Ungaga's three combo swings (UngagaKey_Play's attack states, played as the motions of the same numbers).
-constexpr int kFirstSwing = 0x25;
-constexpr int kLastSwing = 0x27;
 
 } // namespace
 
@@ -22,7 +21,7 @@ bool QuickComboWielded() {
 void QuickComboMotion(CCharacter &chara, int chara_no) {
     const MOTION_INFO *info = chara.motion_type.motion_info;
 
-    if (chara_no != CHARA_UNGAGA || chara.motion_no < kFirstSwing || chara.motion_no > kLastSwing || info == nullptr ||
+    if (chara_no != CHARA_UNGAGA || chara.motion_no < kUngagaFirstSwing || chara.motion_no > kUngagaLastSwing || info == nullptr ||
         !QuickComboWielded()) {
         return;
     }

@@ -7,7 +7,10 @@
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/weapons/hit_marks.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
 #include "itemdata.hpp"
@@ -20,7 +23,6 @@ namespace expanded {
 namespace {
 
 constexpr int kXiao = 1;        // the shot's owner, as her pellets' hits are
-constexpr int kMonsters = 2;    // a collision target only monsters take
 constexpr int kAilments = 0x1F; // a hit's flags kept: its element, not the ball's ailment
 // Xiao locked on: her stance's strafes, and her guarded steps.
 constexpr int kLockedMotions[] = {8, 9, 10, 19, 20, 21, 22, 33};
@@ -39,17 +41,15 @@ void Build() {
     for (int i = 0; i < kDragonShots; i++) {
         int index = i < 5 ? kElementShots[i] : kNoElementShot;
         balls[i] = *BtEntryEffectTbl[index];
-        balls[i].target = kMonsters;
+        balls[i].target = kHitsMonsters;
         balls[i].hit_flags &= kAilments;
     }
     built = true;
 }
 
 constexpr int kEffectSlots = 8;
-constexpr int kRecords = 96;                           // the collision data's hits
-constexpr int kMark = 0x10000000;                      // in a hit's weapon flags: a dragon ball's
 u32           struck[kDragonShots][kEffectSlots] = {}; // the monsters each ball has hit, one bit each
-int           planted[kRecords] = {};                  // the ball (its shot and slot) each marked hit is from
+int           planted[kHitRecords] = {};                  // the ball (its shot and slot) each marked hit is from
 
 bool Ours(const BT_SHOT_EFFECT *shot) {
     return built && shot >= balls && shot < balls + kDragonShots;
@@ -107,7 +107,7 @@ void DragonShotStep() {
 }
 
 void DragonShotFired(CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= 12 || !DragonShotActive() || !charge.TakeCharged() || NowWeaponHave == nullptr) {
+    if (slot < 0 || slot >= kPelletSlots || !DragonShotActive() || !charge.TakeCharged() || NowWeaponHave == nullptr) {
         return;
     }
     BT_SHOT_EFFECT *ball = const_cast<BT_SHOT_EFFECT *>(DragonShot(NowWeaponHave->best_elem));
@@ -135,8 +135,8 @@ void DragonShotHit(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
     }
     // Marked, so a monster it has already hit refuses its later ones (it keeps planting them as it bursts).
     int record = static_cast<int>(&hit - NowColData->hit);
-    if (record >= 0 && record < kRecords) {
-        hit.weapon_flags |= kMark;
+    if (record >= 0 && record < kHitRecords) {
+        hit.weapon_flags |= kDragonShotMark;
         planted[record] = static_cast<int>(effect.effect_data - balls) * kEffectSlots + slot;
     }
     const float *v = effect.velocity[slot];
@@ -152,12 +152,12 @@ void DragonShotHit(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
     hit.knockback_origin[3] = 1.0f;
     hit.knockback_speed = kDragonShotKickSpeed;
     hit.knockback_decay = kDragonShotKickDecay;
-    hit.knockback_mode = 2;
+    hit.knockback_mode = kKnockbackFromOrigin;
 }
 
 bool DragonShotRefused(int monster, const COLLISION_HIT &hit) {
     int record = NowColData != nullptr ? static_cast<int>(&hit - NowColData->hit) : -1;
-    if ((hit.weapon_flags & kMark) == 0 || record < 0 || record >= kRecords || monster < 0 || monster >= 32) {
+    if ((hit.weapon_flags & kDragonShotMark) == 0 || record < 0 || record >= kHitRecords || monster < 0 || monster >= 32) {
         return false;
     }
     u32 &hit_already = struck[planted[record] / kEffectSlots][planted[record] % kEffectSlots];

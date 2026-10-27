@@ -12,7 +12,9 @@
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/status/confuse_icon.hpp"
 #include "expanded/status/poison.hpp"
 #include "itembombeffect.hpp"
@@ -54,20 +56,20 @@ struct Confusion {
     // Steps of play since the floor was set up.
     int tick = 0;
     // The step each monster's confusion ends on, 0 for none.
-    int until[16] = {};
+    int until[kFloorMonsters] = {};
     // The confused monsters that hit each monster, most recent first, -1 past the last.
-    int hit_by[16][16];
+    int hit_by[kFloorMonsters][kFloorMonsters];
     // Each monster's logged target: -1 the player, -2 none.
-    int target[16];
+    int target[kFloorMonsters];
     // The step each attacker last hurt each victim.
-    int contact[16][16] = {};
+    int contact[kFloorMonsters][kFloorMonsters] = {};
     // Each monster's star (a slot of the stars effect, or -1) and the step it came on.
-    int star[16];
-    int star_from[16] = {};
+    int star[kFloorMonsters];
+    int star_from[kFloorMonsters] = {};
 
     Confusion() {
         std::memset(hit_by, -1, sizeof(hit_by));
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < kFloorMonsters; i++) {
             target[i] = -2;
             star[i] = -1;
         }
@@ -99,7 +101,7 @@ bool InPlay(const CMonstorUnit &unit, int slot) {
 }
 
 bool Confused(const CMonstorUnit &unit, int slot) {
-    return slot >= 0 && slot < 16 && State().until[slot] != 0 && InPlay(unit, slot);
+    return slot >= 0 && slot < kFloorMonsters && State().until[slot] != 0 && InPlay(unit, slot);
 }
 
 // The last still-confused monster to hit an unconfused monster, or -1.
@@ -120,10 +122,10 @@ int Provoker(const CMonstorUnit &unit, int slot) {
 
 // The monster that planted a hit (sphere owner slot * 5 + 200, or a shot's monster), or -1.
 int Attacker(const COLLISION_HIT &hit) {
-    if (hit.monster_no >= 0 && hit.monster_no < 16) {
+    if (hit.monster_no >= 0 && hit.monster_no < kFloorMonsters) {
         return hit.monster_no;
     }
-    if (hit.owner >= 200 && (hit.owner - 200) % 5 == 0 && (hit.owner - 200) / 5 < 16) {
+    if (hit.owner >= 200 && (hit.owner - 200) % 5 == 0 && (hit.owner - 200) / 5 < kFloorMonsters) {
         return (hit.owner - 200) / 5;
     }
     return -1;
@@ -217,7 +219,7 @@ void ConfuseTick() {
     }
     Confusion &state = State();
     state.tick++;
-    for (int slot = 0; slot < 16; slot++) {
+    for (int slot = 0; slot < kFloorMonsters; slot++) {
         if (state.until[slot] == 0) {
             continue;
         }
@@ -233,7 +235,7 @@ void ConfuseTick() {
 }
 
 void ConfuseFloorReset(bool drop_stars) {
-    for (int slot = 0; slot < 16; slot++) {
+    for (int slot = 0; slot < kFloorMonsters; slot++) {
         StarOff(slot);
     }
     State() = Confusion();
@@ -253,7 +255,7 @@ void ConfuseFloorLoaded() {
 void ConfuseStep(CMonstorUnit &unit, int slot) {
     Confusion &state = State();
     if (state.unit != &unit) {
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < kFloorMonsters; i++) {
             StarOff(i);
         }
         int tick = state.tick;
@@ -294,7 +296,7 @@ void ConfuseRoll(CMonstorUnit &unit, int slot) {
 }
 
 bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {
-    if (slot < 0 || slot >= 16 || State().unit != &unit) {
+    if (slot < 0 || slot >= kFloorMonsters || State().unit != &unit) {
         return false;
     }
     if (Confused(unit, slot)) {
@@ -303,7 +305,7 @@ bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {
         Position(unit, slot, self);
         int   best = -1;
         float best_distance = DistVector(self, CharaMain.pos);
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < kFloorMonsters; i++) {
             if (i == slot || !InPlay(unit, i)) {
                 continue;
             }
@@ -340,7 +342,7 @@ int ConfuseFriendlyHit(CMonstorUnit &unit, int victim, const float *position, fl
     if (state.unit != &unit || NowColData == nullptr) {
         return -1;
     }
-    for (int i = 0; i < 96; i++) {
+    for (int i = 0; i < kHitRecords; i++) {
         const COLLISION_HIT &hit = NowColData->hit[i];
         if (NowColData->active[i] == 0 || hit.phase != hit.ready_phase) {
             continue;
@@ -388,7 +390,7 @@ void ConfuseLanded(CMonstorUnit &unit, int hit, int victim) {
         return;
     }
     int end = 0;
-    while (end < 15 && list[end] >= 0 && list[end] != attacker) {
+    while (end < kFloorMonsters - 1 && list[end] >= 0 && list[end] != attacker) {
         end++;
     }
     for (int i = end; i > 0; i--) {
@@ -408,10 +410,10 @@ void ConfuseStarsDraw() {
     }
     CSHOT_EFFECT &stars = Stars();
     // The confused monsters nearest the player, one star each.
-    int   order[16];
-    float distance[16];
+    int   order[kFloorMonsters];
+    float distance[kFloorMonsters];
     int   count = 0;
-    for (int slot = 0; slot < 16; slot++) {
+    for (int slot = 0; slot < kFloorMonsters; slot++) {
         if (!Confused(*unit, slot)) {
             continue;
         }
@@ -427,16 +429,16 @@ void ConfuseStarsDraw() {
         order[i] = slot;
         distance[i] = d;
     }
-    bool wanted[16] = {};
+    bool wanted[kFloorMonsters] = {};
     for (int i = 0; i < count && i < kStars; i++) {
         wanted[order[i]] = true;
     }
-    for (int slot = 0; slot < 16; slot++) {
+    for (int slot = 0; slot < kFloorMonsters; slot++) {
         if (!wanted[slot]) {
             StarOff(slot);
         }
     }
-    for (int slot = 0; slot < 16; slot++) {
+    for (int slot = 0; slot < kFloorMonsters; slot++) {
         if (!wanted[slot]) {
             continue;
         }

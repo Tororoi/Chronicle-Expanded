@@ -2,6 +2,7 @@
 
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 
@@ -9,7 +10,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kMembers = 6;
 constexpr int kTimed = AILMENT_FREEZE | AILMENT_STAMINA;
 
 } // namespace
@@ -33,7 +33,7 @@ void HerosCourageStep() {
     if (UserStatus == nullptr) {
         return;
     }
-    for (int chara = 0; chara < kMembers; chara++) {
+    for (int chara = 0; chara < kPartyMembers; chara++) {
         if ((UserStatus->ailments[chara] & kHerosCourage) == 0 || !HerosCourage(chara)) {
             continue;
         }

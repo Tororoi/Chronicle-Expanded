@@ -11,10 +11,13 @@
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/data/prop_models.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/floor_height.hpp"
 #include "expanded/dungeon/ground_shadow.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/hit_marks.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/solid_column.hpp"
 #include "expanded/weapons/summon_smoke.hpp"
@@ -68,11 +71,7 @@ constexpr Monster kDryKinds[] = {
     Monster::LIVING_ARMOR_ENHANCED,
 };
 
-constexpr int kGuarding = 5;           // BtActStatus.guard_mode while the guard is up
-constexpr int kMonsters = 2;           // a hit's target: the monsters
-constexpr int kHitKind = 2;            // the reaction a swing's hit carries
 constexpr int kKickAway = 2;           // thrown away from the hit's origin
-constexpr int kPrickMark = 0x02000000; // in a hit's weapon flags: a prick's
 constexpr int kHitReserve = 16;        // free hit records a prick leaves the game
 
 // The smoke's frames as game frames from the summon.
@@ -183,7 +182,7 @@ float BodyEdge(CMonstorUnit &unit, int monster, float x, float z) {
     unit.chara[monster][0].GetPosition(at);
     bool  posed = false;
     float nearest = 0.0f;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < kMonsterSpheres; i++) {
         const float *centre = body.position[i];
         if (body.timer[i] == 0 || std::fabs(centre[0] - at[0]) > kUnposed || std::fabs(centre[2] - at[2]) > kUnposed) {
             continue;
@@ -205,7 +204,7 @@ float BodyCentre(CMonstorUnit &unit, int monster, float *centre) {
     unit.chara[monster][0].GetPosition(at);
     centre[0] = at[0], centre[1] = at[1] + kBodyFallback, centre[2] = at[2], centre[3] = 1.0f;
     float radius = kBodyFallback, best = 0.0f;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < kMonsterSpheres; i++) {
         const float *sphere = body.position[i];
         if (body.timer[i] == 0 || body.radius[i] <= best || std::fabs(sphere[0] - at[0]) > kUnposed || std::fabs(sphere[2] - at[2]) > kUnposed) {
             continue;
@@ -232,7 +231,7 @@ void Prick(CMonstorUnit &unit, int monster) {
     float centre[4];
     float radius = std::max(kBloomHitRadius, BodyCentre(unit, monster, centre));
     int   damage = std::max(1, static_cast<int>(std::nearbyint(static_cast<double>(NowWeaponHave->attack * kBloomHitShare))));
-    int   hit = NowColData->Set(centre, damage, 1, radius, 0.0f, kMonsters, kHitKind, 0, 0);
+    int   hit = NowColData->Set(centre, damage, 1, radius, 0.0f, kHitsMonsters, kSwingReaction, 0, 0);
     if (hit < 0) {
         return;
     }
@@ -249,7 +248,7 @@ void Pricks() {
     if (NowMonstorUnit == nullptr) {
         return;
     }
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         if (Live(NowMonstorUnit->monster[monster]) &&
             BodyEdge(*NowMonstorUnit, monster, bloom.spot[0], bloom.spot[2]) <= Shape().block_radius + kBloomHitReach) {
             Prick(*NowMonstorUnit, monster);
@@ -316,7 +315,7 @@ void Charge() {
     if (bloom.held >= 0) {
         bloom.held++;
     }
-    if (BtActStatus.guard_mode != kGuarding || bloom.latched) {
+    if (!Guarding() || bloom.latched) {
         return;
     }
     if (bloom.held < 0) {

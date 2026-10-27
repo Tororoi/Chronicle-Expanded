@@ -7,7 +7,10 @@
 #include "btactstatus.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/pellets.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
@@ -21,8 +24,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kDrawAction = 11; // Xiao drawing the slingshot back
-constexpr int kHoldAction = 12; // and holding it drawn
 constexpr int kWindGem = 3;     // MasekiEffect's Wind Gem burst
 
 struct Flight {
@@ -35,7 +36,7 @@ struct State {
     int    hold = 0; // frames the slingshot has been held drawn
     int    held = 0; // how long it was held drawn before it last let go
     bool   flashed[2] = {};
-    Flight flights[12];
+    Flight flights[kPelletSlots];
 };
 
 State state;
@@ -44,7 +45,7 @@ bool MonsterNear(const float *point, float reach) {
     if (NowMonstorUnit == nullptr) {
         return false;
     }
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         const MONSTOR &live = NowMonstorUnit->monster[monster];
         if (live.state == -1 || live.hp <= 0) {
             continue;
@@ -123,7 +124,7 @@ void TyphoonShotStep() {
         state.flashed[0] = state.flashed[1] = false;
         return;
     }
-    bool drawn = BtActStatus.action_on != 0 && (BtActStatus.action_no == kDrawAction || BtActStatus.action_no == kHoldAction);
+    bool drawn = BtActStatus.action_on != 0 && (BtActStatus.action_no == kXiaoDraw || BtActStatus.action_no == kXiaoHold);
     if (!drawn) {
         if (state.hold > 0) {
             state.held = state.hold;
@@ -143,7 +144,7 @@ void TyphoonShotStep() {
 }
 
 void TyphoonShotFired(CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= 12) {
+    if (slot < 0 || slot >= kPelletSlots) {
         return;
     }
     state.flights[slot] = {}; // a pellet fired into this slot before is gone, ended or not
@@ -162,7 +163,7 @@ void TyphoonShotFired(CSHOT &shots, int slot) {
 }
 
 void TyphoonShotEnded(const CSHOT &shots, int slot, const float *point, bool struck) {
-    if (slot < 0 || slot >= 12) {
+    if (slot < 0 || slot >= kPelletSlots) {
         return;
     }
     Flight &flight = state.flights[slot];

@@ -14,7 +14,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kWeaponSlots = 11;
 
 } // namespace
 
@@ -32,13 +31,12 @@ void VenomPoisoned(const MONSTOR &target) {
 
     // The weapon equipped, as a kill's ABS reaches it (CMonstorUnit::Step).
     int gain = target.exp / kVenomAbsShare;
-    int slot = status->equipped_weapon_slot[chara];
-    if (gain <= 0 || slot < 0 || slot >= kWeaponSlots || status->CheckDefaultWeapon(chara) == 0) {
+    WEAPON_HAVE *weapon = EquippedWeapon(*status, chara);
+    if (gain <= 0 || weapon == nullptr || status->CheckDefaultWeapon(chara) == 0) {
         return;
     }
-    WEAPON_HAVE &weapon = status->chara_weapons[chara][slot];
-    int          max_exp = GetWeaponMaxExp(&weapon);
-    weapon.experience = static_cast<s16>(std::max<int>(weapon.experience, std::min(max_exp, weapon.experience + gain)));
+    int max_exp = GetWeaponMaxExp(weapon);
+    weapon->experience = static_cast<s16>(std::max<int>(weapon->experience, std::min(max_exp, weapon->experience + gain)));
 }
 
 } // namespace expanded

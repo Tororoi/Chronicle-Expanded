@@ -8,9 +8,11 @@
 #include "clsmes.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/menu_text.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/species.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "gametext.hpp"
 #include "itemdata.hpp"
@@ -24,7 +26,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kMonsters = 2;             // a collision target that only monsters take
 constexpr int kXiao = 1;                 // the shot's owner, as her pellets' hits are
 constexpr int kNameMessage = 3000;       // a monster's name: CharaNameMes's name_no + 3000
 const int     kNotices[] = {10, 20, 30}; // ItemGetMes's "acquired" templates
@@ -133,14 +134,14 @@ void StealShotTaken(const CMonstorUnit &unit, int monster, int item) {
         return;
     }
     stolen.shot = *BtEntryEffectTbl[index];
-    stolen.shot.target = kMonsters;
+    stolen.shot.target = kHitsMonsters;
     stolen.held = EnterShotEffect(&stolen.shot, kStealShots) >= 0;
     stolen.item = stolen.held ? item : -1;
     stolen.name = stolen.held ? MonsterName(unit, monster) : std::string{};
 }
 
 void StealShotFired(CSHOT &shots, int slot) {
-    if (!stolen.held || !StealShotActive() || slot < 0 || slot >= 12) {
+    if (!stolen.held || !StealShotActive() || slot < 0 || slot >= kPelletSlots) {
         return;
     }
     int index = ShotEffectIndex(&stolen.shot);

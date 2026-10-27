@@ -7,7 +7,10 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/scene_light.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/status/blind.hpp"
+#include "expanded/weapons/pellets.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
@@ -16,14 +19,11 @@
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
 
-extern s32 lockOnTargetNo;
 
 namespace expanded {
 
 namespace {
 
-constexpr int kDrawAction = 11; // Xiao drawing the slingshot back
-constexpr int kHoldAction = 12; // and holding it drawn
 
 enum class Charge {
     kIdle,
@@ -48,22 +48,10 @@ struct State {
     bool          dimmed = false;
     bool          struck = false; // a bolt came down in the window
     float         sling = 0.0f;   // the slingshot's white, 0..1
-    Flight        flights[12];
+    Flight        flights[kPelletSlots];
 };
 
 State state;
-
-bool Guarding() {
-    return BtActStatus.guard_mode == 5;
-}
-
-int LockedTarget() {
-    if (lockOnTargetFlag == 0 || lockOnTargetNo < 0 || lockOnTargetNo >= 16 || NowMonstorUnit == nullptr) {
-        return -1;
-    }
-    const MONSTOR &live = NowMonstorUnit->monster[lockOnTargetNo];
-    return live.state != -1 && live.hp > 0 ? lockOnTargetNo : -1;
-}
 
 // The live monster nearest point, within reach, or -1.
 int MonsterAt(const float *point, float reach) {
@@ -72,7 +60,7 @@ int MonsterAt(const float *point, float reach) {
     }
     int   nearest = -1;
     float best = reach;
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         const MONSTOR &live = NowMonstorUnit->monster[monster];
         if (live.state == -1 || live.hp <= 0) {
             continue;
@@ -96,7 +84,7 @@ void Spend() {
     if (state.charge != Charge::kIdle || state.dimmed) {
         SceneDimEnd();
     }
-    Flight flights[12];
+    Flight flights[kPelletSlots];
     std::copy(std::begin(state.flights), std::end(state.flights), std::begin(flights));
     state = {};
     std::copy(std::begin(flights), std::end(flights), std::begin(state.flights)); // the pellets out still owe their bolts
@@ -122,7 +110,7 @@ void ZeusShotStep() {
         return;
     }
     // How long the slingshot was last held drawn: the shot it lets go of reads it; the room darkens as it builds.
-    if (BtActStatus.action_on != 0 && (BtActStatus.action_no == kDrawAction || BtActStatus.action_no == kHoldAction)) {
+    if (BtActStatus.action_on != 0 && (BtActStatus.action_no == kXiaoDraw || BtActStatus.action_no == kXiaoHold)) {
         if (++state.hold == kZeusChargedFrames) {
             ChargeCompleteFlash();
         }
@@ -194,7 +182,7 @@ void ZeusShotReset() {
 }
 
 void ZeusShotFired(CSHOT &shots, int slot) {
-    if (slot < 0 || slot >= 12) {
+    if (slot < 0 || slot >= kPelletSlots) {
         return;
     }
     state.flights[slot] = {}; // a pellet fired into this slot before is gone, ended or not
@@ -225,7 +213,7 @@ void ZeusShotFired(CSHOT &shots, int slot) {
 }
 
 void ZeusShotEnded(const CSHOT &shots, int slot, const float *point, bool struck) {
-    if (slot < 0 || slot >= 12) {
+    if (slot < 0 || slot >= kPelletSlots) {
         return;
     }
     Flight &flight = state.flights[slot];
@@ -264,7 +252,7 @@ void ZeusShotLight(const CCharacter &character, float *ambient) {
 }
 
 bool ZeusShotCallsBolt(const CSHOT &shots, int slot) {
-    return slot >= 0 && slot < 12 && state.flights[slot].shots == &shots && state.flights[slot].pellet == slot;
+    return slot >= 0 && slot < kPelletSlots && state.flights[slot].shots == &shots && state.flights[slot].pellet == slot;
 }
 
 } // namespace expanded

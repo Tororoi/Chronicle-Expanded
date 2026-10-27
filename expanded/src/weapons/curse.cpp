@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "dun/gameloop.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "userstatus.hpp"
 
@@ -10,7 +11,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kMembers = 6;
 constexpr int kHarmful = AILMENT_FREEZE | AILMENT_POISON | AILMENT_GOO;
 
 struct Cursed {
@@ -20,7 +20,7 @@ struct Cursed {
     bool             renew = false;  // a new floor: cursed again
 };
 
-Cursed cursed[kMembers];
+Cursed cursed[kPartyMembers];
 
 std::vector<const CurseRule *> &Rules() {
     static std::vector<const CurseRule *> rules;
@@ -111,7 +111,7 @@ bool AddCurseRule(const CurseRule *rule) {
 }
 
 const CurseRule *CurseOn(int chara) {
-    if (chara < 0 || chara >= kMembers || cursed[chara].lifted) {
+    if (chara < 0 || chara >= kPartyMembers || cursed[chara].lifted) {
         return nullptr;
     }
     return cursed[chara].rule;
@@ -121,7 +121,7 @@ void CurseStep() {
     if (UserStatus == nullptr) {
         return;
     }
-    for (int chara = 0; chara < kMembers; chara++) {
+    for (int chara = 0; chara < kPartyMembers; chara++) {
         Step(*UserStatus, chara);
     }
 }

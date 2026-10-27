@@ -6,9 +6,10 @@ class CMonstorUnit;
 
 namespace expanded {
 
-// A floor's model slots (each a kind set up) and monster slots.
+// A floor's model slots (each a kind set up) and monster slots, and a monster's hurt spheres.
 inline constexpr int kModelSlots = 9;
 inline constexpr int kFloorMonsters = 16;
+inline constexpr int kMonsterSpheres = 16;
 
 // The MonstorTable kind set up in a model slot of the floor, or -1.
 int ModelKind(int model_slot);

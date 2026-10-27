@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "dun/gameloop.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
@@ -12,7 +13,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kMembers = 6;
 
 // chara's equipped Maneater: the sword (Toan's) or Super Steve carrying its sphere (Xiao's), else nullptr.
 WEAPON_HAVE *Maneater(CUserStatus &status, int chara) {
@@ -31,7 +31,7 @@ constexpr CurseRule kBloodPrice = {.cursing = Cursing, .lifted = Lifted, .immune
 
 [[maybe_unused]] const bool kRule = AddCurseRule(&kBloodPrice);
 
-int frames[kMembers] = {};
+int frames[kPartyMembers] = {};
 
 // The life the member has, the gauge's target while it moves.
 int Life(const CUserStatus &status, int chara) {
@@ -67,7 +67,7 @@ void BloodPriceStep() {
     if (UserStatus == nullptr) {
         return;
     }
-    for (int chara = 0; chara < kMembers; chara++) {
+    for (int chara = 0; chara < kPartyMembers; chara++) {
         Feed(*UserStatus, chara);
     }
 }

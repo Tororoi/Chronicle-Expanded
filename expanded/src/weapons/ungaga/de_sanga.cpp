@@ -20,10 +20,12 @@ void VampireKill(const CMonstorUnit &unit, int monster) {
     if (unit.monster[monster].last_attacker != chara) {
         return;
     }
-    int          slot = UserStatus->equipped_weapon_slot[chara];
-    WEAPON_HAVE &weapon = UserStatus->chara_weapons[chara][slot];
-    float        healed = std::min(static_cast<float>(weapon.durability), weapon.durability_f + kVampireHeal);
-    weapon.durability_f = std::max(weapon.durability_f, healed);
+    WEAPON_HAVE *weapon = EquippedWeapon(*UserStatus, chara);
+    if (weapon == nullptr) {
+        return;
+    }
+    float healed = std::min(static_cast<float>(weapon->durability), weapon->durability_f + kVampireHeal);
+    weapon->durability_f = std::max(weapon->durability_f, healed);
 }
 
 } // namespace expanded

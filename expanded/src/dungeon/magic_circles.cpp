@@ -6,6 +6,7 @@
 #include "battlemenu.hpp"
 #include "dun/gameloop.hpp"
 #include "dungeonmap.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/ownership.hpp"
 #include "itemdata.hpp"
@@ -81,8 +82,6 @@ void WhpDown(WEAPON_HAVE &weapon, int m) {
     }
 }
 
-constexpr int kMembers = 6;
-constexpr int kCarried = 11;
 
 // A weapon a circle can fill: one in the slot, not a default weapon (retail fills those with nothing).
 bool Fillable(const WEAPON_HAVE &weapon) {
@@ -106,9 +105,9 @@ void CureWhp(WEAPON_HAVE &weapon) {
 // weapon the party carries.
 template <typename Fill>
 void FillParty(CUserStatus &status, const WEAPON_HAVE &active, int m, Fill fill) {
-    for (int chara = 0; chara < kMembers; chara++) {
+    for (int chara = 0; chara < kPartyMembers; chara++) {
         int equipped = status.equipped_weapon_slot[chara];
-        for (int slot = 0; slot < kCarried; slot++) {
+        for (int slot = 0; slot < kWeaponSlots; slot++) {
             WEAPON_HAVE &weapon = status.chara_weapons[chara][slot];
             if (&weapon != &active && (m >= 3 || slot == equipped)) {
                 fill(weapon);

@@ -96,9 +96,8 @@ bool KnifeOut() {
 
 // The knife's own record, whose WHP the menu shows and the swings drain.
 WEAPON_HAVE *KnifeRecord() {
-    int          slot = UserStatus->equipped_weapon_slot[CHARA_TOAN];
-    WEAPON_HAVE &weapon = UserStatus->chara_weapons[CHARA_TOAN][slot];
-    return weapon.item_no == ITEM_WEAPON_KITCHEN_KNIFE ? &weapon : nullptr;
+    WEAPON_HAVE *weapon = EquippedWeapon(*UserStatus, CHARA_TOAN);
+    return weapon != nullptr && weapon->item_no == ITEM_WEAPON_KITCHEN_KNIFE ? weapon : nullptr;
 }
 
 void End(bool quietly) {

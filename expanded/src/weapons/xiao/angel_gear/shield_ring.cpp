@@ -5,6 +5,7 @@
 
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "hitmark.hpp"
 #include "monstorunit.hpp"
@@ -47,7 +48,7 @@ bool SpendOnShield(bool quiet) {
     }
     float root[3];
     PropRoot(root);
-    for (int i = 0; i < 96; i++) {
+    for (int i = 0; i < kHitRecords; i++) {
         COLLISION_HIT &hit = NowColData->hit[i];
         if (NowColData->active[i] == 0 || (hit.target_mask & kHurtsPlayer) == 0 || hit.phase != hit.ready_phase) {
             continue;
@@ -89,7 +90,7 @@ void RingReset() {
 }
 
 bool RingTarget(int monster, float *position) {
-    if (!ring.up || NowMonstorUnit == nullptr || monster < 0 || monster >= 16) {
+    if (!ring.up || NowMonstorUnit == nullptr || monster < 0 || monster >= kFloorMonsters) {
         return false;
     }
     sceVu0CopyVector(position, CharaMain.pos);

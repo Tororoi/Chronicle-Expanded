@@ -8,6 +8,7 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/ungaga/mirage/clone.hpp"
@@ -23,7 +24,6 @@ namespace {
 
 using namespace mirage;
 
-constexpr int kGuarding = 5; // BtActStatus.guard_mode while the guard is up
 
 struct Decoy {
     bool  up = false;
@@ -36,7 +36,7 @@ struct Decoy {
     int   handoff_age = 0; // frames since the hand-off began
     float old_at[4] = {};  // the old decoy's spot, its copy dissolving there
     int   hold = 0;        // frames left the monsters keep to the old spot
-    bool  hit[16] = {};    // the monsters hit since they last took to a decoy
+    bool  hit[kFloorMonsters] = {};    // the monsters hit since they last took to a decoy
 };
 
 struct Guard {
@@ -184,7 +184,7 @@ void MirageStep() {
     CloneLoad(); // ahead of a plant
 
     bool held = GamePad.On(PAD_R1) != 0;
-    bool in_pose = held && BtActStatus.guard_mode == kGuarding;
+    bool in_pose = held && Guarding();
     if (!held) {
         guard = Guard{};
     } else if (guard.held >= 0) {

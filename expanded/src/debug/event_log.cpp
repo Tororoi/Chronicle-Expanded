@@ -4,8 +4,10 @@
 #include <format>
 
 #include "dun/gameloop.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #include "gameloop.hpp"
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
@@ -93,7 +95,7 @@ void EventLogStep() {
         return;
     }
     int chara = UserStatus->cur_chara;
-    if (chara < 0 || chara > 5) {
+    if (chara < 0 || chara >= kPartyMembers) {
         return;
     }
     if (chara != seen.chara) {
@@ -105,8 +107,11 @@ void EventLogStep() {
         LogEvent("life", std::format("\"chara\":{},\"from\":{},\"to\":{}", chara, seen.life, life));
     }
     seen.life = life;
-    int                slot = UserStatus->equipped_weapon_slot[chara];
-    const WEAPON_HAVE &weapon = UserStatus->chara_weapons[chara][slot];
+    const WEAPON_HAVE *equipped = EquippedWeapon(*UserStatus, chara);
+    if (equipped == nullptr) {
+        return;
+    }
+    const WEAPON_HAVE &weapon = *equipped;
     if (weapon.item_no == seen.weapon && weapon.durability_f != seen.whp) {
         LogEvent("whp", std::format("\"chara\":{},\"weapon\":{},\"from\":{:.2f},\"to\":{:.2f}", chara, weapon.item_no,
                                     seen.whp, weapon.durability_f));

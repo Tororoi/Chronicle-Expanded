@@ -8,11 +8,14 @@
 #include "btactstatus.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/frames.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/floor_height.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/ungaga/mirage.hpp"
@@ -29,10 +32,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int   kGuarding = 5;      // BtActStatus.guard_mode while the guard is up
-constexpr int   kComboFirst = 0x25; // Ungaga's three combo swings, an action each (UngagaKey_On)
-constexpr int   kComboLast = 0x27;
-constexpr int   kMonsters = 2;         // whom the sparkle is aimed at: none of the monsters' blocks stop it
 constexpr int   kStopAndRestart = 6;   // motion flags: from the clip's first frame, held on its last
 constexpr float kOwnRate = -1.0f;      // a clip at its own rate
 constexpr float kClipLead = 0.5f;      // a clip is taken as over this short of its end, where its cursor stops
@@ -42,7 +41,7 @@ constexpr char  kSpearTip[] = "dcol0"; // the spear's tip, 15.66 along it
 // e508_ex.chr: played where it is put, no flight and no hit. Its first phase is its third clip, whose end the game ends
 // it on; the strike plays the first two in its place, so the game never does.
 // clang-format off
-BT_SHOT_EFFECT sparkle = {"e508_ex", 0, 0, {}, {}, -1, 0, 0, 3, kMonsters, {2, -1, -1, -1}, 0, {0, 0}, 1.0f, 0, {-1, -1, -1, -1}};
+BT_SHOT_EFFECT sparkle = {"e508_ex", 0, 0, {}, {}, -1, 0, 0, 3, kHitsMonsters, {2, -1, -1, -1}, 0, {0, 0}, 1.0f, 0, {-1, -1, -1, -1}};
 // clang-format on
 
 [[maybe_unused]] const bool kRegistered =
@@ -103,11 +102,10 @@ float Ground() {
 void Tip(float *out) {
     const float *at = Xiao() ? state.landed : state.place;
     CCharacter  *held = Xiao() ? nullptr : mirage::CloneWeapon();
-    CFrame      *tip = held != nullptr && held->frame != nullptr ? held->frame->SearchFrame(const_cast<char *>(kSpearTip)) : nullptr;
+    CFrame      *tip = held != nullptr ? FrameNamed(held->frame, kSpearTip) : nullptr;
     float        world[4];
     if (tip != nullptr) {
-        float origin[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-        tip->GetWorldPosition(world, origin);
+        FrameOrigin(*tip, world);
         at = world;
     }
     std::copy(at, at + 3, out);
@@ -302,7 +300,7 @@ void GuardStep() {
         state.spent = false;
     } else if (state.held >= 0) {
         state.held++;
-    } else if (BtActStatus.guard_mode == kGuarding) {
+    } else if (Guarding()) {
         state.held = 0;
     }
 }
@@ -310,7 +308,7 @@ void GuardStep() {
 // Ungaga's swing reaching the strike's frame, once a swing.
 bool SwingReached() {
     int action = BtActStatus.action_no;
-    if (action < kComboFirst || action > kComboLast) {
+    if (action < kUngagaFirstSwing || action > kUngagaLastSwing) {
         state.swung = false;
         return false;
     }

@@ -5,6 +5,9 @@
 #include "expanded/enemies/scaling.hpp"
 #include "monstorunit.hpp"
 
+static_assert(expanded::kFloorMonsters == sizeof(CMonstorUnit::monster) / sizeof(CMonstorUnit::monster[0]));
+static_assert(expanded::kMonsterSpheres == sizeof(MONSTOR_EFFECT_STATE::timer) / sizeof(MONSTOR_EFFECT_STATE::timer[0]));
+
 namespace expanded {
 
 namespace {

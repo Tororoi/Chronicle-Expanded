@@ -8,6 +8,7 @@
 #include "bound.hpp"
 #include "character.hpp"
 #include "cloth.hpp"
+#include "expanded/core/frames.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "frame.hpp"
 #include "mglib.hpp"
@@ -91,7 +92,7 @@ bool SpiritCapeTake(CCharacter &cat) {
     cape.span = std::fabs(cape.rest[mid][0][0] - cape.rest[mid][cape.hang - 1][0]);
     cloth->wind = nullptr;
     std::memcpy(cloth->last, cloth->point, sizeof(cloth->last)); // a quiet first step
-    cape.mask = cat.frame != nullptr ? cat.frame->SearchFrame(const_cast<char *>(kMaskFrame)) : nullptr;
+    cape.mask = FrameNamed(cat.frame, kMaskFrame);
     if (cape.mask != nullptr) {
         cape.mask->attr.draw_on |= kSkippedByParent;
     }

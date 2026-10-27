@@ -7,10 +7,14 @@
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/frames.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/glow_sprite.hpp"
+#include "expanded/enemies/enemy_events.hpp"
 #include "expanded/status/blind.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
@@ -21,7 +25,6 @@
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
 
-extern s32 lockOnTargetNo;
 
 namespace expanded {
 
@@ -103,12 +106,6 @@ const SolarProfile kZeusFlash = {
 
 namespace {
 
-// Toan's swings: the combo's five hits, the lunge and the whirlwind.
-constexpr int kComboFirst = 0x24;
-constexpr int kComboLast = 0x28;
-constexpr int kLunge = 0xF;
-constexpr int kWhirlwind = 0x18;
-
 // Each combo swing's clip and the frame it comes forward on.
 struct Swing {
     float start, end, hit;
@@ -185,7 +182,7 @@ int MonsterAt(const float *point, float reach) {
     }
     int   nearest = -1;
     float best = reach;
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         const MONSTOR &live = NowMonstorUnit->monster[monster];
         if (live.state == -1 || live.hp <= 0) {
             continue;
@@ -201,52 +198,39 @@ int MonsterAt(const float *point, float reach) {
     return nearest;
 }
 
-bool Guarding() {
-    return BtActStatus.guard_mode == 5;
-}
-
 bool Attacking() {
     int action = BtActStatus.action_no;
-    return BtActStatus.action_on != 0 && ((action >= kComboFirst && action <= kComboLast) || action == kLunge || action == kWhirlwind);
-}
-
-// The monster Toan is locked on to, or -1.
-int LockedTarget() {
-    if (lockOnTargetFlag == 0 || lockOnTargetNo < 0 || lockOnTargetNo >= 16 || NowMonstorUnit == nullptr) {
-        return -1;
-    }
-    const MONSTOR &live = NowMonstorUnit->monster[lockOnTargetNo];
-    return live.state != -1 && live.hp > 0 ? lockOnTargetNo : -1;
+    return BtActStatus.action_on != 0 && ((action >= kToanFirstSwing && action <= kToanLastSwing) || action == kToanLunge || action == kToanWhirlwind);
 }
 
 // The swing lets a hanging judgement blade go: the first combo swing at its drop frame, a lunge or whirlwind at once.
 bool SwingDrops() {
     int action = BtActStatus.action_no;
-    if (action == kLunge || action == kWhirlwind) {
+    if (action == kToanLunge || action == kToanWhirlwind) {
         return true;
     }
     float time = CharaMain.motion_type.state.time;
-    return action == kComboFirst && time >= kDropFrame && time <= kCombo[0].end;
+    return action == kToanFirstSwing && time >= kDropFrame && time <= kCombo[0].end;
 }
 
 // The swing has come forward: a lunge or whirlwind at once, a combo hit at its own frame.
 bool SwingForward() {
     int action = BtActStatus.action_no;
-    if (action == kLunge || action == kWhirlwind) {
+    if (action == kToanLunge || action == kToanWhirlwind) {
         return true;
     }
-    const Swing &swing = kCombo[action - kComboFirst];
+    const Swing &swing = kCombo[action - kToanFirstSwing];
     float        time = CharaMain.motion_type.state.time;
     return time >= swing.hit && time <= swing.end;
 }
 
 bool Combo(int action) {
-    return BtActStatus.action_on != 0 && action >= kComboFirst && action <= kComboLast;
+    return BtActStatus.action_on != 0 && action >= kToanFirstSwing && action <= kToanLastSwing;
 }
 
 // A combo swing winding up: how far it is from its start to coming forward (0..1).
 float WindUp(int action) {
-    const Swing &swing = kCombo[action - kComboFirst];
+    const Swing &swing = kCombo[action - kToanFirstSwing];
     return std::clamp((CharaMain.motion_type.state.time - swing.start) / (swing.hit - swing.start), 0.0f, 1.0f);
 }
 
@@ -269,7 +253,7 @@ void GlowShrink() {
 }
 
 bool HitFree() {
-    for (int i = 0; i < 96; i++) {
+    for (int i = 0; i < kHitRecords; i++) {
         if (NowColData->active[i] == 0) {
             return true;
         }
@@ -350,8 +334,8 @@ bool WeaponGlowPoint(const SolarProfile &profile, float *point) {
     }
     float         along = profile.glow_along;
     sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 0.0f};
-    CFrame       *hilt = NowWeapon->frame->SearchFrame(const_cast<char *>("dcol0"));
-    CFrame       *tip = NowWeapon->frame->SearchFrame(const_cast<char *>("dcol1"));
+    CFrame       *hilt = FrameNamed(NowWeapon->frame, "dcol0");
+    CFrame       *tip = FrameNamed(NowWeapon->frame, "dcol1");
     if (hilt == nullptr || tip == nullptr) {
         NowWeapon->frame->GetWorldPosition(point, origin);
         return true;
@@ -380,7 +364,7 @@ int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int 
         return 0;
     }
     int struck = 0;
-    for (int monster = 0; monster < 16; monster++) {
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
         const MONSTOR &live = unit.monster[monster];
         if (monster == except || live.state == -1 || live.hp <= 0 || live.revealed != -1) {
             continue;
@@ -568,7 +552,7 @@ void SolarFlashStep() {
             bool swinging = Combo(action);
             bool restarted = swinging && (action < s.chain_action ||
                                           (action == s.chain_action && s.chain_fired &&
-                                           CharaMain.motion_type.state.time < kCombo[action - kComboFirst].hit - 1.0f));
+                                           CharaMain.motion_type.state.time < kCombo[action - kToanFirstSwing].hit - 1.0f));
             int  target = LockedTarget();
             if (!swinging || restarted || target < 0) {
                 if (!SceneFlashing()) {
