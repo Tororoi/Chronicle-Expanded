@@ -1,5 +1,6 @@
 #include "expanded/enemies/monster_actions.hpp"
 
+#include "frame.hpp"
 #include "monstorunit.hpp"
 
 namespace expanded {
@@ -33,6 +34,11 @@ void RemoveMonster(CMonstorUnit &unit, int monster) {
         unit.monster[monster].state = -1;
         unit.alive_count--;
     }
+}
+
+CFrame *MonsterFrame(CMonstorUnit &unit, int monster, const char *name) {
+    CFrame *root = unit.chara[monster][0].frame;
+    return root != nullptr ? root->SearchFrame(const_cast<char *>(name)) : nullptr;
 }
 
 } // namespace expanded

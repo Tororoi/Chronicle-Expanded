@@ -15,6 +15,7 @@
 #include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/species.hpp"
 #include "frame.hpp"
@@ -303,23 +304,23 @@ void AtlaGemronStep(CMonstorUnit &unit) {
 }
 
 void AtlaGemronDrawing(CMonstorUnit &unit, int monster) {
-    if (!IsKind(unit, monster, Monster::ATLA_GEMRON) || unit.chara[monster][0].frame == nullptr) {
+    if (!IsKind(unit, monster, Monster::ATLA_GEMRON)) {
         return;
     }
-    if (CFrame *lens = unit.chara[monster][0].frame->SearchFrame(const_cast<char *>(kAtlaGemronLens))) {
+    if (CFrame *lens = MonsterFrame(unit, monster, kAtlaGemronLens)) {
         SetFrameTint(lens, kLensGlow, kLensGlow, kLensGlow);
     }
 }
 
 void AtlaGemronDrawn(CMonstorUnit &unit, int monster) {
-    if (!IsKind(unit, monster, Monster::ATLA_GEMRON) || unit.chara[monster][0].frame == nullptr) {
+    if (!IsKind(unit, monster, Monster::ATLA_GEMRON)) {
         return;
     }
     const CCharacter &body = unit.chara[monster][0];
     if (body.motion_no == kDeathMotion && body.motion_type.state.time >= kAtlaGemronSwap) {
         return; // out of the draw
     }
-    if (CFrame *held = body.frame->SearchFrame(const_cast<char *>(kHeldAtla))) {
+    if (CFrame *held = MonsterFrame(unit, monster, kHeldAtla)) {
         held->GetLWMatrix(gemrons[monster].world);
         gemrons[monster].held = true;
     }

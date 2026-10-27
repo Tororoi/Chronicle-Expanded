@@ -55,9 +55,10 @@ constexpr int kShots = 4;
 // The death clip (motion 11, 105-125) blows up at 122, the blast 11 over the Gemron's feet.
 constexpr int   kDeathMotion = 11;
 constexpr float kDeathFrom = 105.0f, kBlastFrame = 122.0f, kBlastHeight = 11.0f;
-// The self-destruct: under a quarter of its life with the player within 22.
+// The self-destruct: under a quarter of its life with the player within 22, blowing up on its motion's last frame.
 constexpr int   kSelfDestructPercent = 25;
 constexpr float kSelfDestructRange = 22.0f;
+constexpr float kSelfDestructBlast = kBombSelfDestructEnd - 1;
 constexpr float kFadeStep = 4.0f;
 // A hit's reaction takes the fuse over; it may be lit again this many steps later.
 constexpr int kRelight = 60;
@@ -88,7 +89,6 @@ constexpr float kBurstSpread = 0.75f, kBurstSize = 2.0f, kBurstShrink = 0.005f, 
 constexpr float kBurstDrop = 6.0f;
 constexpr int   kBurstFirst = 12; // the hit marks the bursts take, as CheckDmg cycles through them
 constexpr int   kDeathLoopMotion = 12;
-constexpr float kSelfDestructBlast = kBombSelfDestructEnd - 1;
 
 enum class Fuse {
     None,
@@ -199,7 +199,7 @@ bool BombGemronStep(CMonstorUnit &unit, int monster) {
                 gemron.relight = kRelight;
                 return false;
             }
-            if (body.motion_no == kBombSelfDestructKey && frame >= kBombSelfDestructEnd - 1) {
+            if (frame >= kSelfDestructBlast) {
                 Blast(unit, monster);
                 gemron.blown = true;
                 FadeMonster(unit, monster, kFadeStep);
@@ -237,11 +237,6 @@ bool Lit(const CMonstorUnit &unit, int monster) {
     return !gemrons[monster].blown && unit.monster[monster].palette_alpha_step <= 0.0f && unit.chara[monster][0].motion_no != kDeathLoopMotion;
 }
 
-CFrame *BombFrame(CMonstorUnit &unit, int monster) {
-    CFrame *root = unit.chara[monster][0].frame;
-    return root != nullptr ? root->SearchFrame(const_cast<char *>(kBombFrame)) : nullptr;
-}
-
 void Burst(int monster, const float *at) {
     CHitMark &mark = HitMark[kBurstFirst + monster % 4];
     float     direction[4] = {0.0f, 1.0f, 0.0f, 0.0f}; // the engine scatters a burst about one axis of it: here none
@@ -261,7 +256,7 @@ void BombGemronDrawing(CMonstorUnit &unit, int monster) {
     if (monster < 0 || monster >= kFloorMonsters || !gemrons[monster].bomb) {
         return;
     }
-    if (CFrame *bomb = BombFrame(unit, monster)) {
+    if (CFrame *bomb = MonsterFrame(unit, monster, kBombFrame)) {
         float burnt = Burnt(unit, monster);
         SetFrameTint(bomb, burnt > 0.0f ? kRedden * burnt : 0.0f, 0.0f, 0.0f);
     }
@@ -271,7 +266,7 @@ void BombGemronDrawn(CMonstorUnit &unit, int monster) {
     if (monster < 0 || monster >= kFloorMonsters || !gemrons[monster].bomb || !Lit(unit, monster)) {
         return;
     }
-    CFrame *bomb = BombFrame(unit, monster);
+    CFrame *bomb = MonsterFrame(unit, monster, kBombFrame);
     if (bomb == nullptr) {
         return;
     }

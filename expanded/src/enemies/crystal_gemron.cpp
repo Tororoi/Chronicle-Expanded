@@ -8,6 +8,7 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/ice_shots.hpp"
+#include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/species.hpp"
 #include "frame.hpp"
@@ -139,10 +140,10 @@ void CrystalGemronStep(CMonstorUnit &unit) {
 }
 
 void CrystalGemronDrawing(CMonstorUnit &unit, int monster) {
-    if (!IsKind(unit, monster, Monster::CRYSTAL_GEMRON) || unit.chara[monster][0].frame == nullptr) {
+    if (!IsKind(unit, monster, Monster::CRYSTAL_GEMRON)) {
         return;
     }
-    if (CFrame *eyes = unit.chara[monster][0].frame->SearchFrame(const_cast<char *>(kCrystalEyeFrame))) {
+    if (CFrame *eyes = MonsterFrame(unit, monster, kCrystalEyeFrame)) {
         SetFrameTint(eyes, kEyeGlow[0], kEyeGlow[1], kEyeGlow[2]);
     }
 }
