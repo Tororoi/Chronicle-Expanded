@@ -288,8 +288,8 @@ void PelletFired(CSHOT &shots, int slot) {
     AirStrikeFired(shots, slot);
 }
 
-void RubyOrbThrown(CSHOT_EFFECT &effect, int slot) {
-    PrismOrbThrown(effect, slot);
+void RubyOrbThrown(CSHOT_EFFECT &effect, int slot, bool repeat) {
+    PrismOrbThrown(effect, slot, repeat);
 }
 
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {

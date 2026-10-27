@@ -64,6 +64,9 @@ bool cured = false;
 // 1 while every arrow in flight is on a crystal (planting all the way), 0 otherwise, -1 not yet set.
 int planting = -1;
 
+// The last orb she let go flew on as an arrow, so a full charge's second orb, drawn over it, goes with it.
+bool orb_became_arrow = false;
+
 bool Cursing(const CUserStatus &status, int chara) {
     const WEAPON_HAVE *weapon = EquippedWeapon(status, chara);
     return chara == CHARA_RUBY && weapon != nullptr && CarriesWeapon(*weapon, ITEM_WEAPON_CRYSTAL_RING);
@@ -237,12 +240,20 @@ void HoldCrystalRings(CUserStatus &status) {
     }
 }
 
-void PrismOrbThrown(CSHOT_EFFECT &effect, int slot) {
+void PrismOrbThrown(CSHOT_EFFECT &effect, int slot, bool repeat) {
     CSHOT_EFFECT *arrows = PrismArrows();
     if (arrows == nullptr || &effect != &CharaMainEffect || slot < 0 || slot >= effect.slot_count || effect.active[slot] == 0 ||
         !CursedPrismActive()) {
         return;
     }
+    // A full charge's second orb only shimmers over the first: the first's arrow is the only one.
+    if (repeat) {
+        if (orb_became_arrow) {
+            effect.OffEffect(slot);
+        }
+        return;
+    }
+    orb_became_arrow = false;
     const float *flight = effect.velocity[slot];
     if (flight[0] * flight[0] + flight[1] * flight[1] + flight[2] * flight[2] < kMinFlight) {
         return;
@@ -262,6 +273,7 @@ void PrismOrbThrown(CSHOT_EFFECT &effect, int slot) {
     arrows->SetWait(planting == 1 ? 0 : kPrismStrikeWait);
     LogEvent("ice_arrow", "\"damage\":" + std::to_string(effect.damage[slot]));
     effect.OffEffect(slot);
+    orb_became_arrow = true;
 }
 
 void CursedPrismStep(CMonstorUnit &unit) {

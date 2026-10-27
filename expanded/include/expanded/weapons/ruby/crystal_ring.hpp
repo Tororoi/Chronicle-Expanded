@@ -16,10 +16,11 @@ namespace expanded {
 // keeps Ice selected, so the game's own loads of her per-element shot load the Ice one and the ball she charges is ice.
 // A build-up into the ring in the dungeon's menu reloads her shot, as equipping it does.
 //
-// Cursed with the ring in her hand, every orb she lets go (her quick shot, a part charge's, a full charge's two) flies
-// on as the Crystal Gemron's ice arrow (enemies/ice_shots.hpp) at the orb's damage, along the orb's flight at the
+// Cursed with the ring in her hand, every orb she lets go (her quick shot, a part charge's, a full charge's) flies on
+// as the Crystal Gemron's ice arrow (enemies/ice_shots.hpp) at the orb's damage, along the orb's flight at the
 // arrow's own speed and for its life, turned on the monsters with only its Ice element on its hit, her weapon's
-// abilities riding on it as on the orb. Each frame of its flight an arrow turns kPrismTurnDegrees toward its target
+// abilities riding on it as on the orb. A full charge's second orb, which the game draws shimmering over the first,
+// goes out with no arrow of its own. Each frame of its flight an arrow turns kPrismTurnDegrees toward its target
 // wherever that lies, so a miss comes round again: the locked-on monster, else the living monster nearest the arrow
 // within kPrismMonsterReach, else her door crystal nearest it within kPrismCrystalReach. A monster's target is its
 // lock-on point, or kPrismAimLift above its feet when it has none.
@@ -54,7 +55,7 @@ void HoldCrystalRings(CUserStatus &status);
 // Hooks: an orb of Ruby's let go into slot of effect (BattleActionShotRuby); a dungeon step, before the shot effects
 // step (the rings held, the arrows steered); a floor ending (a lifted curse with it); a frame of the weapon menu (the
 // rings held); a weapon built up there, once its effect is done.
-void PrismOrbThrown(CSHOT_EFFECT &effect, int slot);
+void PrismOrbThrown(CSHOT_EFFECT &effect, int slot, bool repeat);
 void CursedPrismStep(CMonstorUnit &unit);
 void CursedPrismFloorEnds();
 void CrystalRingMenuStep();
