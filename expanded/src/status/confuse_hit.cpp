@@ -1,14 +1,21 @@
-#include "expanded/status/confuse.hpp"
-
 #include <libvu0.h>
+
+#include <cmath>
+#include <cstdio>
 
 #include "collisiondata.hpp"
 #include "dngstatusdata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
+#include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/status/confuse.hpp"
+#include "expanded/status/confuse_state.hpp"
 #include "hitmark.hpp"
 #include "hitvalue.hpp"
+#include "mathutil.hpp"
 #include "monstorunit.hpp"
+#include "shot_effect.hpp"
 #include "snd.hpp"
 #include "userstatus.hpp"
 #include "weaponelement.hpp"
@@ -16,6 +23,63 @@
 namespace expanded {
 
 namespace {
+
+using namespace confuse;
+
+// How often the same attacker may hurt the same monster.
+constexpr int kContactSteps = kStepsPerSecond / 2;
+
+// Ends the shot that planted hit where it struck, as CSHOT_EFFECT::Step ends one on a target.
+void ShotImpact(int hit) {
+    COLLISION_HIT &record = NowColData->hit[hit];
+    if (NowShotEffect == nullptr || record.monster_no < 0) {
+        return;
+    }
+    CSHOT_EFFECT *found = nullptr;
+    int           slot = -1;
+    float         best = 0.0f;
+    for (int index = 0; index < ShotEffectCount(); index++) {
+        CSHOT_EFFECT &effect = *ShotEffectAt(index);
+        if (effect.effect_data == nullptr) {
+            continue;
+        }
+        for (int i = 0; i < effect.slot_count && i < 8; i++) {
+            if (effect.active[i] == 0 || effect.phase[i] >= 2 || effect.user_id_2[i] != record.monster_no) {
+                continue;
+            }
+            sceVu0FVECTOR at;
+            effect.chara[i].GetPosition(at);
+            float distance = DistVector(at, record.pos);
+            float reach = 1.0f + std::abs(effect.effect_data->speed[effect.phase[i]]);
+            if (distance <= reach && (found == nullptr || distance < best)) {
+                found = &effect;
+                slot = i;
+                best = distance;
+            }
+        }
+    }
+    if (found == nullptr) {
+        return;
+    }
+    BT_SHOT_EFFECT *data = found->effect_data;
+    found->chara[slot].SetPosition(record.pos);
+    found->phase[slot] = 2;
+    int motion = data->motion[2];
+    if (motion == -1) {
+        found->active[slot] = 0;
+        if (data->end_effect == SHOT_END_EFFECT_BOMB) {
+            ShotEffectBomb(record.pos, data, found->user_id_2[slot]); // the owner's damage and the shot's radius
+        }
+        return;
+    }
+    found->chara[slot].motion_type.state.time = (float) found->chara[slot].motion_type.motion_info[motion].start;
+    found->chara[slot].SetMotion(motion, 6);
+    sceVu0Normalize(found->velocity[slot], found->velocity[slot]);
+    sceVu0ScaleVectorXYZ(found->velocity[slot], found->velocity[slot], data->speed[2]);
+    if (data->sound[2] != -1 && found->no_sound[slot] == 0) {
+        SndSePlay(data->sound[2], -1, 0);
+    }
+}
 
 // Deals another monster's hit to sphere i: blocked by a guard window the monster can guard with, else damage less defence
 // (at least 1).
@@ -116,6 +180,71 @@ int FriendlyHit(CMonstorUnit &unit, int i, int hit) {
 }
 
 } // namespace
+
+int ConfuseFriendlyHit(CMonstorUnit &unit, int victim, const float *position, float radius) {
+    Confusion &state = State();
+    if (state.unit != &unit || NowColData == nullptr) {
+        return -1;
+    }
+    for (int i = 0; i < kHitRecords; i++) {
+        const COLLISION_HIT &hit = NowColData->hit[i];
+        if (NowColData->active[i] == 0 || hit.phase != hit.ready_phase) {
+            continue;
+        }
+        int attacker = Attacker(hit);
+        if (attacker < 0 || attacker == victim || !InPlay(unit, attacker)) {
+            continue;
+        }
+        // A confused monster hurts any other; a provoked one only the monster it goes after.
+        if (!Confused(unit, attacker) && Provoker(unit, attacker) != victim) {
+            continue;
+        }
+        if (state.contact[attacker][victim] != 0 && state.tick - state.contact[attacker][victim] < kContactSteps) {
+            continue;
+        }
+        sceVu0FVECTOR at;
+        sceVu0CopyVector(at, const_cast<float *>(position));
+        if (DistVector(at, const_cast<float *>(hit.pos)) <= radius + hit.radius) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void ConfuseLanded(CMonstorUnit &unit, int hit, int victim) {
+    Confusion &state = State();
+    int        attacker = Attacker(NowColData->hit[hit]);
+    if (attacker < 0) {
+        return;
+    }
+    state.contact[attacker][victim] = state.tick;
+    if (NowColData->hit[hit].monster_no >= 0) {
+        std::fprintf(stderr, "confuse: monster %d's shot hits monster %d\n", attacker, victim);
+        ShotImpact(hit);
+        NowColData->active[hit] = 0;
+    } else {
+        std::fprintf(stderr, "confuse: monster %d hits monster %d\n", attacker, victim);
+    }
+    if (!Confused(unit, attacker)) {
+        return;
+    }
+    // The victim remembers it, most recent first.
+    int *list = state.hit_by[victim];
+    if (list[0] == attacker) {
+        return;
+    }
+    int end = 0;
+    while (end < kFloorMonsters - 1 && list[end] >= 0 && list[end] != attacker) {
+        end++;
+    }
+    for (int i = end; i > 0; i--) {
+        list[i] = list[i - 1];
+    }
+    list[0] = attacker;
+    if (!Confused(unit, victim) && Provoker(unit, victim) == attacker) {
+        std::fprintf(stderr, "confuse: monster %d turns on monster %d\n", victim, attacker);
+    }
+}
 
 int ConfuseMonsterHit(CMonstorUnit &unit, int sphere) {
     int slot = unit.current_monster;
