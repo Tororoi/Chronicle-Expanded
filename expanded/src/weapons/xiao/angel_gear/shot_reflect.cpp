@@ -22,7 +22,7 @@ namespace expanded::angel_gear {
 
 namespace {
 
-constexpr int   kPlayerOnly = 1;   // a collision test's target: the player and walls
+constexpr int   kPlayerOnly = 1; // a collision test's target: the player and walls
 constexpr int   kElements = 0x1F, kAilments = 0xFF00;
 constexpr int   kFreeze = 0x100, kPoison = 0x200, kSlow = 0x800;
 constexpr float kLockOnReach = 200.0f; // a lock-on point farther than this from the monster is stale
@@ -64,10 +64,7 @@ Shot                faced;           // the claim the slingshot faces
 bool                testing = false; // a returned shot's collision test under way
 
 CSHOT_EFFECT *Effect(int index) {
-    if (index < kRetailShotEffects && NowShotEffect == nullptr) {
-        return nullptr;
-    }
-    return index >= 0 && index < ShotEffectCount() ? ShotEffectAt(index) : nullptr;
+    return LoadedShotEffect(index);
 }
 
 // The pack index of an effect.

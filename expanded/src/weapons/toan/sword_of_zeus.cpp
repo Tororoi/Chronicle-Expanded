@@ -144,19 +144,11 @@ bool BoltAt(const float *point, int still, bool bill, Thunder thunder, int spare
     if (index < 0 || NowMonstorUnit == nullptr || NowWeaponHave == nullptr) {
         return false;
     }
-    // A shot that does not fly: aimed straight up at no speed (Set lets it go of the model it was copied from).
     CSHOT_EFFECT *bolts = ShotEffectAt(index);
-    sceVu0FVECTOR from, to;
-    sceVu0CopyVector(from, const_cast<float *>(point));
-    from[3] = 1.0f;
-    sceVu0CopyVector(to, from);
-    to[1] += 1.0f;
-    bolts->Set(from, to, 0, -1, 0, nullptr, 0);
-    int slot = bolts->current_slot;
+    int           slot = SpawnStill(*bolts, point);
     if (slot < 0) {
         return false;
     }
-    bolts->velocity[slot][0] = bolts->velocity[slot][1] = bolts->velocity[slot][2] = 0.0f;
     bolts->chara[slot].SetScale(kBoltScale, kBoltScale, kBoltScale);
     if (thunder != Thunder::kNone) {
         int cut = kClap;

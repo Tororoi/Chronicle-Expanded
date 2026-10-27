@@ -23,6 +23,23 @@ int ShotEffectCount();
 // The effect at a pack index; an empty effect past the loaded ones.
 CSHOT_EFFECT *ShotEffectAt(int index);
 
+// The effect at a pack index in use, or null (-1, an index past the loaded ones, or retail's with no pack up).
+CSHOT_EFFECT *LoadedShotEffect(int index);
+
+// Fires the loaded effect at pack index from position toward target as retail's pack does, as the shot of monster owner
+// when not -1: the shot's slot, or -1 when the index is not loaded or no slot is free.
+int FireShotEffect(int index, float *position, float *target, int owner = -1);
+
+// A shot of effect that does not fly, at at: aimed straight up at no speed (Set lets it go of the model it was copied
+// from), with user and first phase as given. Its slot, or -1 when no slot is free.
+int SpawnStill(CSHOT_EFFECT &effect, const float *at, int user = 0, int phase = 0);
+
+// Stops a shot where it is.
+void StopShot(CSHOT_EFFECT &effect, int slot);
+
+// Puts a shot in phase, stopped where it is: the phase's motion from its start, or the shot ended when it has none.
+void EnterShotPhase(CSHOT_EFFECT &effect, int slot, int phase);
+
 // Pack index of a loaded description, or -1. Never loads: what fires a shot calls this.
 int ShotEffectIndex(const BT_SHOT_EFFECT *effect);
 

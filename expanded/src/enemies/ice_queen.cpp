@@ -18,7 +18,6 @@
 #include "mathutil.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
-#include "shot_effect_pack.hpp"
 #include "snd.hpp"
 #include "userstatus.hpp"
 
@@ -113,7 +112,7 @@ void Play(int sound) {
 }
 
 CSHOT_EFFECT *EffectOf(Effect which) {
-    return entered[which] >= 0 ? ShotEffectAt(entered[which]) : nullptr;
+    return LoadedShotEffect(entered[which]);
 }
 
 // Fires one of her effects from position toward target as her own shot; the shot's slot, or -1.
@@ -122,18 +121,16 @@ int Fire(Effect which, float *position, float *target) {
     if (effect == nullptr) {
         return -1;
     }
-    NowShotEffect->Set(entered[which], position, target);
-    int slot = effect->current_slot;
+    int slot = FireShotEffect(entered[which], position, target, fight.queen);
     if (slot == -1) {
         return -1;
     }
-    NowShotEffect->SetUserID2(fight.queen);
     EnemyShotFired(fight.queen);
     if (UserStatus != nullptr) {
         effect->damage[slot] = IceQueenPieceDamage(effect->damage[slot], EnemyRegion(selectMapNo, UserStatus->cur_floor));
     }
     if (effect->effect_data->stationary != 0) {
-        effect->velocity[slot][0] = effect->velocity[slot][1] = effect->velocity[slot][2] = 0.0f;
+        StopShot(*effect, slot);
     }
     return slot;
 }

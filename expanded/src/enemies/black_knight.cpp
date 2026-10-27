@@ -12,7 +12,6 @@
 #include "frame.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
-#include "shot_effect_pack.hpp"
 #include "snd.hpp"
 
 namespace expanded {
@@ -52,7 +51,7 @@ struct Light {
 Light light;
 
 CSHOT_EFFECT *Effect() {
-    return light.effect >= 0 ? ShotEffectAt(light.effect) : nullptr;
+    return LoadedShotEffect(light.effect);
 }
 
 void CollectFrames(CFrame *frame) {
@@ -109,14 +108,14 @@ bool BlackKnightLight(CMonstorUnit &unit, int monster) {
     float feet[4];
     unit.chara[monster][0].GetPosition(feet);
     feet[3] = 1.0f;
-    NowShotEffect->Set(light.effect, feet, feet);
-    if (effect->current_slot < 0) {
+    int slot = FireShotEffect(light.effect, feet, feet);
+    if (slot < 0) {
         return false;
     }
-    light.slot = effect->current_slot;
+    light.slot = slot;
     light.steps = 0;
     light.lit = false;
-    effect->velocity[light.slot][0] = effect->velocity[light.slot][1] = effect->velocity[light.slot][2] = 0.0f;
+    StopShot(*effect, slot);
     CollectFrames(effect->chara[light.slot].frame);
     SndSePlay(kLightSound, -1, 0);
     return true;

@@ -20,7 +20,6 @@
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
-#include "shot_effect_pack.hpp"
 
 namespace expanded {
 
@@ -166,7 +165,7 @@ AtlaPath PathFrom(const sceVu0FMATRIX world, float floor) {
 }
 
 void StepShot() {
-    CSHOT_EFFECT *effect = shot >= 0 ? ShotEffectAt(shot) : nullptr;
+    CSHOT_EFFECT *effect = LoadedShotEffect(shot);
     if (effect == nullptr || effect->effect_data != &atla_shot) {
         return;
     }

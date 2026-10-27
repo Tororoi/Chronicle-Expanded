@@ -19,7 +19,6 @@
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
-#include "shot_effect_pack.hpp"
 #include "shot_utils.hpp"
 
 namespace expanded {
@@ -146,8 +145,7 @@ void Blast(CMonstorUnit &unit, int monster) {
     unit.chara[monster][0].GetPosition(at);
     at[1] += kBlastHeight;
     at[3] = 1.0f;
-    NowShotEffect->Set(blast_effect, at, at);
-    NowShotEffect->SetUserID2(monster);
+    FireShotEffect(blast_effect, at, at, monster);
 }
 
 } // namespace
