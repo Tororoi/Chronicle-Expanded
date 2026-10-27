@@ -47,7 +47,10 @@ bool MonsterConfused(const CMonstorUnit &unit, int slot);
 // Every monster's confusion ended, and what a confused one provoked.
 void ConfuseEndAll();
 
-// The position a monster's script sees as the player's: false to keep the player's.
+// The position a monster's script sees as the player's: false to keep the player's. A confused monster goes for the
+// nearest across the ground of the other monsters in play and the player, chosen afresh at every look (one killed is passed
+// over at once), a provoked one for its provoker; a monster it goes for is marked where an attacker goes for its body
+// (MonsterAimPoint).
 bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position);
 
 // The player's position as the current monster's script sees it.

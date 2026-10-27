@@ -85,4 +85,35 @@ TEST(MonsterQueries, ABodysUndersideAndHowNearAPointIs) {
     EXPECT_FLOAT_EQ(expanded::MonsterBodyDistance(unit, 1, beside), 5.0f);
 }
 
+TEST(MonsterQueries, WhereAnAttackerGoesForABody) {
+    expanded::test::TestFloor floor;
+    CMonstorUnit             &unit = floor.unit();
+    unit.monster[2] = Monster(2, 10, -1);
+    float root[4] = {100.0f, 3.0f, 0.0f, 1.0f};
+    unit.chara[2][0].SetPosition(root);
+    float point[4];
+    // No sphere posed: its root.
+    expanded::MonsterAimPoint(unit, 2, 0.0f, 0.0f, point);
+    EXPECT_FLOAT_EQ(point[0], 100.0f);
+    EXPECT_FLOAT_EQ(point[1], 3.0f);
+    EXPECT_FLOAT_EQ(point[3], 1.0f);
+    // A small sphere (radius 5, no deeper than kAimDepth): its centre, at the root's height.
+    MONSTOR_EFFECT_STATE &body = unit.effect[2];
+    body.timer[0] = 1;
+    body.position[0][0] = 104.0f, body.position[0][1] = 9.0f, body.position[0][2] = 2.0f, body.radius[0] = 5.0f;
+    expanded::MonsterAimPoint(unit, 2, 0.0f, 2.0f, point);
+    EXPECT_FLOAT_EQ(point[0], 104.0f);
+    EXPECT_FLOAT_EQ(point[1], 3.0f);
+    EXPECT_FLOAT_EQ(point[2], 2.0f);
+    // A large one (radius 20) whose edge is nearer: kAimDepth inside it toward the attacker, 12 from its centre.
+    body.timer[1] = 1;
+    body.position[1][0] = 120.0f, body.position[1][2] = 0.0f, body.radius[1] = 20.0f;
+    expanded::MonsterAimPoint(unit, 2, 120.0f, -50.0f, point);
+    EXPECT_FLOAT_EQ(point[0], 120.0f);
+    EXPECT_FLOAT_EQ(point[2], -12.0f);
+    // An attacker already that deep goes for the centre.
+    expanded::MonsterAimPoint(unit, 2, 120.0f, -5.0f, point);
+    EXPECT_FLOAT_EQ(point[2], 0.0f);
+}
+
 } // namespace

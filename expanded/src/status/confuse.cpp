@@ -3,6 +3,7 @@
 #include <libvu0.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <format>
@@ -11,9 +12,9 @@
 #include "expanded/core/random.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/enemies/ally_unit.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/confuse_state.hpp"
 #include "expanded/status/poison.hpp"
-#include "mathutil.hpp"
 #include "monstorunit.hpp"
 
 namespace expanded {
@@ -170,18 +171,19 @@ bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {
     if (slot < 0 || slot >= kFloorMonsters || State().unit != &unit) {
         return false;
     }
+    sceVu0FVECTOR self;
+    Position(unit, slot, self);
     if (Confused(unit, slot)) {
-        sceVu0FVECTOR self;
+        // The nearest across the ground of the other monsters in play and the player.
         sceVu0FVECTOR other;
-        Position(unit, slot, self);
-        int   best = -1;
-        float best_distance = DistVector(self, CharaMain.pos);
+        int           best = -1;
+        float         best_distance = std::hypot(CharaMain.pos[0] - self[0], CharaMain.pos[2] - self[2]);
         for (int i = 0; i < kFloorMonsters; i++) {
             if (i == slot || !InPlay(unit, i)) {
                 continue;
             }
             Position(unit, i, other);
-            float distance = DistVector(self, other);
+            float distance = std::hypot(other[0] - self[0], other[2] - self[2]);
             if (distance < best_distance) {
                 best_distance = distance;
                 best = i;
@@ -191,14 +193,14 @@ bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {
         if (best < 0) {
             return false;
         }
-        Position(unit, best, position);
+        MonsterAimPoint(unit, best, self[0], self[2], position);
         return true;
     }
     int provoker = Provoker(unit, slot);
     if (provoker < 0) {
         return false;
     }
-    Position(unit, provoker, position);
+    MonsterAimPoint(unit, provoker, self[0], self[2], position);
     return true;
 }
 
