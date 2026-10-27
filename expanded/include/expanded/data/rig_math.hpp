@@ -38,8 +38,8 @@ Vec3   Unit(const Vec3 &a);
 double DotExact(const Vec3 &a, const Vec3 &b);
 Vec3   UnitExact(const Vec3 &v);
 
-// Matrices: products, a matrix times a column vector and a row vector times a matrix, the transpose, a matrix from a rotation and translation and back,
-// a rigid inverse, a point through one.
+// Matrices: products, a matrix times a column vector and a row vector times a matrix, the transpose, a matrix from a
+// rotation and translation and back, a rigid inverse, a point through one.
 Mat3 MatMul(const Mat3 &a, const Mat3 &b);
 Mat3 MatMulExact(const Mat3 &a, const Mat3 &b);
 Mat4 MatMulExact(const Mat4 &a, const Mat4 &b);
