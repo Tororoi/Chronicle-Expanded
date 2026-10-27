@@ -26,6 +26,7 @@ struct Stage {
     int         place_after = 100;  // place_after: monster steps after the member is out
     bool        big_room = false;   // big_room: the member walked to the middle of the nearest big room first
     bool        keep_alive = false; // keep_alive: the party's life kept full
+    int         circle = -1;        // circle: a magic circle of this kind (0-9) set out in front of the member
 };
 
 // Parses a stage file's text. False, with why when given, naming the line, for an unknown key or a bad value.
@@ -40,8 +41,8 @@ const Stage *ActiveStage();
 // Hooks. The run about to jump into the stage's dungeon: its save loaded (false when it cannot be). The floor the
 // dungeon's entrance takes: the stage's the first time, else -1 (the menu). The party's status taken up as a dungeon
 // visit begins: the stage's weapon put in the member's hand. The top of a dungeon frame: the member brought out once
-// the floor is in play. A step the monsters take: the member walked to a big room, the monsters set out, the party
-// kept alive.
+// the floor is in play. A step the monsters take: the member walked to a big room, the monsters and the magic circle
+// set out, the party kept alive.
 bool StageLoadSave();
 int  StageEntranceFloor();
 void StageStatusReady();

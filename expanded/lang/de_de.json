@@ -37,6 +37,7 @@
     "expanded.kitchen_knife.blessed": "Der Segen der Quelle durchströmt das Küchenmesser!",
     "expanded.kitchen_knife.faded": "Der Segen der Quelle weicht vom Küchenmesser...",
     "expanded.kitchen_knife.mended": "Die Quelle repariert das Küchenmesser.",
+    "expanded.magic_circles.slowed": "Die Monster wurden verlangsamt.",
     "expanded.seven_branch.break_confirm": "{alert}77% d. Waffen-\nstärke abspeichern.\n(Ohne Erweiterung.)\n Status ändern OK?",
     "expanded.seven_branch.break_hint": "\"Status ändern\"\nAb +7 bleiben\n77% in der \"Synth-Kugel\".",
     "expanded.seven_branch.break_refused": "Das 7-Zweige-Schwert\nverweigert \"Status ändern\"\nunter +7.",
