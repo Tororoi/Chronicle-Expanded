@@ -25,10 +25,9 @@ import subprocess
 import sys
 import tempfile
 
-from record_clip import default_exe, refuse_tracked
+from record_clip import ROOT, default_exe, refuse_tracked
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 
 
 def weapon_abilities_off(save):

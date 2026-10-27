@@ -107,7 +107,7 @@ A feature can add its own with `expanded::LogEvent` (`expanded/debug/event_log.h
 
 `--compare` records a second run at the same time with the Expanded page's Weapon Abilities option off
 (`"expanded": {"weapon_abilities": false}` in its save copy's `config.json`). Off, `WeaponWielded`, `WeaponActive`,
-`HeldWeapon`, `SphereWeapon` and the ownership tests answer no weapon, so every Expanded weapon effect stays off, the
+`HeldWeapon`, `CarriesWeapon`, `SphereWeapon` and the ownership tests answer no weapon, so every Expanded weapon effect stays off, the
 Mirage's decoy and Super Steve's spheres included, and the run plays as the game's own weapons do. What a weapon was
 given when it was made or built up (an ability Expanded adds, the Steel Slingshot's endurance, the Seven Branch
 Sword's build-ups) stays with it.

@@ -29,14 +29,12 @@ constexpr int kIconSize = 20;
                                                      .help = "\"Weapon Abilities\"\nEach weapon's special\nability. Off, weapons\nwork as in the\noriginal game.",
                                                      .on = true});
 
-// The active character's equipped weapon record.
-const WEAPON_HAVE *EquippedWeapon() {
-    if (UserStatus == nullptr) {
-        return nullptr;
-    }
+constexpr int kMembers = 6;
+constexpr int kWeaponSlots = 11;
 
-    int chara = UserStatus->cur_chara;
-    return &UserStatus->chara_weapons[chara][UserStatus->equipped_weapon_slot[chara]];
+// The active character's equipped weapon record.
+const WEAPON_HAVE *ActiveWeapon() {
+    return UserStatus != nullptr ? EquippedWeapon(*UserStatus, UserStatus->cur_chara) : nullptr;
 }
 
 // The sphere of a Super Steve record, or 0.
@@ -76,6 +74,25 @@ bool WeaponWielded(int weapon_no) {
     return weapon_no != 0 && HeldWeapon() == weapon_no;
 }
 
+WEAPON_HAVE *EquippedWeapon(CUserStatus &status, int chara) {
+    if (chara < 0 || chara >= kMembers) {
+        return nullptr;
+    }
+    int slot = status.equipped_weapon_slot[chara];
+    return slot >= 0 && slot < kWeaponSlots ? &status.chara_weapons[chara][slot] : nullptr;
+}
+
+const WEAPON_HAVE *EquippedWeapon(const CUserStatus &status, int chara) {
+    return EquippedWeapon(const_cast<CUserStatus &>(status), chara);
+}
+
+bool CarriesWeapon(const WEAPON_HAVE &weapon, int weapon_no) {
+    if (weapon_no == 0 || !WeaponAbilitiesOn()) {
+        return false;
+    }
+    return weapon.item_no == weapon_no || (weapon.item_no == ITEM_WEAPON_SUPER_STEVE && SphereWeapon(weapon) == weapon_no);
+}
+
 bool WeaponAbilitiesOn() {
     return OptionOn(kWeaponAbilities);
 }
@@ -101,7 +118,7 @@ int PelletWeapon() {
 
 // Reads the sphere off the equipped record, so the icon follows a sphere attached in the menu.
 void SphereIconCopy(char *source) {
-    int            sphere = SuperSteveSphere(EquippedWeapon());
+    int            sphere = SuperSteveSphere(ActiveWeapon());
     COM_ITEM_INFO *info = sphere != 0 ? GetCommonItemInfo(sphere) : nullptr;
 
     if (info == nullptr) {
@@ -113,7 +130,7 @@ void SphereIconCopy(char *source) {
 }
 
 void SphereIconDraw(int alpha) {
-    if (SuperSteveSphere(EquippedWeapon()) == 0) {
+    if (SuperSteveSphere(ActiveWeapon()) == 0) {
         return;
     }
 

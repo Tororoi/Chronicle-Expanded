@@ -86,3 +86,31 @@ TEST(SuperSteve, WeaponAbilitiesOffWieldNothing) {
     EXPECT_TRUE(WeaponWielded(ITEM_WEAPON_SUPER_STEVE));
     EXPECT_TRUE(WeaponActive(ITEM_WEAPON_BASELARD));
 }
+
+// A record carries its own weapon's effect, or a Super Steve its sphere's; nothing with Weapon Abilities off.
+TEST(SuperSteve, ARecordCarriesItsWeaponOrItsSpheres) {
+    WEAPON_HAVE steve = SuperSteve(ITEM_WEAPON_MANEATER);
+    WEAPON_HAVE sword = {};
+    sword.item_no = ITEM_WEAPON_MANEATER;
+    EXPECT_TRUE(CarriesWeapon(sword, ITEM_WEAPON_MANEATER));
+    EXPECT_TRUE(CarriesWeapon(steve, ITEM_WEAPON_MANEATER));
+    EXPECT_FALSE(CarriesWeapon(sword, ITEM_WEAPON_EVILCISE));
+    EXPECT_FALSE(CarriesWeapon(steve, ITEM_WEAPON_BASELARD)); // its other attachment is no SynthSphere
+    expanded::test::OptionScope options;
+    ASSERT_TRUE(options.Set(kWeaponAbilities, false));
+    EXPECT_FALSE(CarriesWeapon(sword, ITEM_WEAPON_MANEATER));
+    EXPECT_FALSE(CarriesWeapon(steve, ITEM_WEAPON_MANEATER));
+}
+
+// A member's equipped record, none for a member or a slot out of range.
+TEST(SuperSteve, AnEquippedWeaponIsTheMembersSlot) {
+    expanded::test::TestFloor floor;
+    CUserStatus              &status = floor.status();
+    status.equipped_weapon_slot[CHARA_XIAO] = 3;
+    EXPECT_EQ(EquippedWeapon(status, CHARA_XIAO), &status.chara_weapons[CHARA_XIAO][3]);
+    EXPECT_EQ(EquippedWeapon(status, 6), nullptr);
+    EXPECT_EQ(EquippedWeapon(status, -1), nullptr);
+    status.equipped_weapon_slot[CHARA_XIAO] = 11;
+    EXPECT_EQ(EquippedWeapon(status, CHARA_XIAO), nullptr);
+}
+

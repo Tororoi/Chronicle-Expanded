@@ -98,57 +98,46 @@ bool Count(std::string_view text, int &out) {
     return Number(text, out) && out >= 0;
 }
 
+bool Text(std::string_view text, std::string &out) {
+    out = std::string(text);
+    return true;
+}
+
+bool Within(std::string_view text, int &out, int low, int high) {
+    return Number(text, out) && out >= low && out <= high;
+}
+
+// A stage file's key, and how its value is read into a stage; false for a bad value.
+struct Key {
+    std::string_view name;
+    bool (*read)(std::string_view value, Stage &stage);
+};
+
+constexpr Key kKeys[] = {
+    {"roster",      [](std::string_view v, Stage &s) { return Text(v, s.roster); }                          },
+    {"slot",        [](std::string_view v, Stage &s) { return Count(v, s.slot) && s.slot >= 1; }            },
+    {"dungeon",     [](std::string_view v, Stage &s) { return Within(v, s.dungeon, 0, 6); }                 },
+    {"floor",       [](std::string_view v, Stage &s) { return Count(v, s.floor); }                          },
+    {"character",   [](std::string_view v, Stage &s) { return Character(v, s.character); }                  },
+    {"weapon",      [](std::string_view v, Stage &s) { return Count(v, s.weapon); }                         },
+    {"attack",      [](std::string_view v, Stage &s) { return Count(v, s.attack); }                         },
+    {"sphere",      [](std::string_view v, Stage &s) { return Count(v, s.sphere); }                         },
+    {"seed",        [](std::string_view v, Stage &s) { return Number(v, s.seed) && s.seed >= 0; }           },
+    {"place",       [](std::string_view v, Stage &s) { return Count(v, s.place); }                          },
+    {"distance",    [](std::string_view v, Stage &s) { return Number(v, s.distance) && s.distance >= 0.0f; }},
+    {"spread",      [](std::string_view v, Stage &s) { return Number(v, s.spread); }                        },
+    {"angle",       [](std::string_view v, Stage &s) { return Number(v, s.angle); }                         },
+    {"place_kind",  [](std::string_view v, Stage &s) { return Count(v, s.place_kind); }                     },
+    {"place_after", [](std::string_view v, Stage &s) { return Count(v, s.place_after); }                    },
+    {"big_room",    [](std::string_view v, Stage &s) { return Flag(v, s.big_room); }                        },
+    {"keep_alive",  [](std::string_view v, Stage &s) { return Flag(v, s.keep_alive); }                      },
+};
+
 // One key's value into stage; false for an unknown key or a bad value.
 bool Set(std::string_view key, std::string_view value, Stage &stage) {
-    if (key == "roster") {
-        stage.roster = std::string(value);
-        return true;
-    }
-    if (key == "slot") {
-        return Number(value, stage.slot) && stage.slot >= 1;
-    }
-    if (key == "dungeon") {
-        return Number(value, stage.dungeon) && stage.dungeon >= 0 && stage.dungeon <= 6;
-    }
-    if (key == "character") {
-        return Character(value, stage.character);
-    }
-    if (key == "seed") {
-        return Number(value, stage.seed) && stage.seed >= 0;
-    }
-    if (key == "distance") {
-        return Number(value, stage.distance) && stage.distance >= 0.0f;
-    }
-    if (key == "spread") {
-        return Number(value, stage.spread);
-    }
-    if (key == "angle") {
-        return Number(value, stage.angle);
-    }
-    if (key == "big_room") {
-        return Flag(value, stage.big_room);
-    }
-    if (key == "keep_alive") {
-        return Flag(value, stage.keep_alive);
-    }
-
-    struct Counted {
-        std::string_view key;
-        int Stage::*field;
-    };
-
-    constexpr Counted kCounted[] = {
-        {"floor",       &Stage::floor      },
-        {"weapon",      &Stage::weapon     },
-        {"attack",      &Stage::attack     },
-        {"sphere",      &Stage::sphere     },
-        {"place",       &Stage::place      },
-        {"place_kind",  &Stage::place_kind },
-        {"place_after", &Stage::place_after},
-    };
-    for (const Counted &counted : kCounted) {
-        if (key == counted.key) {
-            return Count(value, stage.*counted.field);
+    for (const Key &known : kKeys) {
+        if (key == known.name) {
+            return known.read(value, stage);
         }
     }
     return false;
@@ -213,7 +202,8 @@ void Place(const Stage &stage) {
         if (stage.place_kind >= 0 && ModelKind(monster.base_model) != stage.place_kind) {
             continue;
         }
-        float a = CharaMain.rotation.y + stage.angle + (static_cast<float>(n) - static_cast<float>(stage.place - 1) * 0.5f) * stage.spread;
+        float offset = (static_cast<float>(n) - static_cast<float>(stage.place - 1) * 0.5f) * stage.spread;
+        float a = CharaMain.rotation.y + stage.angle + offset;
         unit.chara[m][0].SetPosition(CharaMain.pos[0] + stage.distance * std::sin(a), CharaMain.pos[1],
                                      CharaMain.pos[2] + stage.distance * std::cos(a));
         placed |= 1u << m;
@@ -224,6 +214,12 @@ void Place(const Stage &stage) {
             unit.chara[m][0].SetPosition(CharaMain.pos[0] + kAway, CharaMain.pos[1], CharaMain.pos[2] + kAway);
         }
     }
+}
+
+// The floor in play with no action or event running: when a member can be brought out.
+bool InPlay() {
+    return gameTask == GAME_TASK_PLAY && BtGameModeFlag == BT_GAME_MODE_PLAY && BtEventMode == 0 &&
+           BtActStatus.action_on == 0;
 }
 
 } // namespace
@@ -341,7 +337,7 @@ void StageFrame() {
         LogEvent("stage", "\"step\":\"out\"");
         return;
     }
-    if (gameTask != GAME_TASK_PLAY || BtGameModeFlag != BT_GAME_MODE_PLAY || BtEventMode != 0 || BtActStatus.action_on != 0) {
+    if (!InPlay()) {
         return;
     }
     if (UserStatus->party_size <= active->character) {
@@ -373,7 +369,8 @@ void StageStep() {
             LogEvent("stage", "\"step\":\"walked\"");
         }
     }
-    if (active->place > 0 && !run.placed && run.steps >= active->place_after && !run.walking && NowMonstorUnit != nullptr) {
+    bool due = active->place > 0 && !run.placed && run.steps >= active->place_after && !run.walking;
+    if (due && NowMonstorUnit != nullptr) {
         Place(*active);
         run.placed = true;
         LogEvent("stage", "\"step\":\"placed\"");
