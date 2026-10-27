@@ -406,6 +406,33 @@ TEST_F(BigRock, ItFallsAfterTheMonsterGrowingAndDarkeningIt) {
     EXPECT_TRUE(expanded::BigRockFalling());
 }
 
+// Its round shadow on the floor under the monster, growing from nothing to the boulder's radius over the first 300 of
+// the fall, and staying at its radius while it rests.
+TEST_F(BigRock, ItsShadowGrowsOnTheFloorUnderItAsItFalls) {
+    Drop();
+    Steps(29);
+    ASSERT_TRUE(expanded::GroundShadowShown());
+    float fallen = kRockStart - At()[1];
+    EXPECT_NEAR(expanded::GroundShadowRadius(), expanded::kRockRadius * fallen / expanded::kShadowGrowDrop, 1e-3f);
+    EXPECT_LT(expanded::GroundShadowRadius(), expanded::kRockRadius / 2.0f);
+    Move(0, 15.0f, 70.0f);
+    Steps(1);
+    float at[3];
+    expanded::GroundShadowAt(at);
+    EXPECT_FLOAT_EQ(at[0], 15.0f);
+    EXPECT_FLOAT_EQ(at[1], expanded::kGroundShadowLift); // the floor under it, not the boulder
+    EXPECT_FLOAT_EQ(at[2], 70.0f);
+    // Full once it has fallen 300.
+    while (kRockStart - At()[1] < expanded::kShadowGrowDrop) {
+        Steps(1);
+    }
+    EXPECT_FLOAT_EQ(expanded::GroundShadowRadius(), expanded::kRockRadius);
+    FallToTheEnd();
+    Steps(10);
+    EXPECT_TRUE(expanded::GroundShadowShown());
+    EXPECT_FLOAT_EQ(expanded::GroundShadowRadius(), expanded::kRockRadius);
+}
+
 TEST_F(BigRock, ItLandsInAboutTwoAndAHalfSecondsAndBlasts) {
     Stand(1, 20.0f, kTargetZ + 20.0f); // its body 23.3 from the spot: in reach
     Stand(2, 0.0f, kTargetZ + 40.0f);  // 35: out of reach
@@ -607,6 +634,25 @@ TEST_F(BigRockBySuperSteve, TheSlingshotGoesGreenAndANutDrops) {
     ASSERT_TRUE(expanded::BigRockUp());
     EXPECT_FLOAT_EQ(At()[1], expanded::kNutRadius + expanded::kDropHeight - expanded::kDropGravity);
     EXPECT_FLOAT_EQ(expanded::BigRockScale(), expanded::kDropLeast * expanded::kNutScale);
+    // Its shadow on the floor under the monster as it falls, growing to the nut's radius over the first 300.
+    Steps(30);
+    EXPECT_TRUE(expanded::BigRockFalling());
+    ASSERT_TRUE(expanded::GroundShadowShown());
+    float fallen = expanded::kNutRadius + expanded::kDropHeight - At()[1];
+    EXPECT_NEAR(expanded::GroundShadowRadius(), expanded::kNutRadius * fallen / expanded::kShadowGrowDrop, 1e-4f);
+    float at[3];
+    expanded::GroundShadowAt(at);
+    EXPECT_FLOAT_EQ(at[1], expanded::kGroundShadowLift);
+    EXPECT_FLOAT_EQ(at[2], kTargetZ);
+    while (expanded::BigRockFalling()) {
+        Steps(1);
+    }
+    // It follows the nut as it hops off, at its radius.
+    Steps(5);
+    expanded::GroundShadowAt(at);
+    EXPECT_FLOAT_EQ(at[0], At()[0]);
+    EXPECT_FLOAT_EQ(at[2], At()[2]);
+    EXPECT_FLOAT_EQ(expanded::GroundShadowRadius(), expanded::kNutRadius);
 }
 
 TEST_F(BigRockBySuperSteve, TheNutBonksTheHeadAndConfusesIt) {
@@ -658,23 +704,32 @@ TEST_F(BigRockBySuperSteve, TheNutBonksTheHeadAndConfusesIt) {
     EXPECT_FALSE(expanded::confuse::Confused(floor_.unit(), 0));
 }
 
-// DC_TEST_DATA, an extracted data directory: the knock the nut makes on Toan's head in Brownboo goes off with the bonk.
-TEST_F(BigRockBySuperSteve, TheBonkKnocks) {
+// DC_TEST_DATA, an extracted data directory: the nut's whistle goes off as it comes within the whistle's length of the
+// head, so the knock of the bonk comes as the whistle ends.
+TEST_F(BigRockBySuperSteve, ItWhistlesDownAndKnocks) {
     const char *data = std::getenv("DC_TEST_DATA");
     if (data == nullptr) {
         GTEST_SKIP() << "DC_TEST_DATA is not set";
     }
     expanded::test::DataRootScope root(data);
+    ASSERT_TRUE(expanded::LoadOwnSound(expanded::kNutFallSound));
     ASSERT_TRUE(expanded::LoadOwnSound(expanded::kNutBonkSound));
     audio::Mixer &mixer = audio::DefaultMixer();
     Drop();
     int before = mixer.ActiveVoices();
+    int frames = 1, whistled = -1;
     while (expanded::BigRockFalling()) {
-        EXPECT_EQ(mixer.ActiveVoices(), before);
         Steps(1);
+        frames++;
+        if (whistled < 0 && mixer.ActiveVoices() == before + 1) {
+            whistled = frames;
+        }
     }
+    ASSERT_GT(whistled, 1); // not as it drops: the fall is longer than the whistle
+    EXPECT_GE(frames - whistled, expanded::kNutFallSoundFrames - 1);
+    EXPECT_LE(frames - whistled, expanded::kNutFallSoundFrames);
     EXPECT_EQ(Planted().size(), 1u);
-    EXPECT_EQ(mixer.ActiveVoices(), before + 1);
+    EXPECT_EQ(mixer.ActiveVoices(), before + 2);
 }
 
 TEST_F(BigRockBySuperSteve, TheNutFollowsTheHeadDown) {

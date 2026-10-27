@@ -86,7 +86,8 @@ struct Drop {
     float head_lift = 0.0f;
     Hop   hop;
     float hop_side = 1.0f;
-    int   aimed = 0; // frames since the hop was worked out
+    int   aimed = 0;        // frames since the hop was worked out
+    bool  whistled = false; // the nut's fall sound has gone off
     float scale = 0.0f;
     float shadow = 0.0f;
     float alpha = 1.0f;
@@ -111,7 +112,7 @@ State state;
 
 [[maybe_unused]] const bool kRegistered =
     (RegisterWeaponShotEffect(ITEM_WEAPON_TERRA_SWORD, WeaponShotForm::Weapon, ShockwaveEffect(), kShockShots, kShockFile),
-     RegisterOwnSound(kRockCrashSound), RegisterOwnSound(kNutBonkSound), true);
+     RegisterOwnSound(kRockCrashSound), RegisterOwnSound(kNutFallSound), RegisterOwnSound(kNutBonkSound), true);
 
 const Form &Shape() {
     return *state.form;
@@ -339,6 +340,27 @@ void Bonk() {
     LogEvent("big_rock", std::format("\"step\":\"bonk\",\"monster\":{}", monster));
 }
 
+// The frames left of the fall at its speed now, to its stop now: each frame its speed grows by its gravity, then it
+// falls that far.
+float FramesToStop() {
+    Drop &d = state.drop;
+    float h = d.at[1] - d.stop, b = d.speed + d.gravity / 2.0f;
+    if (h <= 0.0f) {
+        return 0.0f;
+    }
+    return (-b + std::sqrt(b * b + 2.0f * d.gravity * h)) / d.gravity;
+}
+
+// The nut's whistle, as it comes within the sound's length of the head: the bonk lands as it ends.
+void Whistle() {
+    Drop &d = state.drop;
+    if (d.whistled || !d.head || std::ceil(FramesToStop()) > kNutFallSoundFrames) {
+        return;
+    }
+    d.whistled = true;
+    PlayOwnSound(kNutFallSound, false);
+}
+
 // A frame of the fall, after its monster (its floor the boulder's stop, its head the nut's; gone, it falls where it
 // is).
 void Fall() {
@@ -383,6 +405,7 @@ void Fall() {
         Impact();
         return;
     }
+    Whistle();
     Shadow(true, d.shadow);
 }
 

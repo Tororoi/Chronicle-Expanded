@@ -32,12 +32,12 @@ namespace expanded {
 //     (syougekiha) bursts on the floor there at kShockScale with the crash of Master Utan's boulder (kRockCrashSound),
 //     the controller rumbles as at a knockdown blow, and the drop costs kRockWhp. The monster darkens to
 //     kRockTargetDim.
-//   - Super Steve's: a nut (gedit/s04's e114kinomi.chr) kNutScale times its size, which comes down on the monster's
-//     head (its kind's height over its root, the nut's radius over that) and bonks it that frame (kNutBonkSound):
-//     kNutBonkShare times the attack, the monster shoved from Xiao as a swing shoves (kNutKick) and confused for as
-//     long as the nut stays (status/confuse.hpp). The nut hops off at kNutHopUp, drifting kNutHopSide square to Xiao's
-//     line to the monster (to a side picked at the drop) and falling at kNutHopGravity, to the floor where it comes
-//     down. The monster darkens to kNutTargetDim.
+//   - Super Steve's: a nut (gedit/s04's e114kinomi.chr) kNutScale times its size, whistling as it falls (kNutFallSound,
+//     timed to end as it lands), which comes down on the monster's head (its kind's height over its root, the nut's
+//     radius over that) and bonks it that frame (kNutBonkSound): kNutBonkShare times the attack, the monster shoved
+//     from Xiao as a swing shoves (kNutKick) and confused for as long as the nut stays (status/confuse.hpp). The nut
+//     hops off at kNutHopUp, drifting kNutHopSide square to Xiao's line to the monster (to a side picked at the drop)
+//     and falling at kNutHopGravity, to the floor where it comes down. The monster darkens to kNutTargetDim.
 // A drop whose monster dies or leaves as it falls comes down where it is, onto the floor: the boulder lands as it would
 // on a monster, the nut simply rests. Down, either rests kDropRestFrames sunk into the floor as a solid column
 // (solid_column.hpp: its radius, up to its top), then fades over kDropFadeFrames and is gone, its shadow gone as it
@@ -78,9 +78,9 @@ inline constexpr float       kRockWhp = 10.0f;
 inline constexpr float       kRockPinShare = 1.0f;
 inline constexpr int         kRockPinFrames = 60;
 
-// The boulder's crash: the sound of the boulder Master Utan throws as it lands in his first scene (SE 1747: program
-// 113, note 26 of his arena set's bank), the game's other sounds ducked under it.
-inline constexpr OwnSound kRockCrashSound = {.path = "sound/set/snd201.snd", .bank = "d02b_g.hd", .program = 113, .note = 26, .frames = 100};
+// The boulder's crash: the sound of the boulder Master Utan throws as it lands in his introduction (SE 1749: program
+// 113, note 28 of his arena set's bank, about 1.6 seconds), the game's other sounds ducked under it.
+inline constexpr OwnSound kRockCrashSound = {.path = "sound/set/snd201.snd", .bank = "d02b_g.hd", .program = 113, .note = 28, .frames = 96};
 
 // The shockwave: syougekiha's one clip (frames 2 to 31) at its own rate, grown from its 3 to the boulder's 21.
 inline constexpr const char *kShockFile = "dun/mainchara/wep_eff/syougekiha.chr";
@@ -102,9 +102,13 @@ inline constexpr float       kNutHopSide = 45.0f / 60.0f;
 inline constexpr float       kNutHopGravity = 400.0f / 3600.0f;
 inline constexpr int         kNutHopAimFrames = 15; // where the hop comes down, worked out again as the nut falls
 
-// The nut's bonk: the knock it makes landing on Toan's head in Brownboo Village's scene (SE 350: program 46, note 50 of
-// the village's set's bank).
-inline constexpr OwnSound kNutBonkSound = {.path = "sound/set/snd14.snd", .bank = "s04a_g.hd", .program = 46, .note = 50, .frames = 12};
+// The nut's sounds in Brownboo Village's scene, where it drops from the tree onto Toan's head (the village set's bank):
+// the whistle of its fall (SE 350: program 46, note 50), a rise that cuts off at its end, kNutFallSoundFrames long,
+// started as the nut is that many frames from the head, so the bonk lands as it ends; and the knock as it lands (SE
+// 351: program 46, note 51).
+inline constexpr int      kNutFallSoundFrames = 122;
+inline constexpr OwnSound kNutFallSound = {.path = "sound/set/snd14.snd", .bank = "s04a_g.hd", .program = 46, .note = 50, .frames = kNutFallSoundFrames};
+inline constexpr OwnSound kNutBonkSound = {.path = "sound/set/snd14.snd", .bank = "s04a_g.hd", .program = 46, .note = 51, .frames = 10};
 
 enum class BigRockPhase {
     kIdle,
