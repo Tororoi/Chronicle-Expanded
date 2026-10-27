@@ -1,3 +1,4 @@
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/ungaga/cactus.hpp"
 #include "sound_effect.h"
 
@@ -68,7 +69,6 @@ constexpr Monster kDryKinds[] = {
     Monster::LIVING_ARMOR_ENHANCED,
 };
 
-constexpr int kGuarding = 5;           // BtActStatus.guard_mode while the guard is up
 constexpr int kMonsters = 2;           // a hit's target: the monsters
 constexpr int kHitKind = 2;            // the reaction a swing's hit carries
 constexpr int kKickAway = 2;           // thrown away from the hit's origin
@@ -316,7 +316,7 @@ void Charge() {
     if (bloom.held >= 0) {
         bloom.held++;
     }
-    if (BtActStatus.guard_mode != kGuarding || bloom.latched) {
+    if (!Guarding() || bloom.latched) {
         return;
     }
     if (bloom.held < 0) {

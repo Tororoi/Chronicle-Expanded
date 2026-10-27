@@ -1,3 +1,4 @@
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 
 #include <algorithm>
@@ -21,7 +22,6 @@
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
 
-extern s32 lockOnTargetNo;
 
 namespace expanded {
 
@@ -102,12 +102,6 @@ const SolarProfile kZeusFlash = {
 };
 
 namespace {
-
-// Toan's swings: the combo's five hits, the lunge and the whirlwind.
-constexpr int kComboFirst = 0x24;
-constexpr int kComboLast = 0x28;
-constexpr int kLunge = 0xF;
-constexpr int kWhirlwind = 0x18;
 
 // Each combo swing's clip and the frame it comes forward on.
 struct Swing {
@@ -201,52 +195,39 @@ int MonsterAt(const float *point, float reach) {
     return nearest;
 }
 
-bool Guarding() {
-    return BtActStatus.guard_mode == 5;
-}
-
 bool Attacking() {
     int action = BtActStatus.action_no;
-    return BtActStatus.action_on != 0 && ((action >= kComboFirst && action <= kComboLast) || action == kLunge || action == kWhirlwind);
-}
-
-// The monster Toan is locked on to, or -1.
-int LockedTarget() {
-    if (lockOnTargetFlag == 0 || lockOnTargetNo < 0 || lockOnTargetNo >= 16 || NowMonstorUnit == nullptr) {
-        return -1;
-    }
-    const MONSTOR &live = NowMonstorUnit->monster[lockOnTargetNo];
-    return live.state != -1 && live.hp > 0 ? lockOnTargetNo : -1;
+    return BtActStatus.action_on != 0 && ((action >= kToanFirstSwing && action <= kToanLastSwing) || action == kToanLunge || action == kToanWhirlwind);
 }
 
 // The swing lets a hanging judgement blade go: the first combo swing at its drop frame, a lunge or whirlwind at once.
 bool SwingDrops() {
     int action = BtActStatus.action_no;
-    if (action == kLunge || action == kWhirlwind) {
+    if (action == kToanLunge || action == kToanWhirlwind) {
         return true;
     }
     float time = CharaMain.motion_type.state.time;
-    return action == kComboFirst && time >= kDropFrame && time <= kCombo[0].end;
+    return action == kToanFirstSwing && time >= kDropFrame && time <= kCombo[0].end;
 }
 
 // The swing has come forward: a lunge or whirlwind at once, a combo hit at its own frame.
 bool SwingForward() {
     int action = BtActStatus.action_no;
-    if (action == kLunge || action == kWhirlwind) {
+    if (action == kToanLunge || action == kToanWhirlwind) {
         return true;
     }
-    const Swing &swing = kCombo[action - kComboFirst];
+    const Swing &swing = kCombo[action - kToanFirstSwing];
     float        time = CharaMain.motion_type.state.time;
     return time >= swing.hit && time <= swing.end;
 }
 
 bool Combo(int action) {
-    return BtActStatus.action_on != 0 && action >= kComboFirst && action <= kComboLast;
+    return BtActStatus.action_on != 0 && action >= kToanFirstSwing && action <= kToanLastSwing;
 }
 
 // A combo swing winding up: how far it is from its start to coming forward (0..1).
 float WindUp(int action) {
-    const Swing &swing = kCombo[action - kComboFirst];
+    const Swing &swing = kCombo[action - kToanFirstSwing];
     return std::clamp((CharaMain.motion_type.state.time - swing.start) / (swing.hit - swing.start), 0.0f, 1.0f);
 }
 
@@ -568,7 +549,7 @@ void SolarFlashStep() {
             bool swinging = Combo(action);
             bool restarted = swinging && (action < s.chain_action ||
                                           (action == s.chain_action && s.chain_fired &&
-                                           CharaMain.motion_type.state.time < kCombo[action - kComboFirst].hit - 1.0f));
+                                           CharaMain.motion_type.state.time < kCombo[action - kToanFirstSwing].hit - 1.0f));
             int  target = LockedTarget();
             if (!swinging || restarted || target < 0) {
                 if (!SceneFlashing()) {

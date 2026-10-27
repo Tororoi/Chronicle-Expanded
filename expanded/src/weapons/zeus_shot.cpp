@@ -1,3 +1,4 @@
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 
 #include <algorithm>
@@ -16,14 +17,11 @@
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
 
-extern s32 lockOnTargetNo;
 
 namespace expanded {
 
 namespace {
 
-constexpr int kDrawAction = 11; // Xiao drawing the slingshot back
-constexpr int kHoldAction = 12; // and holding it drawn
 
 enum class Charge {
     kIdle,
@@ -52,18 +50,6 @@ struct State {
 };
 
 State state;
-
-bool Guarding() {
-    return BtActStatus.guard_mode == 5;
-}
-
-int LockedTarget() {
-    if (lockOnTargetFlag == 0 || lockOnTargetNo < 0 || lockOnTargetNo >= 16 || NowMonstorUnit == nullptr) {
-        return -1;
-    }
-    const MONSTOR &live = NowMonstorUnit->monster[lockOnTargetNo];
-    return live.state != -1 && live.hp > 0 ? lockOnTargetNo : -1;
-}
 
 // The live monster nearest point, within reach, or -1.
 int MonsterAt(const float *point, float reach) {
@@ -122,7 +108,7 @@ void ZeusShotStep() {
         return;
     }
     // How long the slingshot was last held drawn: the shot it lets go of reads it; the room darkens as it builds.
-    if (BtActStatus.action_on != 0 && (BtActStatus.action_no == kDrawAction || BtActStatus.action_no == kHoldAction)) {
+    if (BtActStatus.action_on != 0 && (BtActStatus.action_no == kXiaoDraw || BtActStatus.action_no == kXiaoHold)) {
         if (++state.hold == kZeusChargedFrames) {
             ChargeCompleteFlash();
         }

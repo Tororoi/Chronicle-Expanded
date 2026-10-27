@@ -1,3 +1,4 @@
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 
 #include <algorithm>
@@ -26,7 +27,6 @@
 #include "userstatus.hpp"
 #include "weaponelement.hpp"
 
-extern s32 lockOnTargetNo;
 
 namespace expanded {
 
@@ -61,9 +61,7 @@ constexpr OwnSound kThunder = {"sound/set/snd40.snd", "s30a_c.hd", 16, 39, 190, 
      RegisterWeaponShotEffect(ITEM_WEAPON_SWORD_OF_ZEUS, WeaponShotForm::Sphere, &lightning_shot, kBoltCount, kLightningFile),
      RegisterOwnSound(kThunder), true);
 
-// Toan's charge: the wind-up, the lunge's states to its landing, and the meter's threshold for the lunge.
-constexpr int   kWindup = 0xE;
-constexpr int   kLunge = 0xF;
+// Toan's charge: the last of the lunge's states (its landing), and the meter's threshold for the lunge.
 constexpr int   kLungeEnd = 0x11;
 constexpr float kMeterFloor = 1.0f;
 constexpr float kLungeMeter = 1.5f;
@@ -71,7 +69,7 @@ constexpr float kLungeMeter = 1.5f;
 constexpr int kLungeFrames = 38;
 
 bool InLunge(int action) {
-    return action == kLunge || action == 0x10 || action == 3 || action == 0x19 || action == kLungeEnd;
+    return action == kToanLunge || action == 0x10 || action == 3 || action == 0x19 || action == kLungeEnd;
 }
 
 struct Charge {
@@ -100,14 +98,6 @@ Hold hold;
 
 bool Toan() {
     return UserStatus != nullptr && UserStatus->cur_chara == CHARA_TOAN;
-}
-
-int LockedTarget() {
-    if (lockOnTargetFlag == 0 || lockOnTargetNo < 0 || lockOnTargetNo >= 16 || NowMonstorUnit == nullptr) {
-        return -1;
-    }
-    const MONSTOR &live = NowMonstorUnit->monster[lockOnTargetNo];
-    return live.state != -1 && live.hp > 0 ? lockOnTargetNo : -1;
 }
 
 bool Live(int monster) {
@@ -251,7 +241,7 @@ void ZeusChargeStep() {
         return;
     }
     int action = BtActStatus.action_on != 0 ? BtActStatus.action_no : -1;
-    if (action == kWindup) {
+    if (action == kToanWindup) {
         float meter = BtActStatus.charge_time;
         charge.winding = true;
         if (meter >= kLungeMeter) {
@@ -283,7 +273,7 @@ void ZeusChargeStep() {
     }
     charge.lunging = true;
     charge.blade = 1.0f;
-    if (action != kLunge) {
+    if (action != kToanLunge) {
         charge.dash++;
     }
     // Let go so it is in the ground as he lands; that is where the bolt comes down.

@@ -1,3 +1,4 @@
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 
 #include "btactstatus.hpp"
@@ -12,16 +13,11 @@ namespace expanded {
 
 namespace {
 
-// The opening swing (action 0x24): its step-in is set at 820 to 820.5, its trail at 824 and its hit at 825.
-constexpr int   kOpeningSwing = 0x24;
+// The opening swing (kToanFirstSwing): its step-in is set at 820 to 820.5, its trail at 824 and its hit at 825.
 constexpr float kSwingSteppedIn = 820.5f;
 constexpr float kSwingTrail = 824.0f;
 
-// Xiao's shot: the draw, the hold it stops in while the button is down and the shot, whose pellet leaves between
-// 251 and 252.
-constexpr int   kShotDraw = 11;
-constexpr int   kShotHold = 12;
-constexpr int   kShotFire = 13;
+// Xiao's shot (kXiaoShot): its pellet leaves between 251 and 252.
 constexpr float kShotRelease = 251.0f;
 
 bool QuickDrawWeapon(int weapon_no) {
@@ -40,19 +36,19 @@ bool QuickDrawSphere() {
 
 void QuickDrawSwing(CCharacter &chara) {
     float &time = chara.motion_type.state.time;
-    if (BtActStatus.action_no == kOpeningSwing && time >= kSwingSteppedIn && time < kSwingTrail && QuickDrawSword()) {
+    if (BtActStatus.action_no == kToanFirstSwing && time >= kSwingSteppedIn && time < kSwingTrail && QuickDrawSword()) {
         time = kSwingTrail;
     }
 }
 
 void QuickDrawShot(CCharacter &chara, int aimed) {
-    if (aimed != 0 || (BtActStatus.action_no != kShotDraw && BtActStatus.action_no != kShotHold) || GamePad.On(PadInput_OK) != 0 || !QuickDrawSphere()) {
+    if (aimed != 0 || (BtActStatus.action_no != kXiaoDraw && BtActStatus.action_no != kXiaoHold) || GamePad.On(PadInput_OK) != 0 || !QuickDrawSphere()) {
         return;
     }
 
     BtActStatus.action_step = 1;
-    BtActStatus.action_no = kShotFire;
-    BtActStatus.motion_no = kShotFire;
+    BtActStatus.action_no = kXiaoShot;
+    BtActStatus.motion_no = kXiaoShot;
     driveNoInterpolate = 1;
     chara.motion_type.state.time = kShotRelease;
 }

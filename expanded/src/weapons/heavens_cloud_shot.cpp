@@ -8,6 +8,7 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/shot_charge.hpp"
@@ -21,8 +22,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kDrawAction = 11; // Xiao drawing the slingshot back
-constexpr int kHoldAction = 12; // and holding it drawn
 constexpr int kWindGem = 3;     // MasekiEffect's Wind Gem burst
 
 struct Flight {
@@ -123,7 +122,7 @@ void TyphoonShotStep() {
         state.flashed[0] = state.flashed[1] = false;
         return;
     }
-    bool drawn = BtActStatus.action_on != 0 && (BtActStatus.action_no == kDrawAction || BtActStatus.action_no == kHoldAction);
+    bool drawn = BtActStatus.action_on != 0 && (BtActStatus.action_no == kXiaoDraw || BtActStatus.action_no == kXiaoHold);
     if (!drawn) {
         if (state.hold > 0) {
             state.held = state.hold;

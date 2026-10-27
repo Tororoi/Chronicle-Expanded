@@ -15,6 +15,7 @@
 #include "expanded/enemies/species.hpp"
 #include "expanded/status/blind.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/wear.hpp"
@@ -23,7 +24,6 @@
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
 
-extern s32 lockOnTargetNo;
 
 namespace expanded {
 
@@ -31,8 +31,6 @@ namespace {
 
 constexpr float kFrameSeconds = 1.0f / 60.0f;
 constexpr float kGravity = 500.0f;
-constexpr int   kDrawAction = 11; // Xiao drawing the slingshot back
-constexpr int   kHoldAction = 12; // and holding it drawn
 constexpr int   kBombSlots = 6;
 constexpr float kBombHeight = 1.22f;   // the bomb's mesh below its root, at its own size
 constexpr float kDropExplosion = 2.0f; // the explosions, of the game's bomb's size
@@ -150,18 +148,6 @@ void HideBomb(int &slot) {
     slot = -1;
 }
 
-bool Guarding() {
-    return BtActStatus.guard_mode == 5;
-}
-
-int LockedTarget() {
-    if (lockOnTargetFlag == 0 || lockOnTargetNo < 0 || lockOnTargetNo >= 16 || NowMonstorUnit == nullptr) {
-        return -1;
-    }
-    const MONSTOR &live = NowMonstorUnit->monster[lockOnTargetNo];
-    return live.state != -1 && live.hp > 0 ? lockOnTargetNo : -1;
-}
-
 void Explode(const float *point, float explosion, float blast, float ring, float whp) {
     if (NowMonstorUnit != nullptr && NowWeaponHave != nullptr && blast > 0.0f) {
         BlastOptions options;
@@ -247,7 +233,7 @@ void BigBangShotStep() {
         }
     }
     // How long the slingshot was last held drawn: the shot it lets go of reads it.
-    if (BtActStatus.action_on != 0 && (BtActStatus.action_no == kDrawAction || BtActStatus.action_no == kHoldAction)) {
+    if (BtActStatus.action_on != 0 && (BtActStatus.action_no == kXiaoDraw || BtActStatus.action_no == kXiaoHold)) {
         if (++state.hold == kChargedShotFrames) {
             ChargeCompleteFlash();
         }

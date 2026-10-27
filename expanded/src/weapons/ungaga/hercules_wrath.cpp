@@ -1,3 +1,4 @@
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/ungaga/hercules_wrath.hpp"
 
 #include <algorithm>
@@ -29,9 +30,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int   kGuarding = 5;      // BtActStatus.guard_mode while the guard is up
-constexpr int   kComboFirst = 0x25; // Ungaga's three combo swings, an action each (UngagaKey_On)
-constexpr int   kComboLast = 0x27;
 constexpr int   kMonsters = 2;         // whom the sparkle is aimed at: none of the monsters' blocks stop it
 constexpr int   kStopAndRestart = 6;   // motion flags: from the clip's first frame, held on its last
 constexpr float kOwnRate = -1.0f;      // a clip at its own rate
@@ -302,7 +300,7 @@ void GuardStep() {
         state.spent = false;
     } else if (state.held >= 0) {
         state.held++;
-    } else if (BtActStatus.guard_mode == kGuarding) {
+    } else if (Guarding()) {
         state.held = 0;
     }
 }
@@ -310,7 +308,7 @@ void GuardStep() {
 // Ungaga's swing reaching the strike's frame, once a swing.
 bool SwingReached() {
     int action = BtActStatus.action_no;
-    if (action < kComboFirst || action > kComboLast) {
+    if (action < kUngagaFirstSwing || action > kUngagaLastSwing) {
         state.swung = false;
         return false;
     }

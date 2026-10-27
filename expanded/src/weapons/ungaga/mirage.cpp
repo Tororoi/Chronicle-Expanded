@@ -1,3 +1,4 @@
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/ungaga/mirage.hpp"
 
 #include <algorithm>
@@ -23,7 +24,6 @@ namespace {
 
 using namespace mirage;
 
-constexpr int kGuarding = 5; // BtActStatus.guard_mode while the guard is up
 
 struct Decoy {
     bool  up = false;
@@ -184,7 +184,7 @@ void MirageStep() {
     CloneLoad(); // ahead of a plant
 
     bool held = GamePad.On(PAD_R1) != 0;
-    bool in_pose = held && BtActStatus.guard_mode == kGuarding;
+    bool in_pose = held && Guarding();
     if (!held) {
         guard = Guard{};
     } else if (guard.held >= 0) {
