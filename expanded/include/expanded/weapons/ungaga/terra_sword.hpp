@@ -6,10 +6,12 @@
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/kick_back.hpp"
 
+namespace dc::game {
 class CCharacter;
 class CMonstorUnit;
 struct BT_SHOT_EFFECT;
 struct COLLISION_HIT;
+} // namespace dc::game
 
 namespace expanded {
 
