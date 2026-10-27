@@ -366,6 +366,7 @@ Blessing Gun → Skunk ★
 
 - Enemy roster: the developer menu's "enemy roster" row (typed in) or `--roster 20!,60` lays out these monster kinds on every dungeon floor from the next dungeon visit, in debug mode. [#156](https://github.com/Tororoi/Chronicle-Expanded/pull/156)
 - The enemy roster refuses a roster it cannot lay out and says why, naming the kinds to add or drop: the Ice Queen (80) and King's Curse (81, 82) need another kind beside them, since they come only with Ruby or Ungaga in the party. [#182](https://github.com/Tororoi/Chronicle-Expanded/pull/182)
+- Staged recordings: `--stage` starts a save's party on a dungeon floor with the member, weapon and monsters a clip needs, `--plain-weapons` turns Expanded's weapon effects off for a before, `--event-log` writes damage, kills, life, weapon HP and sounds as JSON lines, and `scripts/port/clip.py` records a clip and its plain twin side by side ([recording.md](expanded/docs/recording.md)). [#237](https://github.com/Tororoi/Chronicle-Expanded/pull/237)
 
 ### From Chronicle
 
