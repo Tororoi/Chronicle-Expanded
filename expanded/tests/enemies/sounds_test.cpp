@@ -25,6 +25,13 @@ TEST(MonsterSounds, AKindsSoundsAreInTheSetsOfTheDungeonsLayingItOut) {
     EXPECT_EQ(expanded::HomeSoundSets(Monster::ICE_QUEEN).back(), 202);
 }
 
+TEST(MonsterSounds, EachDungeonAndDemonShaftBandHasItsSet) {
+    EXPECT_EQ(expanded::DungeonSoundSet(0, 7), 100);
+    EXPECT_EQ(expanded::DungeonSoundSet(5, 24), 105);
+    EXPECT_EQ(expanded::DungeonSoundSet(6, 0), expanded::kDemonShaftSoundSets);
+    EXPECT_EQ(expanded::DungeonSoundSet(6, 99), 110);
+}
+
 TEST(MonsterSounds, NoBanksBoundLeavesThePortAlone) {
     EXPECT_EQ(expanded::MonsterSoundBank(MIDI_PORT_UNK_A, 75, 51), -1);
     EXPECT_EQ(expanded::MonsterSoundBank(MIDI_PORT_SE_DEFAULT, 75, 51), -1);
