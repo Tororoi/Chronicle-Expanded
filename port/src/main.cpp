@@ -1,18 +1,24 @@
 #include <SDL3/SDL_stdinc.h>
-#ifdef __SWITCH__
+#if defined(__SWITCH__)
+#include <SDL3/SDL.h>
+
 #include "switch_main.hpp"
 #endif
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
-#include <iterator>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <format>
+#include <fstream>
+#include <iterator>
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <thread>
 #include <vector>
 
 #if defined(__ANDROID__)
@@ -48,12 +54,14 @@ void TouchOverlayPoll();
 #include "platform/audio.hpp"
 #include "platform/clock.hpp"
 #include "platform/config.hpp"
+#include "platform/data_archive.hpp"
 #include "platform/discord.hpp"
 #include "platform/display.hpp"
 #include "platform/firstrun.hpp"
 #include "platform/input.hpp"
 #include "platform/input_script.hpp"
 #include "platform/paths.hpp"
+#include "platform/save_state.hpp"
 #include "platform/settings.hpp"
 #include "platform/window.hpp"
 #include "screen.hpp"
@@ -93,8 +101,13 @@ struct Options {
     bool         fast_load = false;
     bool         show_fps = false;
     bool         screenshot_fps = false;
+    bool         perf_log = false;
     const char  *export_text = nullptr;
     const char  *font = nullptr;
+    const char  *seed_save = nullptr;
+#if defined(__SWITCH__)
+    bool switch_core_affinity = true;
+#endif
 #ifdef CHRONICLE_EXPANDED
     const char  *roster = nullptr;
     const char  *stage = nullptr;
@@ -103,17 +116,29 @@ struct Options {
 };
 
 Options g_options;
+#if defined(__SWITCH__)
+float g_switch_render_scale = 0.0f;
+#endif
 
 [[noreturn]] void Usage(const char *program) {
     std::fprintf(stderr,
                  "usage: %s [--data DIR] [--save DIR] [--headless] [--frames N] [--screenshot PATH]\n"
-                 "          [--input FILE] [--width W] [--height H] [--offscreen]\n"
-                 "          [--display-per-tick N] [--show-fps] [--jump MODE[:MAP]] [--fast-load]\n"
+                 "          [--input FILE]"
+#if !defined(__SWITCH__)
+                 " [--width W] [--height H]"
+#endif
+                 " [--offscreen]\n"
+#if !defined(__SWITCH__)
+                 "          [--display-per-tick N]"
+#endif
+                 " [--show-fps] [--jump MODE[:MAP]] [--fast-load]\n"
                  "          [--give ITEM,...]\n"
-                 "  --data DIR         the extracted game data (default: DC_DATA, then ./data, then data/\n"
-                 "                     beside the executable)\n"
+                 "  --data DIR         extracted game data or its sibling data.zip (default: DC_DATA,\n"
+                 "                     then ./data, then data/ beside the executable)\n"
                  "  --save DIR         saves, config.json and the pipeline cache (default: DC_SAVE, then\n"
                  "                     ./save, then save/ beside the executable)\n"
+                 "  --seed-save DIR    copy a save-root fixture before startup; requires explicit --save\n"
+                 "                     pointing to a new or empty directory (omit on subsequent runs)\n"
                  "  --headless         render offscreen (SDL offscreen driver, VK_EXT_headless_surface),\n"
                  "                     no audio device, the game clock unbounded\n"
                  "  --offscreen        --headless without a Vulkan surface: render to an image only (what\n"
@@ -124,15 +149,20 @@ Options g_options;
                  "                     makes a video of them)\n"
                  "  --record-from N    with --record: from frame N on\n"
                  "  --input FILE       drive pad 1 from a script (default: DC_INPUT); see docs/PC.md\n"
+#if !defined(__SWITCH__)
                  "  --width, --height  window size in pixels (default: config.json, then the monitor's)\n"
+#endif
                  "  --screenshot-fps   with --screenshot and --show-fps: the image as a window shows it, the\n"
                  "                     FPS counter over it\n"
+#if !defined(__SWITCH__)
                  "  --display-per-tick N  headless: also render N interpolated display frames per tick\n"
+#endif
                  "  --export-text DIR  write the game's message files to DIR as language JSON (docs/LOCALIZATION.md)\n"
                  "  --font FILE        draw message text from this TrueType font (else lang/font.ttf)\n"
                  "  --show-fps         draw the FPS counter on presented frames when headless too\n"
+                 "  --perf-log         log tick, render and GPU timings once a second\n"
                  "test hooks:\n"
-                 "  --jump MODE[:MAP]  start in edit:<map>, dungeon:<0-6>, title, rush, opening or menu,\n"
+                 "  --jump MODE[:MAP]  start in edit:<map>, e01/e03/e04 (populated presets), dungeon:<0-6>, title, rush, opening or menu,\n"
                  "                     skipping the warm-up (DC_JUMP); see docs/PC.md\n"
                  "  --fast-load        loading-screen holds and fades of a few ticks (DC_FAST_LOAD=1)\n"
                  "  --give ITEM,...    give the party these item and weapon numbers when a town or dungeon\n"
@@ -147,6 +177,10 @@ Options g_options;
 #endif
                  ,
                  program);
+#if defined(__SWITCH__)
+    std::fprintf(stderr, "  --switch-core-affinity separate|auto  pin game and render to separate cores "
+                         "(default: separate)\n");
+#endif
     std::exit(kExitUsage);
 }
 
@@ -183,10 +217,14 @@ Options ParseOptions(int argc, const char **argv) {
             options.record_from = number();
         } else if (arg == "--input") {
             options.input = value();
+        } else if (arg == "--seed-save") {
+            options.seed_save = value();
+#if !defined(__SWITCH__)
         } else if (arg == "--width") {
             options.width = static_cast<int>(number());
         } else if (arg == "--height") {
             options.height = static_cast<int>(number());
+#endif
         } else if (arg == "--jump") {
             options.jump = value();
         } else if (arg == "--give") {
@@ -209,8 +247,20 @@ Options ParseOptions(int argc, const char **argv) {
             options.show_fps = true;
         } else if (arg == "--screenshot-fps") {
             options.screenshot_fps = true;
+        } else if (arg == "--perf-log") {
+            options.perf_log = true;
+#if !defined(__SWITCH__)
         } else if (arg == "--display-per-tick") {
             options.display_per_tick = static_cast<int>(number());
+#endif
+#if defined(__SWITCH__)
+        } else if (arg == "--switch-core-affinity") {
+            std::string_view mode = value();
+            if (mode != "separate" && mode != "auto") {
+                Usage(argv[0]);
+            }
+            options.switch_core_affinity = mode == "separate";
+#endif
         } else {
             Usage(argv[0]);
         }
@@ -222,6 +272,9 @@ Options ParseOptions(int argc, const char **argv) {
 // own exit status before a window or a Vulkan device exists.
 void RequireData() {
     const fs::path &root = PathsDataRoot();
+    if (DataArchivePresent(root)) {
+        return;
+    }
     std::error_code error;
     const char     *why = nullptr;
     if (!fs::is_directory(root, error)) {
@@ -242,8 +295,11 @@ void RequireData() {
     if (why != nullptr) {
         std::fprintf(stderr,
                      "no game data: %s %s; extract the disc with `dcdata extract <disc image> %s` "
-                     "or pass --data <dir>\n",
+                     "or place data.zip beside it\n",
                      PathsDisplay(root).c_str(), why, PathsDisplay(root).c_str());
+#if defined(__SWITCH__)
+        SwitchShowMissingData();
+#endif
         std::exit(kExitNoData);
     }
 }
@@ -251,9 +307,44 @@ void RequireData() {
 // The Options screen keeps the interface at 100%, so a size that takes the HUD past the window
 // cannot take the screen's own controls with it.
 gfx::FrameLayout Layout(const Config &config) {
+#if defined(__SWITCH__)
+    return {gfx::AspectMode::Fill, MenuOptionOpen() ? 1.0f : config.ui_scale};
+#else
     return {config.aspect == ConfigAspect::Auto ? gfx::AspectMode::Fill : gfx::AspectMode::Letterbox,
             MenuOptionOpen() ? 1.0f : config.ui_scale};
+#endif
 }
+
+#if defined(__SWITCH__)
+void UpdateSwitchRenderScale() {
+    if (gfx::InFrame()) {
+        return;
+    }
+    int width = 0;
+    int height = 0;
+    SwitchDisplaySize(width, height);
+    if (height <= 0) {
+        return;
+    }
+    const float scale = static_cast<float>(height) / static_cast<float>(kScreenHeight);
+    if (scale != g_switch_render_scale) {
+        if (!SDL_SetWindowSize(WindowHandle(), width, height)) {
+            std::fprintf(stderr, "switch: cannot set SDL output size to %dx%d: %s\n", width, height,
+                         SDL_GetError());
+        }
+        gfx::RendererResize();
+        int window_width = 0;
+        int window_height = 0;
+        if (!SDL_GetWindowSizeInPixels(WindowHandle(), &window_width, &window_height)) {
+            std::fprintf(stderr, "switch: cannot query SDL output size: %s\n", SDL_GetError());
+        }
+        std::fprintf(stderr, "switch: mode target=%dx%d, SDL=%dx%d, render scale=%.2f\n", width, height,
+                     window_width, window_height, static_cast<double>(scale));
+        gfx::SetRenderScale(scale);
+        g_switch_render_scale = scale;
+    }
+}
+#endif
 
 // DC_BGM_TEST=<set>:<track>: a test aid. From frame 150 of the run (the title has started) the music
 // stops and sound set <set> plays its sequence number <track> on the music port, so DC_AUDIO_WAV
@@ -284,6 +375,9 @@ void PumpHost() {
         GameRequestStop();
     }
     DisplayPump();
+#if defined(__SWITCH__)
+    UpdateSwitchRenderScale();
+#endif
     // A change of video.aspect or video.ui_scale, or the Options screen opening or closing, waits
     // for a pump outside a frame.
     if (!gfx::InFrame()) {
@@ -344,6 +438,10 @@ void ReportShaderProgress(uint32_t done, uint32_t total) {
 }
 
 gfx::PresentMode PresentMode(ConfigPresentMode mode) {
+#if defined(__SWITCH__)
+    static_cast<void>(mode);
+    return gfx::PresentMode::Fifo;
+#else
     switch (mode) {
         case ConfigPresentMode::Mailbox:
             return gfx::PresentMode::Mailbox;
@@ -352,14 +450,23 @@ gfx::PresentMode PresentMode(ConfigPresentMode mode) {
         default:
             return gfx::PresentMode::Fifo;
     }
+#endif
 }
 
 GamePresentSettings PresentSettings(const Config &config) {
+#if defined(__SWITCH__)
+    return {.interpolation = false,
+            .max_fps = 60.0,
+            .display_per_tick = 0,
+            .show_fps = g_options.show_fps || (config.show_fps && !g_options.headless),
+            .fps_detail = config.fps_detail};
+#else
     return {.interpolation = config.interpolation,
             .max_fps = config.max_fps,
             .display_per_tick = g_options.display_per_tick,
             .show_fps = g_options.show_fps || (config.show_fps && !g_options.headless),
             .fps_detail = config.fps_detail};
+#endif
 }
 
 void ApplyDiscord(const Config &config) {
@@ -375,9 +482,13 @@ void ApplyConfigChange(const Config &before, const Config &after) {
     audio::DefaultMixer().SetMasterGain(after.master_volume);
     AudioSetSurround(after.surround);
     InputApplyConfig(after);
+#if defined(__SWITCH__)
+    ClockSetTickRate(60.0);
+#else
     if (after.tick_rate != before.tick_rate) {
         ClockSetTickRate(after.tick_rate);
     }
+#endif
     if (after.interpolation != before.interpolation || after.max_fps != before.max_fps ||
         after.show_fps != before.show_fps || after.fps_detail != before.fps_detail) {
         GameSetPresentSettings(PresentSettings(after));
@@ -434,6 +545,18 @@ int Screenshot(const char *path) {
         std::fprintf(stderr, "cannot write the screenshot to %s\n", path);
         return kExitFailure;
     }
+    const char *rgba = std::getenv("DC_SCREENSHOT_RGBA");
+    if (rgba != nullptr && std::string_view(rgba) == "1") {
+        auto raw_path = PathsFromUtf8(path);
+        raw_path += ".rgba";
+        std::ofstream raw(raw_path, std::ios::binary);
+        raw.write(reinterpret_cast<const char *>(pixels.data()), static_cast<std::streamsize>(pixels.size()));
+        raw.close();
+        if (!raw) {
+            std::fprintf(stderr, "cannot write screenshot RGBA to %s.rgba\n", path);
+            return kExitFailure;
+        }
+    }
     return kExitOk;
 }
 
@@ -441,9 +564,31 @@ int Run(int argc, const char **argv) {
     DC_ANDROID_TRACE("Run: enter");
     GameSetIdentity();
     DC_ANDROID_TRACE("Run: identity set");
+    const char *explicit_save = nullptr;
+    for (int i = 1; i < argc; ++i) {
+        const std::string_view arg = argv[i];
+        if (arg == "--save" && i + 1 < argc) {
+            explicit_save = argv[++i];
+        } else if (arg.starts_with("--save=")) {
+            explicit_save = argv[i] + std::string_view("--save=").size();
+        }
+    }
     argc = PathsConsumeArgs(argc, argv);
     g_options = ParseOptions(argc, argv);
+    GameLoadTraceLaunch();
     Options &options = g_options;
+    if (options.seed_save != nullptr) {
+        if (explicit_save == nullptr || *explicit_save == '\0') {
+            std::fprintf(stderr, "--seed-save requires an explicit nonempty --save directory\n");
+            return kExitUsage;
+        }
+        std::string error;
+        if (!SaveStateSeed(PathsFromUtf8(options.seed_save), PathsFromUtf8(explicit_save), error)) {
+            std::fprintf(stderr, "cannot seed --save %s: %s\n", explicit_save, error.c_str());
+            return kExitFailure;
+        }
+        std::fprintf(stderr, "seeded --save %s from %s\n", explicit_save, options.seed_save);
+    }
     FirstRunIfNoData(options.headless);
     DC_ANDROID_TRACE("Run: first-run check passed");
     if (options.jump == nullptr) {
@@ -491,6 +636,7 @@ int Run(int argc, const char **argv) {
     const char *fast_load = std::getenv("DC_FAST_LOAD");
     GameSetFastLoad(options.fast_load || (fast_load != nullptr && *fast_load != '\0' && *fast_load != '0'));
     RequireData();
+    GameLoadTraceCheckpoint("data_ready");
     DC_ANDROID_TRACE("Run: data available");
     if (!options.headless) {
         GameSetDataIcon();
@@ -498,19 +644,6 @@ int Run(int argc, const char **argv) {
     if (options.font != nullptr) {
         LocalizeSetFontPath(PathsFromUtf8(options.font));
     }
-#if !defined(__ANDROID__) && !defined(__SWITCH__)
-    if (options.export_text == nullptr) {
-        // Once per save folder: the extracted data's text as JSON for translators (docs/LOCALIZATION.md).
-        std::filesystem::path seed = PathsSaveRoot() / "lang-export";
-        std::error_code       error;
-        if (!std::filesystem::exists(seed / "en_gb.json", error)) {
-            std::fprintf(stderr, "exporting the game text to %s\n", PathsDisplay(seed).c_str());
-            if (LocalizeExport(seed, false) < 0) {
-                std::fprintf(stderr, "the game text could not be exported\n");
-            }
-        }
-    }
-#endif
     if (options.export_text != nullptr) {
         // The game's message files as language JSON for translators; no window, no game.
         return LocalizeExport(options.export_text, true) >= 0 ? kExitOk : kExitUsage;
@@ -521,14 +654,17 @@ int Run(int argc, const char **argv) {
     audio::SoundtrackEnsure();
     const Config &config = ConfigGet();
 
+#if defined(__SWITCH__)
+    DisplaySetOverrides(0, 0, options.headless);
+#else
     DisplaySetOverrides(options.width, options.height, options.headless);
+#endif
     WindowConfig window = DisplayWindowConfig(config);
 #if defined(__SWITCH__)
-    window.width = 0;
-    window.height = 0;
-    window.fullscreen = true;
+    SwitchDisplaySize(window.width, window.height);
+    window.fullscreen = false;
 #endif
-    bool         offscreen = options.offscreen || (options.headless && !gfx::HeadlessSurfaceAvailable());
+    bool offscreen = options.offscreen || (options.headless && !gfx::HeadlessSurfaceAvailable());
     window.vulkan = !offscreen;
     WindowInit(window);
     DC_ANDROID_TRACE("Run: window initialized");
@@ -546,6 +682,7 @@ int Run(int argc, const char **argv) {
     renderer.pipeline_cache = PathsSaveRoot() / "pipeline_cache.bin";
 #if defined(__SWITCH__)
     SwitchConfigureRenderer(renderer);
+    g_switch_render_scale = renderer.render_scale;
 #endif
     renderer.progress = ReportShaderProgress;
     renderer.offscreen = offscreen;
@@ -566,7 +703,13 @@ int Run(int argc, const char **argv) {
 #endif
     renderer.validation = renderer.validation || SettingsEnv("VULKAN_VALIDATION") != nullptr;
     gfx::RendererInit(WindowHandle(), renderer);
+    GameLoadTraceCheckpoint("renderer_ready");
     DC_ANDROID_TRACE("Run: renderer initialized");
+#if defined(__SWITCH__)
+    if (options.switch_core_affinity) {
+        SwitchConfigureThreads();
+    }
+#endif
     gfx::SetAnisotropy(config.anisotropy);
 #if defined(__ANDROID__)
     gfx::SetRenderScale(config.render_scale);
@@ -576,11 +719,25 @@ int Run(int argc, const char **argv) {
     AudioSetSurround(config.surround);
     AudioOutputStart(audio::DefaultMixer().Rate(), RenderAudio, nullptr);
 
+#if defined(__SWITCH__)
+    ClockSetTickRate(60.0);
+#else
     ClockSetTickRate(config.tick_rate);
-    ClockSetUnbounded(options.headless);
+#endif
+    const char *bounded_headless = std::getenv("DC_HEADLESS_BOUNDED");
+    ClockSetUnbounded(options.headless && !(bounded_headless != nullptr && std::strcmp(bounded_headless, "1") == 0));
     ClockAddPumpHook(PumpHost);
     GameSetFrameBudget(options.frames);
     GameSetRecording(options.record, options.record_from);
+    GameSetPerfLog(options.perf_log);
+    if (options.perf_log) {
+        std::fprintf(stderr,
+                     "perf config: layout %d scale %.3f thread %d interpolation %d detail %.3f shadow %.3f "
+                     "anisotropy %d soft_focus %d\n",
+                     static_cast<int>(renderer.layout.aspect), gfx::RenderScale(),
+                     static_cast<int>(gfx::ActiveRenderThreadMode()), PresentSettings(config).interpolation,
+                     ConfigDetailDistance(), ConfigShadowDistance(), config.anisotropy, config.options.soft_focus);
+    }
     ApplyDiscord(config);
     GameSetPresentSettings(PresentSettings(config));
     ConfigAddChangeHook(ApplyConfigChange);
@@ -594,6 +751,13 @@ int Run(int argc, const char **argv) {
         status = Screenshot(options.screenshot);
     }
     ReportPresentStats();
+#if defined(__SWITCH__)
+    if (options.perf_log && std::getenv("DC_PERF_HOLD") != nullptr) {
+        for (;;) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+#endif
 
     ConfigRemoveChangeHook(LocalizeConfigChanged);
     ConfigRemoveChangeHook(GameOptionsChanged);

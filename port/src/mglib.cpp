@@ -4,8 +4,12 @@
 #include <libvu0.h>
 
 #include <algorithm>
+#include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <optional>
 
@@ -38,6 +42,30 @@ extern sceVu0FVECTOR mgUnitVector2;
 
 namespace {
 
+using EndFrameClock = std::chrono::steady_clock;
+
+void NoteEndFramePhases(const std::array<EndFrameClock::time_point, 5> &stamps, uint32_t picks) {
+    static std::array<double, 4> totals{};
+    static std::array<double, 4> maxima{};
+    static uint32_t              frames = 0;
+    static uint32_t              depth_picks = 0;
+    for (size_t i = 0; i < totals.size(); i++) {
+        const double elapsed = std::chrono::duration<double, std::milli>(stamps[i + 1] - stamps[i]).count();
+        totals[i] += elapsed;
+        maxima[i] = std::max(maxima[i], elapsed);
+    }
+    depth_picks += picks;
+    if (++frames == 120) {
+        std::fprintf(stderr, "cpu endframe %u frames: lease %.3f/%.3f preDraw %.3f/%.3f draw %.3f/%.3f depth %.3f/%.3f picks %u\n",
+                     frames, totals[0] / frames, maxima[0], totals[1] / frames, maxima[1],
+                     totals[2] / frames, maxima[2], totals[3] / frames, maxima[3], depth_picks);
+        frames = 0;
+        depth_picks = 0;
+        totals.fill(0.0);
+        maxima.fill(0.0);
+    }
+}
+
 // PAL's field buffer is half the frame's height. GS coordinates the game hands to the 2D units
 // keep counting field rows (MGPortLogicalY doubles them), so the eye-to-GS step keeps the squeeze
 // that retail baked into view_scaled.
@@ -50,17 +78,12 @@ sceVif1Packet      g_null_packet;
 u_long128          g_null_packet_words[4];
 std::optional<int> g_pick_pending[16];
 
-gfx::TextureHandle  g_shadow_target = gfx::kNullTexture;
+bool                g_shadow_active = false;
 gfx::TextureHandle  g_last_frame_copy = gfx::kNullTexture;
 unsigned            g_frame_copies = 0;
 gfx::TextureHandle  g_frame_picture = gfx::kNullTexture;
-gfx::TextureHandle  g_shadow_previous = gfx::kMainTarget;
+bool                g_frame_picture_pending = false;
 Draw3DShadowProgram g_shadow_program = Draw3DShadowProgram::Every;
-
-// Retail retargets FRAME_1 to the game's shadow_buf and keeps ZBUF, so the volumes count against
-// the scene's depth. The port's equivalent is a target of its own that shares the main depth
-// buffer; the game's shadow_buf is only ever read back by MGEndDrawShadow, which reads this.
-constexpr const char *kShadowTargetName = "shadow volumes";
 
 Draw3DTex0Resolver   g_tex0_resolver = nullptr;
 Draw3DHandleResolver g_handle_resolver = nullptr;
@@ -163,11 +186,7 @@ void Blit(const ResolvedRect &src, const ResolvedRect &dst, gfx::Filter filter) 
     if (src.texture == gfx::kMainTarget && dst.texture != gfx::kMainTarget) {
         g_last_frame_copy = dst.texture;
         g_frame_copies++;
-        g_frame_picture = gfx::NamedRenderTarget("frame copy picture", static_cast<uint32_t>(kScreenWidth),
-                                                 static_cast<uint32_t>(kScreenHeight), false, false, true);
-        if (g_frame_picture != gfx::kNullTexture && !gfx::SnapshotFrame(g_frame_picture)) {
-            g_frame_picture = gfx::kNullTexture;
-        }
+        g_frame_picture_pending = true;
     }
     if (src.texture == dst.texture) {
         BlitWithin(src.texture, src.rect, dst.rect, filter);
@@ -295,6 +314,16 @@ unsigned Draw3DFrameCopies() {
 }
 
 gfx::TextureHandle Draw3DFramePicture() {
+    // The picture is taken when first asked for after the game's copy: the water draws straight
+    // after the copy, with nothing written to the frame in between.
+    if (g_frame_picture_pending) {
+        g_frame_picture_pending = false;
+        g_frame_picture = gfx::NamedRenderTarget("frame copy picture", static_cast<uint32_t>(kScreenWidth),
+                                                 static_cast<uint32_t>(kScreenHeight), false, false, true);
+        if (g_frame_picture != gfx::kNullTexture && !gfx::SnapshotFrame(g_frame_picture)) {
+            g_frame_picture = gfx::kNullTexture;
+        }
+    }
     if (g_frame_picture != gfx::kNullTexture && !gfx::GetTextureInfo(g_frame_picture)) {
         g_frame_picture = gfx::kNullTexture;
     }
@@ -302,7 +331,7 @@ gfx::TextureHandle Draw3DFramePicture() {
 }
 
 bool Draw3DShadowTargetActive() {
-    return g_shadow_target != gfx::kNullTexture;
+    return g_shadow_active;
 }
 
 Draw3DShadowProgram Draw3DCurrentShadowProgram() {
@@ -455,6 +484,16 @@ gfx::DrawState Draw3DState(const RenderInfo &info, bool fog) {
     return state;
 }
 
+void Draw3DShadowCount(gfx::DrawState &state, bool subtract) {
+    state.blend = false;
+    state.depth_write = false;
+    state.color_write_mask = 0;
+    state.stencil_test = true;
+    gfx::StencilFace face;
+    face.pass = subtract ? gfx::StencilOp::DecrementClamp : gfx::StencilOp::IncrementClamp;
+    state.stencil_front = state.stencil_back = face;
+}
+
 void MGPortWorldToClip(float clip[4][4]) {
     float eye_to_clip[4][4];
     Draw3DEyeToClip(mgRenderInfo, eye_to_clip);
@@ -562,7 +601,7 @@ PORT_OVERRIDE void MGBeginFrame() {
         }
     }
     gfx::SetRenderTarget(gfx::kMainTarget);
-    g_shadow_target = gfx::kNullTexture;
+    g_shadow_active = false;
 
     Vif1Packet = &g_null_packet;
     ActiveData = DBuffID ? &ActiveData0 : &ActiveData1;
@@ -600,8 +639,17 @@ PORT_OVERRIDE void MGBeginFrame() {
 // game asked not to wait twice (mgWaitVSync 0). The count only moves when the clock is pumped, so
 // it is pumped first to see whether a tick went by.
 PORT_OVERRIDE void MGEndFrame() {
+    static const bool                        trace_phases = std::getenv("DC_PERF_END_FRAME") != nullptr;
+    std::array<EndFrameClock::time_point, 5> stamps{};
+    uint32_t                                 depth_picks = 0;
+    if (trace_phases) {
+        stamps[0] = EndFrameClock::now();
+    }
     {
         gfx::RenderLease lease;
+        if (trace_phases) {
+            stamps[1] = EndFrameClock::now();
+        }
         for (int i = 0; i < 16; i++) {
             g_pick_pending[i].reset();
             if (!mgPickZBuff[i].enable) {
@@ -616,6 +664,7 @@ PORT_OVERRIDE void MGEndFrame() {
             gfx::ReadDepth(static_cast<uint32_t>(i), static_cast<float>(mgPickZBuff[i].x - 4),
                            static_cast<float>(mgPickZBuff[i].y - 8), 8.0f, 16.0f);
             g_pick_pending[i] = i;
+            ++depth_picks;
         }
 
         gfx::SetRenderTarget(gfx::kMainTarget);
@@ -623,11 +672,20 @@ PORT_OVERRIDE void MGEndFrame() {
         if (gfx::Recording()) {
             textwipe::DrawDivider();
             list = gfx::EndRecording();
+            if (trace_phases) {
+                stamps[2] = EndFrameClock::now();
+            }
             GameRenderTick(list);
             sceVu0CopyMatrix(g_tick_view, mgRenderInfo.view_scaled);
             g_have_tick_view = true;
         } else {
+            if (trace_phases) {
+                stamps[2] = EndFrameClock::now();
+            }
             gfx::EndFrame();
+        }
+        if (trace_phases) {
+            stamps[3] = EndFrameClock::now();
         }
 
         for (int i = 0; i < 16; i++) {
@@ -643,6 +701,12 @@ PORT_OVERRIDE void MGEndFrame() {
                 mgPickZBuff[i].z = static_cast<int>(std::lround(1.0 + static_cast<double>(*depth) * kGsDepthRange));
             }
         }
+        if (trace_phases) {
+            stamps[4] = EndFrameClock::now();
+        }
+    }
+    if (trace_phases) {
+        NoteEndFramePhases(stamps, depth_picks);
     }
     if (!mgWaitVSync) {
         ClockPump();
@@ -1210,7 +1274,8 @@ PORT_OVERRIDE void MGDrawShade(CFrame *frame) {
 }
 
 // Retail points FRAME_1 at shadow_buf and clears it black with a sprite, Z untouched; the volumes
-// then count into it against the scene's depth.
+// then count into it against the scene's depth. The port counts in the stencil of the target being
+// drawn, which holds the scene's depth: the stencil is the shadow_buf, a count of 0 its black.
 PORT_OVERRIDE void MGBeginDrawShadow(sceGsTex0 tex0) {
     sceGsTest test = mgPixelTest;
     test.bits.ate = 1;
@@ -1226,26 +1291,16 @@ PORT_OVERRIDE void MGBeginDrawShadow(sceGsTex0 tex0) {
     current.zbuf = zbuf;
     (void) tex0;
 
-    gfx::TextureHandle target = gfx::NamedRenderTarget(kShadowTargetName, 640, SCREEN_HEIGHT, false, true);
-    if (target == gfx::kNullTexture) {
-        g_shadow_target = gfx::kNullTexture;
-        return;
-    }
-    if (g_shadow_target == gfx::kNullTexture) {
-        g_shadow_previous = gfx::CurrentRenderTarget();
-    }
-    g_shadow_target = target;
-    gfx::SetRenderTarget(target);
-    uint8_t black[4] = {0, 0, 0, 0x80};
-    gfx::Clear(true, black, false, 0.0f);
+    g_shadow_active = true;
+    gfx::ClearStencil(0);
 }
 
 // Retail draws shadow_buf over the frame as a 24-bit texture with TEXA AEM 1, TA0 alpha and ALPHA
 // (0 - Cd) * As + Cd: a black texel (no volume covered it) gets alpha 0 and leaves the frame, any
 // other darkens it by alpha / 128 once, however many volumes counted there.
 PORT_OVERRIDE void MGEndDrawShadow(u_char alpha) {
-    gfx::TextureHandle target = g_shadow_target;
-    g_shadow_target = gfx::kNullTexture;
+    bool active = g_shadow_active;
+    g_shadow_active = false;
 
     sceGsTexa texa = mgTexa;
     texa.AEM = 1;
@@ -1253,30 +1308,30 @@ PORT_OVERRIDE void MGEndDrawShadow(u_char alpha) {
     MGPortRegisters &current = MGPortCurrent();
     current.texa = texa;
 
-    if (target != gfx::kNullTexture) {
-        gfx::SetRenderTarget(g_shadow_previous);
+    if (active) {
         gfx::DrawState state;
         state.blend = true;
         state.alpha = {2, 1, 0, 1, 64};
         state.depth_test = gfx::DepthTest::Always;
         state.depth_write = false;
-        state.texa_aem = true;
-        state.texa_ta0 = alpha;
+        state.stencil_test = true;
+        state.stencil_front = state.stencil_back = {.compare = gfx::CompareOp::NotEqual,
+                                                    .reference = 0,
+                                                    .compare_mask = 0xFF,
+                                                    .write_mask = 0};
         state.scissor = true;
         state.scissor_rect = current.window;
         float         xs[4] = {0.0f, kScreenWidth, kScreenWidth, 0.0f};
         float         ys[4] = {0.0f, 0.0f, kScreenHeight, kScreenHeight};
         gfx::Vertex2D quad[4] = {};
         for (int i = 0; i < 4; i++) {
-            quad[i].x = quad[i].u = xs[i];
-            quad[i].y = quad[i].v = ys[i];
-            quad[i].color[0] = quad[i].color[1] = quad[i].color[2] = quad[i].color[3] = 0x80;
+            quad[i].x = xs[i];
+            quad[i].y = ys[i];
+            quad[i].color[0] = quad[i].color[1] = quad[i].color[2] = 0x80;
+            quad[i].color[3] = alpha;
             quad[i].fog = 0xFF;
         }
-        gfx::TextureBinding binding;
-        binding.texture = target;
-        binding.filter = gfx::Filter::Nearest;
-        gfx::Draw2D(gfx::Primitive::Quads, quad, binding, state);
+        gfx::Draw2D(gfx::Primitive::Quads, quad, {}, state);
     }
 
     MGPortRestoreRegisters();

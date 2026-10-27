@@ -44,7 +44,11 @@ struct Config : HostSettings {
     bool element_quick_select = false;
     bool swap_keeps_lock_on = false;
     bool text_wipe = false; /**< Enables the developer text comparison and tuning tool. */
+#if defined(__SWITCH__)
+    bool interpolation = false;
+#else
     bool interpolation = true;
+#endif
     gfx::RenderThreadMode render_thread = gfx::RenderThreadMode::Async;
     ConfigAspect aspect = ConfigAspect::Auto;
     float ui_scale = 1.0f;
@@ -80,6 +84,17 @@ struct Config : HostSettings {
     // expanded: the mod's gameplay toggles.
     expanded::OptionValues expanded_options;
 #endif
+
+    Config() {
+#if defined(__SWITCH__)
+        present_mode = ConfigPresentMode::Fifo;
+        max_fps = 60.0;
+        window_width = 0;
+        window_height = 0;
+        fullscreen = true;
+        aspect = ConfigAspect::FourThree;
+#endif
+    }
 
     bool operator==(const Config &) const = default;
 };

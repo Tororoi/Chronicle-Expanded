@@ -17,7 +17,7 @@ screenshot output, stay under this ignored directory. Explicit `--data` and
 `--save` arguments override these script defaults. Relative file arguments are
 resolved from `port/run/`; use absolute paths for inputs elsewhere.
 
-For an existing checkout, move `data/`, `save/`, `soundtrack/` and `darkcloud.ico`
+For an existing checkout, move `data/`, `data.zip`, `save/`, `soundtrack/` and `darkcloud.ico`
 from the repository root into `port/run/` before the first script launch to keep
 using them. A directly launched executable retains the path defaults below.
 
@@ -52,8 +52,11 @@ same from a shell:
 
 ```sh
 port/build/pc/dcdata extract "rom/pal/Dark Cloud (PAL).iso" data
+port/build/pc/dcdata pack data
 port/build/pc/darkcloud --data data --save save
 ```
+
+`pack` writes `data.zip` beside `data/`. The archive contains the extracted and normalized game data, including `languages.json`; you can install just the archive for game data. When both are present, the archive supplies game files. Keep `data/` until you have verified the archive and any workflows that need loose files.
 
 The extractor accepts a PAL or NTSC disc image. For NTSC data it supplies the
 localized filenames and pack members expected by the shared game code, including
@@ -89,8 +92,9 @@ a language the data lacks, and its English button reads as the disc's art does.
 
 | Option | Meaning |
 |---|---|
-| `--data DIR` | the extracted data (default: `DC_DATA`, then `./data`, then `data/` beside the executable, then `$XDG_DATA_HOME/chronicle/data`) |
+| `--data DIR` | the extracted data directory or the logical directory beside `data.zip` (default: `DC_DATA`, then `./data`, then `data/` beside the executable, then `$XDG_DATA_HOME/chronicle/data`) |
 | `--save DIR` | saves, `config.json`, the pipeline cache and host files (default: `DC_SAVE`, then `./save`, then `save/` beside the executable, then `save/` beside a local `data/`, then `$XDG_DATA_HOME/chronicle/save`); created on first use |
+| `--seed-save DIR` | copy this save-root fixture before startup reads it; requires an explicit `--save DIR` pointing to a new or empty directory; omit on subsequent runs |
 | `--headless` | SDL's offscreen video driver with `VK_EXT_headless_surface`, SDL's dummy audio driver, and the game clock unbounded (one tick per pump, no sleeping) |
 | `--offscreen` | `--headless` without a Vulkan surface: frames are drawn to an image only (what `--headless` does by itself when the loader has no `VK_EXT_headless_surface`) |
 | `--frames N` | stop after N frames of the game's main loop |
@@ -103,6 +107,7 @@ a language the data lacks, and its English button reads as the disc's art does.
 | `--give ITEM,...` | test hook: items and weapons the party is given when a town or dungeon starts (see "Test hooks"); also `DC_GIVE` |
 | `--display-per-tick N` | headless test aid: render N interpolated display frames per tick (offscreen, not presented) before presenting the tick's canonical image |
 | `--show-fps` | draw the FPS counter when headless too (a headless run leaves `show_fps` off) |
+| `--perf-log` | print tick, render-thread, GPU-timestamp and present timings once a second (see [Switch](SWITCH.md#performance-measurement)) |
 | `--screenshot-fps` | with `--screenshot` and `--show-fps`: write the image as a window shows it, the counter over the canonical image, instead of the canonical image alone |
 
 Environment: `DC_DATA` and `DC_SAVE` (above), `DC_INPUT` (above), `DC_AUDIO=off` (no audio
@@ -118,6 +123,15 @@ and no disc was given at the first-run prompt (one line names it and the
 `dcdata` command; a headless run checks before any window opens), 4 for a failed game assertion (retail's `__assert`, after the game's
 own message: `LoadFile` prints `File open error "<path>"`). A `PS2_UNIMPLEMENTED`
 stub aborts (SIGABRT) so a debugger or a core dump stops at it.
+
+For an isolated fixture, use `--seed-save path/to/fixture --save path/to/new-save` once.
+The source directory contains the save-root contents directly, such as `saves/1/save.dat`
+and `saves/state.json`. Existing nonempty destinations, overlapping roots and source links
+are refused. Files are copied without inheriting read-only source permissions; the source
+is unchanged. An I/O failure can leave a partial destination, which is refused on retry.
+Omit `--seed-save` on later runs to retain that root's config and pipeline cache. Any
+`config.json` included in the fixture is loaded normally; omit it to use platform defaults.
+Seeding does not change rendering settings or command-line overrides.
 
 `<save>/config.json` (`port/src/platform/config.cpp`, read with
 [nlohmann/json](https://github.com/nlohmann/json); `//` and `/* */` comments
@@ -330,7 +344,8 @@ up; `mouse_invert_y` flips the latter.
 
 The actions are `up down left right cross circle square triangle l1 r1 l2
 r2 l3 r3 start select lx- lx+ ly- ly+ rx- rx+ ry- ry+ lx ly rx ry`, and the
-port's own `fps_toggle`, `developer_menu`, `debug_menu` and `gyro_hold`, which press no pad button. Keys are
+port's own `fps_toggle`, `developer_menu`, `debug_menu` and `gyro_hold`, which press no pad button. `walk` (Left Shift)
+is Kazarov's held keyboard walk. Kazarov's Dark Cloud 2 actions `mode_debug_menu` and `quick_loadout` are not read and have no Options row. Keys are
 SDL names (any case, `_` for a space; `Grave`, `Backquote` or `Backtick` for
 the key left of 1); `Mouse1` to `Mouse5` are left, right,
 middle and the two side buttons. The port's own actions also take
@@ -564,7 +579,8 @@ For tests and debugging only; nothing the game does depends on them.
   and the developer menu, and starts `RunGame` in the mode with the globals the
   developer menu (and for a dungeon, the dungeon loader) would have left:
   `edit:<map>` (the game's `MapNo`: 0-4 the five towns, 11 and up the sub maps,
-  99 the interior), `dungeon:<n>` (dungeon n, 0-6, as `MapJump(200 + n)`, at its
+  99 the interior), `e01`, `e03` or `e04` (populated Norune, Queens or Muska Lacka developer presets),
+  `dungeon:<n>` (dungeon n, 0-6, as `MapJump(200 + n)`, at its
   floor select), `title`, `rush` (the attract movie), `opening`, or `menu` (the
   developer menu itself). A bad value exits with status 2.
 - `--fast-load` (or `DC_FAST_LOAD=1`) cuts the loading screen's start delay to
@@ -714,7 +730,8 @@ does the same from the keyboard.
 ## Start-up and the main loop
 
 `port/src/main.cpp` is the executable's `main`. In order: `PathsConsumeArgs`
-takes `--data`/`--save` out of argv; the other options are parsed; the data
+takes `--data`/`--save` out of argv; the other options are parsed; optional
+`--seed-save` copies a fixture into the explicit save root; the data
 directory is checked; `ConfigLoad` reads `config.json`; `WindowInit` opens the
 window (size and fullscreen from the config, offscreen when headless);
 `InputInit`; `gfx::RendererInit` with the config's present mode, the pipeline
@@ -976,7 +993,7 @@ shape. With `video.aspect` `auto` the rest of the window is not bars:
   placeholders, and the water's `water` and `water_buff`; `MGPortFrameTarget`)
   are as wide as the window, so what they hold and draw back includes the
   sides; the canonical and display images are the window's size. The game's
-  other 640xN targets (`blender`, `shadow_buf`) keep their size at the render
+  other 640xN target (`blender`) keeps its size at the render
   scale.
 - **Depth of field** (`DepthOfField`, `port/src/effectmacro.cpp`; the towns'
   heat haze is its jittered second pass) is not retail's two shrunk copies of
@@ -1069,8 +1086,11 @@ share small internal headers:
   into meshes keyed by the game's vu_data block (the record dies with the
   block), `DrawVu1` submitting meshes with the constants the VU1 header
   carried (matrices, four lights, ambient, material, fog), shadow volumes
-  extruded to the shadow plane and counted into `shadow_buf` against the
-  scene's depth, then composited, cloth rebuilt per draw, water sampling the
+  extruded to the shadow plane and counted into the main target's stencil
+  against the scene's depth (retail's `shadow_buf` colour count, saturating
+  alike), then composited by a full-frame quad where the stencil is non-zero;
+  a side shared with an opposite-side neighbour is not emitted, as the pair
+  would cancel in the count; cloth rebuilt per draw, water sampling the
   last frame copy. The assembly functions (`MulMatrix`, `MotionProc2`,
   `CCloth::Step`, the shadow CLIP builder and the rest) are C++ with the
   lanes retail writes.
@@ -1480,6 +1500,25 @@ language's tabs. The kana keyboards are Japanese-only and not offered.
 `name_mouse.cpp` is called from `pad_button_read`, ahead of the game's read of
 the pad, so no function of `ps2/src` is replaced for it.
 
+## The title menu, Exit and Quit
+
+The title's menu has a fourth row, Exit, which asks "Return to desktop?" and closes the game on Yes.
+Retail's three rows are painted pictures (`start.img` and its French, German, Italian and Spanish
+copies) with no Exit among them, so all four are drawn through the UI framework
+(`port/src/title/title_menu.cpp`) in Chronicle Title, whose capitals are the painted rows' own letters
+fitted into the font, with retail's words as the `title.menu.*` keys, and coloured as the GS drew the painting:
+the selected row the painting's cream, the rest that cream at half opacity (see "Matching retail's
+2D look" in `docs/UI_FRAMEWORK.md`). The rows stand 28
+pixels apart from 284, so the fourth clears the trademark lines; they keep retail's hand, blink and
+sounds. Exit's row shares its number with the attract movie's,
+which retail only sets on the way out, so `TitleLoop`'s handling of the other rows is retail's.
+
+Quit in the pause menu, in a town or a dungeon, asks "Return to the title?" and on Yes goes back to
+the title screen instead of the desktop. The main loop leaves the mode where it stands, as the
+developer menu does (`TakeBattleMenuTitleRequest`, `port/src/gameloop.cpp`): it waits for loads in
+flight, stops the sound and jumps to map 800, so the title starts as it does at start-up. Nothing is
+saved on the way.
+
 ## The mouse in the pause menu
 
 The pause menu (the ring of pages in a dungeon, and the same ring in town) takes the mouse as a
@@ -1796,7 +1835,13 @@ renames what the unit takes from MWCC or from the PS2 link alone:
   (`port/src/runscript.cpp`): retail's has no return statement and leaves
   `CRunScript::run`'s result in `v0` for `EdEventInit`. Walking villagers in
   Muska Racka use its fixed ground model's collision, so their feet follow
-  the sculpted terrain instead of the editable grid's flat polygons.
+  the sculpted terrain instead of the editable grid's flat polygons. It also
+  declares its static `p_use_item` `extern`, for the port's bait fix
+  (`ListBaitForScript`, `port/src/fish_port.hpp`): the towns' bait-changing
+  events in PAL retail attach only the eight baits they list, so Carrot,
+  Potato Cake, Minon, Battan and Petite Fish were taken from the bag and never
+  put on the hook. When the bait picker closes, a bait the list lacks is put on
+  it, and the script attaches it as it does the others.
 - `main` gets an overload of `LoadFileMenuData` for a `const char *`: one call
   names its file with a comma expression ending in a string literal.
 - `mathutil` gets the Metrowerks runtime's own `std::exception` and
@@ -1946,13 +1991,18 @@ which verifies every image byte for byte.
 
 ## Game data
 
-The game reads its files from a plain directory, not from the disc.
+The game reads extracted files from a plain directory or a sibling `data.zip` archive, not from the disc.
 `port/build/pc/dcdata` (`tools/dcdata`) makes it:
 
 ```sh
 port/build/pc/dcdata extract "rom/pal/Dark Cloud (PAL).iso" data
+port/build/pc/dcdata pack data
 port/build/pc/dcdata list "rom/pal/Dark Cloud (PAL).iso"
 ```
+
+`pack` takes an existing extracted directory and writes a ZIP archive beside it by default; a second output path is optional. It stores files without compression so the port can read them on Switch without a decompression cost. The runtime also reads standard deflated ZIP entries. ZIP64, encrypted and multi-disk archives are unsupported. The game gives `data.zip` priority over loose files when both exist. Do not modify an archive while the game is running.
+
+Extraction runs the disc's asset classes side by side. `dcdata::ClassOf` sorts the files by extension into textures, models, audio, movies, scripts, packs and the rest; `dcdata::Extract` cuts each class into slices of about 32 MiB and hands them to a `JobRunner`. The `dcdata` tool passes Kazarov's shared scheduler (`kazarov::job_set_run`, the one `dc2data` runs its conversion jobs on), which starts the largest slice of each class first and stops at the first failure; without a runner, as in the first-run window and the host tests, `dcdata::RunOnThreads` interleaves the same slices on plain threads. `dcdata pack` checksums the files on all cores through `kazarov::pack_directory_stored`, which writes the same stored classic ZIP byte for byte.
 
 The source is a disc image, read through its ISO 9660 tree, or a directory
 that holds `DATA.DAT` and `DATA.HD2` (such as `rom/pal/extracted/iso`).
@@ -1963,7 +2013,7 @@ its size is kept, so a rerun only repairs what is missing. When a path is
 listed twice, only the first is written, as the game only ever finds the
 first. `list` prints each file's sector, size and path.
 
-The layout of `data/` is the archive's own: `dun/pack/maindat.pac`,
+The layout of `data/` or the root of `data.zip` is the disc archive's own: `dun/pack/maindat.pac`,
 `commenu/a_eng/savetex.pak`, `sound/bgm/...` and so on. Lookups fold case,
 as the game's `strcasecmp` does, so the case on disk does not matter.
 
@@ -2008,7 +2058,7 @@ installing, the first start and where the data and saves live.
 
 ## Renderer performance and threading
 
-The Kazarov dependency is pinned to upstream `master` at `28281ce`. It includes
+The Kazarov dependency is pinned at `726b1ee`. It includes
 ChronicleTwo's renderer work: cached camera re-basing, bone palettes stored separately
 from draw constants, shared storage-buffer records, deduplicated uploads and descriptor
 bindings, cached display-list rewrites, full-cover grabs without a redundant copy, and
@@ -2031,21 +2081,50 @@ their bytes change; material-only animation still updates its draw constants.
 Transient visuals are released every frame; persistent visual tables are swept every
 sixteen frames, with immediate tag validation on lookup.
 
-Chronicle retains the retail HD/BD/SQ readers under `port/src/audio` because its
-extracted data uses the retail audio formats. The compatibility declarations under
-`port/include/audio` extend the shared audio API and must precede Kazarov's headers
-for every host and game unit. The SQ reader normalizes retail events once when a
-sequence loads; playback uses Kazarov's current event player. This does not require
+Archive loading uses slicing-by-eight IEEE CRC32 without weakening integrity checks.
+ZIP directory entries are parsed sequentially; directories up to 16 MiB are read in
+one bounded operation, while larger directories retain the streaming parser. Stored
+and deflated entries retain their existing validation and extraction behavior.
+
+Texture-container metadata reads share immutable source bytes for archive-backed
+files. The main-thread cache holds at most four files and 16 MiB; it does not cache
+decoded pixels, palettes, loose files or general file reads. Resetting the data root
+or reinitializing CD-file state clears future lookups. Existing readers retain their
+own immutable snapshot until they finish.
+
+These loading paths are enabled on all native platforms. For comparisons, set
+`DC_ARCHIVE_CRC_SLICE8`, `DC_ARCHIVE_SEQUENTIAL_INDEX`, `DC_ARCHIVE_BULK_INDEX` or
+`DC_TEXTURE_SOURCE_CACHE` to `0` before launch. An unset variable or exactly `1`
+enables its path; other values disable it. `DC_PERF_LOAD=1` adds archive and source-read
+timings and byte counts; it is disabled by default.
+
+Desktop startup leaves translation-template generation to the explicit
+`--export-text DIR` command. A fresh save root no longer scans every message
+container to create translator files before the game starts. Translation loading
+and the export command are unchanged; see [Localization](LOCALIZATION.md).
+
+Loading traces separate baked-texture JSON parsing/schema checks and PNG decoding
+from their file-read API spans. Those outer spans include lookup and diagnostic
+output costs and should not be reported as storage throughput or parsing CPU time.
+A populated Norune console trace measured 27.8 ms in JSON parse/schema calls and
+356.8 ms in PNG decode calls across 113 texture loads and 141 distinct PNGs. The
+largest remaining measured software stage is image decoding; a repeated-image
+cache has no demonstrated opportunity in this fixture. Model conversion and upload
+costs still need separate measurement.
+
+Chronicle reads the retail HD/BD/SQ audio formats through Kazarov's raw audio parser
+(`tools/kazarov/src/cpp/audio/raw_audio.cpp`), which normalizes retail events once when a
+sequence loads; playback uses Kazarov's event player. Dark Cloud's SQ note-offs carry only a
+note number, so `LoadSequence` passes `SqRawOptions::short_note_off`. This does not require
 re-extracting disc data.
 
 
-Verification on Windows x64 (2026-10-20): the release game and test executables
-build against this pin. The full suite has three failures in untouched code:
-`LocalizeOptions.ShippedTranslationsHaveExactlyTheCodesKeys` (quest translation keys)
-and the two `AreaCard.Translated*` cases (the shared PNG loader accepts RGBA only,
-while the tests write RGB). The async handoff, batching, cleared-block validation,
-config persistence and retail audio compatibility have dedicated passing tests.
-The shared render-thread and palette tests also pass. A 120-frame offscreen town
-run wrote its screenshot, and a windowed async town run completed 120 ticks and
-478 display frames. These runs establish functionality, not a measured speedup;
-Android and interactive resize/fullscreen transitions are not qualified here.
+Verification on Windows x64 (2026-10-26): the release game and test executables
+build against this pin. The native and GPU suites passed 651 tests, with eight skips
+for unavailable fixtures or test-environment features and one disabled latency benchmark.
+Coverage includes alpha-tested and fogged meshes, depth copies and planes,
+display-list lifetimes, draw order, archive integrity and source-cache invalidation.
+A populated Norune replay matched the pre-cleanup raw RGBA image exactly and
+retained all 34 shadow-geometry hash batches. See [Switch](SWITCH.md) for the scope
+of physical hardware checks; Android and interactive resize/fullscreen transitions
+are not qualified by these runs.

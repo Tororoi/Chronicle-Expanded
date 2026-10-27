@@ -60,9 +60,9 @@ recovered, as `CCharacter::ClothStep` does with `PortImagePointer`) fixes the ro
 
 | site | function | state | class | expression | origin | use |
 |---|---|---|---|---|---|---|
-| port/src/dataread.cpp:331 | LoadFileBG | port | low-bits | `reinterpret_cast < std :: uintptr_t >(buffer)` | parameter | test |
-| port/src/edit_in.cpp:1794 | LoadData | port | low-bits | `reinterpret_cast < std :: intptr_t >(func_point[i].parts)` | field | index: InteriorParts[static_cast < int >(reinterpret_cast < std ... |
-| port/src/texture.cpp:550 | CTextureManager::SetBuffer | port | low-bits | `reinterpret_cast < std :: uintptr_t >(buffer)` | parameter | store: misalignment |
+| port/src/dataread.cpp:323 | LoadFileBG | port | low-bits | `reinterpret_cast < std :: uintptr_t >(buffer)` | parameter | test |
+| port/src/edit_in.cpp:1798 | LoadData | port | low-bits | `reinterpret_cast < std :: intptr_t >(func_point[i].parts)` | field | index: InteriorParts[static_cast < int >(reinterpret_cast < std ... |
+| port/src/texture.cpp:546 | CTextureManager::SetBuffer | port | low-bits | `reinterpret_cast < std :: uintptr_t >(buffer)` | parameter | store: misalignment |
 | ps2/src/dataset.cpp:381 | LoadMDSFile | retail | low-bits | `(int)data` | parameter | test |
 | ps2/src/gameutil.cpp:299 | MotionProc | retail | low-bits | `(int)list` | parameter | test |
 | ps2/src/gameutil.cpp:311 | MotionProc | retail | low-bits | `(int)list` | parameter | test |

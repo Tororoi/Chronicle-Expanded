@@ -4,19 +4,26 @@
 // linking the tool. It includes no game header.
 
 #include <algorithm>
+#include <array>
+#include <atomic>
+#include <climits>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <format>
+#include <exception>
 #include <fstream>
 #include <functional>
+#include <mutex>
 #include <optional>
+#include <ostream>
 #include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -1056,61 +1063,213 @@ inline void FillFloorPlates(const fs::path &out) {
     }
 }
 
+// The kinds of file the disc holds, extracted side by side.
+enum class AssetClass : std::uint8_t {
+    Textures,
+    Models,
+    Audio,
+    Movies,
+    Scripts,
+    Packs,
+    Other,
+};
+
+inline AssetClass ClassOf(std::string_view path) {
+    std::size_t dot = path.rfind('.');
+    if (dot == std::string_view::npos || path.find('/', dot) != std::string_view::npos) {
+        return AssetClass::Other;
+    }
+    std::string extension;
+    for (char c : path.substr(dot + 1)) {
+        extension.push_back(FoldChar(c));
+    }
+    extension.erase(extension.find_last_not_of('_') + 1);
+    auto in = [&](std::initializer_list<std::string_view> names) {
+        return std::find(names.begin(), names.end(), extension) != names.end();
+    };
+    if (in({"img", "tm2", "im2", "im3", "tim2", "pim"})) {
+        return AssetClass::Textures;
+    }
+    if (in({"chr", "mds", "mot", "scn", "mpd"})) {
+        return AssetClass::Models;
+    }
+    if (in({"snd", "bd", "hd", "sq", "sne"})) {
+        return AssetClass::Audio;
+    }
+    if (in({"pss", "sfd"})) {
+        return AssetClass::Movies;
+    }
+    if (in({"stb", "mes", "cfg", "scr", "txt"})) {
+        return AssetClass::Scripts;
+    }
+    if (in({"pak", "pac"})) {
+        return AssetClass::Packs;
+    }
+    return AssetClass::Other;
+}
+
+// One slice of a class's files; `work` is its byte count, for starting the largest first.
+struct ClassJob {
+    AssetClass            asset_class = AssetClass::Other;
+    std::string           label;
+    std::uint64_t         work = 0;
+    std::function<void()> run;
+};
+
+// Runs every job, classes interleaved, and rethrows the first failure after stopping the rest.
+using JobRunner = std::function<void(std::vector<ClassJob>)>;
+
+// The runner for hosts without the shared extraction scheduler: the same interleaving on plain threads.
+inline void RunOnThreads(std::vector<ClassJob> jobs) {
+    constexpr std::size_t        kClasses = static_cast<std::size_t>(AssetClass::Other) + 1;
+    std::array<std::vector<ClassJob>, kClasses> queues;
+    for (ClassJob &job : jobs) {
+        queues[static_cast<std::size_t>(job.asset_class)].push_back(std::move(job));
+    }
+    std::vector<ClassJob> ordered;
+    for (auto &queue : queues) {
+        std::stable_sort(queue.begin(), queue.end(),
+                         [](const ClassJob &a, const ClassJob &b) { return a.work < b.work; });
+    }
+    for (bool any = true; any;) {
+        any = false;
+        for (auto &queue : queues) {
+            if (!queue.empty()) {
+                ordered.push_back(std::move(queue.back()));
+                queue.pop_back();
+                any = true;
+            }
+        }
+    }
+    std::atomic<std::size_t> next = 0;
+    std::exception_ptr       failure;
+    std::mutex               failure_mutex;
+    auto                     worker = [&] {
+        for (std::size_t index; (index = next.fetch_add(1)) < ordered.size();) {
+            try {
+                ordered[index].run();
+            } catch (...) {
+                std::lock_guard lock(failure_mutex);
+                if (!failure) {
+                    failure = std::current_exception();
+                }
+                next = ordered.size();
+            }
+        }
+    };
+    std::size_t               count = std::clamp<std::size_t>(std::thread::hardware_concurrency(), 1, 16);
+    std::vector<std::thread> threads;
+    for (std::size_t i = 1; i < count; i++) {
+        threads.emplace_back(worker);
+    }
+    worker();
+    for (std::thread &thread : threads) {
+        thread.join();
+    }
+    if (failure) {
+        std::rethrow_exception(failure);
+    }
+}
+
 inline Summary Extract(const Archive &archive, const fs::path &out, std::FILE *log,
-                       const ProgressCallback &progress = {}) {
+                       const ProgressCallback &progress = {}, const JobRunner &run_jobs = RunOnThreads) {
     std::vector<unsigned char> hd2 = ReadExtent(archive.hd2);
     std::vector<Record>        records = ParseIndex(hd2);
     Summary                    summary;
     summary.records = records.size();
     CheckFits(records, archive, log, &summary.warnings);
     std::vector<const Record *> reachable = Reachable(records, log, &summary.duplicates);
-    Progress                    done{.total_files = reachable.size()};
+    Progress                    total{.total_files = reachable.size()};
     for (const Record *record : reachable) {
-        done.total_bytes += record->size;
+        total.total_bytes += record->size;
+        summary.bytes += record->size;
     }
-    auto report = [&] {
-        if (progress && !progress(done)) {
+
+    fs::create_directories(out);
+    std::mutex            report_mutex;
+    Progress              done = total;
+    done.files = 0;
+    done.bytes = 0;
+    std::atomic<bool>     cancelled = false;
+    std::atomic<std::size_t> kept = 0;
+    std::atomic<std::size_t> written = 0;
+    std::atomic<std::uint64_t> written_bytes = 0;
+    auto report = [&](std::size_t files, std::uint64_t bytes) {
+        std::lock_guard lock(report_mutex);
+        done.files += files;
+        done.bytes += bytes;
+        if (cancelled || (progress && !progress(done))) {
+            cancelled = true;
             Fail("extraction cancelled");
         }
     };
+    auto extract_slice = [&](std::vector<const Record *> slice) {
+        Reader                     dat(archive.dat.file);
+        std::vector<unsigned char> chunk(4 << 20);
+        for (const Record *record : slice) {
+            fs::path target = out / fs::path(record->path);
+            if (IsCurrent(target, record->size)) {
+                kept++;
+                report(1, record->size);
+                continue;
+            }
+            fs::create_directories(target.parent_path());
+            std::ofstream file(target, std::ios::binary | std::ios::trunc);
+            if (!file) {
+                Fail("cannot create {}", target.string());
+            }
+            std::uint64_t offset = archive.dat.offset + record->sector * kSector;
+            for (std::uint64_t left = record->size; left != 0;) {
+                std::size_t step = static_cast<std::size_t>(std::min<std::uint64_t>(left, chunk.size()));
+                dat.Read(offset, chunk.data(), step);
+                file.write(reinterpret_cast<const char *>(chunk.data()), static_cast<std::streamsize>(step));
+                offset += step;
+                left -= step;
+                report(0, step);
+            }
+            file.close();
+            if (!file) {
+                Fail("write error on {}", target.string());
+            }
+            written++;
+            written_bytes += record->size;
+            report(1, 0);
+        }
+    };
 
-    fs::create_directories(out);
-    Reader                     dat(archive.dat.file);
-    std::vector<unsigned char> chunk(4 << 20);
-    for (const Record *record : reachable) {
-        fs::path target = out / fs::path(record->path);
-        summary.bytes += record->size;
-        if (IsCurrent(target, record->size)) {
-            summary.kept++;
-            done.files++;
-            done.bytes += record->size;
-            report();
-            continue;
+    // Slices of about this many bytes keep every worker busy while one class holds the big files.
+    constexpr std::uint64_t kSliceBytes = 32ULL << 20;
+    constexpr std::size_t   kSliceFiles = 256;
+    std::vector<ClassJob>   jobs;
+    for (std::uint8_t c = 0; c <= static_cast<std::uint8_t>(AssetClass::Other); c++) {
+        std::vector<const Record *> slice;
+        std::uint64_t               slice_bytes = 0;
+        auto                        flush = [&] {
+            if (slice.empty()) {
+                return;
+            }
+            AssetClass cls = static_cast<AssetClass>(c);
+            jobs.push_back({cls, slice.front()->path, slice_bytes + 1,
+                            [slice = std::move(slice), &extract_slice] { extract_slice(slice); }});
+            slice.clear();
+            slice_bytes = 0;
+        };
+        for (const Record *record : reachable) {
+            if (ClassOf(record->path) != static_cast<AssetClass>(c)) {
+                continue;
+            }
+            slice.push_back(record);
+            slice_bytes += record->size;
+            if (slice_bytes >= kSliceBytes || slice.size() >= kSliceFiles) {
+                flush();
+            }
         }
-        fs::create_directories(target.parent_path());
-        std::ofstream file(target, std::ios::binary | std::ios::trunc);
-        if (!file) {
-            Fail("cannot create {}", target.string());
-        }
-        std::uint64_t offset = archive.dat.offset + record->sector * kSector;
-        for (std::uint64_t left = record->size; left != 0;) {
-            std::size_t step = static_cast<std::size_t>(std::min<std::uint64_t>(left, chunk.size()));
-            dat.Read(offset, chunk.data(), step);
-            file.write(reinterpret_cast<const char *>(chunk.data()), static_cast<std::streamsize>(step));
-            offset += step;
-            left -= step;
-            done.bytes += step;
-            report();
-        }
-        file.close();
-        if (!file) {
-            Fail("write error on {}", target.string());
-        }
-        summary.written++;
-        summary.written_bytes += record->size;
-        done.files++;
-        report();
+        flush();
     }
+    run_jobs(std::move(jobs));
+    summary.kept = kept;
+    summary.written = written;
+    summary.written_bytes = written_bytes;
 
     fs::path      index_copy = out / "data.hd2";
     std::ofstream file(index_copy, std::ios::binary | std::ios::trunc);
@@ -1142,6 +1301,234 @@ inline std::vector<const Record *> Mismatched(const std::vector<Record> &records
         }
     }
     return bad;
+}
+
+struct ZipEntry {
+    fs::path source;
+    std::string name;
+    std::uint32_t crc = 0;
+    std::uint32_t size = 0;
+    std::uint32_t offset = 0;
+};
+
+inline void ZipPut16(std::ostream &stream, std::uint16_t value) {
+    const std::array<char, 2> bytes = {static_cast<char>(value), static_cast<char>(value >> 8)};
+    stream.write(bytes.data(), bytes.size());
+}
+
+inline void ZipPut32(std::ostream &stream, std::uint32_t value) {
+    const std::array<char, 4> bytes = {static_cast<char>(value), static_cast<char>(value >> 8),
+                                       static_cast<char>(value >> 16), static_cast<char>(value >> 24)};
+    stream.write(bytes.data(), bytes.size());
+}
+
+constexpr std::array<std::uint32_t, 256> MakeZipCrcTable() {
+    std::array<std::uint32_t, 256> table{};
+    for (std::size_t value = 0; value < table.size(); ++value) {
+        std::uint32_t crc = static_cast<std::uint32_t>(value);
+        for (int bit = 0; bit < 8; ++bit) {
+            crc = (crc >> 1) ^ (0xEDB88320 & (0U - (crc & 1U)));
+        }
+        table[value] = crc;
+    }
+    return table;
+}
+
+inline constexpr auto kZipCrcTable = MakeZipCrcTable();
+
+inline std::uint32_t ZipCrcUpdate(std::uint32_t crc, std::span<const unsigned char> bytes) {
+    for (unsigned char byte : bytes) {
+        crc = kZipCrcTable[(crc ^ byte) & 0xFF] ^ (crc >> 8);
+    }
+    return crc;
+}
+
+/**
+ * Writes a deterministic ZIP_STORED archive of the files under `source`.
+ *
+ * The classic ZIP limits keep the output readable by the game's bounded native ZIP reader.
+ */
+inline void PackDirectory(const fs::path &source, const fs::path &output) {
+    std::error_code error;
+    if (!fs::is_directory(source, error)) {
+        Fail("{} is not a data directory", source.string());
+    }
+    const fs::path source_absolute = fs::weakly_canonical(source, error);
+    if (error) {
+        Fail("cannot resolve {}: {}", source.string(), error.message());
+    }
+    const fs::path output_parent = output.parent_path().empty() ? fs::current_path(error) : output.parent_path();
+    const fs::path output_absolute = fs::weakly_canonical(output_parent, error) / output.filename();
+    if (error) {
+        Fail("cannot resolve {}: {}", output.string(), error.message());
+    }
+    const std::string source_prefix = source_absolute.generic_string() + "/";
+    if (output_absolute.generic_string().starts_with(source_prefix)) {
+        Fail("archive output must be outside the source data directory");
+    }
+    if (fs::exists(output, error)) {
+        Fail("{} already exists; choose a new output path", output.string());
+    }
+    if (error) {
+        Fail("cannot inspect {}: {}", output.string(), error.message());
+    }
+
+    std::vector<ZipEntry> entries;
+    for (fs::recursive_directory_iterator it(source, fs::directory_options::skip_permission_denied, error), end;
+         !error && it != end; it.increment(error)) {
+        if (it->is_symlink(error) || !it->is_regular_file(error)) {
+            continue;
+        }
+        const fs::path relative = it->path().lexically_relative(source);
+        const auto utf8 = relative.generic_u8string();
+        std::string name(utf8.begin(), utf8.end());
+        if (!IsSafeRelative(name) || name.size() > 0xFFFF) {
+            Fail("unsafe or too-long data path: {}", name);
+        }
+        const std::uintmax_t size = it->file_size(error);
+        if (error || size > INT32_MAX) {
+            Fail("{} exceeds the supported 2 GiB file limit", name);
+        }
+        entries.push_back({.source = it->path(), .name = std::move(name), .size = static_cast<std::uint32_t>(size)});
+    }
+    if (error) {
+        Fail("cannot enumerate {}: {}", source.string(), error.message());
+    }
+    if (entries.empty()) {
+        Fail("{} contains no files", source.string());
+    }
+    if (entries.size() >= 0xFFFF) {
+        Fail("{} has too many files for classic ZIP", entries.size());
+    }
+    std::sort(entries.begin(), entries.end(), [](const ZipEntry &left, const ZipEntry &right) {
+        return left.name < right.name;
+    });
+    std::unordered_set<std::string> folded_names;
+    for (const ZipEntry &entry : entries) {
+        if (!folded_names.insert(FoldPath(entry.name)).second) {
+            Fail("data paths differ only by ASCII case: {}", entry.name);
+        }
+    }
+
+    std::vector<unsigned char> buffer(1 << 20);
+    std::uint64_t total_bytes = 0;
+    for (ZipEntry &entry : entries) {
+        std::ifstream input(entry.source, std::ios::binary);
+        if (!input) {
+            Fail("cannot open {}", entry.source.string());
+        }
+        std::uint32_t crc = 0xFFFFFFFF;
+        while (input) {
+            input.read(reinterpret_cast<char *>(buffer.data()), buffer.size());
+            const std::streamsize count = input.gcount();
+            crc = ZipCrcUpdate(crc, std::span(buffer.data(), static_cast<std::size_t>(count)));
+        }
+        if (!input.eof()) {
+            Fail("cannot read {}", entry.source.string());
+        }
+        entry.crc = ~crc;
+        total_bytes += entry.size;
+    }
+
+    if (!output.parent_path().empty()) {
+        fs::create_directories(output.parent_path());
+    }
+    const fs::path temporary = output.string() + ".tmp";
+    if (fs::exists(temporary, error)) {
+        Fail("temporary output {} already exists", temporary.string());
+    }
+    try {
+        std::ofstream archive(temporary, std::ios::binary | std::ios::trunc);
+        if (!archive) {
+            Fail("cannot create {}", temporary.string());
+        }
+        for (ZipEntry &entry : entries) {
+            const std::streamoff offset = archive.tellp();
+            if (offset < 0 || static_cast<std::uint64_t>(offset) > UINT32_MAX) {
+                Fail("archive exceeds the 4 GiB classic ZIP limit");
+            }
+            entry.offset = static_cast<std::uint32_t>(offset);
+            ZipPut32(archive, 0x04034B50);
+            ZipPut16(archive, 20);
+            ZipPut16(archive, 1U << 11);
+            ZipPut16(archive, 0);
+            ZipPut16(archive, 0);
+            ZipPut16(archive, 0x0021);
+            ZipPut32(archive, entry.crc);
+            ZipPut32(archive, entry.size);
+            ZipPut32(archive, entry.size);
+            ZipPut16(archive, static_cast<std::uint16_t>(entry.name.size()));
+            ZipPut16(archive, 0);
+            archive.write(entry.name.data(), static_cast<std::streamsize>(entry.name.size()));
+
+            std::ifstream input(entry.source, std::ios::binary);
+            if (!input) {
+                Fail("cannot reopen {}", entry.source.string());
+            }
+            std::uint32_t crc = 0xFFFFFFFF;
+            std::uint32_t written = 0;
+            while (input) {
+                input.read(reinterpret_cast<char *>(buffer.data()), buffer.size());
+                const std::streamsize count = input.gcount();
+                if (count > 0) {
+                    const auto chunk = std::span(buffer.data(), static_cast<std::size_t>(count));
+                    crc = ZipCrcUpdate(crc, chunk);
+                    archive.write(reinterpret_cast<const char *>(chunk.data()), count);
+                    written += static_cast<std::uint32_t>(count);
+                }
+            }
+            if (!input.eof() || written != entry.size || ~crc != entry.crc || !archive) {
+                Fail("{} changed while the archive was written", entry.source.string());
+            }
+        }
+        const std::streamoff central_offset_stream = archive.tellp();
+        if (central_offset_stream < 0 || static_cast<std::uint64_t>(central_offset_stream) > UINT32_MAX) {
+            Fail("archive exceeds the 4 GiB classic ZIP limit");
+        }
+        const std::uint32_t central_offset = static_cast<std::uint32_t>(central_offset_stream);
+        for (const ZipEntry &entry : entries) {
+            ZipPut32(archive, 0x02014B50);
+            ZipPut16(archive, 20);
+            ZipPut16(archive, 20);
+            ZipPut16(archive, 1U << 11);
+            ZipPut16(archive, 0);
+            ZipPut16(archive, 0);
+            ZipPut16(archive, 0x0021);
+            ZipPut32(archive, entry.crc);
+            ZipPut32(archive, entry.size);
+            ZipPut32(archive, entry.size);
+            ZipPut16(archive, static_cast<std::uint16_t>(entry.name.size()));
+            ZipPut16(archive, 0);
+            ZipPut16(archive, 0);
+            ZipPut16(archive, 0);
+            ZipPut16(archive, 0);
+            ZipPut32(archive, 0);
+            ZipPut32(archive, entry.offset);
+            archive.write(entry.name.data(), static_cast<std::streamsize>(entry.name.size()));
+        }
+        const std::streamoff central_end_stream = archive.tellp();
+        if (central_end_stream < 0 || static_cast<std::uint64_t>(central_end_stream) > UINT32_MAX) {
+            Fail("archive exceeds the 4 GiB classic ZIP limit");
+        }
+        const std::uint32_t central_size = static_cast<std::uint32_t>(central_end_stream) - central_offset;
+        ZipPut32(archive, 0x06054B50);
+        ZipPut16(archive, 0);
+        ZipPut16(archive, 0);
+        ZipPut16(archive, static_cast<std::uint16_t>(entries.size()));
+        ZipPut16(archive, static_cast<std::uint16_t>(entries.size()));
+        ZipPut32(archive, central_size);
+        ZipPut32(archive, central_offset);
+        ZipPut16(archive, 0);
+        archive.close();
+        if (!archive) {
+            Fail("write error on {}", temporary.string());
+        }
+        fs::rename(temporary, output);
+    } catch (...) {
+        fs::remove(temporary, error);
+        throw;
+    }
+    Log(stdout, "packed {} files ({} bytes) into {}\n", entries.size(), total_bytes, output.string());
 }
 
 } // namespace dcdata
