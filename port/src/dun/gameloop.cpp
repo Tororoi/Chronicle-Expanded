@@ -72,22 +72,8 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/scene_light.hpp"
-#include "expanded/enemies/bomb_gemron.hpp"
-#include "expanded/status/confuse.hpp"
-#include "expanded/status/freeze.hpp"
-#include "expanded/weapons/big_bang_shot.hpp"
-#include "expanded/weapons/solar_flash.hpp"
-#include "expanded/weapons/toan/big_bang.hpp"
-#include "expanded/weapons/toan/brave_ark.hpp"
-#include "expanded/weapons/toan/seventh_heaven.hpp"
-#include "expanded/weapons/ungaga/cactus.hpp"
-#include "expanded/weapons/ungaga/mirage.hpp"
-#include "expanded/weapons/xiao/angel_gear.hpp"
-#include "expanded/weapons/xiao/divine_beast_title.hpp"
-#include "expanded/weapons/xiao/matador.hpp"
 #endif
 
 // The dungeon's MainDraw and LoaderLoop, replaced to drop what the renderer has no use for: the VU1
@@ -327,9 +313,7 @@ PORT_OVERRIDE void DunMainDraw() {
 
     Draw_MainUnitShadow();
 #ifdef CHRONICLE_EXPANDED
-    if (atraGetStatus == 0) {
-        expanded::AtlaDropsDrawOverShadows(CharaFrame->position);
-    }
+    expanded::DungeonShadowsDrawn(CharaFrame->position);
 #endif
 
     if (BtActStatus.player_visible != 0 && EdEventInfo.player_draw != 0) {
@@ -340,7 +324,7 @@ PORT_OVERRIDE void DunMainDraw() {
         DrawMonstorDetail();
     }
 #ifdef CHRONICLE_EXPANDED
-    expanded::DesertBloomDraw();
+    expanded::DungeonMonstersDrawn();
 #endif
 
     if (CharaMainHandViewFlag != 0) {
@@ -371,7 +355,7 @@ PORT_OVERRIDE void DunMainDraw() {
     }
 
 #ifdef CHRONICLE_EXPANDED
-    expanded::MirageCloneDraw();
+    expanded::DungeonNpcsDrawn();
 #endif
 
     NowDngMap->DrawNPCDraw();
@@ -418,13 +402,7 @@ PORT_OVERRIDE void DunMainDraw() {
         }
 
 #ifdef CHRONICLE_EXPANDED
-        expanded::ShotEffectsDraw();
-        expanded::ConfuseStarsDraw();
-        expanded::SolarGlowDraw();
-        expanded::BigBangShotDraw();
-        expanded::ChargingBullDraw();
-        expanded::SpiritBeastDraw();
-        expanded::GuardianReflectorDraw();
+        expanded::DungeonEffectsDrawn();
 #endif
         NowMainEffect->Draw();
     }
@@ -435,7 +413,7 @@ PORT_OVERRIDE void DunMainDraw() {
     TexManager.ReloadTexture(Vif1Packet, 0xE);
     NowDngMap->DrawRaster(CharaFrame);
 #ifdef CHRONICLE_EXPANDED
-    expanded::MirageHazeDraw();
+    expanded::DungeonRasterDrawn();
 #endif
 
     if (NowDngMap->map_type == 1) {
@@ -628,7 +606,7 @@ PORT_OVERRIDE void DunMainDraw() {
                 NowShotData->draw();
                 OzumondShotEffect.Draw();
 #ifdef CHRONICLE_EXPANDED
-                expanded::BombGemronEffectsDraw();
+                expanded::DungeonShotsDrawn();
 #endif
                 OzumondFire.Draw();
             }
@@ -984,7 +962,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
 
         int hit_no = NowColData->CheckHitUser(pos, 1, CharaHeight(UserStatus));
 #ifdef CHRONICLE_EXPANDED
-        if (hit_no != -1 && expanded::PlayerHitSkipped(NowColData->hit[hit_no])) {
+        if (hit_no != -1 && expanded::PlayerHitPassesBy(NowColData->hit[hit_no])) {
             hit_no = -1;
         }
 #endif
@@ -1025,9 +1003,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
             COLLISION_HIT *hit = &NowColData->hit[hit_no];
 
 #ifdef CHRONICLE_EXPANDED
-            expanded::BreakFreeze(hit);
-            expanded::DivineGuardHit(*hit);
-            expanded::HerosCourageHit(*hit);
+            expanded::PlayerHitReached(*hit);
             guard = expanded::PlayerDefense(UserStatus->cur_chara, guard);
 #endif
 
@@ -1329,7 +1305,7 @@ PORT_OVERRIDE int BtCheckDamageProc() {
             }
 
 #ifdef CHRONICLE_EXPANDED
-            expanded::DivineGuardBlocked(blown != 0 && (kind == 2 || kind == 4));
+            expanded::PlayerHitReacted(blown != 0 && (kind == 2 || kind == 4));
 #endif
         }
     }

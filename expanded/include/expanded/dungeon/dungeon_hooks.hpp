@@ -24,6 +24,22 @@ void DungeonStatusReady();
 // The top of a dungeon frame (GameLoop): a stage's party member brought out.
 void DungeonFrameBegins();
 
+// The dungeon's draw (MainDraw), where features draw over the game's: after the units' shadows (player, the player's
+// position), the monsters, the event's characters, the shot effects (before the main effect), the map's raster and the
+// player's shots.
+void DungeonShadowsDrawn(const float *player);
+void DungeonMonstersDrawn();
+void DungeonNpcsDrawn();
+void DungeonEffectsDrawn();
+void DungeonRasterDrawn();
+void DungeonShotsDrawn();
+
+// A monster's hit reaching the player (BtCheckDamageProc): whether it passes him by, the hit before its damage is
+// worked out, and the reaction it gave (blocked: his guard took it).
+bool PlayerHitPassesBy(const COLLISION_HIT &hit);
+void PlayerHitReached(COLLISION_HIT &hit);
+void PlayerHitReacted(bool blocked);
+
 // The floor's monsters put back (CleanViewMonstor): confusion ends (its stars dropped when drop_stars), Expanded's
 // shots stop and a flash's charge and blinding end.
 void DungeonMonstersCleared(bool drop_stars);

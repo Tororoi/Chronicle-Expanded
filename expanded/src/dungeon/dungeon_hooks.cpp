@@ -22,6 +22,7 @@
 #include "expanded/enemies/steve.hpp"
 #include "expanded/status/blind.hpp"
 #include "expanded/status/confuse.hpp"
+#include "expanded/status/freeze.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/big_bang_shot.hpp"
 #include "expanded/weapons/blast.hpp"
@@ -32,6 +33,7 @@
 #include "expanded/weapons/solid_column.hpp"
 #include "expanded/weapons/toan/agas_sword.hpp"
 #include "expanded/weapons/toan/atlamillia_sword.hpp"
+#include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
 #include "expanded/weapons/toan/claymore.hpp"
 #include "expanded/weapons/toan/cross_hinder.hpp"
@@ -40,6 +42,7 @@
 #include "expanded/weapons/toan/gladius.hpp"
 #include "expanded/weapons/toan/heavens_cloud.hpp"
 #include "expanded/weapons/toan/maneater.hpp"
+#include "expanded/weapons/toan/seventh_heaven.hpp"
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
@@ -97,6 +100,50 @@ void DungeonStatusReady() {
 
 void DungeonFrameBegins() {
     StageFrame();
+}
+
+void DungeonShadowsDrawn(const float *player) {
+    AtlaDropsDrawOverShadows(player);
+}
+
+void DungeonMonstersDrawn() {
+    DesertBloomDraw();
+}
+
+void DungeonNpcsDrawn() {
+    MirageCloneDraw();
+}
+
+void DungeonEffectsDrawn() {
+    ShotEffectsDraw();
+    ConfuseStarsDraw();
+    SolarGlowDraw();
+    BigBangShotDraw();
+    ChargingBullDraw();
+    SpiritBeastDraw();
+    GuardianReflectorDraw();
+}
+
+void DungeonRasterDrawn() {
+    MirageHazeDraw();
+}
+
+void DungeonShotsDrawn() {
+    BombGemronEffectsDraw();
+}
+
+bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
+    return PlayerHitSkipped(hit);
+}
+
+void PlayerHitReached(COLLISION_HIT &hit) {
+    BreakFreeze(&hit);
+    DivineGuardHit(hit);
+    HerosCourageHit(hit);
+}
+
+void PlayerHitReacted(bool blocked) {
+    DivineGuardBlocked(blocked);
 }
 
 void DungeonMonstersCleared(bool drop_stars) {
