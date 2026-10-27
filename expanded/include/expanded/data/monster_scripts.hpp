@@ -34,9 +34,9 @@ inline constexpr std::array<const char *, 7> kKingMimicScripts = {"e34a", "e36a"
 bool        ScriptIsBaked(std::string_view script);
 std::string BakedScriptFile(std::string_view script);
 
-// The script rebuilt from the disc's, and what was done; throws when the script is not one rebuilt, when it has
-// nothing the bake changes, or when it has the mark.
-Bytes BakeMonsterScript(std::string_view script, std::span<const unsigned char> stb, std::string *done = nullptr);
+// The script rebuilt from the disc's; throws when the script is not one rebuilt, when it has nothing the bake changes,
+// or when it has the mark.
+Bytes BakeMonsterScript(std::string_view script, std::span<const unsigned char> stb);
 
 // Every one, from data's dun/monstor scripts.
 std::vector<DataBuild> MonsterScriptBuilds();

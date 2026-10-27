@@ -18,15 +18,6 @@ namespace {
 
 constexpr double kPi = std::numbers::pi;
 
-const RigNode &ByName(const std::vector<RigNode> &nodes, std::string_view name) {
-    for (const RigNode &n : nodes) {
-        if (n.name == name) {
-            return n;
-        }
-    }
-    throw std::runtime_error("the cat has no " + std::string(name));
-}
-
 std::vector<V3> Fur(const std::vector<RigNode> &nodes, const SkinMesh &skin) {
     auto            world = [&](int b) -> const M4            &{ return nodes[std::size_t(b)].world; };
     std::vector<V3> fur;
@@ -52,7 +43,7 @@ struct BoundWorld {
 std::vector<BoundWorld> CapeBoundsWorld(const std::vector<RigNode> &nodes) {
     std::vector<BoundWorld> out;
     for (const BoundLocal &b : CapeBoundsLocal(nodes)) {
-        const M4 &wm = ByName(nodes, b.bone).world;
+        const M4 &wm = NodeNamed(nodes, b.bone).world;
         V3        aw = XformPt(wm, b.a), bw = XformPt(wm, b.b), upw = VecMatExact(b.up, RotOf(wm));
         V3 z = UnitExact({aw[0] - bw[0], aw[1] - bw[1], aw[2] - bw[2]}), x = UnitExact(Cross(upw, z)), y = Cross(z, x);
         out.push_back({
@@ -348,7 +339,7 @@ SkinMesh BuildCapeMesh(const std::vector<RigNode> &nodes, const SkinMesh &skin) 
             }
         }
     }
-    const RigNode &anchor = ByName(nodes, kCapeAnchor);
+    const RigNode &anchor = NodeNamed(nodes, kCapeAnchor);
     M4             inv = RigidInv(anchor.world);
     SkinMesh       me;
     me.node = skin.node;
@@ -697,7 +688,7 @@ std::optional<std::pair<V3, V3>> MaskRay(const std::vector<V3> &fur, const std::
 std::vector<BoundLocal> CapeBoundsLocal(const std::vector<RigNode> &cat_nodes) {
     std::vector<BoundLocal> out;
     for (const CapeBound &b : kCapeBounds) {
-        const RigNode &n = ByName(cat_nodes, b.bone);
+        const RigNode &n = NodeNamed(cat_nodes, b.bone);
         M4             inv = RigidInv(n.world);
         const M4      &r = n.world;
         V3             a = XformPt(inv, {b.centre[0] + b.axis[0], b.centre[1] + b.axis[1], b.centre[2] + b.axis[2]});
@@ -720,7 +711,7 @@ std::vector<BoundLocal> CapeBoundsLocal(const std::vector<RigNode> &cat_nodes) {
 std::vector<V3> CapeRestLocal(const std::vector<RigNode> &cat_nodes, const SkinMesh &skin) {
     SkinMesh        me = BuildCapeMesh(cat_nodes, skin);
     auto            world = [&](int b) -> const M4            &{ return cat_nodes[std::size_t(b)].world; };
-    M4              inv = RigidInv(ByName(cat_nodes, kCapeAnchor).world);
+    M4              inv = RigidInv(NodeNamed(cat_nodes, kCapeAnchor).world);
     std::vector<V3> out;
     for (int i = 0; i < me.nv; i++) {
         out.push_back(XformPt(inv, Skinned(me, i, world)));
@@ -730,7 +721,7 @@ std::vector<V3> CapeRestLocal(const std::vector<RigNode> &cat_nodes, const SkinM
 
 SkinMesh BuildMaskMesh(const std::vector<RigNode> &cat_nodes, const SkinMesh &skin, const Log &log) {
     std::vector<V3> fur = Fur(cat_nodes, skin);
-    const RigNode  &head = ByName(cat_nodes, kMaskAnchor);
+    const RigNode  &head = NodeNamed(cat_nodes, kMaskAnchor);
     M4              inv = RigidInv(head.world);
     double          gap = MaskClearance();
     if (gap < 0.02) {

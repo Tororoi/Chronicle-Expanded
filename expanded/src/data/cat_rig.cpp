@@ -342,6 +342,15 @@ std::vector<RigNode> ReadSkeleton(std::span<const unsigned char> mds) {
     return nodes;
 }
 
+const RigNode &NodeNamed(const std::vector<RigNode> &nodes, std::string_view name) {
+    for (const RigNode &n : nodes) {
+        if (n.name == name) {
+            return n;
+        }
+    }
+    throw std::runtime_error("the cat has no " + std::string(name));
+}
+
 V3 Skinned(const SkinMesh &skin, int i, const std::function<const M4 &(int)> &world) {
     std::size_t k = std::size_t(i);
     V3          a = XformPt(world(skin.b0[k]), skin.p0[k]), b = XformPt(world(skin.b1[k]), skin.p1[k]);

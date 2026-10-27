@@ -37,8 +37,6 @@ constexpr std::size_t        kSubmeshRecords = 150;
 constexpr unsigned char      kWingRgba[] = {255, 255, 255, 0x80};
 constexpr unsigned char      kCapeRgba[] = {128, 28, 0, 0x80};
 constexpr std::array<int, 3> kGlowCore = {50, 50, 50}, kGlowOuter = {160, 160, 160}; // the element glow at rest: none
-constexpr int                kFloatKeyIndex = 7;
-constexpr double             kFloatRate = 0.75;
 
 std::string Repr(double x) {
     char buffer[64];
@@ -301,7 +299,7 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
     };
     Bytes                cmds = cat.Require("c04cat.mds").Payload();
     std::vector<RigNode> cnodes = ReadSkeleton(cmds);
-    const RigNode       &skin_n = *std::find_if(cnodes.begin(), cnodes.end(), [](const RigNode &n) { return n.name == "skin"; });
+    const RigNode       &skin_n = NodeNamed(cnodes, "skin");
     MdtMesh              skin_mdt = MdtMesh::Parse(std::span<const unsigned char>(cmds).subspan(std::size_t(skin_n.mesh_off)));
     MotFile              wgt0 = MotFile::FromRecord(cat.Require("c04cat.wgt"));
     std::uint32_t        w6 = wgt0.tracks[0].w6, w7 = wgt0.tracks[0].w7;
@@ -453,7 +451,7 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
     // The Super Steve cape: a cloth frame under the root (its bind 3x3 at kHideScale, so the cloth built from it starts
     // collapsed) whose MDT is the rest lattice, and its .clo.
     const auto     &cat_nodes = data.cat_nodes;
-    const RigNode  &skin_node = *std::find_if(cat_nodes.begin(), cat_nodes.end(), [](const RigNode &n) { return n.name == "cat_skin"; });
+    const RigNode  &skin_node = NodeNamed(cat_nodes, "cat_skin");
     auto            skin_w = LoadWeights(data.pack, "cat.wgt").at(skin_node.i);
     SkinMesh        skin_me = *BuildMeshWeighted(data.mds, skin_node, cat_nodes, skin_w);
     Bytes           cape_mdt = CapeMdt(cat_nodes, skin_me, skin_mdt, mat_template);
@@ -466,7 +464,7 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
 
     // The mask: a ring around each eye with a hole in it, bound whole to the head.
     SkinMesh        mask = BuildMaskMesh(cat_nodes, skin_me, log);
-    const RigNode  &head = *std::find_if(cat_nodes.begin(), cat_nodes.end(), [](const RigNode &n) { return n.name == kMaskAnchor; });
+    const RigNode  &head = NodeNamed(cat_nodes, kMaskAnchor);
     std::vector<V3> mworld;
     for (const V3 &v : mask.p0) {
         mworld.push_back(XformPt(head.world, v));
@@ -518,8 +516,7 @@ std::string Cfg() {
                                       std::format("KEY_START {}", kKeyStart)};
     for (int i = 0; i < static_cast<int>(std::size(kCatKeys)); i++) {
         const CatKeyWindow &k = kCatKeys[i];
-        double              rate = i == kFloatKeyIndex ? kFloatRate : k.speed;
-        lines.push_back(std::format("\tKEY\t{},\t{},\t{},\t\t//{} {}", k.start, k.end, Repr(rate), kKeyStart + i, k.comment));
+        lines.push_back(std::format("\tKEY\t{},\t{},\t{},\t\t//{} {}", k.start, k.end, Repr(k.speed), kKeyStart + i, k.comment));
     }
     lines.push_back("MOTION_END");
     lines.push_back("//catpack v20 standalone");

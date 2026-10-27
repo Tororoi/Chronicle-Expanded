@@ -171,7 +171,7 @@ bool Is100(const Block &block) {
     return (i != nullptr && *i == 100) || (f != nullptr && *f == 100.0f);
 }
 
-Bytes GuardWake(std::span<const unsigned char> script, const Spec &spec, std::size_t base, std::string &done) {
+Bytes GuardWake(std::span<const unsigned char> script, const Spec &spec, std::size_t base) {
     std::vector<Block> muteki;
     for (Block &block : CallBlocks(script, stb::kStatusSetMuteki)) {
         if (Is100(block)) {
@@ -205,12 +205,10 @@ Bytes GuardWake(std::span<const unsigned char> script, const Spec &spec, std::si
     for (const Block &block : muteki) {
         Overwrite(out, block, std::nullopt);
     }
-    done = std::format("{}: {} MUTEKI(100) block(s) NOP'd, guard frames {:g}..{:g} added via the block @0x{:X} → function @+0x{:X}", spec.who, muteki.size(),
-                       spec.guard[0], spec.guard[1], anchor.pos, function - base);
     return out;
 }
 
-Bytes Replace(std::span<const unsigned char> script, const Spec &spec, std::size_t base, const std::vector<Block> &blocks, std::string &done) {
+Bytes Replace(std::span<const unsigned char> script, const Spec &spec, std::size_t base, const std::vector<Block> &blocks) {
     Bytes out(script.begin(), script.end());
     PadTo4(out);
     std::map<std::string, std::size_t> names;
@@ -235,17 +233,15 @@ Bytes Replace(std::span<const unsigned char> script, const Spec &spec, std::size
     for (std::size_t i = 1; i < blocks.size(); i++) {
         Overwrite(out, blocks[i], std::nullopt);
     }
-    done = std::format("{}: {} block(s) → one function @+0x{:X} ({} spheres)", spec.who, blocks.size(), function - base, spec.spheres.size());
     return out;
 }
 
 // Each _SET_BODY_COL becomes a call to a function of its own: the block as it was, the params, a return.
-Bytes Arm(std::span<const unsigned char> script, const Spec &spec, std::size_t base, const std::vector<Block> &blocks, std::string &done) {
+Bytes Arm(std::span<const unsigned char> script, const Spec &spec, std::size_t base, const std::vector<Block> &blocks) {
     Bytes out(script.begin(), script.end());
     PadTo4(out);
     Mark(out);
     PadTo4(out);
-    std::string functions;
     for (const Block &block : blocks) {
         std::size_t function = out.size();
         FunctionHeader(out, base);
@@ -254,10 +250,7 @@ Bytes Arm(std::span<const unsigned char> script, const Spec &spec, std::size_t b
         Params(out, spec.params);
         stb::AppendCell(out, stb::kReturn);
         Overwrite(out, block, function - base);
-        const std::string *name = block.args.empty() ? nullptr : std::get_if<std::string>(&block.args[0]);
-        functions += std::format("{}{}@+0x{:X}", functions.empty() ? "" : ", ", name != nullptr ? *name : "", function - base);
     }
-    done = std::format("{}: {} block(s) → {} ({} params each)", spec.who, blocks.size(), functions, spec.params.size());
     return out;
 }
 
@@ -272,7 +265,7 @@ std::string BakedScriptFile(std::string_view script) {
     return std::format("{}{}.stb", kBakedScriptDir, script);
 }
 
-Bytes BakeMonsterScript(std::string_view script, std::span<const unsigned char> stb, std::string *done) {
+Bytes BakeMonsterScript(std::string_view script, std::span<const unsigned char> stb) {
     std::vector<Spec> specs = Specs();
     auto              spec = std::find_if(specs.begin(), specs.end(), [&](const Spec &s) { return EqualsFolded(s.script, script); });
     if (spec == specs.end()) {
@@ -282,21 +275,14 @@ Bytes BakeMonsterScript(std::string_view script, std::span<const unsigned char> 
         throw std::runtime_error("already rebuilt");
     }
     std::size_t base = stb::CodeBase(stb);
-    std::string note;
-    Bytes       out;
     if (spec->bake == Bake::kGuardWake) {
-        out = GuardWake(stb, *spec, base, note);
-    } else {
-        std::vector<Block> blocks = CallBlocks(stb, stb::kSetBodyCol);
-        if (blocks.empty()) {
-            throw std::runtime_error("no _SET_BODY_COL block found");
-        }
-        out = spec->bake == Bake::kReplace ? Replace(stb, *spec, base, blocks, note) : Arm(stb, *spec, base, blocks, note);
+        return GuardWake(stb, *spec, base);
     }
-    if (done != nullptr) {
-        *done = note;
+    std::vector<Block> blocks = CallBlocks(stb, stb::kSetBodyCol);
+    if (blocks.empty()) {
+        throw std::runtime_error("no _SET_BODY_COL block found");
     }
-    return out;
+    return spec->bake == Bake::kReplace ? Replace(stb, *spec, base, blocks) : Arm(stb, *spec, base, blocks);
 }
 
 std::vector<DataBuild> MonsterScriptBuilds() {

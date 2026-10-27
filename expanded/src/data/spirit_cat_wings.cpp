@@ -48,10 +48,11 @@ struct WingClip {
 };
 
 constexpr WingClip kWingClips[] = {
-    {4, 200, 205, 0.2,  true },
-    {7, 295, 300, 0.15, false}
+    {KeyIndex(kCatLeap),  200, 205, 0.2,  true },
+    {KeyIndex(kCatFloat), 295, 300, 0.15, false}
 };
-constexpr int                       kLandCs = 215, kLandCe = 227, kLandDs = 70, kLandDe = 75, kLandFe = 220;
+constexpr int                       kLandCs = kCatKeys[KeyIndex(kCatLand)].start, kLandCe = kCatKeys[KeyIndex(kCatLand)].end;
+constexpr int                       kLandDs = 70, kLandDe = 75, kLandFe = 220;
 constexpr std::pair<double, double> kWingLandLag[] = {
     {220.0, 225.0},
     {220.5, 226.0},
@@ -94,16 +95,16 @@ constexpr std::pair<double, double> kStrokeExtend[] = {
     {287.5, 1.0}
 };
 constexpr double                 kStrokeLag = 0.2, kStrokeSweep = 60.0, kStrokeHingeIn = 0.25;
-constexpr int                    kStrokeKi = 7;
+constexpr int                    kStrokeKi = KeyIndex(kCatFloat);
 constexpr std::pair<int, double> kWingHold[] = {
-    {8, 285.0}
+    {KeyIndex(kCatSit), 285.0}
 };
 constexpr std::pair<double, double> kClipPitch7[] = {
     {285.0, 30.0},
     {292.0, 15.0},
     {294.0, 10.0}
 };
-constexpr int kWingLevelAt = 4;
+constexpr int kWingLevelAt = KeyIndex(kCatLeap);
 
 using Edge = std::pair<int, int>;
 

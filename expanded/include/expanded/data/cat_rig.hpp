@@ -10,6 +10,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -72,6 +73,9 @@ struct RigNode {
 
 std::vector<RigNode> ReadSkeleton(std::span<const unsigned char> mds);
 
+// The node named name, throwing when the rig has none.
+const RigNode &NodeNamed(const std::vector<RigNode> &nodes, std::string_view name);
+
 // A skinned mesh as two bone influences a vertex (b0/p0 weighted w0, b1/p1 the rest).
 struct SkinMesh {
     int                 node = 0, nv = 0;
@@ -104,7 +108,7 @@ std::optional<SkinMesh> BuildMeshWeighted(std::span<const unsigned char> mds, co
 // The rotation and translation tracks of a .mot for nodes below count.
 std::vector<Track> BuildTracks(const ChrPack &pack, std::string_view mot, int count);
 
-// A pack's cfg (the first, or the first whose name holds prefer) and its MODEL and first MOTION .mot names.
+// A pack's first cfg, and a cfg's MODEL and first MOTION .mot names.
 const ChrRecord                    *FindCfg(const ChrPack &pack);
 std::pair<std::string, std::string> CfgNames(std::span<const unsigned char> cfg);
 
