@@ -61,8 +61,7 @@ bool ChargedOut() {
 } // namespace
 
 bool ZeusShotActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && WeaponWielded(ITEM_WEAPON_SUPER_STEVE) &&
-           SuperSteveSphere() == ITEM_WEAPON_SWORD_OF_ZEUS;
+    return Playing(CHARA_XIAO) && SuperSteveSphere() == ITEM_WEAPON_SWORD_OF_ZEUS;
 }
 
 void ZeusShotStep() {

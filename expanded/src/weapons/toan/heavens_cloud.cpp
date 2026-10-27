@@ -35,7 +35,7 @@ struct Typhoon {
 Typhoon typhoon;
 
 bool Active() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_TOAN && NowWeapon == &MainWeapon &&
+    return Playing(CHARA_TOAN) && NowWeapon == &MainWeapon &&
            WeaponWielded(ITEM_WEAPON_HEAVEN_S_CLOUD);
 }
 

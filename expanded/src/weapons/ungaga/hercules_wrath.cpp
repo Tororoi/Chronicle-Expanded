@@ -324,7 +324,7 @@ float GoldRamp(float charge) {
 }
 
 bool Active() {
-    return UserStatus != nullptr && (UserStatus->cur_chara == CHARA_UNGAGA || UserStatus->cur_chara == CHARA_XIAO) &&
+    return (Playing(CHARA_UNGAGA) || Playing(CHARA_XIAO)) &&
            WeaponActive(ITEM_WEAPON_HERCULES_WRATH);
 }
 

@@ -12,6 +12,7 @@
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/pellets.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -69,7 +70,7 @@ bool LockOnSpeedActive() {
 }
 
 bool DragonShotActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && WeaponActive(ITEM_WEAPON_DRAGON_S_Y);
+    return Playing(CHARA_XIAO) && WeaponActive(ITEM_WEAPON_DRAGON_S_Y);
 }
 
 const BT_SHOT_EFFECT *DragonShot(int element) {

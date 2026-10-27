@@ -144,7 +144,7 @@ void FireCycle(bool guarding, const float *her) {
 } // namespace
 
 bool GuardianReflectorActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && BtEventMode == 0 && NowMonstorUnit != nullptr &&
+    return Playing(CHARA_XIAO) && BtEventMode == 0 && NowMonstorUnit != nullptr &&
            WeaponActive(ITEM_WEAPON_ANGE_GEAR);
 }
 

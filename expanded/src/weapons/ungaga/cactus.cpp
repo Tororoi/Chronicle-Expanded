@@ -324,7 +324,7 @@ void End() {
 }
 
 bool Active() {
-    return UserStatus != nullptr && NowMonstorUnit != nullptr && (UserStatus->cur_chara == CHARA_UNGAGA || UserStatus->cur_chara == CHARA_XIAO) &&
+    return NowMonstorUnit != nullptr && (Playing(CHARA_UNGAGA) || Playing(CHARA_XIAO)) &&
            WeaponActive(ITEM_WEAPON_CACTUS);
 }
 

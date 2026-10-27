@@ -86,8 +86,7 @@ void Blast(const float *point, float charge) {
 } // namespace
 
 bool TyphoonShotActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && WeaponWielded(ITEM_WEAPON_SUPER_STEVE) &&
-           SuperSteveSphere() == ITEM_WEAPON_HEAVEN_S_CLOUD;
+    return Playing(CHARA_XIAO) && SuperSteveSphere() == ITEM_WEAPON_HEAVEN_S_CLOUD;
 }
 
 float TyphoonShotCharge(int frames) {

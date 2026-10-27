@@ -17,6 +17,9 @@ inline constexpr int kXiaoDraw = 11, kXiaoHold = 12, kXiaoShot = 13;
 // Ungaga (UngagaKey_On): the three combo swings.
 inline constexpr int kUngagaFirstSwing = 0x25, kUngagaLastSwing = 0x27;
 
+// Whether chara (CHARA_*) is the member in play.
+bool Playing(int chara);
+
 // BtActStatus.guard_mode while the guard is up.
 inline constexpr int kGuardUp = 5;
 bool                 Guarding();

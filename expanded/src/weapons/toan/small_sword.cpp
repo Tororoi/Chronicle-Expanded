@@ -55,7 +55,7 @@ void QuickDrawShot(CCharacter &chara, int aimed) {
 }
 
 int QuickDrawGaugeSpeed(int speed) {
-    if (UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && QuickDrawSphere()) {
+    if (Playing(CHARA_XIAO) && QuickDrawSphere()) {
         return kQuickDrawShotSpeed;
     }
     return speed;

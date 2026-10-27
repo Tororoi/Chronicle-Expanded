@@ -15,6 +15,7 @@
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/pellets.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "frame.hpp"
 #include "framevu1.hpp"
@@ -147,7 +148,7 @@ bool Ours(const CSHOT &shots, int slot) {
 } // namespace
 
 bool ChargingBullActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && WeaponActive(ITEM_WEAPON_MATADOR);
+    return Playing(CHARA_XIAO) && WeaponActive(ITEM_WEAPON_MATADOR);
 }
 
 void ChargingBullStep() {

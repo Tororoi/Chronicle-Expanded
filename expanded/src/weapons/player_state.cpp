@@ -11,6 +11,10 @@ extern s32 lockOnTargetNo;
 
 namespace expanded {
 
+bool Playing(int chara) {
+    return UserStatus != nullptr && UserStatus->cur_chara == chara;
+}
+
 bool Guarding() {
     return BtActStatus.guard_mode == kGuardUp;
 }

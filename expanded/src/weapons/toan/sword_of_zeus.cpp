@@ -130,7 +130,7 @@ struct Hold {
 Hold hold;
 
 bool Toan() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_TOAN;
+    return Playing(CHARA_TOAN);
 }
 
 bool Live(int monster) {

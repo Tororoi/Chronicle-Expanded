@@ -7,6 +7,7 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/menu_text.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
@@ -91,7 +92,7 @@ void ShrinkBlade() {
 }
 
 bool KnifeOut() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_TOAN && WeaponWielded(ITEM_WEAPON_KITCHEN_KNIFE);
+    return Playing(CHARA_TOAN) && WeaponWielded(ITEM_WEAPON_KITCHEN_KNIFE);
 }
 
 // The knife's own record, whose WHP the menu shows and the swings drain.

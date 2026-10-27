@@ -59,7 +59,7 @@ constexpr int kExplosions = 3;
 [[maybe_unused]] const bool kRegistered = (RegisterWeaponShotEffect(ITEM_WEAPON_BIG_BANG, WeaponShotForm::Weapon, &explosion_shot, kExplosions), true);
 
 bool Toan() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_TOAN;
+    return Playing(CHARA_TOAN);
 }
 
 // The blast is the whirlwind's while no Solar Flash charge holds the blade.

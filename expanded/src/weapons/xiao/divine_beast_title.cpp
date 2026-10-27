@@ -640,7 +640,7 @@ void TakeAway() {
 } // namespace
 
 bool SpiritBeastActive() {
-    return UserStatus != nullptr && UserStatus->cur_chara == CHARA_XIAO && BtEventMode == 0 && LookNow() != nullptr;
+    return Playing(CHARA_XIAO) && BtEventMode == 0 && LookNow() != nullptr;
 }
 
 float SpiritBeastScale() {
