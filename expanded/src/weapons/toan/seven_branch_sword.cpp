@@ -1,3 +1,4 @@
+#include "expanded/core/party.hpp"
 #include "expanded/weapons/toan/seven_branch_sword.hpp"
 
 #include <optional>
@@ -15,8 +16,8 @@ namespace {
 
 // The weapon the weapon menu has selected, or nullptr.
 const WEAPON_HAVE *Selected() {
-    if (BtlMenuStatusPt == nullptr || WepMenu.chara < 0 || WepMenu.chara >= 6 || WepMenu.weapon_slot < 0 ||
-        WepMenu.weapon_slot >= 11) {
+    if (BtlMenuStatusPt == nullptr || WepMenu.chara < 0 || WepMenu.chara >= kPartyMembers || WepMenu.weapon_slot < 0 ||
+        WepMenu.weapon_slot >= kWeaponSlots) {
         return nullptr;
     }
     return &BtlMenuStatusPt->chara_weapons[WepMenu.chara][WepMenu.weapon_slot];

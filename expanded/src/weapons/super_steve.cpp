@@ -1,3 +1,4 @@
+#include "expanded/core/party.hpp"
 #include "expanded/weapons/super_steve.hpp"
 
 #include "dun/gameloop.hpp"
@@ -29,8 +30,6 @@ constexpr int kIconSize = 20;
                                                      .help = "\"Weapon Abilities\"\nEach weapon's special\nability. Off, weapons\nwork as in the\noriginal game.",
                                                      .on = true});
 
-constexpr int kMembers = 6;
-constexpr int kWeaponSlots = 11;
 
 // The active character's equipped weapon record.
 const WEAPON_HAVE *ActiveWeapon() {
@@ -75,7 +74,7 @@ bool WeaponWielded(int weapon_no) {
 }
 
 WEAPON_HAVE *EquippedWeapon(CUserStatus &status, int chara) {
-    if (chara < 0 || chara >= kMembers) {
+    if (chara < 0 || chara >= kPartyMembers) {
         return nullptr;
     }
     int slot = status.equipped_weapon_slot[chara];

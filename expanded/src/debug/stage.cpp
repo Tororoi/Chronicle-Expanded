@@ -1,3 +1,4 @@
+#include "expanded/core/party.hpp"
 #include "expanded/debug/stage.hpp"
 
 #include <charconv>
@@ -18,6 +19,7 @@
 #include "expanded/debug/enemy_roster.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #include "framevu1.hpp"
 #include "itemdata.hpp"
 #include "memcard.hpp"
@@ -145,10 +147,12 @@ bool Set(std::string_view key, std::string_view value, Stage &stage) {
 
 // Puts weapon_no in the hand of chara at its maximum attack, or at attack.
 void Arm(int chara, int weapon_no, int attack) {
-    int          slot = UserStatus->equipped_weapon_slot[chara];
-    WEAPON_HAVE &weapon = UserStatus->chara_weapons[chara][slot];
-    WepDataListToHaveCopy(weapon_no, &weapon);
-    weapon.attack = attack >= 0 ? attack : GetWeaponData(weapon_no)->attack_max;
+    WEAPON_HAVE *weapon = EquippedWeapon(*UserStatus, chara);
+    if (weapon == nullptr) {
+        return;
+    }
+    WepDataListToHaveCopy(weapon_no, weapon);
+    weapon->attack = attack >= 0 ? attack : GetWeaponData(weapon_no)->attack_max;
 }
 
 void SetPlayerAt(float x, float z) {
@@ -321,10 +325,10 @@ void StageStatusReady() {
     }
     if (active->sphere >= 0) {
         Arm(CHARA_XIAO, ITEM_WEAPON_SUPER_STEVE, active->attack);
-        int          slot = UserStatus->equipped_weapon_slot[CHARA_XIAO];
-        ATTACH_LIST &hole = UserStatus->chara_weapons[CHARA_XIAO][slot].attach[0];
-        hole.item_no = ITEM_ATTACH_SYNTHESIS_SPHERE;
-        hole.sphere_weapon_no = static_cast<s16>(active->sphere);
+        if (WEAPON_HAVE *steve = EquippedWeapon(*UserStatus, CHARA_XIAO); steve != nullptr) {
+            steve->attach[0].item_no = ITEM_ATTACH_SYNTHESIS_SPHERE;
+            steve->attach[0].sphere_weapon_no = static_cast<s16>(active->sphere);
+        }
     }
 }
 
@@ -355,7 +359,7 @@ void StageStep() {
         return;
     }
     if (active->keep_alive) {
-        for (int c = 0; c < 6; c++) {
+        for (int c = 0; c < kPartyMembers; c++) {
             UserStatus->hp[c] = UserStatus->next_hp[c] = UserStatus->max_hp[c];
         }
     }

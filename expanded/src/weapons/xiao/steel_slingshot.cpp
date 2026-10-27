@@ -12,13 +12,11 @@ float EnduranceUpShotWear(float wear) {
         return wear;
     }
     // The equipped record's WHP, which the wear comes off (NowWeaponHave is a copy with the attachments' values).
-    int chara = UserStatus->cur_chara;
-    int slot = UserStatus->equipped_weapon_slot[chara];
-    if (slot < 0 || slot >= 11) {
+    const WEAPON_HAVE *weapon = EquippedWeapon(*UserStatus, UserStatus->cur_chara);
+    if (weapon == nullptr) {
         return wear;
     }
-    const WEAPON_HAVE &weapon = UserStatus->chara_weapons[chara][slot];
-    bool               low = weapon.durability > 0 && weapon.durability_f <= kEnduranceUpWarning * weapon.durability;
+    bool low = weapon->durability > 0 && weapon->durability_f <= kEnduranceUpWarning * weapon->durability;
     return low ? wear * kEnduranceUpShot : wear;
 }
 
