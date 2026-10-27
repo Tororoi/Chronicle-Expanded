@@ -460,6 +460,31 @@ TEST_F(AirStrike, TheSwingCallsTheSparkleAtTheDecoysSpearTip) {
     EXPECT_FLOAT_EQ(sparkle.pos[2], tip[2]);
 }
 
+// DC_TEST_DATA, an extracted data directory: the twinkle goes off with the first clip, the light's sound
+// kAirStrikeSoundDelayFrames into the second.
+TEST_F(AirStrike, TheLightsSoundComesJustAfterTheSecondClipStarts) {
+    const char *data = std::getenv("DC_TEST_DATA");
+    if (data == nullptr) {
+        GTEST_SKIP() << "DC_TEST_DATA is not set";
+    }
+    expanded::test::DataRootScope root(data);
+    ASSERT_TRUE(expanded::LoadOwnSound(expanded::kAirStrikeTwinkle));
+    ASSERT_TRUE(expanded::LoadOwnSound(expanded::kAirStrikeSound));
+    audio::Mixer &mixer = audio::DefaultMixer();
+    Prime();
+    int before = mixer.ActiveVoices();
+    Swing(expanded::kAirStrikeSwingFrame);
+    Steps(1);
+    ASSERT_EQ(expanded::AirStrikeState(), AirStrikePhase::kStriking);
+    EXPECT_EQ(mixer.ActiveVoices(), before + 1); // the twinkle
+    SparkleAt(expanded::kSparkleFirstEnd - 0.5f);
+    ASSERT_EQ(Sparkle().motion_no, 1);
+    Steps(expanded::kAirStrikeSoundDelayFrames - 1);
+    EXPECT_EQ(mixer.ActiveVoices(), before + 1);
+    Steps(1);
+    EXPECT_EQ(mixer.ActiveVoices(), before + 2);
+}
+
 TEST_F(AirStrike, TheRoomPlungesToBlackThenTheBlastLandsThroughAnyGuard) {
     Prime();
     Swing(expanded::kAirStrikeSwingFrame);

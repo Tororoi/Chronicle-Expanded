@@ -70,6 +70,7 @@ struct State {
     CSHOT_EFFECT  *effect = nullptr; // the sparkle playing
     int            slot = -1;
     int            clip = -1;
+    int            sound_in = 0; // frames until the light's sound, or 0 once it has gone off
     float          spot[2] = {}; // where its second clip plays, across the ground
     bool           blasted = false;
 };
@@ -268,9 +269,12 @@ void Play() {
             state.spot[0] = tip[0];
             state.spot[1] = tip[2];
             Clip(1, kSparkleSecondStart, kSparkleSecondRate);
-            PlayOwnSound(kAirStrikeSound, false); // the light comes down
+            state.sound_in = kAirStrikeSoundDelayFrames;
         }
         return;
+    }
+    if (state.sound_in > 0 && --state.sound_in == 0) {
+        PlayOwnSound(kAirStrikeSound, false); // the light comes down
     }
     model.motion_speed = kSparkleSecondRate;
     if (!state.blasted) {

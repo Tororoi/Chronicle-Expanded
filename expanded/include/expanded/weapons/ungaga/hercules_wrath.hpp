@@ -20,12 +20,13 @@ namespace expanded {
 //     on the decoy. A sparkle (gedit/s78's cutscene e508_ex, kSparkleFile) plays its first clip at the copy's spear tip
 //     (its dcol0), following it, with a twinkle (kAirStrikeTwinkle), then its second at kSparkleSecondRate where the
 //     tip was, at the decoy's height, with the sound the light makes in the Black Knight's defeat scene
-//     (kAirStrikeSound, its first kAirStrikeSoundFrames fading out over their last kAirStrikeSoundFadeFrames). Along
-//     the second the room plunges from the dim to black (frames kSparkleDarkFrom to kSparkleBlastFrame), then the blast
-//     lands there: Big Bang's falloff at kAirStrikeReach times its reach (4, 3, 2 and 1 times the attack within 20, 50,
-//     80 and 100), through any guard, felt as nothing and wearing no weapon HP as it lands; the strike bills
-//     kAirStrikeWhp once. The decoy is dispelled and the Sword of Zeus's white flash eases back over two seconds. From
-//     kSparkleFadeFrom to kSparkleFadeTo the sparkle and the gold fade out together, and it ends.
+//     kAirStrikeSoundDelayFrames after it starts (kAirStrikeSound, its first kAirStrikeSoundFrames fading out over
+//     their last kAirStrikeSoundFadeFrames). Along the second the room plunges from the dim to black (frames
+//     kSparkleDarkFrom to kSparkleBlastFrame), then the blast lands there: Big Bang's falloff at kAirStrikeReach times
+//     its reach (4, 3, 2 and 1 times the attack within 20, 50, 80 and 100), through any guard, felt as nothing and
+//     wearing no weapon HP as it lands; the strike bills kAirStrikeWhp once. The decoy is dispelled and the Sword of
+//     Zeus's white flash eases back over two seconds. From kSparkleFadeFrom to kSparkleFadeTo the sparkle and the gold
+//     fade out together, and it ends.
 //   - Super Steve's: the first pellet Xiao fires while primed carries it, the slingshot gold. Where the pellet ends (on a
 //     monster, at a wall, at the end of its range, or wherever it is after kAirStrikeMissFrames) the sparkle's first clip
 //     plays; its second and the blast are on the floor under that spot (the highest at or below the pellet's height plus
@@ -45,8 +46,10 @@ inline constexpr int   kAirStrikeMissFrames = 180;
 inline constexpr float kAirStrikeFloorAbove = 10.0f;
 inline constexpr int   kAirStrikeReleaseFrames = 30;
 
-// The light's sound in event 508 (sound 2588: program 121, note 31 of the Demon Shaft boss room's set): its first
-// kAirStrikeSoundFrames, faded out over the last kAirStrikeSoundFadeFrames of them.
+// The light's sound in event 508 (sound 2588: program 121, note 31 of the Demon Shaft boss room's set),
+// kAirStrikeSoundDelayFrames after the sparkle's second clip starts: its first kAirStrikeSoundFrames, faded out over the
+// last kAirStrikeSoundFadeFrames of them.
+inline constexpr int    kAirStrikeSoundDelayFrames = 7;
 inline constexpr int    kAirStrikeSoundFrames = 150;
 inline constexpr int    kAirStrikeSoundFadeFrames = 20;
 inline constexpr OwnCut kAirStrikeSoundCut[] = {
