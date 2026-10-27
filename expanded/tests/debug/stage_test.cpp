@@ -6,6 +6,7 @@
 
 #include "character.hpp"
 #include "dun/gameloop.hpp"
+#include "dungeonmap.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/debug/stage.hpp"
 #include "itemdata.hpp"
@@ -81,6 +82,7 @@ TEST(StageFile, EveryKeyIsRead) {
                                      "place_kind = 44\n"
                                      "place_after = 30\n"
                                      "big_room = yes\n"
+                                     "circle = 5\n"
                                      "keep_alive = true\r\n",
                                      stage, &why))
         << why;
@@ -100,6 +102,7 @@ TEST(StageFile, EveryKeyIsRead) {
     EXPECT_EQ(stage.place_kind, 44);
     EXPECT_EQ(stage.place_after, 30);
     EXPECT_TRUE(stage.big_room);
+    EXPECT_EQ(stage.circle, 5);
     EXPECT_TRUE(stage.keep_alive);
 }
 
@@ -110,6 +113,7 @@ TEST(StageFile, AnEmptyStageChangesNothing) {
     EXPECT_EQ(stage.place, 0);
     EXPECT_EQ(stage.dungeon, -1);
     EXPECT_EQ(stage.character, -1);
+    EXPECT_EQ(stage.circle, -1);
     EXPECT_FALSE(stage.keep_alive);
 }
 
@@ -134,6 +138,7 @@ TEST(StageFile, ABadLineIsNamedAndTheStageKept) {
     EXPECT_FALSE(expanded::ParseStage("place = -1", stage, &why));
     EXPECT_FALSE(expanded::ParseStage("distance = far", stage, &why));
     EXPECT_FALSE(expanded::ParseStage("big_room = maybe", stage, &why));
+    EXPECT_FALSE(expanded::ParseStage("circle = 10", stage, &why));
     EXPECT_FALSE(expanded::ParseStage("\n\ndungeon 3", stage, &why));
     EXPECT_EQ(why, "line 3: no '=' in \"dungeon 3\"");
 }
@@ -236,6 +241,28 @@ TEST(Stage, PlacementSpreadsThemAboutTheFacing) {
         EXPECT_NEAR(unit.chara[m][0].pos[0], 100.0f * std::sin(a), 1e-3f) << m;
         EXPECT_NEAR(unit.chara[m][0].pos[2], 100.0f * std::cos(a), 1e-3f) << m;
     }
+}
+
+TEST(Stage, AMagicCircleIsSetOutInFrontAfterTheSteps) {
+    expanded::test::TestFloor      floor;
+    alignas(64) static CDungeonMap map;
+    CDungeonMap                   *saved_map = NowDngMap;
+    NowDngMap = &map;
+    map.trap_circle[0] = {};
+    {
+        Standing   standing(100.0f, 200.0f, 0.0f);
+        StageScope stage("circle = 9\nplace_after = 2");
+        expanded::StageFrame();
+        expanded::StageStep();
+        EXPECT_EQ(map.trap_circle[0].state, 0);
+        expanded::StageStep();
+        const MAP_TRAP_CIRCLE &circle = map.trap_circle[0];
+        EXPECT_EQ(circle.state, 1); // waiting to be stepped on
+        EXPECT_EQ(circle.kind, TRAP_CIRCLE_WHP_QUARTER);
+        EXPECT_NEAR(circle.pos[0], 100.0f, 1e-3f);
+        EXPECT_NEAR(circle.pos[2], 240.0f, 1e-3f); // 40 ahead: yaw 0 faces +z
+    }
+    NowDngMap = saved_map;
 }
 
 TEST(Stage, KeepAliveFillsThePartysLife) {
