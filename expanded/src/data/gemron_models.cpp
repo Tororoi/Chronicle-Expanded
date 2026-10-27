@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
-#include <fstream>
-#include <functional>
 #include <map>
 #include <numbers>
 #include <stdexcept>

@@ -1,7 +1,6 @@
 #include "expanded/data/gemron_parts.hpp"
 
 #include <algorithm>
-#include <cstring>
 #include <format>
 #include <set>
 #include <stdexcept>

@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cmath>
-#include <cstring>
 #include <stdexcept>
 
 #include "expanded/data/model_parts.hpp"

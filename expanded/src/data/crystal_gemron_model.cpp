@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cmath>
-#include <cstring>
 #include <format>
 #include <map>
 #include <optional>
@@ -12,7 +11,6 @@
 #include "expanded/data/gemron_parts.hpp"
 #include "expanded/data/model_parts.hpp"
 #include "expanded/data/sheet_look.hpp"
-#include "expanded/data/stb.hpp"
 
 namespace expanded {
 

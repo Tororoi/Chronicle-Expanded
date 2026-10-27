@@ -3,9 +3,6 @@
 #include <algorithm>
 #include <cstdio>
 #include <format>
-#include <fstream>
-#include <functional>
-#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string>
