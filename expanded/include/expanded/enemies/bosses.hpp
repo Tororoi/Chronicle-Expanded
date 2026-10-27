@@ -19,9 +19,6 @@ inline bool BossSupported(Monster monster) {
 // and once beaten falls and fades out like any monster.
 bool BossOutOfPlace(int monster);
 
-// Joe's disc death, which he falls with when the data lacks his built model.
-inline constexpr int kJoeDiscDeath = 9;
-
 // Steps a beaten boss fades over.
 inline constexpr int kBossFadeFrames = 96;
 

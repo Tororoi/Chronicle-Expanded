@@ -8,6 +8,7 @@
 #include "expanded/data/boss_model.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/boss_moves.hpp"
+#include "expanded/enemies/boss_table.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monsters.hpp"

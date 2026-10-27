@@ -80,7 +80,7 @@ void UnbindAll() {
 // Kinds besides the bosses that sound from an arena's set: the Crystal Gemron, the Ice Queen's (the life sphere's
 // shatter, her arrow and prison).
 constexpr std::pair<Monster, int> kArenaSounds[] = {
-    {Monster::CRYSTAL_GEMRON, 202},
+    {Monster::CRYSTAL_GEMRON, BossEntryOf(Monster::ICE_QUEEN)->sound_set},
 };
 
 bool Resolves(const audio::Bank *bank, int program, int note) {

@@ -24,30 +24,10 @@ namespace expanded {
 
 namespace {
 
-
 // The bosses' death labels (120): invincible a while.
 constexpr int kDeathInvincible = 100;
 
-// Utan's death (死亡), which his label 120 holds on its last frame.
-constexpr int kUtanDeath = 13;
-
-// The Ice Queen's death and its loop.
-constexpr int kIceQueenDeath = 11;
-constexpr int kIceQueenDeathLoop = 12;
-
-// King's Curse's coffin's death and its loop.
-constexpr int kCoffinDeath = 5;
-constexpr int kCoffinDeathLoop = 6;
-
-// Dran's death (死亡), held on its last frame; he falls from the air to his arena's floor by its crash (frame 115).
-constexpr int   kDranDeath = 6;
-constexpr float kDranDeathCrash = 115.0f;
-
-// The Black Knight's dismount and its loop: his death when the data lacks his built model.
-constexpr int kKnightDismount = 7;
-constexpr int kKnightDismountLoop = 8;
-
-// Steps from the start of his death throes to the light coming down on him, as event 508 times it.
+// Steps from the start of the Black Knight's death throes to the light coming down on him, as event 508 times it.
 constexpr int kKnightLightAfterThroes = 195;
 
 // The arena crowd's cheer, which Joe's script plays when he is hit.
@@ -81,44 +61,29 @@ const BuiltPack kBuiltPacks[] = {
     {Monster::BLACK_KNIGHT, kBlackKnightModelFile, "his dismount"  },
 };
 
-// The motion a beaten boss falls with, and the one it loops while fading (-1 holds the fall's last frame).
-std::pair<int, int> DeathMotions(int kind, const CCharacter &character) {
-    if (kind == No(Monster::MASTER_UTAN)) {
-        return {kUtanDeath, -1};
-    }
-    if (kind == No(Monster::DRAN)) {
-        return {kDranDeath, -1};
-    }
-    if (kind == No(Monster::ICE_QUEEN)) {
-        return {kIceQueenDeath, kIceQueenDeathLoop};
-    }
-    if (kind == No(Monster::KINGS_CURSE_COFFIN)) {
-        return {kCoffinDeath, kCoffinDeathLoop};
-    }
-    if (kind == No(Monster::BLACK_KNIGHT)) {
-        return {kKnightDismount, kKnightDismountLoop};
-    }
-    // Joe: the built fall when the pack has it, else the disc's death.
-    if (MotionCount(character) > kJoeDeathLoopKey) {
+// The motion a beaten boss falls with and the one it loops while fading: its table's, but Joe's built fall when his
+// pack has it.
+std::pair<int, int> DeathMotions(const BossEntry &boss, const CCharacter &character) {
+    if (boss.kind == Monster::MINOTAUR_JOE && MotionCount(character) > kJoeDeathLoopKey) {
         return {kJoeFallKey, kJoeDeathLoopKey};
     }
-    return {kJoeDiscDeath, -1};
+    return {boss.death, boss.death_loop};
 }
 
-bool  out_of_place[kFloorMonsters] = {};
-Death death[kFloorMonsters];
-bool  logged_missing;
+// Each monster's entry when it is a supported boss a staged roster brought, else null.
+const BossEntry *out_of_place[kFloorMonsters] = {};
+Death            death[kFloorMonsters];
+bool             logged_missing;
 
 void OnSpawn(CMonstorUnit &unit, int monster) {
-    int kind = ModelKind(unit.monster[monster].base_model);
-    out_of_place[monster] = LoadedRoster() != nullptr && kind >= 0 && BossSupported(kind);
+    out_of_place[monster] = LoadedRoster() != nullptr ? BossEntryOf(ModelKind(unit.monster[monster].base_model)) : nullptr;
     death[monster] = {};
 }
 
 [[maybe_unused]] const bool kListening = (AddEnemySpawnListener(OnSpawn), true);
 
-// Lowers a boss falling in its arena's coordinates from fell_from to the arena's floor, landing at frame crash.
-void FallToFloor(CMonstorUnit &unit, int monster, float fell_from, float crash) {
+// Lowers a boss falling in its arena's coordinates from fell_from to the arena's floor, landing at frame landing.
+void FallToFloor(CMonstorUnit &unit, int monster, float fell_from, float landing) {
     if (!BossInArenaFrame(monster)) {
         return;
     }
@@ -127,7 +92,7 @@ void FallToFloor(CMonstorUnit &unit, int monster, float fell_from, float crash) 
     const CCharacter  &character = unit.chara[monster][0];
     const MOTION_INFO &info = character.motion_type.motion_info[character.motion_no];
     float              k = std::clamp((character.motion_type.state.time - static_cast<float>(info.start)) /
-                                          (crash - static_cast<float>(info.start)),
+                                          (landing - static_cast<float>(info.start)),
                                       0.0f, 1.0f);
     float              at[4];
     unit.chara[monster][0].GetPosition(at);
@@ -148,7 +113,7 @@ bool BossSupported(int model_no) {
 }
 
 bool BossOutOfPlace(int monster) {
-    return monster >= 0 && monster < kFloorMonsters && out_of_place[monster];
+    return monster >= 0 && monster < kFloorMonsters && out_of_place[monster] != nullptr;
 }
 
 int MotionCount(const CCharacter &character) {
@@ -210,26 +175,26 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
     if (!BossOutOfPlace(monster) || live.hp > 0) {
         return false;
     }
-    Death &state = death[monster];
+    const BossEntry &boss = *out_of_place[monster];
+    Death           &state = death[monster];
     switch (state.phase) {
         case Phase::Fighting: {
             // Label 120's start, then the fall.
             live.movement_speed = 0.0f;
             live.turn_speed = 0.0f;
             live.invincible_timer = kDeathInvincible;
-            int kind = ModelKind(live.base_model);
             BossCastDefeated(unit, monster);
-            if (kind == No(Monster::ICE_QUEEN)) {
+            if (boss.kind == Monster::ICE_QUEEN) {
                 IceQueenDefeated();
             }
-            if (kind == No(Monster::BLACK_KNIGHT) &&
+            if (boss.kind == Monster::BLACK_KNIGHT &&
                 MotionCount(unit.chara[monster][0]) >= kBlackKnightBowKey + kBlackKnightDeathKeys) {
                 state.key = kBlackKnightBowKey;
                 PlayMonsterMotion(unit, monster, state.key, kMotionHoldLast);
                 state.phase = Phase::Throes;
                 break;
             }
-            auto [fall, loop] = DeathMotions(kind, unit.chara[monster][0]);
+            auto [fall, loop] = DeathMotions(boss, unit.chara[monster][0]);
             state.loop = loop;
             float at[4];
             unit.chara[monster][0].GetPosition(at);
@@ -263,8 +228,8 @@ bool BossDeathStep(CMonstorUnit &unit, int monster) {
             break;
         }
         case Phase::Falling:
-            if (ModelKind(live.base_model) == No(Monster::DRAN)) {
-                FallToFloor(unit, monster, state.fell_from, kDranDeathCrash);
+            if (boss.death_landing > 0.0f) {
+                FallToFloor(unit, monster, state.fell_from, boss.death_landing);
             }
             if (OnLastFrame(unit.chara[monster][0])) {
                 if (state.loop >= 0) {

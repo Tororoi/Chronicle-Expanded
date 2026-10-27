@@ -6,7 +6,7 @@
 #include "dun/gameloop.hpp"
 #include "dungeonmap.hpp"
 #include "expanded/dungeon/navigation.hpp"
-#include "expanded/enemies/bosses.hpp"
+#include "expanded/enemies/boss_table.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "monstorunit.hpp"
@@ -22,9 +22,6 @@ constexpr float kWaypointReached = 10.0f;
 constexpr int   kAimSteps = 2;       // an aimed point steers this long after the script last named it
 constexpr int   kRegionLimit = 4000; // cells of the floor an arena boss's reach is worked out for
 constexpr int   kRegionBudget = 25;  // cells of it taken in each step (4 tests each)
-
-// Bosses whose scripts work in their arena's coordinates.
-constexpr Monster kArenaFrame[] = {Monster::DRAN};
 
 struct Mover {
     bool  active = false;
@@ -81,29 +78,28 @@ bool LargestRoom(const float *at, float *middle) {
 void OnSpawn(CMonstorUnit &unit, int monster) {
     Mover &mover = movers[monster];
     mover = {};
-    int kind = ModelKind(unit.monster[monster].base_model);
-    if (LoadedRoster() == nullptr || kind < 0 || !BossSupported(kind)) {
+    const BossEntry *boss = BossEntryOf(ModelKind(unit.monster[monster].base_model));
+    if (LoadedRoster() == nullptr || boss == nullptr) {
         return;
     }
     mover.active = true;
-    for (Monster framed : kArenaFrame) {
-        if (No(framed) == kind) {
-            // His arena is the floor's largest room, him in its middle.
-            mover.arena = true;
-            float at[4];
-            unit.chara[monster][0].GetPosition(at);
-            float middle[3];
-            if (LargestRoom(at, middle)) {
-                float spot[3];
-                NavigateNearest(middle, middle, Clearance(unit, monster), at[1], spot);
-                at[0] = spot[0];
-                at[2] = spot[2];
-                unit.chara[monster][0].SetPosition(at);
-            }
-            std::copy(at, at + 3, mover.anchor);
-            mover.region = NavigateRegion(mover.anchor, Clearance(unit, monster), at[1], kRegionLimit);
-        }
+    if (!boss->arena_frame) {
+        return;
     }
+    // Its arena is the floor's largest room, the boss in its middle.
+    mover.arena = true;
+    float at[4];
+    unit.chara[monster][0].GetPosition(at);
+    float middle[3];
+    if (LargestRoom(at, middle)) {
+        float spot[3];
+        NavigateNearest(middle, middle, Clearance(unit, monster), at[1], spot);
+        at[0] = spot[0];
+        at[2] = spot[2];
+        unit.chara[monster][0].SetPosition(at);
+    }
+    std::copy(at, at + 3, mover.anchor);
+    mover.region = NavigateRegion(mover.anchor, Clearance(unit, monster), at[1], kRegionLimit);
 }
 
 [[maybe_unused]] const bool kListening = (AddEnemySpawnListener(OnSpawn), true);
