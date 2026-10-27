@@ -22,7 +22,7 @@
 #include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
-#include "expanded/weapons/xiao/shot_charge.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/xiao/spirit_cape.hpp"
 #include "frame.hpp"
 #include "gameutil.hpp"

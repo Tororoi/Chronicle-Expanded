@@ -15,6 +15,7 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"

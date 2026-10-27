@@ -73,7 +73,7 @@
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
-#include "expanded/weapons/xiao/shot_charge.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/xiao/steel_slingshot.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 #include "monstorunit.hpp"

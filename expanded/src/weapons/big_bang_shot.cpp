@@ -15,6 +15,7 @@
 #include "expanded/enemies/species.hpp"
 #include "expanded/status/blind.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
@@ -253,7 +254,7 @@ void BigBangShotStep() {
             break;
         case Charge::kCharging:
             state.unguarded = Guarding() ? 0 : state.unguarded + 1;
-            if (state.unguarded > kSolarGuardGrace || Blinding()) {
+            if (state.unguarded > kGuardGrace || Blinding()) {
                 Spend();
                 break;
             }

@@ -12,7 +12,7 @@
 #include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
-#include "expanded/weapons/xiao/shot_charge.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"

@@ -13,6 +13,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/status/blind.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -125,10 +126,8 @@ constexpr Swing kCombo[] = {
 };
 
 // The game's charge-complete colour, which the build-up ramps toward (half of it at the last frame).
-constexpr float kChargeColour[3] = {0.0f, 122.0f, 208.0f};
 constexpr float kChargeRampPeak = 0.5f;
-// The game's own pulses: the charge-complete one at priming, the flash's own in its light.
-constexpr float kPulseSpeed = 15.0f;
+// The flash's own pulse in its light.
 constexpr float kFlashPulseSpeed = 30.0f;
 
 // How far toward the camera the glow disc's depth is tested from.
@@ -421,10 +420,6 @@ void SolarBlastFlash(const SolarProfile &profile, const float *point, float whp)
     BlindAfter(kBlastThrowFrames);
 }
 
-void ChargeCompleteFlash() {
-    setUnitAmbientAnime(kPulseSpeed, 1.0f, kChargeColour[0], kChargeColour[1], kChargeColour[2]);
-}
-
 void SolarFlashStep() {
     GlowStep();
     const SolarProfile *profile = ActiveProfile();
@@ -446,7 +441,7 @@ void SolarFlashStep() {
 
         case SolarPhase::kCharging: {
             s.unguarded = Guarding() ? 0 : s.unguarded + 1;
-            if (s.unguarded > kSolarGuardGrace || Blinding()) {
+            if (s.unguarded > kGuardGrace || Blinding()) {
                 Clear();
                 break;
             }

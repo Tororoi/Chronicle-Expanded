@@ -7,7 +7,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
-#include "expanded/weapons/xiao/shot_charge.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "itemdata.hpp"
 #include "shot_effect.hpp"
 #include "userstatus.hpp"

@@ -7,7 +7,7 @@
 #include "collisiondata.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
-#include "expanded/weapons/xiao/shot_charge.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "itemdata.hpp"
 #include "shot_effect.hpp"
 #include "test_support.hpp"

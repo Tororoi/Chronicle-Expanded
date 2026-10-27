@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "expanded/dungeon/dungeon_hooks.hpp"
-#include "expanded/weapons/xiao/shot_charge.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/xiao/steel_slingshot.hpp"
 #include "itemdata.hpp"
 #include "test_support.hpp"

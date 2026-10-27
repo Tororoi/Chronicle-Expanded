@@ -31,7 +31,6 @@ inline constexpr float kSolarKickSpeed = 2.0f;       // the shove away from the 
 inline constexpr float kSolarKickDecay = 0.3f;
 inline constexpr float kSolarPrimedWhite = 45.0f; // the white Toan keeps while primed
 inline constexpr float kSolarBladeWhite = 200.0f; // the blade's white at full charge
-inline constexpr int   kSolarGuardGrace = 10;     // frames out of the guard a charge survives (a blocked hit drops it for a few)
 
 // What differs between the weapons that carry the flash.
 struct SolarProfile {
@@ -83,9 +82,6 @@ enum class SolarPhase {
 SolarPhase SolarFlashPhase();
 // The glow's size, 0 (none) to 1 (primed).
 float SolarGlowSize();
-
-// The game's own charge-complete flash on the party (Toan's sword charge, Goro's): a charge is ready.
-void ChargeCompleteFlash();
 
 // One step of the charge (once a frame the monsters step unpaused).
 void SolarFlashStep();

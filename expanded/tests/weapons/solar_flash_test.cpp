@@ -9,6 +9,7 @@
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/status/blind.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -84,7 +85,7 @@ TEST(SolarFlash, GuardHeldPrimesTheBladeAndReleasedEarlyDropsIt) {
     EXPECT_GT(expanded::SceneDarkness(), 0.0f);
     // A blocked hit drops the guard for a few frames without losing the charge.
     scene.Guard(false);
-    scene.Steps(expanded::kSolarGuardGrace);
+    scene.Steps(expanded::kGuardGrace);
     EXPECT_EQ(expanded::SolarFlashPhase(), SolarPhase::kCharging);
     scene.Steps(1);
     EXPECT_EQ(expanded::SolarFlashPhase(), SolarPhase::kIdle);
@@ -107,7 +108,7 @@ TEST(SolarFlash, TheGlowGrowsWithTheChargeAndShrinksAwayWhenDropped) {
 
     // Dropped half-charged: it shrinks over kSolarFadeFrames rather than going at once.
     scene.Guard(false);
-    scene.Steps(expanded::kSolarGuardGrace + 1);
+    scene.Steps(expanded::kGuardGrace + 1);
     EXPECT_EQ(expanded::SolarFlashPhase(), SolarPhase::kIdle);
     EXPECT_GT(expanded::SolarGlowSize(), 0.4f);
     scene.Steps(expanded::kSolarFadeFrames / 2);

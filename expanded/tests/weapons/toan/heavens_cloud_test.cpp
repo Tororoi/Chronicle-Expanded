@@ -13,7 +13,7 @@
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "expanded/weapons/toan/heavens_cloud.hpp"
-#include "expanded/weapons/xiao/shot_charge.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
