@@ -12,6 +12,7 @@
 #include "expanded/core/frames.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "frame.hpp"
 #include "gameutil.hpp"
 #include "userstatus.hpp"
@@ -53,12 +54,6 @@ float Wrap(float a) {
         a += kTwoPi;
     }
     return a;
-}
-
-float HerYaw() {
-    float rotation[4];
-    CharaMain.GetRotation(rotation);
-    return rotation[1];
 }
 
 // The grip's rotation, turned by the preset's quarter-turns, set into the root's children: the draw sets the root's own
@@ -283,7 +278,7 @@ void PropPlace() {
     }
     float root[3];
     PropRoot(root);
-    float yaw = HerYaw() + prop.orbit;
+    float yaw = PlayerYaw() + prop.orbit;
     prop.model->SetPosition(root[0], root[1], root[2]);
     prop.model->SetRotation(0.0f, yaw, 0.0f);
     prop.model->SetScale(kPropScale, kPropScale, kPropScale);
@@ -309,7 +304,7 @@ void PropDraw() {
 }
 
 void PropRoot(float *out) {
-    float yaw = HerYaw() + prop.orbit;
+    float yaw = PlayerYaw() + prop.orbit;
     out[0] = CharaMain.pos[0] + std::sin(yaw) * kPropAhead;
     out[1] = CharaMain.pos[1] + kPropUp;
     out[2] = CharaMain.pos[2] + std::cos(yaw) * kPropAhead;

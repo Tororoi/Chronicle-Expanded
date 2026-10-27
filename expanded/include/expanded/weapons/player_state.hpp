@@ -20,6 +20,9 @@ inline constexpr int kUngagaFirstSwing = 0x25, kUngagaLastSwing = 0x27;
 // Whether chara (CHARA_*) is the member in play.
 bool Playing(int chara);
 
+// The way the player faces: CharaMain's yaw.
+float PlayerYaw();
+
 // BtActStatus.guard_mode while the guard is up.
 inline constexpr int kGuardUp = 5;
 bool                 Guarding();

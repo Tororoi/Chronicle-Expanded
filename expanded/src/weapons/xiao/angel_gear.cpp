@@ -45,12 +45,6 @@ Reflector reflector;
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(GuardianReflectorReset), true);
 
-float HerYaw() {
-    float rotation[4];
-    CharaMain.GetRotation(rotation);
-    return rotation[1];
-}
-
 // Everything put back as the game has it.
 void TakeDown() {
     RingUp(false);
@@ -163,7 +157,7 @@ void GuardianReflectorStep() {
     PropLoad(); // ahead of her guard
     bool  guarding = Guarding();
     float her[4] = {CharaMain.pos[0], CharaMain.pos[1], CharaMain.pos[2], 1.0f};
-    float yaw = HerYaw();
+    float yaw = PlayerYaw();
 
     RingStep();
     // The gauge is the standing shield's health (a hit on her fills it: put back); after a break it refills, then is free.

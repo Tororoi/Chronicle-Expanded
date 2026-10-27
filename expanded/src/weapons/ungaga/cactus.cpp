@@ -99,12 +99,6 @@ const BloomShape &Shape() {
     return bloom.form->shape;
 }
 
-float HerYaw() {
-    float rotation[4];
-    CharaMain.GetRotation(rotation);
-    return rotation[1];
-}
-
 // The copy's turn: the wielder's facing at the summon and the form's own, within a half-turn either way.
 float CopyYaw() {
     float yaw = bloom.yaw + Shape().turn;
@@ -222,7 +216,7 @@ void TakeDown() {
 
 void Summon() {
     TakeDown(); // one standing moves
-    bloom.yaw = HerYaw();
+    bloom.yaw = PlayerYaw();
     bloom.spot[0] = CharaMain.pos[0] + std::sin(bloom.yaw) * kBloomAhead;
     bloom.spot[2] = CharaMain.pos[2] + std::cos(bloom.yaw) * kBloomAhead;
     if (!FloorUnder(bloom.spot[0], bloom.spot[2], CharaMain.pos[1] + kFloorAbove, &bloom.spot[1])) {

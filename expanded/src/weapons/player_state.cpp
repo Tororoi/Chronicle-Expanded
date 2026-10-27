@@ -1,6 +1,7 @@
 #include "expanded/weapons/player_state.hpp"
 
 #include "btactstatus.hpp"
+#include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "monstorunit.hpp"
@@ -13,6 +14,12 @@ namespace expanded {
 
 bool Playing(int chara) {
     return UserStatus != nullptr && UserStatus->cur_chara == chara;
+}
+
+float PlayerYaw() {
+    float rotation[4];
+    CharaMain.GetRotation(rotation);
+    return rotation[1];
 }
 
 bool Guarding() {

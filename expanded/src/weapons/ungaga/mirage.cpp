@@ -44,12 +44,6 @@ GuardHold guard; // latched once it plants (or hands off): no more until R1 is l
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(MirageReset), true);
 
-float PlayerYaw() {
-    float rotation[4];
-    CharaMain.GetRotation(rotation);
-    return rotation[1];
-}
-
 bool Live(int monster) {
     const MONSTOR *live = FloorMonster(monster);
     return live != nullptr && MonsterLiving(*live);
