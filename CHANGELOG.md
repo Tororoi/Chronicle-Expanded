@@ -79,6 +79,7 @@ Each section lists this repository's own changes first, then those that come fro
 - New settings screen with Game, Display, Audio, Controls, Text, Accessibility and Bindings pages; changes apply at once and are kept for every save. [Chronicle#65](https://github.com/TheMoonPeople/Chronicle/pull/65), [Chronicle#67](https://github.com/TheMoonPeople/Chronicle/pull/67), [Chronicle#100](https://github.com/TheMoonPeople/Chronicle/pull/100), [Chronicle#130](https://github.com/TheMoonPeople/Chronicle/pull/130)
 - Always Win QTEs (Accessibility): button-prompt events still play but always end in a perfect. [Chronicle#96](https://github.com/TheMoonPeople/Chronicle/pull/96)
 - Quit Game action. [Chronicle#144](https://github.com/TheMoonPeople/Chronicle/pull/144), [Chronicle#155](https://github.com/TheMoonPeople/Chronicle/pull/155), [Chronicle#171](https://github.com/TheMoonPeople/Chronicle/pull/171)
+- The title screen has an Exit row, which asks before closing the game, its four rows drawn in every language in a font made from the title's painted capitals; Quit in the pause menu now asks and returns to the title screen instead of the desktop. [Chronicle#211](https://github.com/TheMoonPeople/Chronicle/pull/211)
 
 ## Fixes
 
@@ -95,6 +96,7 @@ Each section lists this repository's own changes first, then those that come fro
 - The Broken Dagger glitch in the item shop is gone. [Chronicle#158](https://github.com/TheMoonPeople/Chronicle/pull/158)
 - A bomb's blast throws the player away from it, not always the same way. [Chronicle#181](https://github.com/TheMoonPeople/Chronicle/pull/181)
 - The HUD's weapon icon keeps its colours after closing a menu on the PAL disc in English. [Chronicle#91](https://github.com/TheMoonPeople/Chronicle/pull/91)
+- On the PAL disc, Carrot, Potato Cake, Minon, Battan and Petite Fish go on the hook as fishing bait; choosing one used it up and left the hook empty. [Chronicle#212](https://github.com/TheMoonPeople/Chronicle/pull/212)
 
 ## Game mechanics
 
