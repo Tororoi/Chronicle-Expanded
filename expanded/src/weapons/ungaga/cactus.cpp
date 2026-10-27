@@ -258,12 +258,12 @@ void Pricks() {
 }
 
 void TakeDown() {
-    SummonSmokeEnd();
+    SummonSmokeEnd(&bloom);
     if (!bloom.up) {
         return;
     }
-    SolidColumnDisarm();
-    GroundShadowHide();
+    SolidColumnDisarm(&bloom);
+    GroundShadowHide(&bloom);
     PropDown();
     bloom.up = false;
     bloom.emerged = bloom.peaked = bloom.risen = false;
@@ -295,7 +295,7 @@ void Summon() {
     RootAcross(bloom.scale, bloom.root);
     bloom.root[1] = from;
     PropPlace(bloom.root, CopyYaw(), bloom.scale, bloom.alpha);
-    SummonSmokeStart(bloom.spot, bloom.yaw, kBloomSmokeScale);
+    SummonSmokeStart(bloom.spot, bloom.yaw, kBloomSmokeScale, &bloom);
     ChargeCompleteFlash();
     SndSePlay(SE_BOX_OPEN, -1, 0); // the poof
 }
@@ -346,7 +346,7 @@ void Grow() {
     bloom.root[1] = RootHeight(1.0f, bloom.scale);
     if (bloom.risen) {
         // Settled: solid, up to the top of what stands out.
-        SolidColumnArm(bloom.spot, Shape().block_radius, bloom.spot[1] + Shape().exposed * Shape().scale);
+        SolidColumnArm(bloom.spot, Shape().block_radius, bloom.spot[1] + Shape().exposed * Shape().scale, &bloom);
     }
 }
 
@@ -371,9 +371,9 @@ void Drive() {
     PropPlace(bloom.root, CopyYaw(), bloom.scale, bloom.alpha);
     // Its shadow, gone as it starts to fade.
     if (bloom.age < kBloomStandFrames && Shape().shadow_radius > 0.0f) {
-        GroundShadowShow(bloom.spot[0], bloom.spot[1], bloom.spot[2], Shape().shadow_radius * bloom.scale);
+        GroundShadowShow(bloom.spot[0], bloom.spot[1], bloom.spot[2], Shape().shadow_radius * bloom.scale, &bloom);
     } else {
-        GroundShadowHide();
+        GroundShadowHide(&bloom);
     }
     if (bloom.risen && bloom.form->pricks && (bloom.last_prick < 0 || bloom.age - bloom.last_prick >= kBloomHitFrames)) {
         bloom.last_prick = bloom.age;
@@ -473,9 +473,9 @@ void SetDesertBloomGuardButton(GuardButtonHeld held) {
 }
 
 void DesertBloomReset() {
-    SummonSmokeEnd();
-    SolidColumnDisarm();
-    GroundShadowHide();
+    SummonSmokeEnd(&bloom);
+    SolidColumnDisarm(&bloom);
+    GroundShadowHide(&bloom);
     PropReset();
     bloom = Bloom{};
 }

@@ -15,27 +15,30 @@ constexpr int   kPlayerShot = 2; // a shot aimed at the monsters
 constexpr float kHeadOn = 0.01f; // what is left along the column, squared, below which the slide takes the perpendicular
 
 struct Column {
-    bool  armed = false;
-    float x = 0.0f, floor = 0.0f, z = 0.0f;
-    float radius = 0.0f, top = 0.0f;
+    bool        armed = false;
+    float       x = 0.0f, floor = 0.0f, z = 0.0f;
+    float       radius = 0.0f, top = 0.0f;
+    const void *owner = nullptr;
 };
 
 Column column;
 
 void OnFloor() {
-    SolidColumnDisarm();
+    column = Column{};
 }
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
 
 } // namespace
 
-void SolidColumnArm(const float *base, float radius, float top) {
-    column = Column{true, base[0], base[1], base[2], radius, top};
+void SolidColumnArm(const float *base, float radius, float top, const void *owner) {
+    column = Column{true, base[0], base[1], base[2], radius, top, owner};
 }
 
-void SolidColumnDisarm() {
-    column.armed = false;
+void SolidColumnDisarm(const void *owner) {
+    if (column.owner == owner) {
+        column = Column{};
+    }
 }
 
 bool SolidColumnArmed() {

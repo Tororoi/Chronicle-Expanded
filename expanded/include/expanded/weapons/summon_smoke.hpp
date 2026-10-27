@@ -17,12 +17,13 @@ inline constexpr int         kSmokeShots = 1;
 // The smoke's description, for the weapons that summon in it to register (shot_effects.hpp).
 BT_SHOT_EFFECT *SummonSmokeEffect();
 
-// A poof at spot (its ground), turned to yaw, scale times its own size; false when the smoke is not loaded on this floor.
-bool SummonSmokeStart(const float *spot, float yaw, float scale);
+// A poof at spot (its ground), turned to yaw, scale times its own size, for owner (the summon, by any pointer of its
+// own); one already playing is put out. False when the smoke is not loaded on this floor.
+bool SummonSmokeStart(const float *spot, float yaw, float scale, const void *owner);
 // One step (once a frame the monsters step unpaused): held at its spot, at its rate, faded past kSmokeFadeFrom.
 void SummonSmokeStep();
-// Put out now, if it plays.
-void SummonSmokeEnd();
+// Put out now, if it plays for owner: another summon's smoke plays on.
+void SummonSmokeEnd(const void *owner);
 bool SummonSmokePlaying();
 // The frame of its clip, or -1 when none plays.
 float SummonSmokeFrame();

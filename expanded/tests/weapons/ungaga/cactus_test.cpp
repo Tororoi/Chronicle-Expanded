@@ -571,3 +571,22 @@ TEST_F(DesertBloom, TheSmokeIsHeldAndFadesFromItsFrame32) {
     EXPECT_FLOAT_EQ(smoke_frames[1].attr.color[0], 128.0f);
     EXPECT_NE(smoke.active[0], 0);
 }
+
+// The smoke, the column and the shadow are one at a time and shared: the Cactus puts out only its own.
+TEST_F(DesertBloom, ItPutsOutOnlyItsOwnSmokeColumnAndShadow) {
+    const int   other = 0;
+    const float spot[3] = {50.0f, 0.0f, 50.0f};
+    ASSERT_TRUE(expanded::SummonSmokeStart(spot, 0.0f, 1.0f, &other));
+    expanded::SolidColumnArm(spot, 5.0f, 10.0f, &other);
+    expanded::GroundShadowShow(spot[0], spot[1], spot[2], 5.0f, &other);
+    expanded::DesertBloomReset();
+    EXPECT_TRUE(expanded::SummonSmokePlaying());
+    EXPECT_TRUE(expanded::SolidColumnArmed());
+    EXPECT_TRUE(expanded::GroundShadowShown());
+    expanded::SummonSmokeEnd(&other);
+    expanded::SolidColumnDisarm(&other);
+    expanded::GroundShadowHide(&other);
+    EXPECT_FALSE(expanded::SummonSmokePlaying());
+    EXPECT_FALSE(expanded::SolidColumnArmed());
+    EXPECT_FALSE(expanded::GroundShadowShown());
+}

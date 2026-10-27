@@ -148,6 +148,44 @@ TEST(HeavensCloudShot, AFullChargeGrowsThePelletAndBlowsTheMonstersAway) {
     NowColData = saved;
 }
 
+// A charged pellet that never ended (its floor left behind) leaves nothing for the next pellet in its slot to burst with.
+TEST(HeavensCloudShot, AnUnchargedPelletDoesNotBurstWithAnEarlierOnesCharge) {
+    expanded::test::TestFloor floor;
+    floor.status().cur_chara = CHARA_XIAO;
+    expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_HEAVEN_S_CLOUD);
+    steve.weapon().attack = 100;
+    steve.weapon().best_elem = -1;
+    floor.SetUpModel(0, expanded::Monster::MASTER_JACKET);
+    floor.Spawn(0, 0);
+    floor.unit().monster[0].revealed = -1;
+    floor.unit().chara[0][0].SetPosition(30.0f, 0.0f, 0.0f);
+    std::unique_ptr<CCollisionData> hits = std::make_unique<CCollisionData>();
+    CCollisionData                 *saved = NowColData;
+    NowColData = hits.get();
+
+    BtActStatus = {};
+    BtActStatus.action_on = 1;
+    BtActStatus.action_no = 12;
+    for (int i = 0; i < expanded::kTyphoonShotFrames; i++) {
+        expanded::TyphoonShotStep();
+    }
+    BtActStatus = {};
+    expanded::TyphoonShotStep();
+    static CSHOT shots;
+    shots.size[0] = 1.0f;
+    shots.damage[0] = 40;
+    expanded::TyphoonShotFired(shots, 0); // charged, and never ends
+
+    shots.size[0] = 1.0f;
+    shots.damage[0] = 40;
+    expanded::TyphoonShotFired(shots, 0); // uncharged, into the same slot
+    EXPECT_FLOAT_EQ(shots.size[0], 1.0f);
+    const float landed[4] = {25.0f, 0.0f, 0.0f, 1.0f};
+    expanded::TyphoonShotEnded(shots, 0, landed, true);
+    EXPECT_EQ(hits->active[0], 0);
+    NowColData = saved;
+}
+
 TEST(HeavensCloud, TheGrownWhirlwindHitsEveryMonsterInReachAndThrowsThemClear) {
     Toan toan(ITEM_WEAPON_HEAVEN_S_CLOUD);
     toan.wielding.weapon().attack = 100;

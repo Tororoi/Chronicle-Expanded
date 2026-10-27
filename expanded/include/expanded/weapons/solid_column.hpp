@@ -20,9 +20,10 @@ namespace expanded {
 inline constexpr float kColumnPlayerReach = 6.0f;
 inline constexpr float kColumnShotBelow = 2.0f;
 
-// Armed standing at base (x, floor, z), radius wide, up to height top; passable again.
-void SolidColumnArm(const float *base, float radius, float top);
-void SolidColumnDisarm();
+// Armed standing at base (x, floor, z), radius wide, up to height top, for owner (the summon, by any pointer of its own);
+// passable again, if owner armed it.
+void SolidColumnArm(const float *base, float radius, float top, const void *owner);
+void SolidColumnDisarm(const void *owner);
 bool SolidColumnArmed();
 
 // Hooks: a monster's step after the other monsters blocked it (CMonstorUnit::Step, after MoveChecMonster); the player's

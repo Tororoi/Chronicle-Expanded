@@ -30,8 +30,8 @@ namespace expanded {
 namespace {
 
 constexpr int   kGuarding = 5;      // BtActStatus.guard_mode while the guard is up
-constexpr int   kComboFirst = 0x24; // Ungaga's combo swings, an action each
-constexpr int   kComboLast = 0x28;
+constexpr int   kComboFirst = 0x25; // Ungaga's three combo swings, an action each (UngagaKey_On)
+constexpr int   kComboLast = 0x27;
 constexpr int   kMonsters = 2;         // whom the sparkle is aimed at: none of the monsters' blocks stop it
 constexpr int   kStopAndRestart = 6;   // motion flags: from the clip's first frame, held on its last
 constexpr float kOwnRate = -1.0f;      // a clip at its own rate

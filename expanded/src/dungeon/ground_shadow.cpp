@@ -18,6 +18,7 @@ struct Shadow {
     bool        shown = false;
     float       at[3] = {};
     float       radius = 0.0f;
+    const void *owner = nullptr;
 };
 
 Shadow shadow;
@@ -42,16 +43,19 @@ CCharacter *Disc() {
 
 } // namespace
 
-void GroundShadowShow(float x, float ground, float z, float radius) {
+void GroundShadowShow(float x, float ground, float z, float radius, const void *owner) {
     shadow.shown = Disc() != nullptr;
+    shadow.owner = owner;
     shadow.at[0] = x;
     shadow.at[1] = ground + kGroundShadowLift;
     shadow.at[2] = z;
     shadow.radius = radius;
 }
 
-void GroundShadowHide() {
-    shadow.shown = false;
+void GroundShadowHide(const void *owner) {
+    if (shadow.owner == owner) {
+        shadow.shown = false;
+    }
 }
 
 bool GroundShadowShown() {

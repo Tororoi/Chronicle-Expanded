@@ -194,7 +194,11 @@ void ZeusShotReset() {
 }
 
 void ZeusShotFired(CSHOT &shots, int slot) {
-    if (!ZeusShotActive() || slot < 0 || slot >= 12) {
+    if (slot < 0 || slot >= 12) {
+        return;
+    }
+    state.flights[slot] = {}; // a pellet fired into this slot before is gone, ended or not
+    if (!ZeusShotActive()) {
         return;
     }
     if (state.charge == Charge::kPrimed) {
