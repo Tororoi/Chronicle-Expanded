@@ -31,6 +31,10 @@
 #include "userstatus.hpp"
 #include "weaponelement.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/ruby/crystal_ring.hpp"
+#endif
+
 /* The debug item preview (EnterItemPolygonView) copies a whole vector into each of these, one float
    more than retail declares. MWCC gave every one of them a 16-byte slot, so on the PS2 the fourth
    float lands in padding; the port gives them the fourth float, as zero, the padding's value. */
@@ -300,6 +304,14 @@ int ElementChoices(std::span<s8> choices) {
     WEAPON_HAVE *weapon = EquippedWeapon();
     int          count = 0;
 
+#ifdef CHRONICLE_EXPANDED
+    // A weapon its curse holds to an element offers that one alone.
+    if (int held = expanded::HeldElement(*NowWeaponHave); held >= 0) {
+        choices[count++] = static_cast<s8>(held);
+        return count;
+    }
+#endif
+
     for (int i = 0; i < 5; i++) {
         if (NowWeaponHave->elem[i] > 0) {
             choices[count++] = i;
@@ -536,6 +548,12 @@ void ClosePicker() {
 } // namespace
 
 bool ElementPickerHasChoice() {
+#ifdef CHRONICLE_EXPANDED
+    // A weapon held to an element opens the picker on it, to show it.
+    if (expanded::HeldElement(*NowWeaponHave) >= 0) {
+        return true;
+    }
+#endif
     auto choices = std::make_unique<s8[]>(6);
     return ElementChoices(std::span(choices.get(), 6)) >= 2;
 }

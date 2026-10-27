@@ -7937,6 +7937,9 @@ void BattleActionShotRuby(CCharacter *chara, int aimed, float scale, int repeat)
             NowMainEffect->SetDmg(damage);
             NowMainEffect->SetRandomRate(2.0f);
             NowMainEffect->SetNoSound();
+#ifdef CHRONICLE_EXPANDED
+            expanded::RubyOrbThrown(*NowMainEffect, NowMainEffect->current_slot, scale, true);
+#endif
         }
 
         return;
@@ -7965,6 +7968,9 @@ void BattleActionShotRuby(CCharacter *chara, int aimed, float scale, int repeat)
         NowMainEffect->SetWepStatus(NowWeaponHave->flags);
         NowMainEffect->SetVsMonster(NowWeaponHave->vs_monster);
         NowMainEffect->SetDmg(damage);
+#ifdef CHRONICLE_EXPANDED
+        expanded::RubyOrbThrown(*NowMainEffect, NowMainEffect->current_slot, scale, false);
+#endif
         return;
     }
 
@@ -7980,6 +7986,9 @@ void BattleActionShotRuby(CCharacter *chara, int aimed, float scale, int repeat)
         NowMainEffect->SetWepStatus(NowWeaponHave->flags);
         NowMainEffect->SetVsMonster(NowWeaponHave->vs_monster);
         NowMainEffect->SetDmg(damage);
+#ifdef CHRONICLE_EXPANDED
+        expanded::RubyOrbThrown(*NowMainEffect, NowMainEffect->current_slot, scale, false);
+#endif
     }
 }
 

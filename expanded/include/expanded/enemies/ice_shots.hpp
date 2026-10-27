@@ -10,6 +10,10 @@ namespace expanded {
 inline constexpr const char *kIceArrowFile = "dun/monstor/korinoya.chr";
 inline constexpr const char *kIcePrisonFile = "dun/monstor/kori.chr";
 
+// The Crystal Gemron's arrow: Holy Gemron's shot on the Ice Queen's arrow, flying from the moment it is fired at 1.2 a
+// step for 360 steps, with Freeze, the Ice element and a guardable knockback. Each user enters its own copy.
+BT_SHOT_EFFECT IceArrowShot();
+
 // The prison's description (no hit; phase 1 formed, 2 shattering), each user entering its own copy.
 BT_SHOT_EFFECT IcePrisonShot();
 
