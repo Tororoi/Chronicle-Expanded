@@ -53,10 +53,7 @@ std::vector<BoundWorld> CapeBoundsWorld(const std::vector<RigNode> &nodes) {
     std::vector<BoundWorld> out;
     for (const BoundLocal &b : CapeBoundsLocal(nodes)) {
         const M4 &wm = ByName(nodes, b.bone).world;
-        V3        aw = XformPt(wm, b.a), bw = XformPt(wm, b.b), upw;
-        for (std::size_t c = 0; c < 3; c++) {
-            upw[c] = Sum({b.up[0] * wm[0][c], b.up[1] * wm[1][c], b.up[2] * wm[2][c]});
-        }
+        V3        aw = XformPt(wm, b.a), bw = XformPt(wm, b.b), upw = VecMatExact(b.up, RotOf(wm));
         V3 z = UnitExact({aw[0] - bw[0], aw[1] - bw[1], aw[2] - bw[2]}), x = UnitExact(Cross(upw, z)), y = Cross(z, x);
         out.push_back({
             {(aw[0] + bw[0]) / 2, (aw[1] + bw[1]) / 2, (aw[2] + bw[2]) / 2},
@@ -71,7 +68,7 @@ double BoundDepth(const BoundWorld &bw, const V3 &p) {
     V3                  d = {p[0] - bw.centre[0], p[1] - bw.centre[1], p[2] - bw.centre[2]};
     std::vector<double> terms;
     for (std::size_t i = 0; i < 3; i++) {
-        terms.push_back(std::pow(Sum({d[0] * bw.axes[i][0], d[1] * bw.axes[i][1], d[2] * bw.axes[i][2]}) / bw.radii[i], 2));
+        terms.push_back(std::pow(DotExact(d, bw.axes[i]) / bw.radii[i], 2));
     }
     return std::sqrt(Sum(terms));
 }

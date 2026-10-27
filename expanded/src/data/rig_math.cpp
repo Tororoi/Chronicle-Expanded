@@ -215,6 +215,14 @@ Vec3 MatVec(const Mat3 &m, const Vec3 &v) {
     return {Dot(m[0], v), Dot(m[1], v), Dot(m[2], v)};
 }
 
+Vec3 VecMatExact(const Vec3 &v, const Mat3 &m) {
+    Vec3 out;
+    for (std::size_t i = 0; i < 3; i++) {
+        out[i] = Sum({v[0] * m[0][i], v[1] * m[1][i], v[2] * m[2][i]});
+    }
+    return out;
+}
+
 Mat3 Transpose(const Mat3 &a) {
     Mat3 r{};
     for (std::size_t i = 0; i < 3; i++) {

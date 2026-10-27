@@ -111,10 +111,6 @@ Edge MakeEdge(int x, int y) {
     return {std::min(x, y), std::max(x, y)};
 }
 
-V3 Add3(const V3 &a, const V3 &b) {
-    return {a[0] + b[0], a[1] + b[1], a[2] + b[2]};
-}
-
 struct Local {
     M3 r;
     V3 t;
@@ -226,8 +222,9 @@ private:
         }
         Local l;
         l.r = MatMulExact(rw, r_ref_t_);
+        V3 moved = VecMatExact(rel, r_ref_t_);
         for (std::size_t i = 0; i < 3; i++) {
-            l.t[i] = anchor_local_[i] + Sum({rel[0] * r_ref_t_[0][i], rel[1] * r_ref_t_[1][i], rel[2] * r_ref_t_[2][i]});
+            l.t[i] = anchor_local_[i] + moved[i];
         }
         return l;
     }
@@ -287,8 +284,8 @@ private:
     std::map<std::string, V3>                  pivot_local_, fold_root_;
     std::map<std::string, std::vector<M3>>     fold_rls_;
     std::map<std::string, std::vector<V3>>     fold_tls_;
-    const std::vector<std::string>             right_ = {"r_wing1", "r_wing2", "r_wing3", "r_wing4"};
-    const std::vector<std::string>             left_ = {"l_wing1", "l_wing2", "l_wing3", "l_wing4"};
+    const std::vector<std::string>             right_{std::begin(kWingBones), std::begin(kWingBones) + 4};
+    const std::vector<std::string>             left_{std::begin(kWingBones) + 4, std::end(kWingBones)};
 
     struct Window {
         int  cs, ce, ds, de, cycles;
@@ -339,11 +336,8 @@ std::map<int, Local> Graft::WingLocals(double f) {
                     double    hz = kStrokeHingeIn * (piv[2] < 0 ? 1.0 : -1.0);
                     V3        c = {piv[0], piv[1], piv[2] + hz}, arm = {piv[0] - c[0], piv[1] - c[1], piv[2] - c[2]};
                     M3        q = RotAbout(fa, KeyedVal(kStrokePhi, f) * flap_sign_.at(sd));
-                    V3        r;
-                    for (std::size_t i = 0; i < 3; i++) {
-                        r[i] = c[i] + Sum({arm[0] * q[0][i], arm[1] * q[1][i], arm[2] * q[2][i]});
-                    }
-                    root = r;
+                    V3        swung = VecMatExact(arm, q);
+                    root = V3{c[0] + swung[0], c[1] + swung[1], c[2] + swung[2]};
                 }
                 for (std::size_t k = 0; k < 4; k++) {
                     double uk = std::pow(u, 1.0 + double(k) * kStrokeLag), fk = w7.cs + uk * (w7.ce - w7.cs);
@@ -369,14 +363,8 @@ std::map<int, Local> Graft::WingLocals(double f) {
                     rls.push_back(DranLocalR(name, df));
                 }
             }
-            if (wki == 7) {
-                double deg = f <= kClipPitch7[0].first ? kClipPitch7[0].second : std::end(kClipPitch7)[-1].second;
-                for (std::size_t i = 0; i + 1 < std::size(kClipPitch7); i++) {
-                    if (kClipPitch7[i].first <= f && f <= kClipPitch7[i + 1].first) {
-                        deg = kClipPitch7[i].second + (kClipPitch7[i + 1].second - kClipPitch7[i].second) *
-                                                          Smooth((f - kClipPitch7[i].first) / (kClipPitch7[i + 1].first - kClipPitch7[i].first));
-                    }
-                }
+            if (wki == kStrokeKi) {
+                double deg = KeyedVal(kClipPitch7, f);
                 if (std::fabs(deg) > 1e-6) {
                     double th = Radians(deg), c = std::cos(th), sn = std::sin(th);
                     M3     qz = {
@@ -510,9 +498,7 @@ WingData Graft::Build() {
         n.r = l.r;
         n.t = l.t;
         n.quat = MatToQuat(l.r);
-        n.world = MatMulExact(MatFromRT(l.r, l.t), nodes_[std::size_t(parent_)].world);
-        n.inv_world = RigidInv(n.world);
-        n.world_pos = {n.world[3][0], n.world[3][1], n.world[3][2]};
+        n.Bind(nodes_);
         nodes_.push_back(n);
         wid_[d.i] = base_ + k;
     }
@@ -567,32 +553,19 @@ WingData Graft::Build() {
                 c[i] = Sum(xs) / double(loc.size());
             }
             V3 nrm = PcaNormal(loc, c);
-            V3 span_f = rf[0], top_f, top_w;
-            for (std::size_t i = 0; i < 3; i++) {
-                top_f[i] = Sum({nrm[0] * rf[0][i], nrm[1] * rf[1][i], nrm[2] * rf[2][i]});
-            }
-            for (std::size_t i = 0; i < 3; i++) {
-                top_w[i] = Sum({top_f[0] * r_ref[0][i], top_f[1] * r_ref[1][i], top_f[2] * r_ref[2][i]});
-            }
+            V3 span_f = rf[0], top_f = VecMatExact(nrm, rf), top_w = VecMatExact(top_f, r_ref);
             if (top_w[1] < 0) {
                 top_f = {-top_f[0], -top_f[1], -top_f[2]};
             }
             V3 span_t0 = {kWingFold[k].span[0] * sx, kWingFold[k].span[1], kWingFold[k].span[2]};
             V3 top_t0 = {kWingFold[k].top[0] * sx, kWingFold[k].top[1], kWingFold[k].top[2]};
-            V3 span_t, top_t;
-            for (std::size_t i = 0; i < 3; i++) {
-                span_t[i] = Sum({span_t0[0] * r_stand_t[0][i], span_t0[1] * r_stand_t[1][i], span_t0[2] * r_stand_t[2][i]});
-                top_t[i] = Sum({top_t0[0] * r_stand_t[0][i], top_t0[1] * r_stand_t[1][i], top_t0[2] * r_stand_t[2][i]});
-            }
+            V3 span_t = VecMatExact(span_t0, r_stand_t), top_t = VecMatExact(top_t0, r_stand_t);
             M3 bf = Basis(span_f, top_f), bt = Basis(span_t, top_t);
             M3 a = MatMulExact(Transpose(bf), bt);
             rls.push_back(MatMulExact(rf, a));
         }
-        V3 shift_w = {kWingFoldRootShift[0] * sx, kWingFoldRootShift[1], kWingFoldRootShift[2]}, shift_l;
-        for (std::size_t i = 0; i < 3; i++) {
-            shift_l[i] = Sum({shift_w[0] * r_stand_t[0][i], shift_w[1] * r_stand_t[1][i], shift_w[2] * r_stand_t[2][i]});
-        }
-        fold_root_[sd] = Add3(pivot_local_[sd], shift_l);
+        V3 shift_w = {kWingFoldRootShift[0] * sx, kWingFoldRootShift[1], kWingFoldRootShift[2]};
+        fold_root_[sd] = Add(pivot_local_[sd], VecMatExact(shift_w, r_stand_t));
         fold_rls_[sd] = rls;
         fold_tls_[sd] = FkLocals(sd, rls, fold_root_[sd]);
         for (std::size_t k = 0; k < 4; k++) {
@@ -600,9 +573,7 @@ WingData Graft::Build() {
             n.r = rls[k];
             n.t = fold_tls_[sd][k];
             n.quat = MatToQuat(rls[k]);
-            n.world = MatMulExact(MatFromRT(n.r, n.t), nodes_[std::size_t(parent_)].world);
-            n.inv_world = RigidInv(n.world);
-            n.world_pos = {n.world[3][0], n.world[3][1], n.world[3][2]};
+            n.Bind(nodes_);
         }
         for (std::size_t k = 1; k < 4; k++) {
             RigNode       &n = nodes_[std::size_t(Wid(ch[k]))];
@@ -962,26 +933,15 @@ WingData Graft::Build() {
             double                            w = me.w0[li];
             std::pair<ColumnPose, ColumnPose> ma = {Col(mref(b0)), Col(mref(b1))}, mb = {Col(mfold(b0)), Col(mfold(b1))};
             V3                                target_a = Blend(w, ma.first, ma.second, me.p0[li], me.p1[li]);
-            V3                                target_b = Add3(Blend(w, mb.first, mb.second, me.p0[li], me.p1[li]), offset);
+            V3                                target_b = Add(Blend(w, mb.first, mb.second, me.p0[li], me.p1[li]), offset);
             if (auto sol = TwoPoseFit(w, ma, mb, target_a, target_b)) {
                 me.p0[li] = sol->first;
                 me.p1[li] = sol->second;
             }
         };
         for (auto [li, d] : kWingFoldLift) {
-            if (li >= static_cast<int>(used.size())) {
-                continue;
-            }
-            // Lifted in the folded pose only (two-pose fit; the leap stays exact).
-            int                               b0 = me.b0[std::size_t(li)], b1 = me.b1[std::size_t(li)];
-            double                            w = me.w0[std::size_t(li)];
-            std::pair<ColumnPose, ColumnPose> ma = {Col(mref(b0)), Col(mref(b1))}, mb = {Col(mfold(b0)), Col(mfold(b1))};
-            V3                                target_a = Blend(w, ma.first, ma.second, me.p0[std::size_t(li)], me.p1[std::size_t(li)]);
-            V3                                target_b = Blend(w, mb.first, mb.second, me.p0[std::size_t(li)], me.p1[std::size_t(li)]);
-            target_b[1] += d;
-            if (auto sol = TwoPoseFit(w, ma, mb, target_a, target_b)) {
-                me.p0[std::size_t(li)] = sol->first;
-                me.p1[std::size_t(li)] = sol->second;
+            if (li < static_cast<int>(used.size())) {
+                fit(std::size_t(li), {0.0, d, 0.0}); // lifted in the folded pose only
             }
         }
         // Rm: the midpoint of the base's rear edge Rb-Rt, skinned as the pooled average of its ends.
