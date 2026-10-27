@@ -347,7 +347,7 @@ Bytes SheetLook::ApplyBaseToSheet(std::span<const unsigned char> tim) const {
 
 Bytes BuildGlowDisc(std::span<const unsigned char> templ, std::span<const unsigned char> torch, std::array<int, 3> core,
                     std::array<int, 3> outer) {
-    constexpr double kCross = 0.125; // radius fraction where the mix is halfway
+    constexpr double      kCross = 0.125; // radius fraction where the mix is halfway
     constexpr std::size_t p = tim8::kPicture;
     std::size_t           header = Get16(torch, p + tim8::kHeaderSize), image = Get32(torch, p + tim8::kImageSize);
     int                   width = Get16(torch, p + tim8::kWidth), height = Get16(torch, p + tim8::kHeight);

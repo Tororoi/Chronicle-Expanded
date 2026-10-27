@@ -633,8 +633,8 @@ void Graft::FoldChains(const Placed &placed) {
 std::vector<Tri> Graft::CarveMeshes(const Placed &placed, WingData &data) {
     const MdtMesh         &om = placed.om;
     const std::vector<V3> &vw_all = placed.vw_all;
-    std::vector<Tri> tris = MdtTriangles(om);
-    auto             side = [&](int vi) -> std::string {
+    std::vector<Tri>       tris = MdtTriangles(om);
+    auto                   side = [&](int vi) -> std::string {
         const auto *infl = weights_all_.Find(vi);
         if (infl == nullptr || infl->empty()) {
             return "";

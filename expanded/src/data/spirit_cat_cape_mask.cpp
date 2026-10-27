@@ -45,7 +45,7 @@ std::vector<BoundWorld> CapeBoundsWorld(const std::vector<RigNode> &nodes) {
     for (const BoundLocal &b : CapeBoundsLocal(nodes)) {
         const M4 &wm = NodeNamed(nodes, b.bone).world;
         V3        aw = XformPt(wm, b.a), bw = XformPt(wm, b.b), upw = VecMatExact(b.up, RotOf(wm));
-        V3 z = UnitExact({aw[0] - bw[0], aw[1] - bw[1], aw[2] - bw[2]}), x = UnitExact(Cross(upw, z)), y = Cross(z, x);
+        V3        z = UnitExact({aw[0] - bw[0], aw[1] - bw[1], aw[2] - bw[2]}), x = UnitExact(Cross(upw, z)), y = Cross(z, x);
         out.push_back({
             {(aw[0] + bw[0]) / 2, (aw[1] + bw[1]) / 2, (aw[2] + bw[2]) / 2},
             {x,                   y,                   z                  },

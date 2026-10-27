@@ -450,11 +450,11 @@ Encoded Encode(std::span<const unsigned char> dran, const Bytes &graft_mds, cons
 
     // The Super Steve cape: a cloth frame under the root (its bind 3x3 at kHideScale, so the cloth built from it starts
     // collapsed) whose MDT is the rest lattice, and its .clo.
-    const auto     &cat_nodes = data.cat_nodes;
-    const RigNode  &skin_node = NodeNamed(cat_nodes, "cat_skin");
-    auto            skin_w = LoadWeights(data.pack, "cat.wgt").at(skin_node.i);
-    SkinMesh        skin_me = *BuildMeshWeighted(data.mds, skin_node, cat_nodes, skin_w);
-    Bytes           cape_mdt = CapeMdt(cat_nodes, skin_me, skin_mdt, mat_template);
+    const auto    &cat_nodes = data.cat_nodes;
+    const RigNode &skin_node = NodeNamed(cat_nodes, "cat_skin");
+    auto           skin_w = LoadWeights(data.pack, "cat.wgt").at(skin_node.i);
+    SkinMesh       skin_me = *BuildMeshWeighted(data.mds, skin_node, cat_nodes, skin_w);
+    Bytes          cape_mdt = CapeMdt(cat_nodes, skin_me, skin_mdt, mat_template);
     out.cape = {
         kCapeNode, 0, {kHideScale, 0, 0, 0, 0, kHideScale, 0, 0, 0, 0, kHideScale, 0, 0, 0, 0, 1},
           cape_mdt
@@ -575,7 +575,7 @@ Bytes BuildSpiritCatModel(std::span<const unsigned char> cat_bytes, std::span<co
     Encoded wd = Encode(dran, graft_mds, graft_pack, cat, log);
 
     // The cat's own pack.
-    Bytes mds = GraftExtraNodes(RenameRig(spl), wd.nodes);
+    Bytes                    mds = GraftExtraNodes(RenameRig(spl), wd.nodes);
     std::vector<std::string> named = ReadMdsFrames(mds);
     auto                     anchor = std::find(named.begin(), named.end(), kCapeAnchor);
     if (anchor == named.end()) {
