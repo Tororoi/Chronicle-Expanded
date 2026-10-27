@@ -5,14 +5,11 @@
 #include <string>
 #include <vector>
 
-#include "btmisc.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
-#include "mglib.hpp"
-#include "texture.hpp"
 
 namespace expanded::cactus {
 
@@ -26,7 +23,6 @@ struct Prop {
 
 Prop                      prop;
 std::vector<CCharacter *> upright; // weapons turned point-up this floor
-
 
 // The weapon turned point-up: its root's rotation (the grip) turned a quarter about x, so the blade's axis, the model's +z,
 // stands straight up. The draw keeps the root's own rotation under the character's turn.
@@ -52,10 +48,7 @@ bool PropLoad(const BloomModel &bloom) {
     std::string path = bloom.pack != nullptr ? bloom.pack : "";
     std::string cfg = bloom.cfg != nullptr ? bloom.cfg : "";
     if (bloom.weapon) {
-        char chr_name[64] = {}, cfg_name[64] = {};
-        BtGetWeaponNamePath3(chr_name, cfg_name, ITEM_WEAPON_CACTUS);
-        path = std::string("commenu/weapon/") + chr_name;
-        cfg = cfg_name;
+        path = WeaponPackPath(ITEM_WEAPON_CACTUS, cfg);
     }
     if (prop.model != nullptr && prop.path == path) {
         return true;
@@ -104,8 +97,7 @@ void PropDraw() {
     if (!prop.up || prop.model == nullptr || prop.model->frame == nullptr) {
         return;
     }
-    TexManager.ReloadTexture(Vif1Packet, kFloorCharacterBlock);
-    prop.model->Draw();
+    DrawFloorCharacter(*prop.model);
 }
 
 CCharacter *PropCharacter() {

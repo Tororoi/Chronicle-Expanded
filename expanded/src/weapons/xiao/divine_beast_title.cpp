@@ -18,22 +18,23 @@
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/miniboss.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/pellets.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/spirit_cape.hpp"
 #include "frame.hpp"
 #include "gameutil.hpp"
 #include "itemdata.hpp"
-#include "mglib.hpp"
 #include "monstorunit.hpp"
 #include "motionmodel.hpp"
 #include "shot_effect.hpp"
 #include "shot_utils.hpp"
-#include "texture.hpp"
 #include "userstatus.hpp"
+#include "weaponelement.hpp"
 
 extern s32 lockOnTargetNo;
 
@@ -166,7 +167,8 @@ const Look *LookNow() {
 
 // The element selected on Xiao's weapon (0 Fire to 4 Holy), else 5.
 int Element() {
-    return NowWeaponHave != nullptr && NowWeaponHave->best_elem >= 0 && NowWeaponHave->best_elem < 5 ? NowWeaponHave->best_elem : 5;
+    int element = SelectedElement();
+    return element >= 0 ? element : WEAPON_ELEMENT_NONE;
 }
 
 struct Cat {
@@ -304,11 +306,8 @@ bool WallAhead(const float *move) {
 }
 
 bool Live(int monster) {
-    if (NowMonstorUnit == nullptr || monster < 0 || monster >= kFloorMonsters) {
-        return false;
-    }
-    const MONSTOR &live = NowMonstorUnit->monster[monster];
-    return live.state >= 1 && live.hp > 0;
+    const MONSTOR *live = FloorMonster(monster);
+    return live != nullptr && MonsterLiving(*live);
 }
 
 // Whether the monster is a mimic not yet out of its chest and in play.
@@ -468,16 +467,8 @@ SHOT_COLLISION_RESULT TouchTest(float *point, float *move) {
     if (NowDngMap != nullptr) {
         return checkCollision(out, point, move, kHitsMonsters, kSpiritBeastTouch);
     }
-    for (int m = 0; m < kFloorMonsters; m++) { // with no map, its monster test alone
-        const MONSTOR &live = NowMonstorUnit->monster[m];
-        for (int sphere = 0; live.state != -1 && live.revealed != 0 && sphere < kMonsterSpheres; sphere++) {
-            const MONSTOR_EFFECT_STATE &effect = NowMonstorUnit->effect[m];
-            if (effect.timer[sphere] != 0 && DistVector(const_cast<float *>(effect.position[sphere]), point) <= kSpiritBeastTouch + effect.radius[sphere]) {
-                return SHOT_COLLISION_MONSTER;
-            }
-        }
-    }
-    return SHOT_COLLISION_NONE;
+    // With no map, its monster test alone.
+    return MonsterTouching(*NowMonstorUnit, point, kSpiritBeastTouch) >= 0 ? SHOT_COLLISION_MONSTER : SHOT_COLLISION_NONE;
 }
 
 // Falling or landing: the monster its head touches is planted the cat's hit, which waits on its CheckDmg.
@@ -490,8 +481,8 @@ void Touch() {
     if (TouchTest(point, cat.vel) != SHOT_COLLISION_MONSTER) {
         return;
     }
-    int element = NowWeaponHave->best_elem;
-    int attribute = element >= 0 && element < 5 && NowWeaponHave->elem[element] > 0 ? GetWeaponElementAttr(element) : 0;
+    int element = SelectedElement();
+    int attribute = element >= 0 && NowWeaponHave->elem[element] > 0 ? GetWeaponElementAttr(element) : 0;
     int hit = NowColData->Set(point, std::max(1, cat.damage), 1, kSpiritBeastHitRadius, 0.0f, kHitsMonsters, kSwingReaction, attribute, 0);
     if (hit < 0) {
         return;
@@ -974,8 +965,7 @@ void SpiritBeastDraw() {
     if (model == nullptr || model->frame == nullptr || cat.phase == SpiritBeastPhase::kNone) {
         return;
     }
-    TexManager.ReloadTexture(Vif1Packet, kFloorCharacterBlock);
-    model->Draw();
+    DrawFloorCharacter(*model);
     float shown = cat.fade < 0 ? 1.0f : 1.0f - static_cast<float>(cat.fade) / kSpiritBeastFadeFrames;
     if (cat.look->cape) {
         SpiritCapeDraw(*model, Element(), std::max(0.0f, shown));

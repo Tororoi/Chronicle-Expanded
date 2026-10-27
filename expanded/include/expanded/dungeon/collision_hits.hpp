@@ -16,4 +16,14 @@ inline constexpr int kSwingReaction = 2;
 // COLLISION_HIT::knockback_mode for a hit that throws what it strikes away from its knockback_origin.
 inline constexpr int kKnockbackFromOrigin = 2;
 
+// Whether a hit record is free for CCollisionData::Set.
+inline bool HitRecordFree(const CCollisionData &hits) {
+    for (int i = 0; i < kHitRecords; i++) {
+        if (hits.active[i] == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace expanded

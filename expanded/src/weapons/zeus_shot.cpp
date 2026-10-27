@@ -7,6 +7,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/player_state.hpp"
@@ -41,29 +42,6 @@ struct State {
 
 State             state;
 PelletSlots<bool> bolts; // the pellets out that call a bolt where they come down, and whether each was charged
-
-// The live monster nearest point, within reach, or -1.
-int MonsterAt(const float *point, float reach) {
-    if (NowMonstorUnit == nullptr) {
-        return -1;
-    }
-    int   nearest = -1;
-    float best = reach;
-    for (int monster = 0; monster < kFloorMonsters; monster++) {
-        const MONSTOR &live = NowMonstorUnit->monster[monster];
-        if (live.state == -1 || live.hp <= 0) {
-            continue;
-        }
-        sceVu0FVECTOR at;
-        NowMonstorUnit->chara[monster][0].GetPosition(at);
-        float distance = std::hypot(at[0] - point[0], at[2] - point[2]);
-        if (distance <= best) {
-            best = distance;
-            nearest = monster;
-        }
-    }
-    return nearest;
-}
 
 void Flash(const float *point) {
     SolarBlastFlash(kZeusFlash, point, 0.0f);
@@ -199,7 +177,7 @@ void ZeusShotEnded(const CSHOT &shots, int slot, const float *point, bool struck
         return;
     }
     bool charged = *kept;
-    int  monster = struck ? MonsterAt(point, kZeusStruckReach) : -1;
+    int  monster = struck && NowMonstorUnit != nullptr ? NearestMonster(*NowMonstorUnit, point, kZeusStruckReach) : -1;
     // A pellet that left in the window owes its bolt even if the window lapsed while it flew; one that met nothing
     // calls none, unless it was charged.
     // The window's first bolt opens a combo, its later ones follow on.

@@ -3,6 +3,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_actions.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/status/poison.hpp"
 #include "monstorunit.hpp"
@@ -78,11 +79,6 @@ int MotionFrames(const CMonstorUnit &unit, int monster, int motion) {
     return info.speed > 0.0f ? (int) ((float) (info.end - info.start) / info.speed) : 0;
 }
 
-bool InPlay(const CMonstorUnit &unit, int monster) {
-    const MONSTOR &live = unit.monster[monster];
-    return live.state != -1 && live.revealed == -1 && live.hp > 0;
-}
-
 void Play(CMonstorUnit &unit, int monster, int motion, int flags) {
     if (motion >= 0) {
         PlayMonsterMotion(unit, monster, motion, flags);
@@ -130,7 +126,7 @@ void Blind(CMonstorUnit &unit, int frames) {
     frames_left = frames;
     for (int monster = 0; monster < kFloorMonsters; monster++) {
         Held &state = held[monster];
-        if (!InPlay(unit, monster)) {
+        if (!MonsterInPlay(unit.monster[monster])) {
             continue;
         }
         const MONSTOR       &live = unit.monster[monster];

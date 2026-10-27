@@ -7,9 +7,11 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/pellets.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -36,24 +38,6 @@ struct State {
 };
 
 State state;
-
-bool MonsterNear(const float *point, float reach) {
-    if (NowMonstorUnit == nullptr) {
-        return false;
-    }
-    for (int monster = 0; monster < kFloorMonsters; monster++) {
-        const MONSTOR &live = NowMonstorUnit->monster[monster];
-        if (live.state == -1 || live.hp <= 0) {
-            continue;
-        }
-        sceVu0FVECTOR at;
-        NowMonstorUnit->chara[monster][0].GetPosition(at);
-        if (std::hypot(at[0] - point[0], at[2] - point[2]) <= reach) {
-            return true;
-        }
-    }
-    return false;
-}
 
 // The Wind Gem's burst at point, scale times its size: the look alone.
 void BurstAt(const float *point, float scale) {
@@ -94,7 +78,7 @@ void Blast(const float *point, float charge) {
     options.flat = true;
     options.guardable = true;
     options.throw_to = reach;
-    options.element = NowWeaponHave->best_elem >= 0 && NowWeaponHave->best_elem < 5 ? NowWeaponHave->best_elem : -1;
+    options.element = SelectedElement();
     PlantBlast(*NowMonstorUnit, origin, NowWeaponHave->attack, options);
     BurstAt(point, kTyphoonBurstLook + (kTyphoonBurstLookFull - kTyphoonBurstLook) * charge);
 }
@@ -139,7 +123,8 @@ void TyphoonShotFired(CSHOT &shots, int slot) {
 
 void TyphoonShotEnded(const CSHOT &shots, int slot, const float *point, bool struck) {
     std::optional<float> charge = state.charges.Take(shots, slot);
-    if (charge && (struck || MonsterNear(point, kTyphoonBurstNear))) {
+    bool                 near = NowMonstorUnit != nullptr && NearestMonster(*NowMonstorUnit, point, kTyphoonBurstNear) >= 0;
+    if (charge && (struck || near)) {
         Blast(point, *charge);
     }
 }

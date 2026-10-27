@@ -5,9 +5,11 @@
 #include <iterator>
 #include <string>
 
+#include "btmisc.hpp"
 #include "character.hpp"
 #include "dataalloc.hpp"
 #include "expanded/dungeon/pack_files.hpp"
+#include "mglib.hpp"
 #include "texture.hpp"
 
 namespace expanded {
@@ -80,6 +82,18 @@ CCharacter *EnterFloorCharacter(const char *path, const char *cfg) {
 
 CCharacter *EnterFloorCopy(const char *path, const char *cfg) {
     return Enter(path, cfg, false);
+}
+
+std::string WeaponPackPath(int weapon_no, std::string &cfg) {
+    char chr_name[64] = {}, cfg_name[64] = {};
+    BtGetWeaponNamePath3(chr_name, cfg_name, weapon_no);
+    cfg = cfg_name;
+    return std::string("commenu/weapon/") + chr_name;
+}
+
+void DrawFloorCharacter(CCharacter &chara) {
+    TexManager.ReloadTexture(Vif1Packet, kFloorCharacterBlock);
+    chara.Draw();
 }
 
 void FloorCharactersClear() {

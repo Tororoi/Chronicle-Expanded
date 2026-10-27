@@ -24,4 +24,7 @@ bool                 Guarding();
 // The monster the player is locked on to while it is on the floor and alive, or -1.
 int LockedTarget();
 
+// The element selected on the weapon in hand (WEAPON_ELEMENT_FIRE to _HOLY), or -1 with none.
+int SelectedElement();
+
 } // namespace expanded

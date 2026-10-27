@@ -10,7 +10,9 @@
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/weapons/hit_marks.hpp"
+#include "expanded/weapons/weapon_hit.hpp"
 #include "gamepad.hpp"
 #include "itembombeffect.hpp"
 #include "itemdata.hpp"
@@ -23,23 +25,12 @@ namespace expanded {
 
 namespace {
 
-// An unguardable blast's hit carries this bit in its weapon flags, above the ones a weapon's record has.
-
 // The game's own rumbles on the big motor, as BtCheckDamageProc gives the player: a knockdown blow, and a lighter hit.
 constexpr int kRumbleMotor = 1;
 constexpr int kKnockdownStrength = 0xE6;
 constexpr int kKnockdownFrames = 22;
 constexpr int kLightStrength = 0xDC;
 constexpr int kLightFrames = 12;
-
-bool HitFree() {
-    for (int i = 0; i < kHitRecords; i++) {
-        if (NowColData->active[i] == 0) {
-            return true;
-        }
-    }
-    return false;
-}
 
 } // namespace
 
@@ -87,8 +78,7 @@ int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOp
     int reached = 0;
     for (int monster = 0; monster < kFloorMonsters; monster++) {
         const MONSTOR &live = unit.monster[monster];
-        if (monster == options.except || (options.spared >> monster & 1) != 0 || live.state == -1 || live.hp <= 0 ||
-            live.revealed != -1) {
+        if (monster == options.except || (options.spared >> monster & 1) != 0 || !MonsterInPlay(live)) {
             continue;
         }
         float distance = BlastDistance(unit, monster, point);
@@ -101,21 +91,16 @@ int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOp
         if (options.flat && times > 0.0f) {
             times = kBlastFalloff[0].times;
         }
-        if (times <= 0.0f || !HitFree()) {
+        if (times <= 0.0f || !HitRecordFree(*NowColData)) {
             continue;
         }
         sceVu0FVECTOR centre;
         unit.chara[monster][0].GetPosition(centre);
         centre[1] += unit.chara[monster][0].body_height * 0.5f;
         int            damage = std::max(1, static_cast<int>(std::lround(attack * times * options.damage)));
-        int            hit = NowColData->Set(centre, damage, kBlastHitLife, std::max(10.0f, unit.chara[monster][0].body_height), 0.0f, 2, 2, 0, 0);
-        COLLISION_HIT &record = NowColData->hit[hit];
-        record.owner = UserStatus != nullptr ? UserStatus->cur_chara : 0;
-        record.attack_no = 0;
-        record.weapon_flags = options.guardable ? 0 : kBlastMark;
-        if (NowWeaponHave != nullptr) {
-            record.vs_monster = NowWeaponHave->vs_monster;
-            record.weapon_flags |= NowWeaponHave->flags;
+        COLLISION_HIT &record = *PlantWeaponHit(centre, damage, kBlastHitLife, std::max(10.0f, unit.chara[monster][0].body_height));
+        if (!options.guardable) {
+            record.weapon_flags |= kBlastMark;
         }
         if (options.element >= 0) {
             // CheckDmg takes the hit's element, with the weapon's strength in that one, whichever is selected.

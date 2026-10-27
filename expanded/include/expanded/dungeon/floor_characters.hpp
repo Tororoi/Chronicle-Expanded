@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "dataalloc_fwd.hpp"
 
 class CCharacter;
@@ -19,6 +21,12 @@ CCharacter *EnterFloorCharacter(const char *path, const char *cfg);
 // pack's images, its model drawing with the textures of the same names the game loaded for the original. The one entered
 // from path already on this floor, else a new one, or null when the pack cannot be read.
 CCharacter *EnterFloorCopy(const char *path, const char *cfg);
+
+// The pack of a weapon's model (commenu/weapon/...), as the weapon menu loads it, and through cfg its cfg's name.
+std::string WeaponPackPath(int weapon_no, std::string &cfg);
+
+// Draws a character entered on the floor, its images first put back in kFloorCharacterBlock's VRAM.
+void DrawFloorCharacter(CCharacter &chara);
 
 // Hook: the floor ending (beside the shot effects' clear): every character taken down, the texture block emptied.
 void FloorCharactersClear();

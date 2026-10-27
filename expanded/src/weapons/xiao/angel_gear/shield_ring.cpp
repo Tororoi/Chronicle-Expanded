@@ -7,6 +7,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "hitmark.hpp"
 #include "monstorunit.hpp"
 #include "snd.hpp"
@@ -91,7 +92,7 @@ bool RingTarget(int monster, float *position) {
     }
     sceVu0CopyVector(position, CharaMain.pos);
     const MONSTOR &live = NowMonstorUnit->monster[monster];
-    if (live.state < 1 || live.hp <= 0) {
+    if (!MonsterLiving(live)) {
         return true; // not spawned, or without life
     }
     float at[4];

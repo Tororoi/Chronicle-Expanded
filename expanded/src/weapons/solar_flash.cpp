@@ -11,6 +11,7 @@
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/blind.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/charge.hpp"
@@ -19,6 +20,7 @@
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
+#include "expanded/weapons/weapon_hit.hpp"
 #include "expanded/weapons/wear.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
@@ -171,29 +173,6 @@ const SolarProfile *ActiveProfile() {
     return nullptr;
 }
 
-// The live monster nearest point, within reach, or -1.
-int MonsterAt(const float *point, float reach) {
-    if (NowMonstorUnit == nullptr) {
-        return -1;
-    }
-    int   nearest = -1;
-    float best = reach;
-    for (int monster = 0; monster < kFloorMonsters; monster++) {
-        const MONSTOR &live = NowMonstorUnit->monster[monster];
-        if (live.state == -1 || live.hp <= 0) {
-            continue;
-        }
-        sceVu0FVECTOR position;
-        NowMonstorUnit->chara[monster][0].GetPosition(position);
-        float distance = std::hypot(position[0] - point[0], position[2] - point[2]);
-        if (distance <= best) {
-            best = distance;
-            nearest = monster;
-        }
-    }
-    return nearest;
-}
-
 bool Attacking() {
     int action = BtActStatus.action_no;
     return BtActStatus.action_on != 0 && ((action >= kToanFirstSwing && action <= kToanLastSwing) || action == kToanLunge || action == kToanWhirlwind);
@@ -246,15 +225,6 @@ void GlowStep() {
 // The glow shrinks away from whatever size it has, over kSolarFadeFrames.
 void GlowShrink() {
     state.glow_shrink = state.glow / kSolarFadeFrames;
-}
-
-bool HitFree() {
-    for (int i = 0; i < kHitRecords; i++) {
-        if (NowColData->active[i] == 0) {
-            return true;
-        }
-    }
-    return false;
 }
 
 // The charge dropped: the glow shrinks away rather than going at once.
@@ -362,7 +332,7 @@ int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int 
     int struck = 0;
     for (int monster = 0; monster < kFloorMonsters; monster++) {
         const MONSTOR &live = unit.monster[monster];
-        if (monster == except || live.state == -1 || live.hp <= 0 || live.revealed != -1) {
+        if (monster == except || !MonsterInPlay(live)) {
             continue;
         }
         sceVu0FVECTOR position;
@@ -371,17 +341,10 @@ int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int 
             (spared > 0.0f && BlastDistance(unit, monster, point) <= spared)) {
             continue;
         }
-        if (!HitFree()) {
+        if (!HitRecordFree(*NowColData)) {
             break;
         }
-        int            hit = NowColData->Set(position, base_damage, kSolarHitLife, kSolarHitRadius, 0.0f, 2, 2, 0, 0);
-        COLLISION_HIT &record = NowColData->hit[hit];
-        record.owner = UserStatus != nullptr ? UserStatus->cur_chara : 0;
-        record.attack_no = 0;
-        if (NowWeaponHave != nullptr) {
-            record.vs_monster = NowWeaponHave->vs_monster;
-            record.weapon_flags = NowWeaponHave->flags;
-        }
+        PlantWeaponHit(position, base_damage, kSolarHitLife, kSolarHitRadius);
         // A monster the game cannot move takes the hit where it stands.
         bool rooted = live.knockback[2] <= 0.0f;
         NowColData->SetKickBack(const_cast<float *>(point), rooted ? 0.0f : kSolarKickSpeed, kSolarKickDecay, 2);
@@ -612,7 +575,7 @@ void SolarShotEnded(const CSHOT &shots, int slot, const float *point, bool struc
     }
     sceVu0CopyVector(state.landed, const_cast<float *>(point));
     state.landed[3] = 1.0f;
-    state.struck = struck ? MonsterAt(point, kSolarStruckReach) : -1;
+    state.struck = struck && NowMonstorUnit != nullptr ? NearestMonster(*NowMonstorUnit, point, kSolarStruckReach) : -1;
     state.phase = SolarPhase::kLanding;
     state.frames = 0;
     state.shots = nullptr;
