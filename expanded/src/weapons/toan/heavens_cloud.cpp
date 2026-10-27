@@ -59,7 +59,7 @@ void Sweep() {
     options.reach = reach / kBlastFalloff[0].reach;
     options.flat = true;
     options.throw_to = reach + kTyphoonClear;
-    options.element = NowWeaponHave->best_elem >= 0 && NowWeaponHave->best_elem < 5 ? NowWeaponHave->best_elem : -1;
+    options.element = SelectedElement();
     sceVu0FVECTOR feet;
     sceVu0CopyVector(feet, CharaMain.pos);
     PlantBlast(*NowMonstorUnit, feet, NowWeaponHave->attack, options);

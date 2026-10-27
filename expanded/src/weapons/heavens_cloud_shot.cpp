@@ -11,6 +11,7 @@
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/pellets.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -77,7 +78,7 @@ void Blast(const float *point, float charge) {
     options.flat = true;
     options.guardable = true;
     options.throw_to = reach;
-    options.element = NowWeaponHave->best_elem >= 0 && NowWeaponHave->best_elem < 5 ? NowWeaponHave->best_elem : -1;
+    options.element = SelectedElement();
     PlantBlast(*NowMonstorUnit, origin, NowWeaponHave->attack, options);
     BurstAt(point, kTyphoonBurstLook + (kTyphoonBurstLookFull - kTyphoonBurstLook) * charge);
 }

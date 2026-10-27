@@ -24,6 +24,7 @@
 #include "expanded/weapons/summon_smoke.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/ungaga/cactus/bloom_prop.hpp"
+#include "expanded/weapons/weapon_hit.hpp"
 #include "gamepad.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -220,18 +221,14 @@ void Prick(CMonstorUnit &unit, int monster) {
     if (NowColData == nullptr || NowWeaponHave == nullptr || FreeHits() <= kHitReserve) {
         return;
     }
-    float centre[4];
-    float radius = std::max(kBloomHitRadius, BodyCentre(unit, monster, centre));
-    int   damage = std::max(1, static_cast<int>(std::nearbyint(static_cast<double>(NowWeaponHave->attack * kBloomHitShare))));
-    int   hit = NowColData->Set(centre, damage, 1, radius, 0.0f, kHitsMonsters, kSwingReaction, 0, 0);
-    if (hit < 0) {
+    float          centre[4];
+    float          radius = std::max(kBloomHitRadius, BodyCentre(unit, monster, centre));
+    int            damage = std::max(1, static_cast<int>(std::nearbyint(static_cast<double>(NowWeaponHave->attack * kBloomHitShare))));
+    COLLISION_HIT *record = PlantWeaponHit(centre, damage, 1, radius);
+    if (record == nullptr) {
         return;
     }
-    COLLISION_HIT &record = NowColData->hit[hit];
-    record.owner = UserStatus->cur_chara;
-    record.attack_no = 0;
-    record.vs_monster = NowWeaponHave->vs_monster;
-    record.weapon_flags = NowWeaponHave->flags | kPrickMark;
+    record->weapon_flags |= kPrickMark;
     float origin[4] = {bloom.spot[0], bloom.spot[1], bloom.spot[2], 1.0f};
     NowColData->SetKickBack(origin, kBloomKick.speed, kBloomKick.decay, kKickAway);
 }

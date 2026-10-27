@@ -2,8 +2,10 @@
 
 #include "btactstatus.hpp"
 #include "dun/gameloop.hpp"
-#include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "monstorunit.hpp"
+#include "userstatus.hpp"
+#include "weaponelement.hpp"
 
 extern s32 lockOnTargetNo;
 
@@ -14,11 +16,16 @@ bool Guarding() {
 }
 
 int LockedTarget() {
-    if (lockOnTargetFlag == 0 || lockOnTargetNo < 0 || lockOnTargetNo >= kFloorMonsters || NowMonstorUnit == nullptr) {
+    const MONSTOR *live = lockOnTargetFlag != 0 ? FloorMonster(lockOnTargetNo) : nullptr;
+    return live != nullptr && MonsterLiving(*live) ? lockOnTargetNo : -1;
+}
+
+int SelectedElement() {
+    if (NowWeaponHave == nullptr) {
         return -1;
     }
-    const MONSTOR &live = NowMonstorUnit->monster[lockOnTargetNo];
-    return live.state != -1 && live.hp > 0 ? lockOnTargetNo : -1;
+    int element = NowWeaponHave->best_elem;
+    return element >= WEAPON_ELEMENT_FIRE && element <= WEAPON_ELEMENT_HOLY ? element : -1;
 }
 
 } // namespace expanded

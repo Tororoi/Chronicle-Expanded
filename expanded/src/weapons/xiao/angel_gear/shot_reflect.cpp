@@ -12,6 +12,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/weapons/weapon_hit.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_prop.hpp"
 #include "frame.hpp"
 #include "mathutil.hpp"
@@ -143,15 +144,9 @@ void Land(const CSHOT_EFFECT &effect, const float *point, float radius, int mons
     int   flags = effect.effect_data->hit_flags;
     int   element = (flags & kElements) != 0 && (flags & kAilments) == 0 ? flags & kElements : 0;
     float at[4] = {point[0], point[1], point[2], 1.0f};
-    int   hit = NowColData->Set(at, damage, kHitLife, radius, 0.0f, kHitsMonsters, kSwingReaction, element, 0);
-    if (hit < 0) {
+    if (PlantWeaponHit(at, damage, kHitLife, radius, element) == nullptr) {
         return;
     }
-    COLLISION_HIT &record = NowColData->hit[hit];
-    record.owner = UserStatus->cur_chara;
-    record.attack_no = 0;
-    record.vs_monster = NowWeaponHave->vs_monster;
-    record.weapon_flags = NowWeaponHave->flags;
     if (NowMonstorUnit != nullptr) {
         GiveAilments(NowMonstorUnit->monster[monster], monster, flags & (kFreeze | kPoison | kSlow));
     }

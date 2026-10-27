@@ -20,6 +20,7 @@
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
+#include "expanded/weapons/weapon_hit.hpp"
 #include "expanded/weapons/wear.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
@@ -226,15 +227,6 @@ void GlowShrink() {
     state.glow_shrink = state.glow / kSolarFadeFrames;
 }
 
-bool HitFree() {
-    for (int i = 0; i < kHitRecords; i++) {
-        if (NowColData->active[i] == 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
 // The charge dropped: the glow shrinks away rather than going at once.
 void Clear() {
     if (state.phase != SolarPhase::kIdle) {
@@ -349,17 +341,10 @@ int PlantSolarHits(CMonstorUnit &unit, const float *point, int base_damage, int 
             (spared > 0.0f && BlastDistance(unit, monster, point) <= spared)) {
             continue;
         }
-        if (!HitFree()) {
+        if (!HitRecordFree(*NowColData)) {
             break;
         }
-        int            hit = NowColData->Set(position, base_damage, kSolarHitLife, kSolarHitRadius, 0.0f, 2, 2, 0, 0);
-        COLLISION_HIT &record = NowColData->hit[hit];
-        record.owner = UserStatus != nullptr ? UserStatus->cur_chara : 0;
-        record.attack_no = 0;
-        if (NowWeaponHave != nullptr) {
-            record.vs_monster = NowWeaponHave->vs_monster;
-            record.weapon_flags = NowWeaponHave->flags;
-        }
+        PlantWeaponHit(position, base_damage, kSolarHitLife, kSolarHitRadius);
         // A monster the game cannot move takes the hit where it stands.
         bool rooted = live.knockback[2] <= 0.0f;
         NowColData->SetKickBack(const_cast<float *>(point), rooted ? 0.0f : kSolarKickSpeed, kSolarKickDecay, 2);

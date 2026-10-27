@@ -23,6 +23,7 @@
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/pellets.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/spirit_cape.hpp"
 #include "frame.hpp"
@@ -35,6 +36,7 @@
 #include "shot_utils.hpp"
 #include "texture.hpp"
 #include "userstatus.hpp"
+#include "weaponelement.hpp"
 
 extern s32 lockOnTargetNo;
 
@@ -167,7 +169,8 @@ const Look *LookNow() {
 
 // The element selected on Xiao's weapon (0 Fire to 4 Holy), else 5.
 int Element() {
-    return NowWeaponHave != nullptr && NowWeaponHave->best_elem >= 0 && NowWeaponHave->best_elem < 5 ? NowWeaponHave->best_elem : 5;
+    int element = SelectedElement();
+    return element >= 0 ? element : WEAPON_ELEMENT_NONE;
 }
 
 struct Cat {
@@ -480,8 +483,8 @@ void Touch() {
     if (TouchTest(point, cat.vel) != SHOT_COLLISION_MONSTER) {
         return;
     }
-    int element = NowWeaponHave->best_elem;
-    int attribute = element >= 0 && element < 5 && NowWeaponHave->elem[element] > 0 ? GetWeaponElementAttr(element) : 0;
+    int element = SelectedElement();
+    int attribute = element >= 0 && NowWeaponHave->elem[element] > 0 ? GetWeaponElementAttr(element) : 0;
     int hit = NowColData->Set(point, std::max(1, cat.damage), 1, kSpiritBeastHitRadius, 0.0f, kHitsMonsters, kSwingReaction, attribute, 0);
     if (hit < 0) {
         return;
