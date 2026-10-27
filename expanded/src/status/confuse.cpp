@@ -2,6 +2,7 @@
 
 #include <libvu0.h>
 
+#include <algorithm>
 #include <cstdio>
 
 #include "dun/gameloop.hpp"
@@ -31,6 +32,19 @@ void LogTarget(int slot, int target) {
     } else {
         std::fprintf(stderr, "confuse: monster %d goes after the player\n", slot);
     }
+}
+
+// The state, kept for unit: another unit's is put away.
+Confusion &Adopt(CMonstorUnit &unit) {
+    Confusion &state = State();
+    if (state.unit != &unit) {
+        StarsOff();
+        int tick = state.tick;
+        state = Confusion();
+        state.unit = &unit;
+        state.tick = tick;
+    }
+    return state;
 }
 
 } // namespace
@@ -77,14 +91,7 @@ void ConfuseStep(CMonstorUnit &unit, int slot) {
     if (AllyUnit(unit)) {
         return;
     }
-    Confusion &state = State();
-    if (state.unit != &unit) {
-        StarsOff();
-        int tick = state.tick;
-        state = Confusion();
-        state.unit = &unit;
-        state.tick = tick;
-    }
+    Confusion &state = Adopt(unit);
     if (unit.monster[slot].hp <= 0) {
         state.Forget(slot);
         return;
@@ -115,6 +122,26 @@ void ConfuseRoll(CMonstorUnit &unit, int slot) {
         std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
     }
     state.until[slot] = state.tick + kConfuseSteps;
+}
+
+void ConfuseMonster(CMonstorUnit &unit, int slot, int steps) {
+    if (slot < 0 || slot >= kFloorMonsters || steps <= 0 || AllyUnit(unit) || unit.monster[slot].hp <= 0) {
+        return;
+    }
+    Confusion &state = Adopt(unit);
+    if (state.until[slot] == 0) {
+        state.target[slot] = -2;
+        std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
+    }
+    state.until[slot] = std::max(state.until[slot], state.tick + steps);
+}
+
+void ConfuseEnd(int slot) {
+    if (slot < 0 || slot >= kFloorMonsters || State().until[slot] == 0) {
+        return;
+    }
+    State().Forget(slot);
+    std::fprintf(stderr, "confuse: monster %d comes to its senses\n", slot);
 }
 
 bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {

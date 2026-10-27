@@ -6,6 +6,7 @@
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/ungaga/hercules_wrath.hpp"
+#include "expanded/weapons/ungaga/terra_sword.hpp"
 #include "expanded/weapons/xiao/angel_gear.hpp"
 #include "expanded/weapons/xiao/angel_shooter.hpp"
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
@@ -29,6 +30,7 @@ void CharacterLight(const CCharacter &character, float *ambient) {
     GuardianGraceLight(character, ambient);
     GuardianReflectorLight(character, ambient);
     AirStrikeLight(character, ambient);
+    BigRockLight(character, ambient);
 }
 
 } // namespace expanded
