@@ -5,6 +5,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -149,10 +150,14 @@ void ResetMonsterScale(CMonstorUnit &unit, int monster) {
 }
 
 int EnemyMeleeDamage(int monster, int damage) {
-    return ValidMonster(monster) ? ScaleStat(damage, effective[monster].melee) : damage;
+    return ValidMonster(monster) && !AllyStepping() ? ScaleStat(damage, effective[monster].melee) : damage;
 }
 
 void EnemyShotFired(int monster) {
+    if (AllyStepping()) {
+        AllyShotFired();
+        return;
+    }
     if (!ValidMonster(monster) || effective[monster].shot == 1.0f || NowShotEffect->current_effect == -1) {
         return;
     }

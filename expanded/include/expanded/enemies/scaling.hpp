@@ -63,7 +63,8 @@ EnemyStats MonsterStats(const CMonstorUnit &unit, int monster);
 void ResetSpeciesStats(const CMonstorUnit &unit, int model_slot);
 void ResetMonsterScale(CMonstorUnit &unit, int monster);
 
-// Hooks: CheckDmg's melee hit and a monster's shot just fired (scales the shot's damage).
+// Hooks: CheckDmg's melee hit and a monster's shot just fired (scales the shot's damage); a summoned ally's
+// (ally_unit.hpp) keep their own, its shot marked as its.
 int  EnemyMeleeDamage(int monster, int damage);
 void EnemyShotFired(int monster);
 

@@ -1,4 +1,5 @@
 #include "expanded/weapons/summon_smoke.hpp"
+#include "sound_effect.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -8,6 +9,7 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "shot_effect.hpp"
+#include "snd.hpp"
 
 namespace expanded {
 
@@ -53,6 +55,7 @@ BT_SHOT_EFFECT *SummonSmokeEffect() {
 
 bool SummonSmokeStart(const float *spot, float yaw, float scale, const void *owner) {
     PutOut();
+    SndSePlay(SE_BOX_OPEN, -1, 0);
     int index = ShotEffectIndex(&smoke);
     if (index < 0) {
         std::fprintf(stderr, "summon smoke: not loaded on this floor\n");
@@ -89,6 +92,12 @@ void SummonSmokeStep() {
     float frame = model.motion_type.state.time;
     if (frame >= kSmokeFadeFrom) {
         FadeUnlitFrames(model.frame, 1.0f - std::clamp((frame - kSmokeFadeFrom) / (kSmokeClipEnd - kSmokeFadeFrom), 0.0f, 1.0f));
+    }
+}
+
+void SummonSmokeMove(const float *spot, const void *owner) {
+    if (puff.owner == owner && puff.slot >= 0) {
+        std::copy(spot, spot + 3, puff.spot);
     }
 }
 

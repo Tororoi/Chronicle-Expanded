@@ -6,6 +6,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/enemies/ally_unit.hpp"
 #include "expanded/status/confuse_state.hpp"
 #include "expanded/status/poison.hpp"
 #include "mathutil.hpp"
@@ -73,6 +74,9 @@ void ConfuseFloorLoaded() {
 }
 
 void ConfuseStep(CMonstorUnit &unit, int slot) {
+    if (AllyUnit(unit)) {
+        return;
+    }
     Confusion &state = State();
     if (state.unit != &unit) {
         StarsOff();
@@ -95,7 +99,7 @@ void ConfuseStep(CMonstorUnit &unit, int slot) {
 }
 
 void ConfuseRoll(CMonstorUnit &unit, int slot) {
-    if (!(unit.effect[slot].hit_attributes & kAbilityConfuse)) {
+    if (!(unit.effect[slot].hit_attributes & kAbilityConfuse) || AllyUnit(unit)) {
         return;
     }
     MONSTOR &monster = unit.monster[slot];

@@ -36,6 +36,7 @@ inline constexpr int kKitchenKnifeBlessed = 1003; // weapons/toan/kitchen_knife:
 inline constexpr int kKitchenKnifeFaded = 1004;   // … faded …
 inline constexpr int kKitchenKnifeMended = 1005;  // … and the knife mended
 inline constexpr int kMonstersSlowedMessage = 1006; // dungeon/magic_circles: the Secret Armlet's favoured rage circle
+inline constexpr int kPocklekulMessage = 1007;      // weapons/ruby/pocklekul: the pockle summoned
 
 // Notes a pack entry as the game takes it (GetPackFile): allmenu.mes and itemshop.bin are the banks given Expanded
 // text; any other entry at the same address is not.

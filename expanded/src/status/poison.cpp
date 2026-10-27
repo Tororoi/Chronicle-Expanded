@@ -2,6 +2,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
+#include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "monstorunit.hpp"
 
@@ -12,8 +13,12 @@ namespace {
 // Steps the floor has run with monsters stepping unpaused.
 int step_clock;
 
-// step_clock when each monster was poisoned.
-int poison_start[kFloorMonsters];
+// step_clock when each monster was poisoned, and a summoned ally's (ally_unit.hpp) after the floor's.
+int poison_start[kFloorMonsters + 1];
+
+int &PoisonStart(int slot) {
+    return poison_start[AllyStepping() ? kFloorMonsters : slot];
+}
 
 } // namespace
 
@@ -30,7 +35,7 @@ void MonsterStepClockAdvance() {
 void Poison(MONSTOR *target, int slot) {
     if (target->poison_timer <= 0) {
         target->poison_timer = 180;
-        poison_start[slot] = step_clock;
+        PoisonStart(slot) = step_clock;
         MonsterPoisoned(*target);
     }
 
@@ -44,13 +49,13 @@ int PoisonTickDamage(const MONSTOR *target) {
 }
 
 void PoisonCureLapsed(MONSTOR *target, int slot) {
-    if (target->poison_timer > 0 && step_clock - poison_start[slot] > kPoisonSteps) {
+    if (target->poison_timer > 0 && step_clock - PoisonStart(slot) > kPoisonSteps) {
         target->poison_timer = 0;
     }
 }
 
 void PoisonCureFinished(MONSTOR *target, int slot) {
-    if (step_clock - poison_start[slot] >= kPoisonSteps) {
+    if (step_clock - PoisonStart(slot) >= kPoisonSteps) {
         target->poison_timer = 0;
     }
 }

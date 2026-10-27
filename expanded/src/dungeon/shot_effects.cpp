@@ -17,10 +17,12 @@
 #include "itembombeffect.hpp"
 #include "itemdata.hpp"
 #include "main.hpp"
+#include "mathutil.hpp"
 #include "mglib.hpp"
 #include "monstorunit.hpp"
 #include "nowload.hpp"
 #include "shot_effect_pack.hpp"
+#include "snd.hpp"
 #include "texture.hpp"
 #include "tim2.hpp"
 #include "userstatus.hpp"
@@ -148,6 +150,62 @@ int SpawnStill(CSHOT_EFFECT &effect, const float *at, int user, int phase) {
         StopShot(effect, slot);
     }
     return slot;
+}
+
+void ShotEffectStrike(CSHOT_EFFECT &effect, int slot, float *at) {
+    BT_SHOT_EFFECT *data = effect.effect_data;
+    effect.chara[slot].SetPosition(at);
+    effect.phase[slot] = 2;
+    int motion = data->motion[2];
+    if (motion == -1) {
+        effect.active[slot] = 0;
+        if (data->end_effect == SHOT_END_EFFECT_BOMB) {
+            ShotEffectBomb(at, data, effect.user_id_2[slot]); // the owner's damage and the shot's radius
+        }
+        return;
+    }
+    effect.chara[slot].motion_type.state.time = (float) effect.chara[slot].motion_type.motion_info[motion].start;
+    effect.chara[slot].SetMotion(motion, 6);
+    sceVu0Normalize(effect.velocity[slot], effect.velocity[slot]);
+    sceVu0ScaleVectorXYZ(effect.velocity[slot], effect.velocity[slot], data->speed[2]);
+    if (data->sound[2] != -1 && effect.no_sound[slot] == 0) {
+        SndSePlay(data->sound[2], -1, 0);
+    }
+}
+
+bool ShotEffectStrikeHit(int hit) {
+    COLLISION_HIT &record = NowColData->hit[hit];
+    if (NowShotEffect == nullptr || record.monster_no < 0) {
+        return false;
+    }
+    CSHOT_EFFECT *found = nullptr;
+    int           slot = -1;
+    float         best = 0.0f;
+    for (int index = 0; index < ShotEffectCount(); index++) {
+        CSHOT_EFFECT &effect = *ShotEffectAt(index);
+        if (effect.effect_data == nullptr) {
+            continue;
+        }
+        for (int i = 0; i < effect.slot_count && i < 8; i++) {
+            if (effect.active[i] == 0 || effect.phase[i] >= 2 || effect.user_id_2[i] != record.monster_no) {
+                continue;
+            }
+            sceVu0FVECTOR at;
+            effect.chara[i].GetPosition(at);
+            float distance = DistVector(at, record.pos);
+            float reach = 1.0f + std::abs(effect.effect_data->speed[effect.phase[i]]);
+            if (distance <= reach && (found == nullptr || distance < best)) {
+                found = &effect;
+                slot = i;
+                best = distance;
+            }
+        }
+    }
+    if (found == nullptr) {
+        return false;
+    }
+    ShotEffectStrike(*found, slot, record.pos);
+    return true;
 }
 
 void StopShot(CSHOT_EFFECT &effect, int slot) {

@@ -7,6 +7,7 @@
 
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/miniboss_loot.hpp"
 #include "monstorunit.hpp"
@@ -166,7 +167,7 @@ void Spawned(CMonstorUnit &, int monster) {
 } // namespace
 
 bool IsMiniboss(int monster) {
-    return monster >= 0 && monster < kFloorMonsters && miniboss[monster];
+    return monster >= 0 && monster < kFloorMonsters && miniboss[monster] && !AllyStepping();
 }
 
 void MakeMiniboss(CMonstorUnit &unit, int monster) {
@@ -244,6 +245,9 @@ void MinibossesArranged(CMonstorUnit &unit) {
 }
 
 void MinibossDefeated(CMonstorUnit &unit, int monster) {
+    if (AllyUnit(unit)) {
+        return;
+    }
     landing[monster] = {};
     if (!IsMiniboss(monster)) {
         return;
@@ -260,6 +264,9 @@ void MinibossDefeated(CMonstorUnit &unit, int monster) {
 }
 
 void MinibossDropSet(int monster, CRandomItem &items, const float *position) {
+    if (AllyStepping()) {
+        return;
+    }
     MinibossDropLanding(landing[monster], items, position);
     landing[monster] = {};
 }

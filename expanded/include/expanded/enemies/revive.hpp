@@ -51,7 +51,8 @@ bool AddStaysDownRule(StaysDownRule rule);
 // Whether any rule keeps monster_no down.
 bool StaysDown(const CMonstorUnit &unit, int monster_no);
 
-// The current monster's CheckDmg result: a kill may start a revival in place of its death script.
+// The current monster's CheckDmg result: a kill may start a revival in place of its death script. A summoned ally's
+// (ally_unit.hpp) never does, and its rolls and its unit's reset leave the floor's revivals alone.
 int ReviveCheckDmg(CMonstorUnit &unit, int result);
 
 // Steps monster_no's revival in place of its script; false when it is not reviving.

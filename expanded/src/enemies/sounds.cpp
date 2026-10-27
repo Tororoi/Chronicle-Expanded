@@ -88,6 +88,24 @@ bool Resolves(const audio::Bank *bank, int program, int note) {
     return bank != nullptr && bank->Resolve(program, note, 127, layers) > 0;
 }
 
+// The monster banks of a kind's home sets bound where they are not yet, beside set now's own.
+void BindHomeSets(int kind, int now) {
+    for (int set : HomeSoundSets(kind)) {
+        if (set == now || std::find(bound_sets.begin(), bound_sets.end(), set) != bound_sets.end()) {
+            continue;
+        }
+        auto                               free = std::find(bound_sets.begin(), bound_sets.end(), 0);
+        std::shared_ptr<const audio::Bank> bank = free != bound_sets.end() ? MonsterBank(set) : nullptr;
+        if (bank == nullptr) {
+            continue;
+        }
+        int index = static_cast<int>(free - bound_sets.begin());
+        bound_sets[index] = set;
+        bound[index] = bank;
+        audio::DefaultMixer().BindBank(MIDI_PORT_UNK_A, index + 1, bank);
+    }
+}
+
 } // namespace
 
 int DungeonSoundSet(int dungeon, int floor) {
@@ -127,23 +145,20 @@ void MonsterSoundsFloorLoaded(const CMonstorUnit &unit) {
     bound_for = now;
     for (int slot = 0; slot < unit.model_count; slot++) {
         int kind = ModelKind(slot);
-        if (!ValidKind(kind)) {
-            continue;
+        if (ValidKind(kind)) {
+            BindHomeSets(kind, now);
         }
-        for (int set : HomeSoundSets(kind)) {
-            if (set == now || std::find(bound_sets.begin(), bound_sets.end(), set) != bound_sets.end()) {
-                continue;
-            }
-            auto                               free = std::find(bound_sets.begin(), bound_sets.end(), 0);
-            std::shared_ptr<const audio::Bank> bank = free != bound_sets.end() ? MonsterBank(set) : nullptr;
-            if (bank == nullptr) {
-                continue;
-            }
-            int index = static_cast<int>(free - bound_sets.begin());
-            bound_sets[index] = set;
-            bound[index] = bank;
-            audio::DefaultMixer().BindBank(MIDI_PORT_UNK_A, index + 1, bank);
-        }
+    }
+}
+
+void MonsterSoundsAddKind(int model_no) {
+    int now = SndGetNowSetNo();
+    if (bound_for != now) {
+        UnbindAll();
+        bound_for = now;
+    }
+    if (ValidKind(model_no)) {
+        BindHomeSets(model_no, now);
     }
 }
 

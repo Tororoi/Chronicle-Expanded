@@ -2,6 +2,7 @@
 
 #include "character.hpp"
 #include "expanded/core/options.hpp"
+#include "expanded/enemies/ally_unit.hpp"
 #include "monstorunit.hpp"
 
 namespace expanded {
@@ -19,7 +20,7 @@ bool FasterEnemiesOn() {
 }
 
 float FasterMoveSpeed(float speed) {
-    return speed > 0.0f && FasterEnemiesOn() ? speed * kFasterMoveScale : speed;
+    return speed > 0.0f && FasterEnemiesOn() && !AllyStepping() ? speed * kFasterMoveScale : speed;
 }
 
 bool FasterInHitWindow(const CMonstorUnit &unit, int monster_no, float time) {
@@ -39,7 +40,7 @@ void FasterMotionStep(CMonstorUnit &unit, int monster_no, CCharacter &character)
     float speed = character.motion_speed;
 
     // Motions on their own rate (-1) keep it; attacks keep theirs through the hit window so the hit lands.
-    if (speed <= 0.0f || !FasterEnemiesOn() ||
+    if (speed <= 0.0f || !FasterEnemiesOn() || AllyUnit(unit) ||
         FasterInHitWindow(unit, monster_no, unit.chara[monster_no][0].motion_type.state.time)) {
         character.Step();
         return;

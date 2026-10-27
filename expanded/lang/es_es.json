@@ -38,6 +38,7 @@
     "expanded.kitchen_knife.faded": "La bendición del manantial abandona el Cuchillo de cocina...",
     "expanded.kitchen_knife.mended": "El manantial repara el Cuchillo de cocina.",
     "expanded.magic_circles.slowed": "Los monstruos se han ralentizado.",
+    "expanded.pocklekul.summoned": "[monster] invocado",
     "expanded.seven_branch.break_confirm": "{alert}Sellar 77% habilidad\ndel arma en esfera.\n(Hacer sin accesorio.)\n ¿Cambio de estado?",
     "expanded.seven_branch.break_hint": "\"Cambio de Estado\"\nDesde +7, guarda\n77% en la esfera.",
     "expanded.seven_branch.break_refused": "La Espada 7 brazos\nrechaza el cambio de\nestado antes de +7.",

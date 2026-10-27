@@ -31,4 +31,7 @@ inline std::vector<int> HomeSoundSets(Monster monster) {
 void MonsterSoundsFloorLoaded(const CMonstorUnit &unit);
 int  MonsterSoundBank(int port, int program, int note);
 
+// A kind brought onto the floor besides its own (a summoned ally): the monster banks of its home sets too.
+void MonsterSoundsAddKind(int model_no);
+
 } // namespace expanded

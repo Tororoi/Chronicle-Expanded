@@ -7,6 +7,7 @@
 #include <string>
 
 #include "dun/gameloop.hpp"
+#include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/ice_queen.hpp"
@@ -98,7 +99,7 @@ struct Role {
 };
 
 std::optional<Role> RoleOf(int monster) {
-    if (monster < 0) {
+    if (monster < 0 || AllyStepping()) {
         return std::nullopt;
     }
     for (int cast = 0; cast < kCastCount; cast++) {

@@ -15,6 +15,9 @@ namespace expanded {
 // The game's dungeon hooks, each calling the features that act there in turn. A game point that features share goes
 // through a hook here; a feature that alone replaces or adjusts one piece of the game may be called from there directly.
 //
+// A summoned ally (enemies/ally_unit.hpp) is stepped, drawn and hit by the same CMonstorUnit code on a unit of its own,
+// so its monster comes through the monster hooks too: they pass it by, but for what the ally does itself.
+//
 // A floor's state is reset one of two ways: in an enemy floor listener (AddEnemyFloorListener, enemy_events.hpp), as the
 // next floor's kinds start being set up, for anything kept per floor; and, for what must also stop as the floor is left
 // (effects drawn, sounds playing, lights), in DungeonMonstersCleared too.
@@ -55,6 +58,9 @@ void DungeonMonstersCleared(bool drop_stars);
 
 // Each dungeon step (MoveChara), whether or not the monsters step: what counts in their steps asks MonstersStepping.
 void DungeonMonstersTick();
+
+// The floor's monsters stepped (motionDrive, after CMonstorUnit::Step), pause the step's hold.
+void DungeonMonstersStepped(int pause);
 
 // A step after the player's pellets have stepped (motionDrive).
 void PlayerShotsStepped();
@@ -116,7 +122,8 @@ bool PelletHurts(const CSHOT &shots, int slot);
 // Whether the lock-on target's name plate is left off (setTargetCursor): something hangs over the target.
 bool TargetNameHidden();
 
-// Whether a monster refuses a hit it would take (CheckDmg): one the hit's source has landed on it already.
+// Whether a monster refuses a hit it would take (CheckDmg): one the hit's source has landed on it already, or one meant
+// for another.
 bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
 
 // Whether a hit of Xiao's makes the monster flinch (CheckDmg; retail's never do): a blow of one of her weapons' own.
@@ -127,6 +134,13 @@ void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT 
 
 // A hit just took amount off a monster's life (CheckDmg; its life is past it, under 0 when it took more than it had).
 void MonsterDamaged(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount);
+
+// A monster's attack sphere just set in the collision table (CheckDmg), hit its record or -1.
+void MonsterSwingSet(CMonstorUnit &unit, int monster, int hit);
+
+// Another monster's hit on the current monster's sphere where no hit of the player's landed (CheckDmg): CheckDmg's
+// result, or -1 for none.
+int MonsterFriendlyHit(CMonstorUnit &unit, int sphere);
 
 // Whether a hit of a sword-wielder's on a monster wears the weapon (CheckDmg, landed or guarded): not the hits of the
 // effects that wear nothing.

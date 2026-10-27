@@ -1,6 +1,5 @@
 #include <libvu0.h>
 
-#include <cmath>
 #include <cstdio>
 
 #include "collisiondata.hpp"
@@ -28,58 +27,6 @@ using namespace confuse;
 
 // How often the same attacker may hurt the same monster.
 constexpr int kContactSteps = kStepsPerSecond / 2;
-
-// Ends the shot that planted hit where it struck, as CSHOT_EFFECT::Step ends one on a target.
-void ShotImpact(int hit) {
-    COLLISION_HIT &record = NowColData->hit[hit];
-    if (NowShotEffect == nullptr || record.monster_no < 0) {
-        return;
-    }
-    CSHOT_EFFECT *found = nullptr;
-    int           slot = -1;
-    float         best = 0.0f;
-    for (int index = 0; index < ShotEffectCount(); index++) {
-        CSHOT_EFFECT &effect = *ShotEffectAt(index);
-        if (effect.effect_data == nullptr) {
-            continue;
-        }
-        for (int i = 0; i < effect.slot_count && i < 8; i++) {
-            if (effect.active[i] == 0 || effect.phase[i] >= 2 || effect.user_id_2[i] != record.monster_no) {
-                continue;
-            }
-            sceVu0FVECTOR at;
-            effect.chara[i].GetPosition(at);
-            float distance = DistVector(at, record.pos);
-            float reach = 1.0f + std::abs(effect.effect_data->speed[effect.phase[i]]);
-            if (distance <= reach && (found == nullptr || distance < best)) {
-                found = &effect;
-                slot = i;
-                best = distance;
-            }
-        }
-    }
-    if (found == nullptr) {
-        return;
-    }
-    BT_SHOT_EFFECT *data = found->effect_data;
-    found->chara[slot].SetPosition(record.pos);
-    found->phase[slot] = 2;
-    int motion = data->motion[2];
-    if (motion == -1) {
-        found->active[slot] = 0;
-        if (data->end_effect == SHOT_END_EFFECT_BOMB) {
-            ShotEffectBomb(record.pos, data, found->user_id_2[slot]); // the owner's damage and the shot's radius
-        }
-        return;
-    }
-    found->chara[slot].motion_type.state.time = (float) found->chara[slot].motion_type.motion_info[motion].start;
-    found->chara[slot].SetMotion(motion, 6);
-    sceVu0Normalize(found->velocity[slot], found->velocity[slot]);
-    sceVu0ScaleVectorXYZ(found->velocity[slot], found->velocity[slot], data->speed[2]);
-    if (data->sound[2] != -1 && found->no_sound[slot] == 0) {
-        SndSePlay(data->sound[2], -1, 0);
-    }
-}
 
 // Deals another monster's hit to sphere i: blocked by a guard window the monster can guard with, else damage less defence
 // (at least 1).
@@ -220,7 +167,7 @@ void ConfuseLanded(CMonstorUnit &unit, int hit, int victim) {
     state.contact[attacker][victim] = state.tick;
     if (NowColData->hit[hit].monster_no >= 0) {
         std::fprintf(stderr, "confuse: monster %d's shot hits monster %d\n", attacker, victim);
-        ShotImpact(hit);
+        ShotEffectStrikeHit(hit);
         NowColData->active[hit] = 0;
     } else {
         std::fprintf(stderr, "confuse: monster %d hits monster %d\n", attacker, victim);
