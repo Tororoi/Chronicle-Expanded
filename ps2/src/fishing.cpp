@@ -22,10 +22,6 @@
 #include "snd.hpp"
 #include "texture.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/weapons/xiao/flamingo.hpp"
-#endif
-
 /**
  * Describes one kind of bait that can be put on the hook.
  */
@@ -576,10 +572,6 @@ void FishingStepFish() {
             Fish[i].SetFoodPos(-1, hook, radius);
         } else {
             float radius = esa_info[esa_type].radius;
-
-#ifdef CHRONICLE_EXPANDED
-            radius = expanded::BaitNoticeRadius(radius);
-#endif
 
 #ifdef PAL
             // Debug builds let every fish notice the bait from anywhere.

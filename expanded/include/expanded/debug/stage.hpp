@@ -39,12 +39,12 @@ bool SetStage(const char *path, std::string *why = nullptr);
 const Stage *ActiveStage();
 
 // Hooks. The run about to jump into the stage's dungeon: its save loaded (false when it cannot be). The floor the
-// dungeon's entrance takes: the stage's the first time, else -1 (the menu). The party's status taken up as a dungeon
+// dungeon's entrance takes: the stage's the first time, else otherwise. The party's status taken up as a dungeon
 // visit begins: the stage's weapon put in the member's hand. The top of a dungeon frame: the member brought out once
 // the floor is in play. A step the monsters take: the member walked to a big room, the monsters and the magic circle
 // set out, the party kept alive.
 bool StageLoadSave();
-int  StageEntranceFloor();
+int  StageEntranceFloor(int otherwise);
 void StageStatusReady();
 void StageFrame();
 void StageStep();

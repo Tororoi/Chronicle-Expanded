@@ -9,9 +9,9 @@
 #include "dngstatusdata.hpp"
 #include "expanded/core/menu_text.hpp"
 #include "expanded/weapons/toan/seven_branch_sword.hpp"
-#include "gametext.hpp"
 #include "itemdata.hpp"
 #include "test_support.hpp"
+#include "text/gametext.hpp"
 
 namespace {
 

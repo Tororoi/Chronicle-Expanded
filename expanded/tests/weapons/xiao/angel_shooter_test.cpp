@@ -9,7 +9,9 @@
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
+namespace dc::game {
 extern s32 NewChangeFxFlag;
+} // namespace dc::game
 
 namespace {
 

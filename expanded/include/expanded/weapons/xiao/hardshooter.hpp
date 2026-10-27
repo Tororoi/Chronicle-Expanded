@@ -1,7 +1,9 @@
 #pragma once
 
+namespace dc::game {
 class CSHOT;
 class CMonstorUnit;
+} // namespace dc::game
 
 namespace expanded {
 

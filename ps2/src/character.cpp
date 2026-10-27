@@ -31,10 +31,6 @@ s32 CCharacter::MotionStopFlag;
 #include "textureanime.hpp"
 #include "visualvu1.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/core/character_light.hpp"
-#endif
-
 void zcross(float z, float *from, float *to, float *out) {
     float dz;
     float t;
@@ -976,9 +972,6 @@ void CCharacter::Draw() {
     ambient[0] += this->ambient_offset[0] + this->ambient_tint[0];
     ambient[1] += this->ambient_offset[1] + this->ambient_tint[1];
     ambient[2] += this->ambient_offset[2] + this->ambient_tint[2];
-#ifdef CHRONICLE_EXPANDED
-    expanded::CharacterLight(*this, ambient);
-#endif
 
     if (!(this->ambient_offset[3] < 0.0f)) {
         ambient[3] = this->ambient_offset[3];

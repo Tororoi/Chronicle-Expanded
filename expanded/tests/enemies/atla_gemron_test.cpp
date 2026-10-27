@@ -26,7 +26,7 @@ TEST(AtlaGemronSpecies, IsHolyGemronsRecordWithItsOwnModelScriptAndElements) {
     EXPECT_EQ(atla->rare_item, ITEM_POTATO_CAKE);
     EXPECT_EQ(atla->name_no, 322);
     EXPECT_EQ(expanded::SpeciesStandIn(No(Monster::ATLA_GEMRON)), No(Monster::GEMRON_HOLY));
-    char script[64] = "dun/monstor/e115a.stb";
+    std::string script = "dun/monstor/e115a.stb";
     expanded::SpeciesScriptFile(script, No(Monster::ATLA_GEMRON));
-    EXPECT_STREQ(script, expanded::kAtlaGemronScriptFile);
+    EXPECT_STREQ(script.c_str(), expanded::kAtlaGemronScriptFile);
 }

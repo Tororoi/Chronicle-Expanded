@@ -1,7 +1,9 @@
 #pragma once
 
+namespace dc::game {
 class CCharacter;
 struct COLLISION_HIT;
+} // namespace dc::game
 
 namespace expanded {
 

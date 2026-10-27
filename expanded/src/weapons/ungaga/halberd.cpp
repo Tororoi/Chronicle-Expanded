@@ -12,8 +12,6 @@
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
 
-extern CSHOT_EFFECT CharaMainEffect;
-
 namespace expanded {
 
 namespace {
@@ -46,9 +44,9 @@ void SizeSlots(CSHOT_EFFECT &effect, float size) {
 // The effect's own description and size back, where it still reads the copy (a floor load, a menu or another character
 // enters it again with its own).
 void PutBack() {
-    if (charge.own != nullptr && CharaMainEffect.effect_data == &charge.scaled) {
-        CharaMainEffect.effect_data = charge.own;
-        SizeSlots(CharaMainEffect, 1.0f);
+    if (charge.own != nullptr && CharaMainShotEffect().effect_data == &charge.scaled) {
+        CharaMainShotEffect().effect_data = charge.own;
+        SizeSlots(CharaMainShotEffect(), 1.0f);
     }
     charge.own = nullptr;
     charge.tier = nullptr;
@@ -56,7 +54,7 @@ void PutBack() {
 
 // The effect at tier: entered again since it last read the copy, the copy is taken from what it was entered with.
 void Apply(const TornadoTier &tier) {
-    CSHOT_EFFECT &effect = CharaMainEffect;
+    CSHOT_EFFECT &effect = CharaMainShotEffect();
     if (effect.effect_data == nullptr) {
         return;
     }
@@ -99,7 +97,7 @@ const TornadoTier *TornadoTierOf(int weapon_no) {
 }
 
 const TornadoTier *TornadoChargeTier() {
-    if (UserStatus == nullptr || UserStatus->cur_chara != CHARA_UNGAGA || NowWeaponHave == nullptr || NowMainEffect != &CharaMainEffect) {
+    if (UserStatus == nullptr || UserStatus->cur_chara != CHARA_UNGAGA || NowWeaponHave == nullptr || NowMainEffect != &CharaMainShotEffect()) {
         return nullptr;
     }
     return TornadoTierOf(HeldWeapon());

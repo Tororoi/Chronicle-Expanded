@@ -2,8 +2,10 @@
 
 #include "shot_utils.hpp"
 
+namespace dc::game {
 class CMonstorUnit;
 class CSHOT_EFFECT;
+} // namespace dc::game
 
 namespace expanded {
 

@@ -35,6 +35,7 @@ EnemyStats NormalizedStats(int model_no, int region, bool stronger);
 inline int NormalizedStat(Monster monster, EnemyStat stat, int region, bool stronger) {
     return NormalizedStat(No(monster), stat, region, stronger);
 }
+
 inline EnemyStats NormalizedStats(Monster monster, int region, bool stronger) {
     return NormalizedStats(No(monster), region, stronger);
 }

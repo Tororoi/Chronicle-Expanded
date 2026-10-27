@@ -86,14 +86,14 @@ TEST(BoneRapier, GravediggerKeepsTheUndeadDown) {
     {
         Wielding wielding(ITEM_WEAPON_BONE_RAPIER);
         EXPECT_TRUE(expanded::StaysDown(*mummy.unit, 0));
-        EXPECT_EQ(expanded::ReviveCheckDmg(*mummy.unit, MONSTER_DMG_KILLED), MONSTER_DMG_KILLED);
+        EXPECT_EQ(expanded::ReviveCheckDmg(*mummy.unit, MonsterDamageResult::Killed), MonsterDamageResult::Killed);
         EXPECT_EQ(expanded::ReviveRoll(100, 3), 99);
     }
 
     // Without it the script's own roll stands.
     Wielding dagger(ITEM_WEAPON_DAGGER);
     EXPECT_FALSE(expanded::StaysDown(*mummy.unit, 0));
-    EXPECT_EQ(expanded::ReviveCheckDmg(*mummy.unit, MONSTER_DMG_KILLED), MONSTER_DMG_KILLED);
+    EXPECT_EQ(expanded::ReviveCheckDmg(*mummy.unit, MonsterDamageResult::Killed), MonsterDamageResult::Killed);
     EXPECT_EQ(expanded::ReviveRoll(100, 3), 3);
 }
 
@@ -105,7 +105,7 @@ TEST(BoneRapier, GravediggerKeepsHarderAiGetUpsDown) {
         Wielding wielding(ITEM_WEAPON_BONE_RAPIER);
         EXPECT_TRUE(expanded::StaysDown(*floor.unit, 0));
         for (int i = 0; i < 50; i++) {
-            EXPECT_EQ(expanded::ReviveCheckDmg(*floor.unit, MONSTER_DMG_KILLED), MONSTER_DMG_KILLED);
+            EXPECT_EQ(expanded::ReviveCheckDmg(*floor.unit, MonsterDamageResult::Killed), MonsterDamageResult::Killed);
         }
     }
 

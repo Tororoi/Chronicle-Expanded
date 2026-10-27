@@ -1,7 +1,9 @@
 #pragma once
 
+namespace dc::game {
 class CCameraFollow;
 class CCharacter;
+} // namespace dc::game
 
 namespace expanded {
 

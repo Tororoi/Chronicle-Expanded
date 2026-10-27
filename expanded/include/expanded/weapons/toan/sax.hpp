@@ -1,6 +1,8 @@
 #pragma once
 
+namespace dc::game {
 class CDungeonMap;
+} // namespace dc::game
 
 namespace expanded {
 

@@ -1,9 +1,11 @@
 #pragma once
 
+namespace dc::game {
 class CMonstorUnit;
 class CSHOT_EFFECT;
 class CUserStatus;
 struct WEAPON_HAVE;
+} // namespace dc::game
 
 namespace expanded {
 

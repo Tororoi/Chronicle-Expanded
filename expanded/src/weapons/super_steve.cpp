@@ -30,7 +30,6 @@ constexpr int kIconSize = 20;
                                                      .help = "\"Weapon Abilities\"\nEach weapon's special\nability. Off, weapons\nwork as in the\noriginal game.",
                                                      .on = true});
 
-
 // The active character's equipped weapon record.
 const WEAPON_HAVE *ActiveWeapon() {
     return UserStatus != nullptr ? EquippedWeapon(*UserStatus, UserStatus->cur_chara) : nullptr;

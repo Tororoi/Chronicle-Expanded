@@ -29,8 +29,10 @@
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
 
+namespace dc::game {
 extern s32        gameTask;
 extern CFrameVu1 *CharaFrame;
+} // namespace dc::game
 
 namespace expanded {
 
@@ -325,9 +327,9 @@ bool StageLoadSave() {
     return McAccess.LoadFromMc(active->slot - 1) == 1;
 }
 
-int StageEntranceFloor() {
+int StageEntranceFloor(int otherwise) {
     if (!active || active->floor < 0 || run.entered) {
-        return -1;
+        return otherwise;
     }
     run.entered = true;
     return active->floor;

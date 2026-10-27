@@ -10,11 +10,11 @@
 #include "clsmes.hpp"
 #include "data_fixture.hpp"
 #include "expanded/core/menu_text.hpp"
-#include "gametext.hpp"
 #include "itemdata.hpp"
-#include "localize.hpp"
+#include "localize/localize.hpp"
 #include "mainselect.hpp"
 #include "sysmes.hpp"
+#include "text/gametext.hpp"
 
 namespace fs = std::filesystem;
 
@@ -124,11 +124,11 @@ TEST(ExpandedMenuText, ASystemMessageIsTheItemLinesBanksOnly) {
     std::vector<s16> bank = Bank();
     expanded::SetSystemMessage(1000, SphereLine);
     EXPECT_EQ(Text(bank, 1000), "<none>");
-    short *own = SystemMessage.buff;
-    SystemMessage.buff = bank.data();
+    short *own = SystemMessageWindow().buff;
+    SystemMessageWindow().buff = bank.data();
     EXPECT_EQ(Text(bank, 1000), "{icon-orb}\"{insert1}\" SynthSphere acquired.");
     EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.");
-    SystemMessage.buff = own;
+    SystemMessageWindow().buff = own;
 }
 
 TEST(ExpandedMenuText, LanguageFilesGiveADescription) {

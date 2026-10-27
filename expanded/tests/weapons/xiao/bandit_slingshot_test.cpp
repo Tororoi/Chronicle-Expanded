@@ -9,7 +9,6 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/species.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
-#include "gametext.hpp"
 #include "itemdata.hpp"
 #include "main.hpp"
 #include "menu_misc.hpp"
@@ -17,9 +16,12 @@
 #include "shot_effect.hpp"
 #include "shot_effect_pack.hpp"
 #include "test_support.hpp"
+#include "text/gametext.hpp"
 #include "userstatus.hpp"
 
+namespace dc::game {
 extern s32 mode;
+} // namespace dc::game
 
 namespace {
 
@@ -45,7 +47,7 @@ protected:
     void SetUp() override {
         saved_pack_ = NowShotEffect;
         saved_mode_ = mode;
-        saved_names_ = CharaNameMes;
+        saved_names_ = MonsterNameMessages();
         for (CSHOT_EFFECT &effect : pack_->effect) {
             effect.Initialize();
         }
@@ -58,7 +60,7 @@ protected:
         names_.Set(Species(No(Monster::MR_BLARE))->name_no + 3000, "Mr. Blare");
         names_.Set(Species(No(Monster::HALLOWEEN))->name_no + 3000, "Halloween");
         mes_.SetBuff(names_.Data());
-        CharaNameMes = &mes_;
+        MonsterNameMessages() = &mes_;
     }
 
     void TearDown() override {
@@ -67,7 +69,7 @@ protected:
         expanded::SetShotEffectLoader(nullptr);
         NowShotEffect = saved_pack_;
         mode = saved_mode_;
-        CharaNameMes = saved_names_;
+        MonsterNameMessages() = saved_names_;
     }
 
     // The floor's kinds starting to be set up.

@@ -2,7 +2,9 @@
 
 #include <libvu0.h>
 
+namespace dc::game {
 class CCharacter;
+} // namespace dc::game
 
 namespace expanded {
 

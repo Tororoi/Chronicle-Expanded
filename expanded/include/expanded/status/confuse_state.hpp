@@ -4,8 +4,10 @@
 
 #include "expanded/enemies/enemy_events.hpp"
 
+namespace dc::game {
 class CMonstorUnit;
 struct COLLISION_HIT;
+} // namespace dc::game
 
 namespace expanded::confuse {
 

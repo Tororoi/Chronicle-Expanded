@@ -18,26 +18,6 @@
 #include "snd.hpp"
 #include "userstatus.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/dungeon/dungeon_hooks.hpp"
-#include "expanded/enemies/bomb_gemron.hpp"
-#include "expanded/enemies/boss_casts.hpp"
-#include "expanded/enemies/boss_moves.hpp"
-#include "expanded/enemies/bosses.hpp"
-#include "expanded/enemies/faster.hpp"
-#include "expanded/enemies/miniboss.hpp"
-#include "expanded/enemies/revive.hpp"
-#endif
-
-/** A monster number a script names: in Expanded, a boss cast member's for its cast's. */
-static int ScriptMonster(int monster_no) {
-#ifdef CHRONICLE_EXPANDED
-    return expanded::BossCastMonsterRef(NowMonstorUnit->current_monster, monster_no);
-#else
-    return monster_no;
-#endif
-}
-
 /**
  * Describes one opcode a monster script can call and the number that calls it.
  */
@@ -220,25 +200,14 @@ int _GET_DISTANCE(RS_STACKDATA *stack, int argc) {
     NowMonstorUnit->chara[monster_no][0].GetPosition(monster_position);
 
     if (argc == 1) {
-#ifdef CHRONICLE_EXPANDED
-        expanded::ScriptPlayerPosition(target_position);
-#else
         sceVu0CopyVector(target_position, CharaMain.pos);
-#endif
     } else {
         target_position[0] = GetStackFloat(stack++);
         target_position[1] = GetStackFloat(stack++);
         target_position[2] = GetStackFloat(stack++);
-#ifdef CHRONICLE_EXPANDED
-        expanded::BossPointIn(*NowMonstorUnit, monster_no, target_position, expanded::BossPoint::Aim);
-#endif
     }
 
-#ifdef CHRONICLE_EXPANDED
-    SetStack(stack, expanded::MinibossScriptDistance(monster_no, argc, DistVector(monster_position, target_position)));
-#else
     SetStack(stack, DistVector(monster_position, target_position));
-#endif
     return 1;
 }
 
@@ -252,16 +221,9 @@ int _GET_POSITION(RS_STACKDATA *stack, int argc) {
     }
 
     if (target == -2) {
-#ifdef CHRONICLE_EXPANDED
-        expanded::ScriptPlayerPosition(position);
-#else
         sceVu0CopyVector(position, CharaMain.pos);
-#endif
     }
 
-#ifdef CHRONICLE_EXPANDED
-    expanded::BossPointOut(monster_no, position);
-#endif
     SetStack(stack++, position[0]);
     SetStack(stack++, position[1]);
     SetStack(stack, position[2]);
@@ -275,9 +237,6 @@ int _SET_ROTATION(RS_STACKDATA *stack, int argc) {
     NowMonstorUnit->monster[monster_no].turn_target[1] = GetStackFloat(stack++);
     NowMonstorUnit->monster[monster_no].turn_target[2] = GetStackFloat(stack++);
     NowMonstorUnit->monster[monster_no].turn_speed = GetStackFloat(stack);
-#ifdef CHRONICLE_EXPANDED
-    expanded::BossPointIn(*NowMonstorUnit, monster_no, NowMonstorUnit->monster[monster_no].turn_target, expanded::BossPoint::Aim);
-#endif
 
     if (NowMonstorUnit->monster[monster_no].turn_speed < 0.0f) {
         float position[4];
@@ -383,9 +342,6 @@ int _GET_VECTOR(RS_STACKDATA *stack, int argc) {
     direction[1] = GetStackFloat(stack++);
     direction[2] = GetStackFloat(stack++);
     direction[3] = 1.0f;
-#ifdef CHRONICLE_EXPANDED
-    expanded::BossPointIn(*NowMonstorUnit, monster_no, direction, expanded::BossPoint::Aim);
-#endif
 
     if (argc == 7) {
         angle = GetStackFloat(stack++);
@@ -465,20 +421,12 @@ int _SET_MOVE(RS_STACKDATA *stack, int argc) {
     direction[0] = GetStackFloat(stack++);
     direction[1] = GetStackFloat(stack++);
     direction[2] = GetStackFloat(stack++);
-#ifdef CHRONICLE_EXPANDED
-    expanded::BossPointIn(*NowMonstorUnit, monster_no, direction, expanded::BossPoint::Place);
-    expanded::BossMoveGoal(monster_no, direction);
-#endif
     direction[0] -= position[0];
     direction[1] -= position[1];
     direction[2] -= position[2];
     direction[3] = 1.0f;
     sceVu0Normalize(NowMonstorUnit->monster[monster_no].movement, direction);
-#ifdef CHRONICLE_EXPANDED
-    speed = expanded::FasterMoveSpeed(GetStackFloat(stack));
-#else
     speed = GetStackFloat(stack);
-#endif
 
     if (NowMonstorUnit->monster[monster_no].slow_timer > 0) {
         speed *= 0.5f;
@@ -500,10 +448,6 @@ int _CHK_MOVE_INFO(RS_STACKDATA *stack, int argc) {
     to[0] = GetStackFloat(stack++);
     to[1] = GetStackFloat(stack++);
     to[2] = GetStackFloat(stack++);
-#ifdef CHRONICLE_EXPANDED
-    expanded::BossPointIn(*NowMonstorUnit, monster_no, to, expanded::BossPoint::Target);
-    clear = expanded::BossLineClear(*NowMonstorUnit, monster_no, to) ? 1 : 0;
-#endif
     from[1] += 5.0f;
     to[1] += 5.0f;
 
@@ -531,16 +475,6 @@ int _SET_POSITION(RS_STACKDATA *stack, int argc) {
     float y = GetStackFloat(stack++);
     float z = GetStackFloat(stack);
 
-#ifdef CHRONICLE_EXPANDED
-    float position[3] = {x, y, z};
-    expanded::BossPointIn(*NowMonstorUnit, monster_no, position, expanded::BossPoint::Place);
-    if (expanded::BossPlace(*NowMonstorUnit, monster_no, position)) {
-        return 1;
-    }
-    x = position[0];
-    y = position[1];
-    z = position[2];
-#endif
     NowMonstorUnit->chara[monster_no][0].SetPosition(x, y, z);
     return 1;
 }
@@ -611,21 +545,11 @@ int _STATUS_SET_DEAD(RS_STACKDATA *stack, int argc) {
 }
 
 int _STATUS_SET_EVENT(RS_STACKDATA *stack, int argc) {
-#ifdef CHRONICLE_EXPANDED
-    if (expanded::BossEventHeld(NowMonstorUnit->current_monster)) {
-        return 1;
-    }
-#endif
     NowMonstorUnit->requested_event = GetStackInt(stack);
     return 1;
 }
 
 int _RUN_SCRIPT(RS_STACKDATA *stack, int argc) {
-#ifdef CHRONICLE_EXPANDED
-    if (expanded::BossEventHeld(NowMonstorUnit->current_monster)) {
-        return 1;
-    }
-#endif
     NowMonstorUnit->requested_event = GetStackInt(stack);
     printf("run script !!\n");
     return 1;
@@ -688,9 +612,6 @@ int _GET_RAND(RS_STACKDATA *stack, int argc) {
     int bound = GetStackInt(stack++);
 
     int roll = (float) bound * rand() / 2147483648.0f;
-#ifdef CHRONICLE_EXPANDED
-    roll = expanded::ReviveRoll(bound, roll);
-#endif
 
     SetStack(stack, roll);
     return 1;
@@ -963,10 +884,6 @@ int _SET_SHOT(RS_STACKDATA *stack, int argc) {
     NowMonstorUnit->event[monster_no].local_position[1] = GetStackFloat(stack++);
     NowMonstorUnit->event[monster_no].local_position[2] = GetStackFloat(stack++);
     NowMonstorUnit->event[monster_no].local_position[3] = 1.0f;
-#ifdef CHRONICLE_EXPANDED
-    expanded::BossPointIn(*NowMonstorUnit, monster_no, NowMonstorUnit->event[monster_no].local_position, expanded::BossPoint::Target);
-    expanded::BombGemronAim(*NowMonstorUnit, monster_no, NowMonstorUnit->event[monster_no].local_position);
-#endif
 
     if (NowMonstorUnit->event[monster_no].timer == 0) {
         CFrame *frame = NowMonstorUnit->chara[monster_no][0].frame->SearchFrame(name);
@@ -1003,9 +920,6 @@ int _SET_SHOT2(RS_STACKDATA *stack, int argc) {
     NowMonstorUnit->event2[monster_no].local_position[1] = GetStackFloat(stack++);
     NowMonstorUnit->event2[monster_no].local_position[2] = GetStackFloat(stack++);
     NowMonstorUnit->event2[monster_no].local_position[3] = 1.0f;
-#ifdef CHRONICLE_EXPANDED
-    expanded::BossPointIn(*NowMonstorUnit, monster_no, NowMonstorUnit->event2[monster_no].local_position, expanded::BossPoint::Target);
-#endif
 
     if (NowMonstorUnit->event2[monster_no].timer == 0) {
         CFrame *frame = NowMonstorUnit->chara[monster_no][0].frame->SearchFrame(name);
@@ -1087,11 +1001,6 @@ int _DEL_LOOP_SND(RS_STACKDATA *stack, int argc) {
 }
 
 int _SET_SND_NOW(RS_STACKDATA *stack, int argc) {
-#ifdef CHRONICLE_EXPANDED
-    if (expanded::BossSoundHeld(NowMonstorUnit->current_monster, GetStackInt(stack))) {
-        return 1;
-    }
-#endif
     SndSePlay(GetStackInt(stack), -1, 0);
     return 1;
 }
@@ -1119,7 +1028,7 @@ int _GET_SCRIPT_ID(RS_STACKDATA *stack, int argc) {
 int _GET_MONSTOR_POS(RS_STACKDATA *stack, int argc) {
     float position[4];
 
-    NowMonstorUnit->chara[ScriptMonster(GetStackInt(stack++))][0].GetPosition(position);
+    NowMonstorUnit->chara[GetStackInt(stack++)][0].GetPosition(position);
     SetStack(stack++, position[0]);
     SetStack(stack++, position[1]);
     SetStack(stack, position[2]);
@@ -1127,7 +1036,7 @@ int _GET_MONSTOR_POS(RS_STACKDATA *stack, int argc) {
 }
 
 int _GET_MONSTOR_FRM(RS_STACKDATA *stack, int argc) {
-    int monster_no = ScriptMonster(GetStackInt(stack++));
+    int monster_no = GetStackInt(stack++);
 
     float frame = NowMonstorUnit->chara[monster_no][0].motion_type.state.time;
 
@@ -1136,23 +1045,18 @@ int _GET_MONSTOR_FRM(RS_STACKDATA *stack, int argc) {
 }
 
 int _SET_MONSTOR_POS(RS_STACKDATA *stack, int argc) {
-    int   monster_no = ScriptMonster(GetStackInt(stack++));
+    int   monster_no = GetStackInt(stack++);
     float position[4];
 
     position[0] = GetStackFloat(stack++);
     position[1] = GetStackFloat(stack++);
     position[2] = GetStackFloat(stack);
-#ifdef CHRONICLE_EXPANDED
-    if (expanded::BossKeepsPlace(*NowMonstorUnit, NowMonstorUnit->current_monster)) {
-        return 1;
-    }
-#endif
     NowMonstorUnit->chara[monster_no][0].SetPosition(position);
     return 1;
 }
 
 int _SET_MONSTOR_MOVE(RS_STACKDATA *stack, int argc) {
-    int   monster_no = ScriptMonster(GetStackInt(stack++));
+    int   monster_no = GetStackInt(stack++);
     float direction[4];
     float position[4];
 
@@ -1170,8 +1074,8 @@ int _SET_MONSTOR_MOVE(RS_STACKDATA *stack, int argc) {
 }
 
 int _SET_MONSTOR_LINK_MOVE(RS_STACKDATA *stack, int argc) {
-    int monster_no = ScriptMonster(GetStackInt(stack++));
-    int leader_no = ScriptMonster(GetStackInt(stack));
+    int monster_no = GetStackInt(stack++);
+    int leader_no = GetStackInt(stack);
 
     sceVu0CopyVector(NowMonstorUnit->monster[monster_no].movement, NowMonstorUnit->monster[leader_no].movement);
     NowMonstorUnit->monster[monster_no].movement_speed = NowMonstorUnit->monster[leader_no].movement_speed;
@@ -1179,7 +1083,7 @@ int _SET_MONSTOR_LINK_MOVE(RS_STACKDATA *stack, int argc) {
 }
 
 int _SET_MONSTOR_MOVE_CANSEL(RS_STACKDATA *stack, int argc) {
-    int monster_no = ScriptMonster(GetStackInt(stack));
+    int monster_no = GetStackInt(stack);
 
     NowMonstorUnit->monster[monster_no].movement_speed = 0.0f;
     return 1;
@@ -1200,7 +1104,7 @@ int _SET_LOCKON_SW(RS_STACKDATA *stack, int argc) {
 }
 
 int _SET_MONSTOR_MOTION(RS_STACKDATA *stack, int argc) {
-    int monster_no = ScriptMonster(GetStackInt(stack++));
+    int monster_no = GetStackInt(stack++);
     int motion_id = GetStackInt(stack++);
 
     NowMonstorUnit->monster[monster_no].last_hit_damage = -1;
@@ -1253,22 +1157,14 @@ int _SET_MONSTOR_MOTION(RS_STACKDATA *stack, int argc) {
 int _SET_GLOBAL_INT(RS_STACKDATA *stack, int argc) {
     int slot = GetStackInt(stack++);
 
-#ifdef CHRONICLE_EXPANDED
-    expanded::BossCastGlobals(NowMonstorUnit->current_monster, GL_INT)[slot] = GetStackInt(stack);
-#else
     GL_INT[slot] = GetStackInt(stack);
-#endif
     return 1;
 }
 
 int _GET_GLOBAL_INT(RS_STACKDATA *stack, int argc) {
     int slot = GetStackInt(stack++);
 
-#ifdef CHRONICLE_EXPANDED
-    SetStack(stack++, expanded::BossCastGlobals(NowMonstorUnit->current_monster, GL_INT)[slot]);
-#else
     SetStack(stack++, GL_INT[slot]);
-#endif
     return 1;
 }
 
@@ -1374,7 +1270,7 @@ int _SET_MOTION_CHANGE_STEP(RS_STACKDATA *stack, int argc) {
 }
 
 int _GET_MONSTOR_VECTOR(RS_STACKDATA *stack, int argc) {
-    int   monster_no = ScriptMonster(GetStackInt(stack++));
+    int   monster_no = GetStackInt(stack++);
     float angle = 0.0f;
     float direction[4];
     float position[4];
@@ -1647,8 +1543,7 @@ int _GET_USER_STATUS(RS_STACKDATA *stack, int argc) {
 
 int _SET_REFERENCE(RS_STACKDATA *stack, int argc) {
     int     monster_no = NowMonstorUnit->current_monster;
-    int     script_target = GetStackInt(stack++);
-    int     target_no = ScriptMonster(script_target);
+    int     target_no = GetStackInt(stack++);
     char   *name = GetStackString(stack);
     CFrame *frame;
     CFrame *anchor;
@@ -1656,13 +1551,6 @@ int _SET_REFERENCE(RS_STACKDATA *stack, int argc) {
     if (name == NULL) {
         return 1;
     }
-#ifdef CHRONICLE_EXPANDED
-    // A cast member whose partner is still to come rides it once it does; one that will not come has nothing to ride.
-    if (target_no == monster_no) {
-        expanded::BossCastReferLater(monster_no, script_target, name);
-        return 1;
-    }
-#endif
 
     frame = NowMonstorUnit->chara[monster_no][0].frame;
     anchor = NowMonstorUnit->chara[target_no][0].frame->SearchFrame(name);
@@ -1672,14 +1560,11 @@ int _SET_REFERENCE(RS_STACKDATA *stack, int argc) {
     }
 
     frame->SetReference(anchor);
-#ifdef CHRONICLE_EXPANDED
-    expanded::BossCastAttached(*NowMonstorUnit, monster_no, target_no);
-#endif
     return 1;
 }
 
 int _DEL_REFERENCE(RS_STACKDATA *stack, int argc) {
-    int     monster_no = ScriptMonster(GetStackInt(stack));
+    int     monster_no = GetStackInt(stack);
     CFrame *frame = NowMonstorUnit->chara[monster_no][0].frame;
 
     if (frame == NULL) {
@@ -1687,9 +1572,6 @@ int _DEL_REFERENCE(RS_STACKDATA *stack, int argc) {
     }
 
     frame->DeleteReference();
-#ifdef CHRONICLE_EXPANDED
-    expanded::BossCastAttached(*NowMonstorUnit, monster_no, -1);
-#endif
     return 1;
 }
 

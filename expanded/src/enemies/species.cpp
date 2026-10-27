@@ -8,7 +8,7 @@
 #include <string_view>
 #include <vector>
 
-#include "dataread_port.hpp"
+#include "data/data_read.hpp"
 #include "expanded/data/monster_scripts.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "monstorunit.hpp"
@@ -272,15 +272,15 @@ MONSTOR_MODEL *SpeciesRecord(int model_no) {
     return const_cast<MONSTOR_MODEL *>(Species(model_no));
 }
 
-void SpeciesPackFile(char *filename, int model_no) {
+void SpeciesPackFile(std::string &filename, int model_no) {
     if (Entry *entry = Find(model_no)) {
-        std::strcpy(filename, entry->species.model_file);
+        filename = entry->species.model_file;
     }
 }
 
-void SpeciesScriptFile(char *filename, int model_no) {
+void SpeciesScriptFile(std::string &filename, int model_no) {
     if (Entry *entry = Find(model_no); entry != nullptr && entry->species.script_file != nullptr) {
-        std::strcpy(filename, entry->species.script_file);
+        filename = entry->species.script_file;
         return;
     }
     // A script the mod's bake rebuilt loads as dcdata built it.
@@ -289,7 +289,7 @@ void SpeciesScriptFile(char *filename, int model_no) {
         std::string_view script = file.substr(folder.size(), file.size() - folder.size() - suffix.size());
         std::string      baked = BakedScriptFile(script);
         if (ScriptIsBaked(script) && DataFileSize(baked) > 0) {
-            std::strcpy(filename, baked.c_str());
+            filename = baked;
         }
     }
 }

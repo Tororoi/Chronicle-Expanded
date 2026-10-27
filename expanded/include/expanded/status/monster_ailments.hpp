@@ -1,6 +1,8 @@
 #pragma once
 
+namespace dc::game {
 struct MONSTOR;
+} // namespace dc::game
 
 namespace expanded {
 

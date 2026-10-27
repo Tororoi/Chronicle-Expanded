@@ -1,6 +1,8 @@
 #pragma once
 
+namespace dc::game {
 class CCPoly;
+} // namespace dc::game
 
 namespace expanded {
 

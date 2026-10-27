@@ -1,5 +1,4 @@
 #include "dungeon.h"
-#include "expanded/weapons/toan/atlamillia_sword.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -11,12 +10,10 @@
 #include "expanded/core/save.hpp"
 #include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/weapons/ownership.hpp"
+#include "expanded/weapons/toan/atlamillia_sword.hpp"
 #include "itemdata.hpp"
 #include "menu_misc.hpp"
 #include "userstatus.hpp"
-
-// dungeonparts.cpp: whether the game lets an atla lie on a floor (1-based).
-int chkAtraFloor(int dungeon, int floor);
 
 namespace expanded {
 
@@ -50,7 +47,7 @@ int RandomFloor(int dungeon) {
     int last = kFloors[dungeon] - 2;
     for (int i = 0; i < kTries; i++) {
         int floor = ModRoll(last + 1);
-        if (dungeon == DUNGEON_DEMON_SHAFT || chkAtraFloor(dungeon, floor + 1) != 0) {
+        if (dungeon == DUNGEON_DEMON_SHAFT || AtlaMayLie(dungeon, floor + 1) != 0) {
             return floor;
         }
     }

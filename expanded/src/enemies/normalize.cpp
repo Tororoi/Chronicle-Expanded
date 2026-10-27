@@ -1,5 +1,4 @@
 #include "dungeon.h"
-#include "expanded/enemies/normalize.hpp"
 
 #include <algorithm>
 #include <climits>
@@ -12,6 +11,7 @@
 #include "expanded/enemies/boss_stats.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monsters.hpp"
+#include "expanded/enemies/normalize.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/species.hpp"
 #include "expanded/enemies/stronger.hpp"

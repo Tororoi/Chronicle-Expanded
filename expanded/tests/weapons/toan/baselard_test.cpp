@@ -2,8 +2,8 @@
 
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
-#include "expanded/weapons/toan/baselard.hpp"
 #include "expanded/weapons/kick_back.hpp"
+#include "expanded/weapons/toan/baselard.hpp"
 #include "itemdata.hpp"
 
 using namespace expanded;
@@ -13,7 +13,9 @@ namespace {
 // Points NowWeaponHave at a weapon for one case.
 struct Wielding {
     WEAPON_HAVE *saved = NowWeaponHave;
+
     explicit Wielding(WEAPON_HAVE &weapon) { NowWeaponHave = &weapon; }
+
     ~Wielding() { NowWeaponHave = saved; }
 };
 

@@ -7,9 +7,9 @@
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/confuse_icon.hpp"
 #include "itemdata.hpp"
-#include "localize.hpp"
+#include "localize/localize.hpp"
 #include "menu_misc.hpp"
-#include "texture_port.hpp"
+#include "render/texture_registry.hpp"
 
 using namespace expanded;
 

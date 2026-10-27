@@ -2,8 +2,10 @@
 
 #include <string>
 
+namespace dc::game {
 class ClsMes;
 class CMonstorUnit;
+} // namespace dc::game
 
 namespace expanded {
 

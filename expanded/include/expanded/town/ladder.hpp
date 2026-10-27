@@ -2,7 +2,9 @@
 
 #include <vector>
 
+namespace dc::game {
 struct ED_EVENT_PARAM;
+} // namespace dc::game
 
 namespace expanded {
 

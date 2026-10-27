@@ -5,13 +5,13 @@
 #include <cstring>
 
 #include "camera.hpp"
-#include "draw2d_port.hpp"
 #include "dun/gameloop.hpp"
 #include "mglib.hpp"
 #include "rect.hpp"
+#include "render/draw2d.hpp"
+#include "render/texture_registry.hpp"
 #include "snd.hpp"
 #include "texture.hpp"
-#include "texture_port.hpp"
 
 namespace expanded {
 

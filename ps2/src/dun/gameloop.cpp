@@ -125,17 +125,6 @@
 #include "weaponelement.hpp"
 #include "wind.hpp"
 
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/dungeon/dungeon_hooks.hpp"
-#include "expanded/dungeon/magic_circles.hpp"
-#include "expanded/enemies/miniboss.hpp"
-#include "expanded/enemies/roster.hpp"
-#include "expanded/weapons/heal.hpp"
-#include "expanded/weapons/solar_flash.hpp"
-#include "expanded/weapons/stats.hpp"
-#include "expanded/weapons/toan/small_sword.hpp"
-#endif
-
 /**
  * Defines the life gauge that the locked-on enemy draws above itself.
  */
@@ -197,11 +186,7 @@ s32 defWeapon__6[6] = {ITEM_WEAPON_DAGGER_BROKEN, ITEM_WEAPON_WOODENSLINGSHOT_BR
 static inline float CharaRangeRate(CUserStatus *status) {
     float range_rate[6] = {1.2f, 1.4f, 1.1f, 1.5f, 1.0f, 1.8f};
 
-#ifdef CHRONICLE_EXPANDED
-    return expanded::PlayerLockOnRange(range_rate[status->cur_chara]);
-#else
     return range_rate[status->cur_chara];
-#endif
 }
 
 /**
@@ -1429,9 +1414,6 @@ void GameInit() {
     selectMapNo = main_select_menu_no;
     UserStatus = (CUserStatus *) SaveData->GetDngStatus();
     UserStatus->Init();
-#ifdef CHRONICLE_EXPANDED
-    expanded::DungeonStatusReady();
-#endif
 
     if (BtEventInfo.no_status_recover != 1) {
         int          i;
@@ -1547,10 +1529,6 @@ void GameInit() {
     for (int i = 0; i < 5; i++) {
         ShotEffect.effect[i].Initialize();
     }
-#ifdef CHRONICLE_EXPANDED
-    expanded::DungeonFloorUnloaded();
-    expanded::RosterVisitBegun();
-#endif
 
     NowShotEffect = &ShotEffect;
 
@@ -2000,9 +1978,6 @@ int GameLoop() {
     float fade[4];
     int   i;
 
-#ifdef CHRONICLE_EXPANDED
-    expanded::DungeonFrameBegins();
-#endif
     switch (BtGameModeFlag) {
         case BT_GAME_MODE_PLAY:
             MoveChara();
@@ -2171,9 +2146,6 @@ void Draw_MainUnitShadow() {
         }
     }
 
-#ifdef CHRONICLE_EXPANDED
-    expanded::DungeonShadowsDrawing();
-#endif
     MGEndDrawShadow(0x40);
     sceVu0CopyMatrix(light, saved);
     MGSetPLight(light, colour);
@@ -5821,9 +5793,6 @@ void motionDrive() {
 
     if (BtEventMode == 0) {
         NowMonstorUnit->Step(driveStepHold | CMonUnitHold);
-#ifdef CHRONICLE_EXPANDED
-        expanded::DungeonMonstersStepped(driveStepHold | CMonUnitHold);
-#endif
     }
 
     if (BtActStatus.player_visible != 0 && EdEventInfo.player_draw != 0) {
@@ -5904,9 +5873,6 @@ void motionDrive() {
             CharaMain.motion_type.state.look_at = false;
         }
 
-#ifdef CHRONICLE_EXPANDED
-        expanded::PlayerMotionStepping(CharaMain, chara);
-#endif
         CharaMain.Step();
 
         if (chara == CHARA_XIAO) {
@@ -6130,11 +6096,7 @@ void motionDrive() {
             BtActStatus.refill_frames++;
         }
 
-#ifdef CHRONICLE_EXPANDED
-        float gain = (float) expanded::QuickDrawGaugeSpeed(NowWeaponHave->speed) / 30.0f;
-#else
         float gain = (float) NowWeaponHave->speed / 30.0f;
-#endif
 
         if (StatusErrCheck(AILMENT_GOO) != 0) {
             gain /= 2.0f;
@@ -6194,9 +6156,6 @@ void motionDrive() {
             gain *= 1.5f;
         }
 
-#ifdef CHRONICLE_EXPANDED
-        gain = expanded::ActionGaugeGain(gain);
-#endif
         BtActStatus.action_gauge += gain;
 
         if (!((int) BtActStatus.action_gauge < 100)) {
@@ -6231,15 +6190,8 @@ void motionDrive() {
 
     heal_counter++;
 
-#ifdef CHRONICLE_EXPANDED
-    heal_counter = expanded::HealCounter(heal_counter);
-    if (!(heal_counter < expanded::kHealPeriod)) {
-        expanded::HealTicked();
-        if (((NowWeaponHave->flags & 0x800) || expanded::HealsWithoutTheAbility()) && status->hp[*healed_ref] > 0) {
-#else
     if (!(heal_counter < 240)) {
         if ((NowWeaponHave->flags & 0x800) && status->hp[*healed_ref] > 0) {
-#endif
             status->AddNowLife((s8) *healed_ref, 1, 255.0f);
         }
 
@@ -6349,18 +6301,12 @@ void motionDrive() {
     for (i = 0; i < 5; i++) {
         effects[i].Step();
     }
-#ifdef CHRONICLE_EXPANDED
-    expanded::DungeonShotsStep(*NowMonstorUnit);
-#endif
 
     OzumondShot.Step();
     OzumondFire.Step();
     OzumondShotEffect.Step();
     NowMainEffect->Step();
     NowShotData->step();
-#ifdef CHRONICLE_EXPANDED
-    expanded::PlayerShotsStepped();
-#endif
     HealEffect.Step();
 }
 
@@ -6539,9 +6485,6 @@ void BtCleatFreeMap() {
 }
 
 void BtArrengeMonstor() {
-#ifdef CHRONICLE_EXPANDED
-    expanded::MinibossFloorEntered();
-#endif
     NowMonstorUnit->CleanViewMonstor(BtUraDongeon);
     NowMonstorUnit->ArrangementPos(&MainDungeonMap, 15, -1, 0);
 }
@@ -6575,9 +6518,6 @@ void BtLoadMonstor(int ura) {
 
     TexManager.DeleteTextureBlock(0x2A);
     TexManager.DeleteTextureBlock(0x26);
-#ifdef CHRONICLE_EXPANDED
-    expanded::DungeonFloorUnloaded();
-#endif
     TexManager.CleanUpBuffer();
     TexManager.CleanUpTextureList();
 
@@ -6600,9 +6540,6 @@ void BtLoadMonstor(int ura) {
     }
 
     layout += UserStatus->cur_floor;
-#ifdef CHRONICLE_EXPANDED
-    layout = expanded::RosterFloorLayout(layout, ura);
-#endif
 
     for (monster = 0; monster < 9; monster++) {
         if (layout->monster[monster].monster_no == -1) {
@@ -6612,9 +6549,6 @@ void BtLoadMonstor(int ura) {
         count += NowMonstorUnit->SetupBaseModel(count, layout->monster[monster].monster_no, 0x26, &MonstorModelBuffer);
     }
 
-#ifdef CHRONICLE_EXPANDED
-    expanded::DungeonFloorLoaded(*NowMonstorUnit);
-#endif
     MemoryMapDump();
 }
 
@@ -6739,11 +6673,7 @@ void SwordDmgCheck1(float amount, int kind) {
     s8           chara = status->cur_chara;
     WEAPON_HAVE *weapon = &status->chara_weapons[chara][status->equipped_weapon_slot[chara]];
     float        was = weapon->durability_f;
-#ifdef CHRONICLE_EXPANDED
-    float        warn = weapon->durability * expanded::kLambSwordThreshold;
-#else
     float        warn = (float) (weapon->durability * 0.2);
-#endif
 
     broke = BattleSubWeaponDmg(amount, kind);
 
@@ -7735,9 +7665,6 @@ void BattleActionOn_Jinn() {
 }
 
 void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
-#ifdef CHRONICLE_EXPANDED
-    expanded::QuickDrawShot(*chara, aimed);
-#endif
     float now = chara->motion_type.state.time;
     int   damage = NowWeaponHave->attack;
     int   i;
@@ -7809,9 +7736,6 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                             shots->halted[i] = 0;
                             shots->start_flag[i] = 0;
                             shots->used[i] = 1;
-#ifdef CHRONICLE_EXPANDED
-                            expanded::PelletFired(*shots, i);
-#endif
                             break;
                         }
                     }
@@ -7819,11 +7743,7 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                     BtActStatus.frames_since_attack = 0;
                 }
 
-#ifdef CHRONICLE_EXPANDED
-                SwordDmgCheck1(expanded::XiaoShotWear(1.0f), 0);
-#else
                 SwordDmgCheck1(1.0f, 0);
-#endif
             }
         } else {
 #ifdef PAL_TIMING
@@ -7855,9 +7775,6 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                             shots->halted[i] = 0;
                             shots->start_flag[i] = 0;
                             shots->used[i] = 1;
-#ifdef CHRONICLE_EXPANDED
-                            expanded::PelletFired(*shots, i);
-#endif
                             break;
                         }
                     }
@@ -7865,11 +7782,7 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                     BtActStatus.frames_since_attack = 0;
                 }
 
-#ifdef CHRONICLE_EXPANDED
-                SwordDmgCheck1(expanded::XiaoShotWear(1.0f), 0);
-#else
                 SwordDmgCheck1(1.0f, 0);
-#endif
             }
         }
 
@@ -7937,9 +7850,6 @@ void BattleActionShotRuby(CCharacter *chara, int aimed, float scale, int repeat)
             NowMainEffect->SetDmg(damage);
             NowMainEffect->SetRandomRate(2.0f);
             NowMainEffect->SetNoSound();
-#ifdef CHRONICLE_EXPANDED
-            expanded::RubyOrbThrown(*NowMainEffect, NowMainEffect->current_slot, scale, true);
-#endif
         }
 
         return;
@@ -7968,9 +7878,6 @@ void BattleActionShotRuby(CCharacter *chara, int aimed, float scale, int repeat)
         NowMainEffect->SetWepStatus(NowWeaponHave->flags);
         NowMainEffect->SetVsMonster(NowWeaponHave->vs_monster);
         NowMainEffect->SetDmg(damage);
-#ifdef CHRONICLE_EXPANDED
-        expanded::RubyOrbThrown(*NowMainEffect, NowMainEffect->current_slot, scale, false);
-#endif
         return;
     }
 
@@ -7986,9 +7893,6 @@ void BattleActionShotRuby(CCharacter *chara, int aimed, float scale, int repeat)
         NowMainEffect->SetWepStatus(NowWeaponHave->flags);
         NowMainEffect->SetVsMonster(NowWeaponHave->vs_monster);
         NowMainEffect->SetDmg(damage);
-#ifdef CHRONICLE_EXPANDED
-        expanded::RubyOrbThrown(*NowMainEffect, NowMainEffect->current_slot, scale, false);
-#endif
     }
 }
 
@@ -8942,13 +8846,6 @@ int Run_TrapCircle(MAP_TRAP_CIRCLE *trap) {
         kind = TRAP_CIRCLE_STAMINA;
     }
 
-#ifdef CHRONICLE_EXPANDED
-    kind = expanded::DealtCircle(kind);
-    if (int shown = expanded::ExpandedCircle(kind, *weapon); shown >= 0) {
-        return shown;
-    }
-#endif
-
     switch (kind) {
         case TRAP_CIRCLE_STAMINA:
             BtSetStatusErr(AILMENT_STAMINA);
@@ -9400,11 +9297,6 @@ void setTargetCursor(int on) {
             EnemyLifeGage.x = (screen[0] - 0x6C00) >> 4;
             EnemyLifeGage.y = ((screen[1] - GS_Y_OFFSET) >> 4) + 42;
             SetMonsterNameDrawFlag(1);
-#ifdef CHRONICLE_EXPANDED
-            if (expanded::TargetNameHidden()) {
-                SetMonsterNameDrawFlag(0);
-            }
-#endif
         } else {
             SetMonsterNameDrawFlag(0);
             EnemyLifeGage.on = 0;

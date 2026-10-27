@@ -1,6 +1,8 @@
 #pragma once
 
+namespace dc::game {
 class CMonstorUnit;
+} // namespace dc::game
 
 namespace expanded {
 

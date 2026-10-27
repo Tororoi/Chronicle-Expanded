@@ -7,10 +7,10 @@
 #include <vector>
 
 #include "clsmes.hpp"
-#include "gametext.hpp"
 #include "itemdata.hpp"
-#include "localize.hpp"
+#include "localize/localize.hpp"
 #include "sysmes.hpp"
+#include "text/gametext.hpp"
 
 namespace expanded {
 
@@ -131,7 +131,7 @@ void MenuTextLoaded(std::string_view name, const void *data) {
 }
 
 short *MenuText(const short *buff, int id) {
-    if (auto message = Text().system.find(id); buff != nullptr && buff == SystemMessage.buff && message != Text().system.end()) {
+    if (auto message = Text().system.find(id); buff != nullptr && buff == SystemMessageWindow().buff && message != Text().system.end()) {
         std::optional<std::string> text = message->second();
         if (!text) {
             return nullptr;

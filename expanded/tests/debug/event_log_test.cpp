@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
+#include "app/gameloop.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
-#include "gameloop.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "test_support.hpp"

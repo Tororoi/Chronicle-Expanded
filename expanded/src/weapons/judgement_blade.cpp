@@ -2,8 +2,8 @@
 
 #include <algorithm>
 #include <cmath>
-#include <numbers>
 #include <cstdint>
+#include <numbers>
 
 #include "character.hpp"
 #include "dataalloc.hpp"

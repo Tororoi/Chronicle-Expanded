@@ -4,8 +4,13 @@
 #include <cstdint>
 #include <vector>
 
+namespace dc::game {
 class CTexture;
+} // namespace dc::game
+
+namespace dc::render {
 struct PortDecodedTexture;
+} // namespace dc::render
 
 namespace expanded {
 

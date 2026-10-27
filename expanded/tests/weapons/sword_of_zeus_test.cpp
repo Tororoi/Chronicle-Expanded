@@ -18,7 +18,9 @@
 #include "test_support.hpp"
 
 // The lock-on target, as movechara.cpp keeps it.
+namespace dc::game {
 extern s32 lockOnTargetNo;
+} // namespace dc::game
 
 using expanded::Monster;
 
