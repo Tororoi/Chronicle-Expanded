@@ -27,6 +27,7 @@
 #include "mglib.hpp"
 #include "monstorunit.hpp"
 #include "runscript.hpp"
+#include "shot_effect.hpp"
 #include "shot_effect_pack.hpp"
 #include "sysmes.hpp"
 #include "test_support.hpp"
@@ -645,6 +646,54 @@ TEST_F(Pocklekul, ItsOwnShotsAreNotAMonsters) {
     int shot = Swing(0.0f, 5.0f, 17.0f, 2.0f, 15, -1, expanded::kHitsPlayer);
     NowColData->hit[shot].monster_no = expanded::kAllyShooter;
     EXPECT_EQ(expanded::MonsterFriendlyHit(ally(), 0), -1);
+}
+
+TEST_F(Pocklekul, ItsShotIsAHitOfTheSummoners) {
+    Stand(0, 0.0f, 100.0f);
+    Summon();
+    // Its shot in flight, 3 from the Mummy's sphere: the description's flying radius reaches it.
+    BT_SHOT_EFFECT dart = {
+        "dart", 0, 1, {4.0f, 4.0f, 0.0f, 0.0f},
+           {3.0f, 3.0f, 3.0f, 0.0f},
+           180, 31, 0, 2, expanded::kHitsPlayer, {-1,   -1,   -1,   -1  },
+           -1
+    };
+    CSHOT_EFFECT &effect = NowShotEffect->effect[0];
+    effect.effect_data = &dart;
+    effect.slot_count = 1;
+    effect.active[0] = 1;
+    effect.phase[0] = 1;
+    effect.damage[0] = 31;
+    effect.user_id_2[0] = expanded::kAllyShooter;
+    effect.chara[0].SetPosition(0.0f, 5.0f, 92.0f);
+    expanded::PocklekulShotsStep();
+    const COLLISION_HIT *planted = PlantedHit();
+    ASSERT_NE(planted, nullptr);
+    EXPECT_EQ(planted->damage, 62); // doubled against CheckDmg's halving at 100 from Ruby
+    EXPECT_EQ(effect.active[0], 0); // struck there
+    effect.Initialize();
+}
+
+TEST_F(Pocklekul, AMonstersShotIsNotItsToGive) {
+    Stand(0, 0.0f, 100.0f);
+    Summon();
+    BT_SHOT_EFFECT dart = {
+        "dart", 0, 1, {4.0f, 4.0f, 0.0f, 0.0f},
+           {3.0f, 3.0f, 3.0f, 0.0f},
+           180, 31, 0, 2, expanded::kHitsPlayer, {-1,   -1,   -1,   -1  },
+           -1
+    };
+    CSHOT_EFFECT &effect = NowShotEffect->effect[0];
+    effect.effect_data = &dart;
+    effect.slot_count = 1;
+    effect.active[0] = 1;
+    effect.phase[0] = 1;
+    effect.user_id_2[0] = 1; // floor monster 1's
+    effect.chara[0].SetPosition(0.0f, 5.0f, 92.0f);
+    expanded::PocklekulShotsStep();
+    EXPECT_EQ(Planted(), 0);
+    EXPECT_EQ(effect.active[0], 1);
+    effect.Initialize();
 }
 
 TEST_F(Pocklekul, AMonsterItHurtsGoesAfterIt) {
