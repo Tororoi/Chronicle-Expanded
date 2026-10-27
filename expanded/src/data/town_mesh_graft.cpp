@@ -1,14 +1,9 @@
 #include <algorithm>
-#include <bit>
 #include <cmath>
-#include <format>
-#include <fstream>
 #include <functional>
 #include <limits>
 #include <map>
 #include <numbers>
-#include <set>
-#include <stdexcept>
 #include <string>
 #include <unordered_map>
 
@@ -67,10 +62,10 @@ void GraftMeshNodes(ChrPack &base, const ChrPack &src, const TownMeshGraft &graf
             Bad("mesh graft: the base's shadow rig carries " + Joined(clash));
         }
     }
-    std::size_t   mesh0 = kNodeAt + static_cast<std::size_t>(nb) * mds::kRecord - mds::kName;
+    std::size_t   mesh0 = mds::kTable + static_cast<std::size_t>(nb) * mds::kRecord;
     std::uint32_t first = std::numeric_limits<std::uint32_t>::max();
     for (int i = 0; i < nb; i++) {
-        std::uint32_t off = Get32(bp, kNodeAt + i * mds::kRecord + kNodeMesh);
+        std::uint32_t off = Get32(bp, mds::kTable + i * mds::kRecord + mds::kMesh);
         if (off != 0) {
             first = std::min(first, off);
         }
@@ -81,35 +76,21 @@ void GraftMeshNodes(ChrPack &base, const ChrPack &src, const TownMeshGraft &graf
     if (first != mesh0 || !is_mdt(bp, mesh0)) {
         Bad("mesh graft: the base .mds's table and mesh do not overlap as expected");
     }
-    std::uint32_t                        delta = static_cast<std::uint32_t>(k_count * mds::kRecord);
     std::unordered_map<std::string, int> new_index;
     for (int k = 0; k < k_count; k++) {
         new_index[names[k]] = nb + k;
     }
-    // The table: the old last node completed, the count raised, the mesh offsets moved.
-    Bytes table(bp.begin(), bp.begin() + mesh0);
-    table.resize(mesh0 + mds::kName);
-    Set32(table, mesh0, static_cast<std::uint32_t>(nb));
-    Set32(table, mesh0 + 4, mds::kRecord);
-    Set32(table, 0x08, static_cast<std::uint32_t>(nb + k_count));
-    for (int i = 0; i < nb; i++) {
-        std::size_t at = kNodeAt + i * mds::kRecord + kNodeMesh;
-        if (std::uint32_t off = Get32(table, at); off != 0) {
-            Set32(table, at, off + delta);
-        }
-    }
-    // The grafted nodes, parents found by name, and their MDT chunks after the mesh block.
-    Bytes       mesh_block(bp.begin() + mesh0, bp.end());
-    std::size_t chunks_at = kNodeAt + static_cast<std::size_t>(nb + k_count) * mds::kRecord - mds::kName + mesh_block.size();
-    Bytes       nodes, chunks;
+    // The grafted nodes after the base's, parents found by name, with their MDT chunks.
+    std::vector<std::pair<Bytes, std::optional<Bytes>>> frames;
     for (int k = 0; k < k_count; k++) {
         const std::string &name = names[k];
         int                si = Index(snames, name);
-        if (kNodeAt + static_cast<std::size_t>(si) * mds::kRecord + kNodeSize > spl.size()) {
+        std::size_t        at = mds::kTable + static_cast<std::size_t>(si) * mds::kRecord;
+        if (at + mds::kRecord > spl.size()) {
             Bad("mesh graft: node " + name + " lies past the source .mds");
         }
-        Bytes                      node(spl.begin() + kNodeAt + si * mds::kRecord, spl.begin() + kNodeAt + si * mds::kRecord + kNodeSize);
-        int                        sparent = static_cast<int>(Get32(node, kNodeParent));
+        Bytes                      node(spl.begin() + at, spl.begin() + at + mds::kRecord);
+        int                        sparent = static_cast<int>(Get32(node, mds::kParent));
         std::optional<std::string> pname;
         if (sparent >= 0) {
             if (sparent >= static_cast<int>(snames.size())) {
@@ -128,8 +109,9 @@ void GraftMeshNodes(ChrPack &base, const ChrPack &src, const TownMeshGraft &graf
         if (parent >= nb + k) {
             Bad("mesh graft: node " + name + "'s parent comes after it");
         }
-        Set32(node, kNodeParent, static_cast<std::uint32_t>(parent));
-        if (std::uint32_t mesh = Get32(node, kNodeMesh); mesh != 0) {
+        Set32(node, mds::kParent, static_cast<std::uint32_t>(parent));
+        std::optional<Bytes> mdt;
+        if (std::uint32_t mesh = Get32(node, mds::kMesh); mesh != 0) {
             if (!is_mdt(spl, mesh)) {
                 Bad("mesh graft: node " + name + "'s mesh is not an MDT chunk");
             }
@@ -137,34 +119,24 @@ void GraftMeshNodes(ChrPack &base, const ChrPack &src, const TownMeshGraft &graf
             if (mesh + std::size_t{size} > spl.size()) {
                 Bad("mesh graft: node " + name + "'s mesh runs past the .mds");
             }
-            Set32(node, kNodeMesh, static_cast<std::uint32_t>(chunks_at + chunks.size()));
-            chunks.insert(chunks.end(), spl.begin() + mesh, spl.begin() + mesh + size);
-            chunks.resize((chunks.size() + 15) & ~std::size_t{15});
+            mdt = Bytes(spl.begin() + mesh, spl.begin() + mesh + size);
         }
-        nodes.insert(nodes.end(), node.begin(), node.end());
-        nodes.resize(nodes.size() + mds::kName);
-        Set32(nodes, nodes.size() - mds::kName, static_cast<std::uint32_t>(nb + k + 1));
-        Set32(nodes, nodes.size() - 4, mds::kRecord);
+        frames.emplace_back(std::move(node), std::move(mdt));
     }
-    nodes.resize(nodes.size() - mds::kName);
-    Bytes mds = table;
-    mds.insert(mds.end(), nodes.begin(), nodes.end());
-    mds.insert(mds.end(), mesh_block.begin(), mesh_block.end());
-    mds.insert(mds.end(), chunks.begin(), chunks.end());
-    base.Require(cfg.body_mds).ReplacePayload(mds);
-    // .bbp: the source's 64-byte bind rows of the grafted nodes appended.
-    std::string bbp = CfgBbp(base.records[cfg.cfg]);
-    std::string sbbp = CfgBbp(src.records[scfg.cfg]);
-    Bytes       bb = base.Require(bbp).Payload();
-    Bytes       sb = src.Require(sbbp).Payload();
-    if (bb.size() != static_cast<std::size_t>(nb) * 64 || sb.size() != snames.size() * 64) {
+    base.Require(cfg.body_mds).ReplacePayload(AppendMdsFrames(bp, frames));
+    // .bbp: the source's bind rows of the grafted nodes appended.
+    std::string bbp_name = CfgBbp(base.records[cfg.cfg]);
+    std::string sbbp_name = CfgBbp(src.records[scfg.cfg]);
+    Bytes       bb = base.Require(bbp_name).Payload();
+    Bytes       sb = src.Require(sbbp_name).Payload();
+    if (bb.size() != static_cast<std::size_t>(nb) * bbp::kEntry || sb.size() != snames.size() * bbp::kEntry) {
         Bad("mesh graft: a .bbp is not 64 bytes a node");
     }
     for (const std::string &name : names) {
-        std::size_t at = static_cast<std::size_t>(Index(snames, name)) * 64;
-        bb.insert(bb.end(), sb.begin() + at, sb.begin() + at + 64);
+        std::size_t at = static_cast<std::size_t>(Index(snames, name)) * bbp::kEntry;
+        bb.insert(bb.end(), sb.begin() + at, sb.begin() + at + bbp::kEntry);
     }
-    base.Require(bbp).ReplacePayload(bb);
+    base.Require(bbp_name).ReplacePayload(bb);
     // Body .mot: a track for each source channel of the graft, holding the pose outside windows.
     MotFile          sm = MotOf(src, scfg.body_mot);
     MotFile          dm = MotOf(base, cfg.body_mot);
@@ -182,7 +154,7 @@ void GraftMeshNodes(ChrPack &base, const ChrPack &src, const TownMeshGraft &graf
     for (const std::string &name : names) {
         const std::vector<const MotTrack *> &tracks = by_node[name];
         for (const MotTrack *track : tracks) {
-            std::optional<Vec4> value = SampleTrack(*track, graft.pose_frame);
+            std::optional<Vec4> value = SampleNlerp(*track, graft.pose_frame);
             if (!value) {
                 continue;
             }
@@ -197,7 +169,7 @@ void GraftMeshNodes(ChrPack &base, const ChrPack &src, const TownMeshGraft &graf
         if (spin && name == spin->node &&
             std::none_of(tracks.begin(), tracks.end(), [](const MotTrack *t) { return t->w2 == mot::kRotation; })) {
             // A hub without a source rotation: an anchor-only rotation track at its bind, for the spin.
-            Vec4     bind = MatToQuat(MdsBind(spl, Index(snames, name)).rotation);
+            Vec4     bind = MatToQuatUnnormalised(MdsBind(spl, Index(snames, name)).rotation);
             MotTrack added{.w0 = static_cast<std::uint32_t>(new_index[name]), .w3 = 0x20};
             added.w6 = MotTrack::kTagW6;
             added.w7 = MotTrack::kTagW7;
@@ -216,7 +188,7 @@ void ApplySpin(ChrPack &base, const TownMeshGraft &graft) {
     Bytes           mds = base.Require(cfg.body_mds).Payload();
     int             w0 = Index(ReadMdsFrames(mds), spin.node);
     MotFile         dm = MotOf(base, cfg.body_mot);
-    MotTrack       *track = dm.TrackBy(static_cast<std::uint32_t>(w0), 0);
+    MotTrack       *track = dm.TrackBy(static_cast<std::uint32_t>(w0), mot::kRotation);
     if (!track) {
         Bad("spin: the hub has no rotation track");
     }
@@ -301,7 +273,7 @@ void ApplySpin(ChrPack &base, const TownMeshGraft &graft) {
             Bad("spin: a step of 90 degrees or more");
         }
     }
-    Vec4 bind = MatToQuat(MdsBind(mds, w0).rotation);
+    Vec4 bind = MatToQuatUnnormalised(MdsBind(mds, w0).rotation);
     for (auto [frame, deg] : ordered) {
         double th = deg * (std::numbers::pi / 180.0);
         double s = std::sin(th / 2);

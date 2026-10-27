@@ -211,6 +211,6 @@ TEST(JoeModel, ReadsTheSoundEvents) {
 
 TEST(JoeModel, SkipsDataWithoutHisPacks) {
     expanded::test::ScratchDir dir("boss_model");
-    EXPECT_EQ(BuildBossModels(dir.path(), nullptr), 0);
+    EXPECT_EQ(RunDataBuilds(dir.path(), "boss model", BossModelBuilds(), nullptr), 0);
     EXPECT_FALSE(fs::exists(dir.path() / "expanded"));
 }

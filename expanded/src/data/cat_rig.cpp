@@ -1,80 +1,15 @@
 #include "expanded/data/cat_rig.hpp"
 
 #include <algorithm>
-#include <charconv>
 #include <cmath>
-#include <cstdlib>
 #include <limits>
 #include <map>
-#include <numbers>
 #include <regex>
 #include <stdexcept>
 
 namespace expanded::rig {
 
 namespace {
-
-double SumOf(const double *xs, std::size_t n) {
-    if (n == 0) {
-        return 0.0;
-    }
-    double f = 0.0 + xs[0], c = 0.0;
-    for (std::size_t i = 1; i < n; i++) {
-        double x = xs[i], t = f + x;
-        if (std::fabs(f) >= std::fabs(x)) {
-            c += (f - t) + x;
-        } else {
-            c += (x - t) + f;
-        }
-        f = t;
-    }
-    if (c != 0 && std::isfinite(c)) {
-        f += c;
-    }
-    return f;
-}
-
-// CPython's vector_norm: the squares summed in double length, with one correction step.
-double VectorNorm(std::vector<double> vec, double max) {
-    std::size_t n = vec.size();
-    if (std::isinf(max)) {
-        return max;
-    }
-    for (double v : vec) {
-        if (std::isnan(v)) {
-            return std::numeric_limits<double>::quiet_NaN();
-        }
-    }
-    if (max == 0.0 || n <= 1) {
-        return max;
-    }
-    int max_e = std::ilogb(max) + 1;
-    if (max_e < -1023) {
-        constexpr double kTiny = std::numeric_limits<double>::denorm_min();
-        for (double &v : vec) {
-            v /= kTiny;
-        }
-        return kTiny * VectorNorm(vec, max / kTiny);
-    }
-    double scale = std::scalbn(1.0, -max_e), csum = 1.0, frac1 = 0.0, frac2 = 0.0;
-    for (double v : vec) {
-        double x = v * scale;
-        double hi = x * x, lo = std::fma(x, x, -hi);
-        double sum = csum + hi, sum_lo = (csum - sum) + hi;
-        csum = sum;
-        frac1 += lo;
-        frac2 += sum_lo;
-    }
-    double h = std::sqrt(csum - 1.0 + (frac1 + frac2));
-    double hi = -h * h, lo = std::fma(-h, h, -hi);
-    double sum = csum + hi, sum_lo = (csum - sum) + hi;
-    csum = sum;
-    frac1 += lo;
-    frac2 += sum_lo;
-    double x = csum - 1.0 + (frac1 + frac2);
-    h += x / (2.0 * h);
-    return h / scale;
-}
 
 bool InCircum(const std::vector<V2> &p, const Tri &t, const V2 &q) {
     const V2 &a = p[std::size_t(t[0])], &b = p[std::size_t(t[1])], &c = p[std::size_t(t[2])];
@@ -108,253 +43,6 @@ double MeshDim(std::span<const unsigned char> mds, const RigNode &node) {
 
 } // namespace
 
-double Sum(std::initializer_list<double> values) {
-    return SumOf(values.begin(), values.size());
-}
-
-double Sum(const std::vector<double> &values) {
-    return SumOf(values.data(), values.size());
-}
-
-double Round(double x, int ndigits) {
-    if (std::isnan(x) || std::isinf(x) || x == 0) {
-        return x;
-    }
-    double magnitude = std::fabs(x), result;
-    if (ndigits == 0) {
-        result = std::nearbyint(magnitude);
-    } else {
-        char buffer[512];
-        auto [end, error] = std::to_chars(buffer, buffer + sizeof(buffer) - 1, magnitude, std::chars_format::fixed, ndigits);
-        if (error != std::errc{}) {
-            throw std::runtime_error("cannot round");
-        }
-        *end = '\0';
-        result = std::strtod(buffer, nullptr);
-    }
-    return x < 0 ? -result : result;
-}
-
-double FMod(double a, double b) {
-    double mod = std::fmod(a, b);
-    if (mod != 0 && ((b < 0) != (mod < 0))) {
-        mod += b;
-    } else if (mod == 0) {
-        mod = std::copysign(0.0, b);
-    }
-    return mod;
-}
-
-int Mod(int a, int m) {
-    return ((a % m) + m) % m;
-}
-
-double Dist(std::span<const double> p, std::span<const double> q) {
-    std::vector<double> d(p.size());
-    double              max = 0;
-    for (std::size_t i = 0; i < p.size(); i++) {
-        d[i] = std::fabs(p[i] - q[i]);
-        if (d[i] > max) {
-            max = d[i];
-        }
-    }
-    return VectorNorm(d, max);
-}
-
-double Hypot(std::initializer_list<double> values) {
-    std::vector<double> d;
-    double              max = 0;
-    for (double v : values) {
-        d.push_back(std::fabs(v));
-        if (d.back() > max) {
-            max = d.back();
-        }
-    }
-    return VectorNorm(d, max);
-}
-
-M4 MatMul(const M4 &a, const M4 &b) {
-    M4 r{};
-    for (std::size_t i = 0; i < 4; i++) {
-        for (std::size_t j = 0; j < 4; j++) {
-            r[i][j] = Sum({a[i][0] * b[0][j], a[i][1] * b[1][j], a[i][2] * b[2][j], a[i][3] * b[3][j]});
-        }
-    }
-    return r;
-}
-
-M4 MatFromRT(const M3 &r, const V3 &t) {
-    return {
-        {{r[0][0], r[0][1], r[0][2], 0.0}, {r[1][0], r[1][1], r[1][2], 0.0}, {r[2][0], r[2][1], r[2][2], 0.0}, {t[0], t[1], t[2], 1.0}}
-    };
-}
-
-M4 RigidInv(const M4 &m) {
-    M3 rt{};
-    for (std::size_t i = 0; i < 3; i++) {
-        for (std::size_t j = 0; j < 3; j++) {
-            rt[i][j] = m[j][i];
-        }
-    }
-    V3 t = {m[3][0], m[3][1], m[3][2]}, nt{};
-    for (std::size_t j = 0; j < 3; j++) {
-        nt[j] = -(t[0] * rt[0][j] + t[1] * rt[1][j] + t[2] * rt[2][j]);
-    }
-    return MatFromRT(rt, nt);
-}
-
-V3 XformPt(const M4 &m, const V3 &v) {
-    return {v[0] * m[0][0] + v[1] * m[1][0] + v[2] * m[2][0] + m[3][0], v[0] * m[0][1] + v[1] * m[1][1] + v[2] * m[2][1] + m[3][1],
-            v[0] * m[0][2] + v[1] * m[1][2] + v[2] * m[2][2] + m[3][2]};
-}
-
-M3 RotOf(const M4 &m) {
-    return {
-        {{m[0][0], m[0][1], m[0][2]}, {m[1][0], m[1][1], m[1][2]}, {m[2][0], m[2][1], m[2][2]}}
-    };
-}
-
-V3 TransOf(const M4 &m) {
-    return {m[3][0], m[3][1], m[3][2]};
-}
-
-V4 MatToQuat(const M3 &r) {
-    double m00 = r[0][0], m01 = r[0][1], m02 = r[0][2], m10 = r[1][0], m11 = r[1][1], m12 = r[1][2], m20 = r[2][0], m21 = r[2][1],
-           m22 = r[2][2];
-    double tr = m00 + m11 + m22, w, x, y, z, s;
-    if (tr > 0) {
-        s = std::sqrt(tr + 1.0) * 2;
-        w = 0.25 * s;
-        x = (m21 - m12) / s;
-        y = (m02 - m20) / s;
-        z = (m10 - m01) / s;
-    } else if (m00 >= m11 && m00 >= m22) {
-        s = std::sqrt(1.0 + m00 - m11 - m22) * 2;
-        w = (m21 - m12) / s;
-        x = 0.25 * s;
-        y = (m01 + m10) / s;
-        z = (m02 + m20) / s;
-    } else if (m11 >= m22) {
-        s = std::sqrt(1.0 + m11 - m00 - m22) * 2;
-        w = (m02 - m20) / s;
-        x = (m01 + m10) / s;
-        y = 0.25 * s;
-        z = (m12 + m21) / s;
-    } else {
-        s = std::sqrt(1.0 + m22 - m00 - m11) * 2;
-        w = (m10 - m01) / s;
-        x = (m02 + m20) / s;
-        y = (m12 + m21) / s;
-        z = 0.25 * s;
-    }
-    double n = std::sqrt(w * w + x * x + y * y + z * z);
-    if (n == 0) {
-        n = 1.0;
-    }
-    return {w / n, x / n, y / n, z / n};
-}
-
-M3 QuatToMat(const V4 &q) {
-    double w = q[0], x = q[1], y = q[2], z = q[3];
-    return {
-        {{1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)},
-         {2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)},
-         {2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)}}
-    };
-}
-
-M3 Mul3(const M3 &a, const M3 &b) {
-    M3 r{};
-    for (std::size_t i = 0; i < 3; i++) {
-        for (std::size_t c = 0; c < 3; c++) {
-            r[i][c] = Sum({a[i][0] * b[0][c], a[i][1] * b[1][c], a[i][2] * b[2][c]});
-        }
-    }
-    return r;
-}
-
-M3 T3(const M3 &a) {
-    M3 r{};
-    for (std::size_t i = 0; i < 3; i++) {
-        for (std::size_t c = 0; c < 3; c++) {
-            r[i][c] = a[c][i];
-        }
-    }
-    return r;
-}
-
-V3 Pitch(const V3 &v, double p) {
-    double c = std::cos(p), s = std::sin(p);
-    return {v[0], v[1] * c + v[2] * s, -v[1] * s + v[2] * c};
-}
-
-V3 RotY(const V3 &v, double yaw) {
-    double c = std::cos(yaw), s = std::sin(yaw);
-    return {v[0] * c + v[2] * s, v[1], -v[0] * s + v[2] * c};
-}
-
-double Sum3(const V3 &a, const V3 &b) {
-    return Sum({a[0] * b[0], a[1] * b[1], a[2] * b[2]});
-}
-
-V3 Cross(const V3 &a, const V3 &b) {
-    return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
-}
-
-V3 Unit(const V3 &v) {
-    double n = std::sqrt(Sum({v[0] * v[0], v[1] * v[1], v[2] * v[2]}));
-    if (n == 0) {
-        n = 1.0;
-    }
-    return {v[0] / n, v[1] / n, v[2] / n};
-}
-
-double Smooth(double t) {
-    t = std::min(std::max(t, 0.0), 1.0);
-    return t * t * (3 - 2 * t);
-}
-
-double Radians(double deg) {
-    return deg * (std::numbers::pi / 180.0);
-}
-
-V4 Slerp(const V4 &q0, V4 q1, double t) {
-    double d = Sum({q0[0] * q1[0], q0[1] * q1[1], q0[2] * q1[2], q0[3] * q1[3]});
-    if (d < 0) {
-        for (double &x : q1) {
-            x = -x;
-        }
-        d = -d;
-    }
-    V4 r;
-    if (d > 0.9995) {
-        for (std::size_t i = 0; i < 4; i++) {
-            r[i] = q0[i] + (q1[i] - q0[i]) * t;
-        }
-    } else {
-        double th = std::acos(std::max(-1.0, std::min(1.0, d))), s0 = std::sin((1 - t) * th) / std::sin(th), s1 = std::sin(t * th) / std::sin(th);
-        for (std::size_t i = 0; i < 4; i++) {
-            r[i] = q0[i] * s0 + q1[i] * s1;
-        }
-    }
-    double n = std::sqrt(Sum({r[0] * r[0], r[1] * r[1], r[2] * r[2], r[3] * r[3]}));
-    if (n == 0) {
-        n = 1.0;
-    }
-    return {r[0] / n, r[1] / n, r[2] / n, r[3] / n};
-}
-
-M3 RotAbout(const V3 &axis, double deg) {
-    V3     u = Unit(axis);
-    double x = u[0], y = u[1], z = u[2], c = std::cos(Radians(deg)), sn = std::sin(Radians(deg)), t = 1 - c;
-    M3     r = {
-        {{t * x * x + c, t * x * y - sn * z, t * x * z + sn * y},
-         {t * x * y + sn * z, t * y * y + c, t * y * z - sn * x},
-         {t * x * z - sn * y, t * y * z + sn * x, t * z * z + c}}
-    };
-    return T3(r);
-}
-
 double KeyedVal(std::span<const std::pair<double, double>> keys, double f) {
     double v = f <= keys[0].first ? keys[0].second : keys.back().second;
     for (std::size_t i = 0; i + 1 < keys.size(); i++) {
@@ -380,8 +68,8 @@ V4 Sample(const Track &track, double f) {
     }
     std::size_t lo = hi - 1;
     double      u = (f - frames[lo]) / (frames[hi] - frames[lo]);
-    if (track.chan == 0) {
-        return Slerp(vals[lo], vals[hi], u);
+    if (track.chan == mot::kRotation) {
+        return SlerpExact(vals[lo], vals[hi], u);
     }
     V4 r;
     for (std::size_t i = 0; i < 4; i++) {
@@ -625,33 +313,42 @@ V3 PcaNormal(const std::vector<V3> &points, const V3 &c) {
 
 void RigNode::Bind(const std::vector<RigNode> &nodes) {
     M4 local = MatFromRT(r, t);
-    world = parent < 0 ? local : MatMul(local, nodes[std::size_t(parent)].world);
+    world = parent < 0 ? local : MatMulExact(local, nodes[std::size_t(parent)].world);
     inv_world = RigidInv(world);
     world_pos = {world[3][0], world[3][1], world[3][2]};
 }
 
 std::vector<RigNode> ReadSkeleton(std::span<const unsigned char> mds) {
-    int                  count = static_cast<int>(Get32(mds, 8));
+    int                  count = static_cast<int>(Get32(mds, mds::kCountAt));
     std::vector<RigNode> nodes(static_cast<std::size_t>(count));
     for (int i = 0; i < count; i++) {
-        std::size_t p = 0x18 + std::size_t(i) * 0x70;
+        std::size_t p = mds::kTable + std::size_t(i) * mds::kRecord;
         RigNode    &n = nodes[std::size_t(i)];
         for (std::size_t row = 0; row < 3; row++) {
             for (std::size_t c = 0; c < 3; c++) {
-                n.r[row][c] = GetF32(mds, p + 0x28 + row * 16 + c * 4);
+                n.r[row][c] = GetF32(mds, p + mds::kRotation + row * 16 + c * 4);
             }
         }
-        n.t = {GetF32(mds, p + 0x58), GetF32(mds, p + 0x5C), GetF32(mds, p + 0x60)};
+        n.t = {GetF32(mds, p + mds::kPosition), GetF32(mds, p + mds::kPosition + 4), GetF32(mds, p + mds::kPosition + 8)};
         n.i = i;
-        n.name = NameAt(mds, p, 0x20);
-        n.mesh_off = static_cast<int>(Get32(mds, p + 0x20));
-        n.parent = GetI32(mds, p + 0x24);
+        n.name = NameAt(mds, p + mds::kName, mds::kNameSize);
+        n.mesh_off = static_cast<int>(Get32(mds, p + mds::kMesh));
+        n.parent = GetI32(mds, p + mds::kParent);
         n.quat = MatToQuat(n.r);
     }
     for (RigNode &n : nodes) {
         n.Bind(nodes);
     }
     return nodes;
+}
+
+const RigNode &NodeNamed(const std::vector<RigNode> &nodes, std::string_view name) {
+    for (const RigNode &n : nodes) {
+        if (n.name == name) {
+            return n;
+        }
+    }
+    throw std::runtime_error("the cat has no " + std::string(name));
 }
 
 V3 Skinned(const SkinMesh &skin, int i, const std::function<const M4 &(int)> &world) {
@@ -673,7 +370,7 @@ std::unordered_map<int, VertexWeights> LoadWeights(const ChrPack &pack, std::str
         return out;
     }
     for (const MotTrack &track : MotFile::FromRecord(*record).tracks) {
-        if (track.w2 != 20) {
+        if (track.w2 != mot::kWeight) {
             continue;
         }
         VertexWeights &per = out[static_cast<int>(track.w0)];
@@ -821,7 +518,7 @@ std::optional<SkinMesh> BuildMeshWeighted(std::span<const unsigned char> mds, co
 std::vector<Track> BuildTracks(const ChrPack &pack, std::string_view mot, int count) {
     std::vector<Track> tracks;
     for (const MotTrack &t : MotFile::FromRecord(pack.Require(mot)).tracks) {
-        if (t.w0 >= static_cast<std::uint32_t>(count) || (t.w2 != 0 && t.w2 != 2) || t.keys.empty()) {
+        if (t.w0 >= static_cast<std::uint32_t>(count) || (t.w2 != mot::kRotation && t.w2 != mot::kTranslation) || t.keys.empty()) {
             continue;
         }
         Track track;
@@ -838,7 +535,7 @@ std::vector<Track> BuildTracks(const ChrPack &pack, std::string_view mot, int co
 
 const ChrRecord *FindCfg(const ChrPack &pack) {
     for (const ChrRecord &record : pack.records) {
-        if (record.name.size() >= 4 && EqualsFolded(std::string_view(record.name).substr(record.name.size() - 4), ".cfg")) {
+        if (EndsFolded(record.name, ".cfg")) {
             return &record;
         }
     }

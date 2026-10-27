@@ -35,6 +35,18 @@ bool WriteIfChanged(const fs::path &target, std::span<const unsigned char> bytes
     return false;
 }
 
+DataBuild DataBuild::FromSources(std::string name, std::string target, std::vector<std::string> sources,
+                                 std::function<Bytes(const std::vector<Bytes> &)> build) {
+    auto read_all = [sources, build = std::move(build)](const DiscReader &read) {
+        std::vector<Bytes> files;
+        for (const std::string &source : sources) {
+            files.push_back(read(source));
+        }
+        return build(files);
+    };
+    return {std::move(name), std::move(target), std::move(sources), std::move(read_all)};
+}
+
 int RunDataBuilds(const fs::path &data, std::string_view kind, const std::vector<DataBuild> &builds, std::FILE *log) {
     auto say = [&](const std::string &line) {
         if (log != nullptr) {

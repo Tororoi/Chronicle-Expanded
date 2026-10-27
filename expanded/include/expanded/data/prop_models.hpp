@@ -3,11 +3,11 @@
 // The models of the props Expanded's weapons raise on a floor, built from the disc at extraction. Includes no game
 // header, so dcdata can build with it.
 
-#include <cstdio>
-#include <filesystem>
 #include <span>
+#include <vector>
 
 #include "expanded/data/bytes.hpp"
+#include "expanded/data/data_build.hpp"
 
 namespace expanded {
 
@@ -37,7 +37,7 @@ Bytes BuildQueensTrees(std::span<const unsigned char> scene, std::span<const uns
 // The disc's pack, from the rock's pack.
 Bytes BuildShadowDisc(std::span<const unsigned char> rock);
 
-// Builds both into the data directory; the number not built.
-int BuildPropModels(const std::filesystem::path &data, std::FILE *log);
+// Both props' models.
+std::vector<DataBuild> PropModelBuilds();
 
 } // namespace expanded

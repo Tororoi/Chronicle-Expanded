@@ -1,16 +1,9 @@
 #include <algorithm>
-#include <bit>
-#include <cmath>
 #include <format>
-#include <fstream>
 #include <functional>
-#include <limits>
 #include <map>
-#include <numbers>
 #include <set>
-#include <stdexcept>
 #include <string>
-#include <unordered_map>
 
 #include "expanded/data/model_parts.hpp"
 #include "expanded/data/town_rig.hpp"
@@ -46,7 +39,7 @@ void CreateMissingTracks(MotFile &dst, const MotFile &src, const std::vector<std
             continue;
         }
         Bind     b = MdsBind(dpl, dw);
-        Vec4     v = st.w2 == mot::kRotation ? MatToQuat(b.rotation) : Vec4{b.translation[0], b.translation[1], b.translation[2], 0.0};
+        Vec4     v = st.w2 == mot::kRotation ? MatToQuatUnnormalised(b.rotation) : Vec4{b.translation[0], b.translation[1], b.translation[2], 0.0};
         MotTrack added = st;
         added.w0 = static_cast<std::uint32_t>(dw);
         added.keys.clear();
@@ -112,7 +105,7 @@ void SealGraft(ChrPack &dst_pack, const Model &dst_model, const ChrPack &src_pac
             if (std::any_of(dt.keys.begin(), dt.keys.end(), at_edge)) {
                 continue;
             }
-            std::optional<Vec4> v = SampleTrack(st, sf);
+            std::optional<Vec4> v = SampleNlerp(st, sf);
             if (!v) {
                 continue;
             }
@@ -138,7 +131,7 @@ void HoldTracks(MotFile &mot, int frame, int dlo, int dhi, const std::function<b
         if (!which(track)) {
             continue;
         }
-        std::optional<Vec4> v = SampleTrack(track, frame);
+        std::optional<Vec4> v = SampleNlerp(track, frame);
         if (!v || track.keys.empty()) {
             continue;
         }
@@ -216,13 +209,13 @@ void ApplyRootOffset(ChrPack &pack, std::string_view mot_name, int dlo, int dhi,
 void FreezeRoots(ChrPack &pack, std::string_view mot_name, int frame, int dlo, int dhi) {
     MotFile mot = MotOf(pack, mot_name);
     for (MotTrack &track : mot.tracks) {
-        if (track.w2 != 2 ||
+        if (track.w2 != mot::kTranslation ||
             std::none_of(track.keys.begin(), track.keys.end(), [&](const MotKeyframe &k) {
                 return InWindow(k, dlo, dhi);
             })) {
             continue;
         }
-        std::optional<Vec4> v = SampleTrack(track, frame);
+        std::optional<Vec4> v = SampleNlerp(track, frame);
         if (!v) {
             continue;
         }
@@ -259,7 +252,7 @@ void InjectShadow(ChrPack &base, const ChrPack &donor, const TownShadowInject &i
         base.records.push_back(*record);
     }
     ChrRecord  &cfg = base.records[CfgMotionsOf(base).cfg];
-    std::string text = Text(cfg.Payload());
+    std::string text = ToText(cfg.Payload());
     std::size_t va = IndexOf(text, "\r\n", IndexOf(text, "VERTEX_ANIME")) + 2;
     text.insert(va, "SHADOW_VERTEX_ANIME 1\r\n");
     std::size_t eol = IndexOf(text, "\r\n", IndexOf(text, "MODEL ")) + 2;

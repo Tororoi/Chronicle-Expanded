@@ -31,6 +31,10 @@ struct DataBuild {
     std::string                              target;
     std::vector<std::string>                 sources;
     std::function<Bytes(const DiscReader &)> build;
+
+    // A build of its sources alone, given them read in their order.
+    static DataBuild FromSources(std::string name, std::string target, std::vector<std::string> sources,
+                                 std::function<Bytes(const std::vector<Bytes> &)> build);
 };
 
 // Builds each, logging "<kind> <name>: <target> (<size> bytes)" (", unchanged" when it was), "skipped, the data has

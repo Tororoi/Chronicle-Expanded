@@ -3,9 +3,6 @@
 #include <algorithm>
 #include <cstdio>
 #include <format>
-#include <fstream>
-#include <functional>
-#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -105,31 +102,13 @@ Bytes BuildBlackKnightModel(std::span<const unsigned char> battle, std::span<con
     return base.Rebuild();
 }
 
-namespace {
-
-struct BossBuild {
-    const char *name;
-    const char *battle;
-    const char *cutscene;
-    const char *target;
-    Bytes (*build)(std::span<const unsigned char>, std::span<const unsigned char>);
-};
-
-const BossBuild kBossBuilds[] = {
-    {"Minotaur Joe", kJoeBattleFile,         kJoeCutsceneFile,         kJoeModelFile,         BuildJoeModel        },
-    {"Black Knight", kBlackKnightBattleFile, kBlackKnightCutsceneFile, kBlackKnightModelFile, BuildBlackKnightModel},
-};
-
-} // namespace
-
-int BuildBossModels(const std::filesystem::path &data, std::FILE *log) {
-    std::vector<DataBuild> builds;
-    for (const BossBuild &boss : kBossBuilds) {
-        std::vector<std::string> sources = {boss.battle, boss.cutscene};
-        auto                     build = [&boss](const DiscReader &read) { return boss.build(read(boss.battle), read(boss.cutscene)); };
-        builds.push_back(DataBuild{boss.name, boss.target, sources, build});
-    }
-    return RunDataBuilds(data, "boss model", builds, log);
+std::vector<DataBuild> BossModelBuilds() {
+    using Files = const std::vector<Bytes> &;
+    return {
+        DataBuild::FromSources("Minotaur Joe", kJoeModelFile, {kJoeBattleFile, kJoeCutsceneFile}, [](Files s) { return BuildJoeModel(s[0], s[1]); }),
+        DataBuild::FromSources("Black Knight", kBlackKnightModelFile, {kBlackKnightBattleFile, kBlackKnightCutsceneFile},
+                               [](Files s) { return BuildBlackKnightModel(s[0], s[1]); }),
+    };
 }
 
 } // namespace expanded

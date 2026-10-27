@@ -11,19 +11,20 @@
 #include <vector>
 
 #include "expanded/data/cat_rig.hpp"
+#include "expanded/data/spirit_cat.hpp"
 
 namespace expanded::spirit_cat {
 
 using Log = std::function<void(const std::string &)>;
 
-// The cat's keys as the mod lists them (start, end, speed); the pack's ids are kKeyStart + index.
+// The cat's keys (start, end, speed), in SpiritCatKey order: the pack's ids are kKeyStart + index.
 struct CatKeyWindow {
     int         start, end;
     double      speed;
     const char *comment;
 };
 
-inline constexpr int          kKeyStart = 64;
+inline constexpr int          kKeyStart = kCatStand;
 inline constexpr CatKeyWindow kCatKeys[] = {
     {10,  20,  0.1,  "cat stand"                           },
     {95,  105, 0.4,  "cat ready"                           },
@@ -32,9 +33,14 @@ inline constexpr CatKeyWindow kCatKeys[] = {
     {205, 214, 0.5,  "cat leap"                            },
     {215, 227, 0.36, "cat land"                            },
     {60,  80,  1.0,  "cat walk (s86 KEY 2, brisk)"         },
-    {285, 294, 0.6,  "cat float-up (e04c04cat #5 160..169)"},
+    {285, 294, 0.75, "cat float-up (e04c04cat #5 160..169)"},
     {30,  40,  0.1,  "cat sit (s86 KEY 1)"                 },
 };
+
+// A key's place in kCatKeys.
+inline constexpr int KeyIndex(SpiritCatKey key) {
+    return key - kKeyStart;
+}
 
 // The wings on the cat (its rig named catroot / cat_*, posed as the bake's pack has it): the cat's nodes then Dran's 8
 // wing bones, the two wing meshes then the cat's skin, the cat's tracks then the wings', and what the encoder reads back.
@@ -54,8 +60,7 @@ struct WingData {
     std::vector<rig::RigNode>      nodes, cat_nodes;
     std::vector<rig::SkinMesh>     meshes;
     std::vector<rig::Track>        tracks;
-    int                            base = 0, parent = 0, ref_frame = 0;
-    std::vector<int>               frames_all;
+    int                            base = 0, parent = 0;
     std::map<std::string, WingSet> wing_sets;
     MdtMesh                        om;
     std::map<int, rig::M4>         wref;

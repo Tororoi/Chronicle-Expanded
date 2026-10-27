@@ -4,14 +4,13 @@
 // stagger and fall, the Black Knight's head bow and death throes, appended to their motions. Includes no game
 // header, so dcdata can build with it.
 
-#include <cstdio>
-#include <filesystem>
 #include <span>
 #include <string_view>
 #include <utility>
 #include <vector>
 
 #include "expanded/data/chr_pack.hpp"
+#include "expanded/data/data_build.hpp"
 
 namespace expanded {
 
@@ -74,7 +73,7 @@ Bytes BuildBlackKnightModel(std::span<const unsigned char> battle, std::span<con
 // The cfg's sound EVENT lines (kind 1) as (frame, sound).
 std::vector<std::pair<double, int>> SoundEvents(std::span<const unsigned char> cfg);
 
-// Builds the model into data, skipping it when the data lacks its sources. Returns the failures.
-int BuildBossModels(const std::filesystem::path &data, std::FILE *log);
+// The bosses' models, each skipped when the data lacks its sources.
+std::vector<DataBuild> BossModelBuilds();
 
 } // namespace expanded

@@ -1,22 +1,13 @@
 #include "expanded/data/town_model.hpp"
 
 #include <algorithm>
-#include <bit>
-#include <cmath>
 #include <format>
-#include <fstream>
 #include <functional>
-#include <limits>
 #include <map>
-#include <numbers>
-#include <set>
-#include <stdexcept>
 #include <string>
-#include <unordered_map>
 
 #include "expanded/data/cfg_text.hpp"
 #include "expanded/data/data_build.hpp"
-#include "expanded/data/model_parts.hpp"
 #include "expanded/data/town_rig.hpp"
 
 namespace expanded {
@@ -128,14 +119,13 @@ Bytes BuildTownModel(const TownAlly &ally, const DiscReader &read) {
     return base.Rebuild();
 }
 
-int BuildTownModels(const std::filesystem::path &data, std::FILE *log) {
+std::vector<DataBuild> TownModelBuilds() {
     std::vector<DataBuild> builds;
     for (const TownAlly &ally : TownAllies()) {
-        std::vector<std::string> sources = {std::string(ally.base)};
-        auto                     build = [&ally](const DiscReader &read) { return BuildTownModel(ally, read); };
-        builds.push_back(DataBuild{std::string(ally.name), std::string(ally.file), sources, build});
+        auto build = [&ally](const DiscReader &read) { return BuildTownModel(ally, read); };
+        builds.push_back(DataBuild{std::string(ally.name), std::string(ally.file), {std::string(ally.base)}, build});
     }
-    return RunDataBuilds(data, "town model", builds, log);
+    return builds;
 }
 
 } // namespace expanded

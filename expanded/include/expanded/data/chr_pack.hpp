@@ -33,10 +33,15 @@ struct ChrRecord {
 
 // A pack: records chained by their strides up to one whose first byte is 0, then the trailer.
 struct ChrPack {
+    // A built pack's trailer: a zero record header.
+    static constexpr std::size_t kEndRecord = 0x50;
+
     std::vector<ChrRecord> records;
     Bytes                  trailer;
 
     static ChrPack Parse(std::span<const unsigned char> blob);
+    // A new pack of records, then the kEndRecord trailer.
+    static Bytes Build(std::vector<ChrRecord> records);
     // The record of a path's basename, case folded, as GetPackFile finds it; nullptr if none.
     ChrRecord       *Find(std::string_view name);
     const ChrRecord *Find(std::string_view name) const;
@@ -65,10 +70,13 @@ struct MotKeyframe {
 // Keys in frame order, those on one frame kept in their order.
 void SortByFrame(std::vector<MotKeyframe> &keys);
 
-// .mot track channels (MotTrack::w2): a joint's rotation and translation, a frame's subtree shown (below 1 out of the
-// draw) and a material's alpha.
+// .mot track channels (MotTrack::w2): a joint's rotation, scale and translation; a .wgt's skin weights; a cutscene
+// camera's position, reference point, roll and field of view; a material's alpha; a frame shown, and its subtree shown
+// (each sets the frame's flag word by whether the value is below 1; below 1 the subtree is out of the draw).
 namespace mot {
-inline constexpr std::uint32_t kRotation = 0, kTranslation = 2, kSubtreeVisible = 0x33, kMaterialAlpha = 40;
+inline constexpr std::uint32_t kRotation = 0, kScale = 1, kTranslation = 2, kWeight = 20;
+inline constexpr std::uint32_t kCameraPosition = 0x1E, kCameraReference = 0x1F, kCameraRoll = 0x20, kCameraFov = 0x21;
+inline constexpr std::uint32_t kMaterialAlpha = 0x28, kVisible = 0x32, kSubtreeVisible = 0x33;
 } // namespace mot
 
 // One .mot track: w0 the joint's .mds frame index, w2 the channel (mot::).
@@ -88,6 +96,20 @@ struct MotFile {
     Bytes          BuildPayload() const;
     MotTrack      *TrackBy(std::uint32_t joint, std::uint32_t channel);
 };
+
+// An .mds: its frame count @kCountAt and the frame table's offset @kTableAt (kTable in every pack), the records, then
+// the meshes. A record (kRecord bytes): its index, its size @kSize, name @kName (kNameSize bytes), mesh offset @kMesh (0
+// for none), parent @kParent, then its local matrix (rotation rows @kRotation, translation @kPosition).
+namespace mds {
+inline constexpr std::size_t kCountAt = 0x08, kTableAt = 0x0C, kTable = 0x10, kRecord = 0x70;
+inline constexpr std::size_t kIndex = 0x00, kSize = 0x04, kName = 0x08, kNameSize = 0x20, kMesh = 0x28, kParent = 0x2C,
+                             kRotation = 0x30, kPosition = 0x60;
+} // namespace mds
+
+// A .bbp: a kEntry-byte bind matrix a frame, in the .mds's frame order.
+namespace bbp {
+inline constexpr std::size_t kEntry = 64;
+} // namespace bbp
 
 // A .mds payload's frame names in table order, which a track's w0 indexes.
 std::vector<std::string> ReadMdsFrames(std::span<const unsigned char> mds);

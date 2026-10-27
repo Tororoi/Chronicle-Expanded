@@ -1,26 +1,15 @@
 #include "expanded/data/town_rig.hpp"
 
 #include <algorithm>
-#include <bit>
 #include <cmath>
 #include <format>
-#include <fstream>
-#include <functional>
-#include <limits>
-#include <map>
-#include <numbers>
-#include <set>
-#include <stdexcept>
 #include <string>
-#include <unordered_map>
 
 #include "expanded/data/model_parts.hpp"
 
 namespace expanded::town {
 
 namespace {
-
-namespace fs = std::filesystem;
 
 // A step of the few cfg patterns: a literal, [ \t]+, [ \t]*, "([^"]+)" (kept or skipped).
 struct Step {
@@ -91,22 +80,6 @@ std::optional<std::string> Search(std::string_view text, std::initializer_list<S
 
 } // namespace
 
-[[noreturn]] void Bad(const std::string &what) {
-    throw std::runtime_error(what);
-}
-
-bool EndsFolded(std::string_view text, std::string_view tail) {
-    return text.size() >= tail.size() && EqualsFolded(text.substr(text.size() - tail.size()), tail);
-}
-
-std::string Text(std::span<const unsigned char> bytes) {
-    return std::string(bytes.begin(), bytes.end());
-}
-
-Bytes ToBytes(std::string_view text) {
-    return Bytes(text.begin(), text.end());
-}
-
 std::size_t IndexOf(std::string_view text, std::string_view what, std::size_t from) {
     std::size_t at = text.find(what, from);
     if (at == std::string_view::npos) {
@@ -131,13 +104,13 @@ CfgMotions CfgMotionsOf(const ChrPack &pack, std::string_view prefer) {
     }
     CfgMotions result{.cfg = candidates[0]};
     for (std::size_t i : candidates) {
-        std::string text = Text(pack.records[i].Payload());
+        std::string text = ToText(pack.records[i].Payload());
         if (text.contains("KEY_START") && text.contains("MOTION")) {
             result.cfg = i;
             break;
         }
     }
-    std::string text = Text(pack.records[result.cfg].Payload());
+    std::string text = ToText(pack.records[result.cfg].Payload());
     using enum Step::Kind;
     auto body_mot = Search(text, {
                                      {Literal, "MOTION"},
@@ -180,15 +153,15 @@ CfgMotions CfgMotionsOf(const ChrPack &pack, std::string_view prefer) {
 
 std::string CfgBbp(const ChrRecord &cfg) {
     using enum Step::Kind;
-    auto bbp = Search(Text(cfg.Payload()), {
-                                               {Literal, "MOTION"},
-                                               {Blanks},
-                                               {Literal, "0,"},
-                                               {MaybeBlanks},
-                                               {SkipQuoted},
-                                               {Literal, ","},
-                                               {MaybeBlanks},
-                                               {Quoted}
+    auto bbp = Search(ToText(cfg.Payload()), {
+                                                 {Literal, "MOTION"},
+                                                 {Blanks},
+                                                 {Literal, "0,"},
+                                                 {MaybeBlanks},
+                                                 {SkipQuoted},
+                                                 {Literal, ","},
+                                                 {MaybeBlanks},
+                                                 {Quoted}
     });
     if (!bbp) {
         Bad(std::format("{} names no body .bbp", cfg.name));
@@ -196,54 +169,17 @@ std::string CfgBbp(const ChrRecord &cfg) {
     return *bbp;
 }
 
-Vec4 QuatMul(const Vec4 &a, const Vec4 &b) {
-    return {
-        a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
-        a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
-        a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
-        a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
-    };
-}
-
-Vec4 MatToQuat(const Mat3 &r) {
-    double m00 = r[0][0], m01 = r[0][1], m02 = r[0][2], m10 = r[1][0], m11 = r[1][1], m12 = r[1][2], m20 = r[2][0],
-           m21 = r[2][1], m22 = r[2][2];
-    double tr = m00 + m11 + m22, s;
-    if (tr > 0) {
-        s = std::sqrt(tr + 1.0) * 2;
-        return {0.25 * s, (m21 - m12) / s, (m02 - m20) / s, (m10 - m01) / s};
-    }
-    if (m00 >= m11 && m00 >= m22) {
-        s = std::sqrt(1.0 + m00 - m11 - m22) * 2;
-        return {(m21 - m12) / s, 0.25 * s, (m01 + m10) / s, (m02 + m20) / s};
-    }
-    if (m11 >= m22) {
-        s = std::sqrt(1.0 + m11 - m00 - m22) * 2;
-        return {(m02 - m20) / s, (m01 + m10) / s, 0.25 * s, (m12 + m21) / s};
-    }
-    s = std::sqrt(1.0 + m22 - m00 - m11) * 2;
-    return {(m10 - m01) / s, (m02 + m20) / s, (m12 + m21) / s, 0.25 * s};
-}
-
 Bind MdsBind(std::span<const unsigned char> mds, int node) {
-    std::size_t p = kNodeAt + static_cast<std::size_t>(node) * mds::kRecord;
+    std::size_t p = mds::kTable + static_cast<std::size_t>(node) * mds::kRecord;
     double      m[16];
     for (int k = 0; k < 16; k++) {
-        m[k] = GetF32(mds, p + (mds::kRotation - mds::kName) + k * 4);
+        m[k] = GetF32(mds, p + mds::kRotation + k * 4);
     }
     return {
-        static_cast<int>(Get32(mds, p + kNodeParent)),
+        static_cast<int>(Get32(mds, p + mds::kParent)),
         {{{m[0], m[1], m[2]}, {m[4], m[5], m[6]}, {m[8], m[9], m[10]}}},
         {m[12], m[13], m[14]}
     };
-}
-
-double Dot(const Vec4 &a, const Vec4 &b) {
-    double sum = 0;
-    for (int i = 0; i < 4; i++) {
-        sum += a[i] * b[i];
-    }
-    return sum;
 }
 
 bool InWindow(const MotKeyframe &key, int lo, int hi) {
@@ -282,7 +218,7 @@ std::vector<int> SpanEdges(const std::vector<Span> &spans) {
     return edges;
 }
 
-std::optional<Vec4> SampleTrack(const MotTrack &track, int frame) {
+std::optional<Vec4> SampleNlerp(const MotTrack &track, int frame) {
     const MotKeyframe *prev = nullptr;
     const MotKeyframe *next = nullptr;
     for (const MotKeyframe &key : track.keys) {

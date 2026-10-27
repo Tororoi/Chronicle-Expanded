@@ -1,69 +1,38 @@
 #pragma once
 
-// The rig maths and model reading the spirit cat's bake (spirit_cat.hpp) is built on, operation for operation as the PS2
-// mod's (its RigMath, ExactMath and ModelCodec, which mirror the Python the cat was authored in), so the built bytes are
-// the same: row-vector 4x4 matrices (v' = v * M), rotations as 3x3 rows, quaternions scalar first, every dot product a
-// Python sum. Includes no game header, so dcdata can build with it.
+// The rig and model reading the spirit cat's bake (spirit_cat.hpp) is built on, operation for operation as the PS2 mod's
+// (its RigMath, ExactMath and ModelCodec, which mirror the Python the cat was authored in), so the built bytes are the
+// same: the shared maths (rig_math.hpp) with every dot product a Python sum, the tracks, skins and fits over them, and
+// plane geometry. Includes no game header, so dcdata can build with it.
 
 #include <array>
 #include <functional>
-#include <initializer_list>
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "expanded/data/chr_pack.hpp"
 #include "expanded/data/model_parts.hpp"
+#include "expanded/data/rig_math.hpp"
 
 namespace expanded::rig {
 
-using V2 = std::array<double, 2>;
-using V3 = std::array<double, 3>;
-using V4 = std::array<double, 4>;
-using M3 = std::array<V3, 3>;
-using M4 = std::array<V4, 4>;
+// The shared maths' types under the short names the cat's code uses, and a triangle's three vertex indices.
+using V2 = Vec2;
+using V3 = Vec3;
+using V4 = Vec4;
+using M3 = Mat3;
+using M4 = Mat4;
 using Tri = std::array<int, 3>;
 
-// Python's numerics: sum() (Neumaier-compensated), round(x, ndigits) (half to even on the exact value), a % b and a // b
-// for floats, math.dist and math.hypot (the double-length sum with its correction), and an int % that is never negative.
-double Sum(std::initializer_list<double> values);
-double Sum(const std::vector<double> &values);
-double Round(double x, int ndigits);
-double FMod(double a, double b);
-int    Mod(int a, int m);
-double Dist(std::span<const double> p, std::span<const double> q);
-double Hypot(std::initializer_list<double> values);
-
-// Matrices: a * b (Python sums), from rotation and translation, a rigid inverse, a point through one.
-M4 MatMul(const M4 &a, const M4 &b);
-M4 MatFromRT(const M3 &r, const V3 &t);
-M4 RigidInv(const M4 &m);
-V3 XformPt(const M4 &m, const V3 &v);
-M3 RotOf(const M4 &m);
-V3 TransOf(const M4 &m);
-
-V4 MatToQuat(const M3 &r);
-M3 QuatToMat(const V4 &q);
-M3 Mul3(const M3 &a, const M3 &b);
-M3 T3(const M3 &a);
-
-V3     Pitch(const V3 &v, double p);
-V3     RotY(const V3 &v, double yaw);
-double Sum3(const V3 &a, const V3 &b);
-V3     Cross(const V3 &a, const V3 &b);
-V3     Unit(const V3 &v);
-double Smooth(double t);
-double Radians(double deg);
-V4     Slerp(const V4 &q0, V4 q1, double t);
-// Rotation of +deg about axis, as row vectors.
-M3 RotAbout(const V3 &axis, double deg);
 // Keys (frame, value) held outside, smoothstepped between.
 double KeyedVal(std::span<const std::pair<double, double>> keys, double f);
 
-// A motion track as frames and values (rotations are channel 0, slerped; others lerped).
+// A motion track as frames and values (rotations, mot::kRotation, slerped; others lerped).
 struct Track {
     int                 node = 0, chan = 0;
     std::vector<double> frames;
@@ -104,6 +73,9 @@ struct RigNode {
 
 std::vector<RigNode> ReadSkeleton(std::span<const unsigned char> mds);
 
+// The node named name, throwing when the rig has none.
+const RigNode &NodeNamed(const std::vector<RigNode> &nodes, std::string_view name);
+
 // A skinned mesh as two bone influences a vertex (b0/p0 weighted w0, b1/p1 the rest).
 struct SkinMesh {
     int                 node = 0, nv = 0;
@@ -136,7 +108,7 @@ std::optional<SkinMesh> BuildMeshWeighted(std::span<const unsigned char> mds, co
 // The rotation and translation tracks of a .mot for nodes below count.
 std::vector<Track> BuildTracks(const ChrPack &pack, std::string_view mot, int count);
 
-// A pack's cfg (the first, or the first whose name holds prefer) and its MODEL and first MOTION .mot names.
+// A pack's first cfg, and a cfg's MODEL and first MOTION .mot names.
 const ChrRecord                    *FindCfg(const ChrPack &pack);
 std::pair<std::string, std::string> CfgNames(std::span<const unsigned char> cfg);
 
