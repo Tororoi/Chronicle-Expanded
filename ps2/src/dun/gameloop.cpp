@@ -134,12 +134,7 @@
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/stats.hpp"
-#include "expanded/weapons/toan/shamshir.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
-#include "expanded/weapons/toan/tsukikage.hpp"
-#include "expanded/weapons/ungaga/partisan.hpp"
-#include "expanded/weapons/xiao/angel_shooter.hpp"
-#include "expanded/weapons/xiao/dragons_y.hpp"
 #endif
 
 /**
@@ -5909,9 +5904,7 @@ void motionDrive() {
         }
 
 #ifdef CHRONICLE_EXPANDED
-        expanded::SwiftStrikesMotion(CharaMain, chara);
-        expanded::QuickComboMotion(CharaMain, chara);
-        expanded::LockOnSpeedMotion(CharaMain, chara);
+        expanded::PlayerMotionStepping(CharaMain, chara);
 #endif
         CharaMain.Step();
 
@@ -6238,10 +6231,10 @@ void motionDrive() {
     heal_counter++;
 
 #ifdef CHRONICLE_EXPANDED
-    heal_counter = expanded::GuardianGraceCounter(heal_counter, expanded::kHealPeriod);
+    heal_counter = expanded::HealCounter(heal_counter);
     if (!(heal_counter < expanded::kHealPeriod)) {
         expanded::HealTicked();
-        if (((NowWeaponHave->flags & 0x800) || expanded::GuardianGraceHeals()) && status->hp[*healed_ref] > 0) {
+        if (((NowWeaponHave->flags & 0x800) || expanded::HealsWithoutTheAbility()) && status->hp[*healed_ref] > 0) {
 #else
     if (!(heal_counter < 240)) {
         if ((NowWeaponHave->flags & 0x800) && status->hp[*healed_ref] > 0) {
@@ -7810,9 +7803,6 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                         if (shots->used[i] == 0) {
                             sceVu0CopyVector(shots->pos[i], world);
                             sceVu0CopyVector(shots->vector[i], vector);
-#ifdef CHRONICLE_EXPANDED
-                            expanded::MoonlitFocusShot(shots->vector[i]);
-#endif
                             shots->life[i] = 0x78;
                             shots->damage[i] = damage;
                             shots->size[i] = 1.0f;
@@ -7859,9 +7849,6 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
                         if (shots->used[i] == 0) {
                             sceVu0CopyVector(shots->pos[i], world);
                             sceVu0CopyVector(shots->vector[i], vector);
-#ifdef CHRONICLE_EXPANDED
-                            expanded::MoonlitFocusShot(shots->vector[i]);
-#endif
                             shots->life[i] = 0x78;
                             shots->damage[i] = damage;
                             shots->size[i] = 1.0f;

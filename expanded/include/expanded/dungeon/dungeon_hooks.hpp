@@ -2,6 +2,7 @@
 
 #include "shot_utils.hpp"
 
+class CCharacter;
 class CMonstorUnit;
 class CSHOT;
 class CSHOT_EFFECT;
@@ -151,8 +152,14 @@ void ShotPlayerPoint(float *point);
 // The action gauge's refill this step (motionDrive), gain the game's: held as the Angel Gear's shield's health.
 float ActionGaugeGain(float gain);
 
-// The Heal ability's tick came, before it heals the active character: the Angel Gear's party heal.
+// The Heal ability's counter, stepped (its tick comes at kHealPeriod), as the weapons' effects hold it; whether the tick
+// heals with a weapon whose flags lack the ability; and the tick come, before it heals the active character.
+int  HealCounter(int counter);
+bool HealsWithoutTheAbility();
 void HealTicked();
+
+// The player's motion about to step (motionDrive), chara_no the member: the weapons that change its speed.
+void PlayerMotionStepping(CCharacter &chara, int chara_no);
 
 // The player's hits about to be checked (BtCheckDamageProc): the swings on the Angel Gear's shield spent first.
 void PlayerHitsChecking();

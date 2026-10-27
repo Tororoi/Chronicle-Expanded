@@ -27,6 +27,7 @@
 #include "expanded/weapons/big_bang_shot.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/curse.hpp"
+#include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/kick_back.hpp"
@@ -45,8 +46,10 @@
 #include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/maneater.hpp"
 #include "expanded/weapons/toan/seventh_heaven.hpp"
+#include "expanded/weapons/toan/shamshir.hpp"
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
+#include "expanded/weapons/toan/tsukikage.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "expanded/weapons/ungaga/cactus.hpp"
 #include "expanded/weapons/ungaga/charge_shot.hpp"
@@ -55,6 +58,7 @@
 #include "expanded/weapons/ungaga/hercules_wrath.hpp"
 #include "expanded/weapons/ungaga/javelin.hpp"
 #include "expanded/weapons/ungaga/mirage.hpp"
+#include "expanded/weapons/ungaga/partisan.hpp"
 #include "expanded/weapons/ungaga/scorpion.hpp"
 #include "expanded/weapons/xiao/angel_gear.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_ring.hpp"
@@ -71,6 +75,7 @@
 #include "expanded/weapons/xiao/steel_slingshot.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 #include "monstorunit.hpp"
+#include "shot_effect.hpp"
 
 namespace expanded {
 
@@ -248,6 +253,7 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
 }
 
 void PelletFired(CSHOT &shots, int slot) {
+    MoonlitFocusShot(shots.vector[slot]);
     SolarShotFired(shots, slot);
     BigBangShotFired(shots, slot);
     ZeusShotFired(shots, slot);
@@ -349,6 +355,20 @@ void ShotPlayerPoint(float *point) {
 
 float ActionGaugeGain(float gain) {
     return GuardianReflectorGaugeGain(gain);
+}
+
+int HealCounter(int counter) {
+    return GuardianGraceCounter(counter, kHealPeriod);
+}
+
+bool HealsWithoutTheAbility() {
+    return GuardianGraceHeals();
+}
+
+void PlayerMotionStepping(CCharacter &chara, int chara_no) {
+    SwiftStrikesMotion(chara, chara_no);
+    QuickComboMotion(chara, chara_no);
+    LockOnSpeedMotion(chara, chara_no);
 }
 
 void HealTicked() {
