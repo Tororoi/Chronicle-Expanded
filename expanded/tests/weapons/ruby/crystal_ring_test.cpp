@@ -279,7 +279,7 @@ TEST_F(CrystalRing, TheWeaponMenusWarningIsTheCursesOnTheRing) {
     WepMenu.weapon_slot = 0;
     ClsMes mes;
     mes.SetBuff(bank.data());
-    EXPECT_EQ(GameTextDecode(mes.GetTextLineDataTop(0xA1)), "\nElement can't be\nselected due to\ncurse.");
+    EXPECT_EQ(GameTextDecode(mes.GetTextLineDataTop(0xA1)), "Element can't be\nselected due to\ncurse.");
     status().chara_weapons[CHARA_RUBY][0].item_no = ITEM_WEAPON_GOLD_RING;
     EXPECT_EQ(GameTextDecode(mes.GetTextLineDataTop(0xA1)), "\nAttribute with 0 pt\ncannot be activated.");
     BtlMenuStatusPt = saved;

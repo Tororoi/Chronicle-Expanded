@@ -98,7 +98,7 @@ std::optional<std::string> CursedWarning() {
     if (weapon == nullptr || HeldElement(*weapon) < 0) {
         return std::nullopt;
     }
-    return LocalizeText("expanded.crystal_ring.element_cursed", "\nElement can't be\nselected due to\ncurse.");
+    return LocalizeText("expanded.crystal_ring.element_cursed", "Element can't be\nselected due to\ncurse.");
 }
 
 [[maybe_unused]] const bool kRegistered =
