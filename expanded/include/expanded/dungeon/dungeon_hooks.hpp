@@ -19,7 +19,7 @@ namespace expanded {
 // next floor's kinds start being set up, for anything kept per floor; and, for what must also stop as the floor is left
 // (effects drawn, sounds playing, lights), in DungeonMonstersCleared too.
 
-// The dungeon's step, after the monsters' shot effects stepped: Expanded's shots and the Expanded monsters' own.
+// The dungeon's step after the monsters' shot effects stepped (DunMoveChara), unit the floor's.
 void DungeonShotsStep(CMonstorUnit &unit);
 
 // The models a floor loaded for Expanded released (a dungeon visit begins, or the next floor's monsters are about to
@@ -27,10 +27,10 @@ void DungeonShotsStep(CMonstorUnit &unit);
 void DungeonFloorUnloaded();
 void DungeonFloorLoaded(CMonstorUnit &unit);
 
-// The party's status taken up as a dungeon visit begins (GameInit, after UserStatus->Init): a stage's weapons.
+// The party's status taken up as a dungeon visit begins (GameInit, after UserStatus->Init).
 void DungeonStatusReady();
 
-// The top of a dungeon frame (GameLoop): a stage's party member brought out.
+// The top of a dungeon frame (GameLoop).
 void DungeonFrameBegins();
 
 // The dungeon's draw (MainDraw), where features draw over the game's: after the units' shadows (player, the player's
@@ -49,16 +49,14 @@ bool PlayerHitPassesBy(const COLLISION_HIT &hit);
 void PlayerHitReached(COLLISION_HIT &hit);
 void PlayerHitReacted(bool blocked);
 
-// The floor's monsters put back (CleanViewMonstor): confusion ends (its stars dropped when drop_stars), Expanded's
-// shots stop and a flash's charge and blinding end.
+// The floor's monsters put back (after CleanViewMonstor), as the floor fades out to change or an event takes its memory;
+// drop_stars when confusion's stars go with them.
 void DungeonMonstersCleared(bool drop_stars);
 
-// A step the monsters take unpaused (before motionDrive): the clocks poison and confusion count by, the weapons'
-// curses, the Solar Flash's charge and blinding, the Cactus's Desert Bloom, Hercules' Wrath's Air Strike, the Wise
-// Owl Sword's watch for key holders, a stage's steps and the event log's reading of the party.
+// Each dungeon step (MoveChara), whether or not the monsters step: what counts in their steps asks MonstersStepping.
 void DungeonMonstersTick();
 
-// A step after the player's pellets have stepped (motionDrive), as the mod's pellet catcher runs: the Divine Beast cat.
+// A step after the player's pellets have stepped (motionDrive).
 void PlayerShotsStepped();
 
 // A kind's model pack as SetupBaseModel loads it: a boss's built pack or an Expanded kind's own, else as it is.
@@ -68,8 +66,7 @@ void MonsterPackFile(char *filename, int model_no);
 void MonsterDrawing(CMonstorUnit &unit, int monster);
 void MonsterDrawn(CMonstorUnit &unit, int monster);
 
-// A monster's life just ran out (CheckDmg): the DeSanga's heal, and whether the kill counts down the floor and up the
-// player's kills.
+// A monster's life just ran out (CheckDmg): whether the kill counts down the floor and up the player's kills.
 bool MonsterKilled(const CMonstorUnit &unit, int monster);
 
 // The item a killed monster drops, before the game's rare-item roll (CMonstorUnit::Step): drop_item, its set drop or -1,
@@ -127,36 +124,35 @@ void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT 
 // A hit just took amount off a monster's life (CheckDmg; its life is past it, under 0 when it took more than it had).
 void MonsterDamaged(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount);
 
-// Whether a hit of a sword-wielder's on a monster wears the weapon (CheckDmg, landed or guarded): not the Cactus's pricks
-// nor Ungaga's unguardable blasts.
+// Whether a hit of a sword-wielder's on a monster wears the weapon (CheckDmg, landed or guarded): not the hits of the
+// effects that wear nothing.
 bool HitWearsWeapon(const COLLISION_HIT &hit);
 
 // A monster's step after the other monsters blocked it (CMonstorUnit::Step, after MoveChecMonster), and the player's after
-// the monsters blocked it (his move, after CMonstorUnit::MoveCheck), velocity his step: a raised prop stands in the way.
+// the monsters blocked it (his move, after CMonstorUnit::MoveCheck), velocity his step: for what else stands in the way.
 void MonsterMoveChecked(CMonstorUnit &unit, int monster);
 void PlayerMoveChecked(const float *position, float *velocity);
 
-// The units' shadow pass (Draw_MainUnitShadow), before it darkens the screen: the raised props' round shadows.
+// The units' shadow pass (Draw_MainUnitShadow), before it darkens the screen: for shadows the game casts none for.
 void DungeonShadowsDrawing();
 
-// Poison took hold of a monster that had none (Poison, from CheckDmg's rolls): the Scorpion's venom.
+// Poison took hold of a monster that had none (Poison, from CheckDmg's rolls).
 void MonsterPoisoned(const MONSTOR &target);
 
-// Where a monster's script finds the player (_GET_POSITION, _GET_DISTANCE): the Angel Gear's shield ring, else the
-// Mirage's decoy, else confusion's target, else the player.
+// Where a monster's script finds the player (_GET_POSITION, _GET_DISTANCE): the first of the features that draw it
+// elsewhere, else the player.
 void ScriptPlayerPosition(float *position);
 
 // How far from the player a monster's body stops (CMonstorUnit::MoveCheck2), radius the game's.
 float MonsterBlockRadius(float radius);
 
-// A shot effect's collision test (CSHOT_EFFECT::Step), as checkCollision's: the Angel Gear's returned shots meet walls
-// alone; a raised prop stops the monsters' shots.
+// A shot effect's collision test (CSHOT_EFFECT::Step), checkCollision's result as the features change it.
 SHOT_COLLISION_RESULT ShotEffectCollision(CSHOT_EFFECT &effect, int slot, float *hit_position, float *position);
 
-// The point a shot meets as the player (checkCollision), point hers: the Angel Gear's pouch while its shield is solid.
+// The point a shot meets as the player (checkCollision), point hers, as the features move it.
 void ShotPlayerPoint(float *point);
 
-// The action gauge's refill this step (motionDrive), gain the game's: held as the Angel Gear's shield's health.
+// The action gauge's refill this step (motionDrive), gain the game's, as the features hold it.
 float ActionGaugeGain(float gain);
 
 // The Heal ability's counter, stepped (its tick comes at kHealPeriod), as the weapons' effects hold it; whether the tick
@@ -168,11 +164,10 @@ void HealTicked();
 // The player's motion about to step (motionDrive), chara_no the member: the weapons that change its speed.
 void PlayerMotionStepping(CCharacter &chara, int chara_no);
 
-// The player's hits about to be checked (BtCheckDamageProc): the swings on the Angel Gear's shield spent first.
+// The player's hits about to be checked (BtCheckDamageProc).
 void PlayerHitsChecking();
 
-// The WHP a shot of Xiao's costs, wear an ordinary one's (BattleActionPlay_Jinn): the Steel Slingshot's, a charged
-// shot's.
+// The WHP a shot of Xiao's costs, wear an ordinary one's (BattleActionPlay_Jinn), as the weapons' effects change it.
 float XiaoShotWear(float wear);
 
 // The percentage of the hit's damage a monster's sphere takes from owner (CheckDmg).
