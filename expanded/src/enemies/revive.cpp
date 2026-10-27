@@ -106,8 +106,16 @@ int Percent() {
     return static_cast<int>(100.0f * GameFraction());
 }
 
+// The monster script commands it runs, by the number a script calls each by.
+constexpr int kSetMoveCancel = 34;    // _SET_MOVE_CANSEL
+constexpr int kStatusSetMuteki = 101; // _STATUS_SET_MUTEKI
+constexpr int kSetSndNow = 141;       // _SET_SND_NOW
+constexpr int kSetMotion = 200;       // _SET_MOTION
+constexpr int kStatusSetLife = 228;   // _STATUS_SET_LIFE
+constexpr int kDelLoopSnd = 232;      // _DEL_LOOP_SND
+
 // Runs one of the monster script commands for the current monster.
-int Command(int (*command)(RS_STACKDATA *, int), std::initializer_list<RS_STACKDATA> args) {
+int Command(int operation, std::initializer_list<RS_STACKDATA> args) {
     RS_STACKDATA stack[4] = {};
     int          count = 0;
 
@@ -115,7 +123,7 @@ int Command(int (*command)(RS_STACKDATA *, int), std::initializer_list<RS_STACKD
         stack[count++] = arg;
     }
 
-    return command(stack, count);
+    return ScriptCommandFor(operation)(stack, count);
 }
 
 RS_STACKDATA Int(int value) {
@@ -134,7 +142,7 @@ RS_STACKDATA Float(float value) {
 
 // Plays a motion once from its start at its own speed, as the death scripts do.
 void PlayOnce(int motion) {
-    Command(_SET_MOTION, {Int(motion), Float(-1.0f), Int(kMotionHoldLast | kMotionCut)});
+    Command(kSetMotion, {Int(motion), Float(-1.0f), Int(kMotionHoldLast | kMotionCut)});
 }
 
 // Whether monster_no's motion has reached the margin before its end.
@@ -150,15 +158,15 @@ bool MotionEnding(CMonstorUnit &unit, int monster_no) {
 // Starts monster_no's revival in place of its death script, which it opens as the script does.
 void ReviveStart(CMonstorUnit &unit, int monster_no, const ReviveSpecies &species) {
     if (species.drops_loop_sound) {
-        Command(_DEL_LOOP_SND, {});
+        Command(kDelLoopSnd, {});
     }
 
     if (species.death_sound != -1) {
-        Command(_SET_SND_NOW, {Int(species.death_sound)});
+        Command(kSetSndNow, {Int(species.death_sound)});
     }
 
-    Command(_SET_MOVE_CANSEL, {});
-    Command(_STATUS_SET_MUTEKI, {Int(kReviveInvincibleSteps)});
+    Command(kSetMoveCancel, {});
+    Command(kStatusSetMuteki, {Int(kReviveInvincibleSteps)});
     PlayOnce(species.collapse_motion);
     reviving[monster_no] = {Phase::kCollapse, 0};
     unit.script_state[monster_no] = 1;
@@ -209,7 +217,7 @@ bool StaysDown(const CMonstorUnit &unit, int monster_no) {
     return false;
 }
 
-int ReviveCheckDmg(CMonstorUnit &unit, int result) {
+MonsterDamageResult ReviveCheckDmg(CMonstorUnit &unit, MonsterDamageResult result) {
     if (AllyUnit(unit)) {
         return result;
     }
@@ -218,14 +226,14 @@ int ReviveCheckDmg(CMonstorUnit &unit, int result) {
 
     forced_roll[monster_no] = -1;
 
-    if (result == MONSTER_DMG_NONE) {
+    if (result == MonsterDamageResult::None) {
         return result;
     }
 
     // A hit or a kill hands the monster back to its script.
     reviving[monster_no] = {};
 
-    if (result != MONSTER_DMG_KILLED) {
+    if (result != MonsterDamageResult::Killed) {
         return result;
     }
 
@@ -253,7 +261,7 @@ int ReviveCheckDmg(CMonstorUnit &unit, int result) {
 
     CurrentUnit current(unit);
     ReviveStart(unit, monster_no, *species);
-    return MONSTER_DMG_NONE;
+    return MonsterDamageResult::None;
 }
 
 bool ReviveStep(CMonstorUnit &unit, int monster_no) {
@@ -276,14 +284,14 @@ bool ReviveStep(CMonstorUnit &unit, int monster_no) {
             break;
         case Phase::kLie:
             if (--state.steps <= 0) {
-                Command(_STATUS_SET_LIFE, {Float(kReviveLife)});
+                Command(kStatusSetLife, {Float(kReviveLife)});
                 PlayOnce(kGetUpMotion);
                 state = {Phase::kGetUp, 0};
             }
             break;
         case Phase::kGetUp:
             if (++state.steps > 1 && MotionEnding(unit, monster_no)) {
-                Command(_SET_MOTION, {Int(kIdleMotion)});
+                Command(kSetMotion, {Int(kIdleMotion)});
                 state = {};
                 unit.script_state[monster_no] = 0;
             }

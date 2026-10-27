@@ -1,7 +1,9 @@
 #pragma once
 
+namespace dc::game {
 class CSHOT_EFFECT;
 struct BT_SHOT_EFFECT;
+} // namespace dc::game
 
 namespace expanded {
 

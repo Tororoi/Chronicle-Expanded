@@ -24,17 +24,19 @@
 #include "expanded/weapons/summon_smoke.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "gamepad.hpp"
-#include "gametext.hpp"
 #include "itemdata.hpp"
-#include "localize.hpp"
+#include "localize/localize.hpp"
 #include "menu_misc.hpp"
 #include "mglib.hpp"
 #include "monstorunit.hpp"
 #include "runscript.hpp"
 #include "sysmes.hpp"
+#include "text/gametext.hpp"
 #include "userstatus.hpp"
 
+namespace dc::game {
 extern s32 lockOnTargetNo;
+} // namespace dc::game
 
 namespace expanded {
 
@@ -42,7 +44,7 @@ namespace {
 
 using namespace pocklekul;
 
-// A monster's name: CharaNameMes's name_no + 3000; the English ones where the names are not loaded.
+// A monster's name: MonsterNameMessages()'s name_no + 3000; the English ones where the names are not loaded.
 constexpr int         kNameMessage = 3000;
 constexpr const char *kPockleNames[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Hell Pockle"};
 static_assert(std::size(kPockleNames) == kPockleKinds.size());
@@ -95,8 +97,8 @@ std::string PockleName(int kind) {
         return {};
     }
     const MONSTOR_MODEL &model = MonstorTable[No(kPockleKinds[kind])];
-    if (CharaNameMes != nullptr) {
-        const short *codes = CharaNameMes->GetTextLineDataTop(model.name_no + kNameMessage);
+    if (MonsterNameMessages() != nullptr) {
+        const short *codes = MonsterNameMessages()->GetTextLineDataTop(model.name_no + kNameMessage);
         std::string  name = codes != nullptr ? GameTextDecode(codes) : std::string{};
         if (!name.empty()) {
             return name;

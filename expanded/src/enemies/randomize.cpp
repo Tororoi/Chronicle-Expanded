@@ -1,5 +1,4 @@
 #include "dungeon.h"
-#include "expanded/enemies/randomize.hpp"
 
 #include <algorithm>
 #include <array>
@@ -8,6 +7,7 @@
 #include "expanded/core/options.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/enemies/normalize.hpp"
+#include "expanded/enemies/randomize.hpp"
 #include "expanded/enemies/species.hpp"
 #include "expanded/enemies/themes.hpp"
 

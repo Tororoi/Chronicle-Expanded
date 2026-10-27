@@ -163,7 +163,7 @@ int ShotElement(int flags) {
 }
 
 // Monster attacker's hit (record index) on the pockle's sphere, as CheckDmg takes one of nobody's (owner -1).
-int Take(CMonstorUnit &unit, int sphere, int index, int attacker) {
+MonsterDamageResult Take(CMonstorUnit &unit, int sphere, int index, int attacker) {
     COLLISION_HIT        &hit = NowColData->hit[index];
     int                   slot = unit.current_monster;
     MONSTOR              &live = unit.monster[slot];
@@ -189,7 +189,7 @@ int Take(CMonstorUnit &unit, int sphere, int index, int attacker) {
             HitPointMark[hitCnt].Set(body.position[sphere]);
             SndSePlay(SE_HIT_BLOCKED, -1, 0);
             LogEvent("pockle", std::format("\"step\":\"guarded\",\"by\":{}", attacker));
-            return MONSTER_DMG_NONE;
+            return MonsterDamageResult::None;
         }
     }
 
@@ -236,12 +236,12 @@ int Take(CMonstorUnit &unit, int sphere, int index, int attacker) {
     }
 
     live.hp -= amount;
-    int result = MONSTER_DMG_HIT;
+    MonsterDamageResult result = MonsterDamageResult::Hit;
     if (live.hp <= 0) {
         live.last_attacker = -1;
         live.hp = 0;
         unit.alive_count--;
-        result = MONSTER_DMG_KILLED;
+        result = MonsterDamageResult::Killed;
         if (live.event_flag2 != -1) {
             live.event_flag2_pending = 1;
         }
@@ -314,10 +314,10 @@ void PockleSwingSet(CMonstorUnit &unit, int hit) {
     NowColData->active[hit] = 0;
 }
 
-int PockleHitOn(CMonstorUnit &unit, int sphere) {
+std::optional<MonsterDamageResult> PockleHitOn(CMonstorUnit &unit, int sphere) {
     CMonstorUnit *floor = AllyFloor();
     if (floor == nullptr || NowColData == nullptr) {
-        return -1;
+        return std::nullopt;
     }
     int    slot = unit.current_monster;
     float *at = unit.effect[slot].position[sphere];
@@ -334,7 +334,7 @@ int PockleHitOn(CMonstorUnit &unit, int sphere) {
         }
         return Take(unit, sphere, i, attacker);
     }
-    return -1;
+    return std::nullopt;
 }
 
 bool PockleRefuses(const COLLISION_HIT &hit) {

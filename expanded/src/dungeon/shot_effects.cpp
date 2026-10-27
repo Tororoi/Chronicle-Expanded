@@ -27,7 +27,9 @@
 #include "tim2.hpp"
 #include "userstatus.hpp"
 
+namespace dc::game {
 extern s32 mode;
+} // namespace dc::game
 
 namespace expanded {
 namespace {
@@ -395,17 +397,3 @@ int ShotEffectBomb(float *position, const BT_SHOT_EFFECT *effect, int owner) {
 }
 
 } // namespace expanded
-
-// Retail's search and fill of its five slots, then Expanded's part of the pack in place of a refusal.
-PORT_OVERRIDE int CSHOT_EFFECT_PACK::Entry(BT_SHOT_EFFECT *description, unsigned int *resource, int texture_block, CDataAlloc2<1> *allocator, int slots) {
-    int index = expanded::ShotEffectIndex(description);
-    if (index >= 0) {
-        return index;
-    }
-    for (index = 0; index < expanded::kRetailShotEffects; index++) {
-        if (effect[index].Entry(description, resource, texture_block, allocator, slots) != 0) {
-            return index;
-        }
-    }
-    return expanded::EnterShotEffect(description, slots);
-}

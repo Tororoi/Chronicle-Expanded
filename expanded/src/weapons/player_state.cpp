@@ -8,7 +8,9 @@
 #include "userstatus.hpp"
 #include "weaponelement.hpp"
 
+namespace dc::game {
 extern s32 lockOnTargetNo;
+} // namespace dc::game
 
 namespace expanded {
 

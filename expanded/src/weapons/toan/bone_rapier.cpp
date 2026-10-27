@@ -8,7 +8,7 @@
 #include "expanded/enemies/revive.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
-#include "localize.hpp"
+#include "localize/localize.hpp"
 #include "monstorunit.hpp"
 #include "runscript.hpp"
 #include "sysmes.hpp"

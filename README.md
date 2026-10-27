@@ -57,16 +57,16 @@ still matches retail.
       inheritance, and helpers several weapons share (`kick_back`).
     - `weapons/<character>/<weapon>`: one weapon's effect, with its Super Steve sphere form in the
       same file.
-- **Edits to Chronicle's files (`ps2/`, `port/`, `tools/dcdata/`) are guarded hooks:**
+- **Edits to Chronicle's files (`port/`, `tools/dcdata/`) are guarded hooks.** The port compiles its own copy of the
+  game, `port/src/game` and `port/include/game` (namespace `dc::game`): the game's hooks go there. `ps2/` is the
+  matching decompilation alone and is never edited.
   - Wrap each in `#ifdef CHRONICLE_EXPANDED`; one that replaces code keeps retail's in the `#else`.
   - Keep each to a call into `expanded::` or a constant; the logic lives in `expanded/src`.
   - Where several features act at one site, the hook calls one dispatch (`dungeon/dungeon_hooks`) that calls
     them in turn. A hook repeated through a file's functions can be a file-local helper holding the `#ifdef`
     (`ScriptMonster` in runscript_opcodes.cpp).
   - Don't reformat, rename or move the code around them.
-  - Hook the copy of a function that runs: port/src replaces some of ps2/src's (`PORT_OVERRIDE`), and a hook
-    in a replaced one never runs. The build stops on one (`expanded/cmake/check_hooks.py`).
-  - `grep -rn CHRONICLE_EXPANDED ps2 port tools/dcdata` lists every one.
+  - `grep -rn CHRONICLE_EXPANDED port tools/dcdata` lists every one.
 
   ```cpp
   #ifdef CHRONICLE_EXPANDED
@@ -78,8 +78,11 @@ still matches retail.
 - **The truncation report.** Edits to `ps2/` and `port/` shift `docs/port/truncations.md`'s line numbers,
   which CI checks on Linux: regenerate it with `scripts/port/truncations.py --build <Linux build dir>`,
   and on a merge conflict in it, take either side and regenerate.
-- **Whole-function copies** only when rewriting most of a function: put the copy in `expanded/src` as a
-  `PORT_OVERRIDE`, under the retail function's name.
+- **Rewriting most of a function** is a hook too: Expanded's body under `#ifdef CHRONICLE_EXPANDED` in the game's
+  copy, retail's in the `#else`.
+- **Expanded names the game's code as its own:** `expanded/prelude.hpp`, included ahead of every unit, gives
+  namespace `expanded` the game's (`dc::game`) and the platform subsystems' it calls into. Forward-declare a game
+  type in `namespace dc::game`, not at global scope.
 - **Fixes to retail bugs go to Chronicle first**, from a fork of Chronicle on a branch from
   `upstream/master`, and are cherry-picked here if they are needed before upstream merges them.
 - **Comments** are short and say what the code does.
@@ -139,6 +142,13 @@ The project aims to produce **100% matching text and data sections** for:
 ### Prerequisites
 
 - A copy of _Dark Cloud_ (ideally the PAL version).
+- Git, to clone the repository and its submodule.
+- **Windows:** nothing else; the first build downloads its toolchain.
+- **Linux:** Docker or Podman (the build runs in Kazarov's container), Python 3, and to run the
+  game SDL3 3.4 and a Vulkan 1.3 driver with its loader.
+- **macOS:** Xcode's command line tools and the Homebrew packages in
+  [`docs/MACOS.md`](docs/MACOS.md).
+- **Nintendo Switch:** Docker on Linux or in WSL (see [`docs/SWITCH.md`](docs/SWITCH.md)).
 
 ### 1. Clone the repository
 

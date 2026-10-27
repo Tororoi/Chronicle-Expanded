@@ -15,14 +15,16 @@
 #include "expanded/weapons/abilities.hpp"
 #include "frame.hpp"
 #include "itemdata.hpp"
-#include "localize.hpp"
+#include "localize/localize.hpp"
 #include "mathutil.hpp"
 #include "mglib.hpp"
 #include "sysmes.hpp"
 #include "texture.hpp"
 #include "userstatus.hpp"
 
+namespace dc::game {
 extern s32 atraGetStatus;
+} // namespace dc::game
 
 namespace expanded {
 

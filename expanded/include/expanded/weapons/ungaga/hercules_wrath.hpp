@@ -2,9 +2,11 @@
 
 #include "expanded/dungeon/own_sounds.hpp"
 
+namespace dc::game {
 class CCharacter;
 class CSHOT;
 struct BT_SHOT_EFFECT;
+} // namespace dc::game
 
 namespace expanded {
 

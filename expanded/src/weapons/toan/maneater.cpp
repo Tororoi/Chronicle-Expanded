@@ -13,7 +13,6 @@ namespace expanded {
 
 namespace {
 
-
 // chara's equipped Maneater: the sword (Toan's) or Super Steve carrying its sphere (Xiao's), else nullptr.
 WEAPON_HAVE *Maneater(CUserStatus &status, int chara) {
     WEAPON_HAVE *weapon = EquippedWeapon(status, chara);

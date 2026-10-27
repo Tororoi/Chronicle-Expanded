@@ -4,8 +4,10 @@
 
 #include "expanded/weapons/kick_back.hpp"
 
+namespace dc::game {
 class CMonstorUnit;
 struct COLLISION_HIT;
+} // namespace dc::game
 
 namespace expanded {
 

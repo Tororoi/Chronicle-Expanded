@@ -9,7 +9,7 @@
 #include "memorycardaccess.hpp"
 #include "platform/paths.hpp"
 #include "platform_fixture.hpp"
-#include "save_slots.hpp"
+#include "save/save_slots.hpp"
 #include "savedata.hpp"
 
 namespace fs = std::filesystem;

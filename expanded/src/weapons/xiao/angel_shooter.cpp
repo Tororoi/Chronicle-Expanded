@@ -17,8 +17,10 @@
 #include "snd.hpp"
 #include "userstatus.hpp"
 
+namespace dc::game {
 extern CCharacter NewChangeFx;
 extern s32        NewChangeFxFlag;
+} // namespace dc::game
 
 namespace expanded {
 

@@ -85,12 +85,12 @@ TEST(BombGemronSpecies, IsHolyGemronsRecordUnderItsOwnModelAndElements) {
 TEST(BombGemronSpecies, RecordAndModelFileReachTheLoader) {
     EXPECT_EQ(expanded::SpeciesRecord(No(Monster::BOMB_GEMRON)), expanded::Species(No(Monster::BOMB_GEMRON)));
     EXPECT_EQ(expanded::SpeciesRecord(No(Monster::WEREWOLF)), &MonstorTable[No(Monster::WEREWOLF)]);
-    char file[64] = "dun/monstor/e167a.chr";
+    std::string file = "dun/monstor/e167a.chr";
     expanded::SpeciesPackFile(file, No(Monster::BOMB_GEMRON));
-    EXPECT_STREQ(file, expanded::kBombGemronModelFile);
-    std::strcpy(file, "dun/monstor/e04a.chr");
+    EXPECT_STREQ(file.c_str(), expanded::kBombGemronModelFile);
+    file = "dun/monstor/e04a.chr";
     expanded::SpeciesPackFile(file, No(Monster::WEREWOLF));
-    EXPECT_STREQ(file, "dun/monstor/e04a.chr");
+    EXPECT_STREQ(file.c_str(), "dun/monstor/e04a.chr");
 }
 
 TEST_F(BombGemron, SelfDestructsWhenNearDeathWithThePlayerClose) {
@@ -174,10 +174,10 @@ TEST(CrystalGemronSpecies, IsHolyGemronsRecordWithItsOwnModelScriptAndElements) 
     EXPECT_EQ(crystal->steal_item, ITEM_POWERUP_POWDER);
     EXPECT_EQ(crystal->rare_item, ITEM_CRYSTAL_EYEBALL);
     EXPECT_EQ(crystal->name_no, 321);
-    char script[64] = "dun/monstor/e115a.stb";
+    std::string script = "dun/monstor/e115a.stb";
     expanded::SpeciesScriptFile(script, No(Monster::CRYSTAL_GEMRON));
-    EXPECT_STREQ(script, expanded::kCrystalGemronScriptFile);
-    std::strcpy(script, "dun/monstor/e115a.stb");
+    EXPECT_STREQ(script.c_str(), expanded::kCrystalGemronScriptFile);
+    script = "dun/monstor/e115a.stb";
     expanded::SpeciesScriptFile(script, No(Monster::BOMB_GEMRON));
-    EXPECT_STREQ(script, "dun/monstor/e115a.stb");
+    EXPECT_STREQ(script.c_str(), "dun/monstor/e115a.stb");
 }

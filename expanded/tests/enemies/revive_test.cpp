@@ -72,7 +72,7 @@ TEST(Revive, OffKillsAsRetail) {
     Floor floor("e03a");
     EXPECT_FALSE(expanded::HarderEnemyAiOn());
     for (int i = 0; i < 50; i++) {
-        EXPECT_EQ(expanded::ReviveCheckDmg(*floor.unit, MONSTER_DMG_KILLED), MONSTER_DMG_KILLED);
+        EXPECT_EQ(expanded::ReviveCheckDmg(*floor.unit, MonsterDamageResult::Killed), MonsterDamageResult::Killed);
         EXPECT_FALSE(expanded::ReviveStep(*floor.unit, 0));
     }
     EXPECT_EQ(expanded::ReviveRoll(100, 7), 7);
@@ -86,12 +86,12 @@ TEST(Revive, StaysDownRuleKeepsEveryKill) {
 
     Floor floor("e03a");
     for (int i = 0; i < 50; i++) {
-        EXPECT_EQ(expanded::ReviveCheckDmg(*floor.unit, MONSTER_DMG_KILLED), MONSTER_DMG_KILLED);
+        EXPECT_EQ(expanded::ReviveCheckDmg(*floor.unit, MonsterDamageResult::Killed), MonsterDamageResult::Killed);
     }
 
     // A death script's own roll is made to fail, once.
     Floor mummy("e50a");
-    EXPECT_EQ(expanded::ReviveCheckDmg(*mummy.unit, MONSTER_DMG_KILLED), MONSTER_DMG_KILLED);
+    EXPECT_EQ(expanded::ReviveCheckDmg(*mummy.unit, MonsterDamageResult::Killed), MonsterDamageResult::Killed);
     EXPECT_EQ(expanded::ReviveRoll(24, 5), 5);
     EXPECT_EQ(expanded::ReviveRoll(100, 3), 99);
     EXPECT_EQ(expanded::ReviveRoll(100, 3), 3);
@@ -102,7 +102,7 @@ TEST(Revive, ScriptRollsAtTheNativeChance) {
     Floor  mummy("e50a");
     int    revived = 0;
     for (int i = 0; i < 2000; i++) {
-        EXPECT_EQ(expanded::ReviveCheckDmg(*mummy.unit, MONSTER_DMG_KILLED), MONSTER_DMG_KILLED);
+        EXPECT_EQ(expanded::ReviveCheckDmg(*mummy.unit, MonsterDamageResult::Killed), MonsterDamageResult::Killed);
         int roll = expanded::ReviveRoll(100, 50);
         EXPECT_TRUE(roll == 0 || roll == 99);
         revived += roll == 0;
@@ -119,7 +119,7 @@ TEST(Revive, CollapsesLiesStillAndGetsUp) {
     auto other = std::make_unique<CMonstorUnit>();
     NowMonstorUnit = other.get();
     int kills = 0;
-    while (expanded::ReviveCheckDmg(unit, MONSTER_DMG_KILLED) == MONSTER_DMG_KILLED) {
+    while (expanded::ReviveCheckDmg(unit, MonsterDamageResult::Killed) == MonsterDamageResult::Killed) {
         ASSERT_LT(++kills, 200);
     }
     EXPECT_EQ(NowMonstorUnit, other.get());
@@ -160,9 +160,9 @@ TEST(Revive, AHitHandsItBackToItsScript) {
     Harder harder;
     Floor  floor("e03a");
     int    kills = 0;
-    while (expanded::ReviveCheckDmg(*floor.unit, MONSTER_DMG_KILLED) == MONSTER_DMG_KILLED) {
+    while (expanded::ReviveCheckDmg(*floor.unit, MonsterDamageResult::Killed) == MonsterDamageResult::Killed) {
         ASSERT_LT(++kills, 200);
     }
-    EXPECT_EQ(expanded::ReviveCheckDmg(*floor.unit, MONSTER_DMG_HIT), MONSTER_DMG_HIT);
+    EXPECT_EQ(expanded::ReviveCheckDmg(*floor.unit, MonsterDamageResult::Hit), MonsterDamageResult::Hit);
     EXPECT_FALSE(expanded::ReviveStep(*floor.unit, 0));
 }

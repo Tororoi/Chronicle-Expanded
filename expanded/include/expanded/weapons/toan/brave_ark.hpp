@@ -2,7 +2,9 @@
 
 #include "userstatus.hpp"
 
+namespace dc::game {
 struct COLLISION_HIT;
+} // namespace dc::game
 
 namespace expanded {
 

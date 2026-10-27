@@ -12,8 +12,8 @@
 #include "expanded/dungeon/floor_characters.hpp"
 #include "frame.hpp"
 #include "mglib.hpp"
+#include "render/texture_registry.hpp"
 #include "texture.hpp"
-#include "texture_port.hpp"
 
 namespace expanded {
 

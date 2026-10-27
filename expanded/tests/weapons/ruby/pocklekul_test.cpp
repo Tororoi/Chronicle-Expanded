@@ -33,8 +33,10 @@
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
+namespace dc::game {
 extern CHitValue HitValue[32];
 extern s32       lockOnTargetNo;
+} // namespace dc::game
 
 namespace {
 
@@ -366,32 +368,30 @@ TEST_F(Pocklekul, GrowsInAndFadesItsTint) {
 
 TEST_F(Pocklekul, ItsNoticeWaitsForTheDungeonsLine) {
     int saved_line = DngMessMan.message;
-    SystemMesCount = 0;
-    SystemMesNo = -1;
+    ClearSystemMes();
     DngMessMan.message = 4000; // Steve talking
     Summon();
     Step(10);
-    EXPECT_NE(SystemMesNo, expanded::kPocklekulMessage);
+    EXPECT_NE(SystemMesShown(), expanded::kPocklekulMessage);
     DngMessMan.message = -1;
     Step();
-    EXPECT_EQ(SystemMesNo, expanded::kPocklekulMessage);
-    EXPECT_EQ(SystemMesCount, expanded::kPockleNoticeFrames);
+    EXPECT_EQ(SystemMesShown(), expanded::kPocklekulMessage);
+    EXPECT_EQ(SystemMesFramesLeft(), expanded::kPockleNoticeFrames);
     DngMessMan.message = saved_line;
-    SystemMesCount = 0;
+    ClearSystemMes();
 }
 
 TEST_F(Pocklekul, ItsNoticeWaitsNoLongerThanItsWait) {
     int saved_line = DngMessMan.message;
-    SystemMesCount = 0;
-    SystemMesNo = -1;
+    ClearSystemMes();
     DngMessMan.message = 4000;
     Summon();
     Step(expanded::kPockleNoticeWait - 1);
-    EXPECT_NE(SystemMesNo, expanded::kPocklekulMessage);
+    EXPECT_NE(SystemMesShown(), expanded::kPocklekulMessage);
     Step();
-    EXPECT_EQ(SystemMesNo, expanded::kPocklekulMessage);
+    EXPECT_EQ(SystemMesShown(), expanded::kPocklekulMessage);
     DngMessMan.message = saved_line;
-    SystemMesCount = 0;
+    ClearSystemMes();
 }
 
 // ---- Its end ----
@@ -607,10 +607,10 @@ TEST_F(Pocklekul, AMonstersSwingHurtsIt) {
     ally().current_monster = kAllyMonster;
     Swing(0.0f, 5.0f, 18.0f, 3.0f, 20, 200, expanded::kHitsPlayer);
     int life = pockle().hp;
-    EXPECT_EQ(expanded::MonsterFriendlyHit(ally(), 0), MONSTER_DMG_HIT);
+    EXPECT_EQ(expanded::MonsterFriendlyHit(ally(), 0), MonsterDamageResult::Hit);
     EXPECT_EQ(pockle().hp, life - std::max(1, 20 - pockle().defense));
     // One an attacker every kPockleContactFrames.
-    EXPECT_EQ(expanded::MonsterFriendlyHit(ally(), 0), -1);
+    EXPECT_EQ(expanded::MonsterFriendlyHit(ally(), 0), std::nullopt);
 }
 
 TEST_F(Pocklekul, ItsGuardBlocksAMonstersSwing) {
@@ -623,7 +623,7 @@ TEST_F(Pocklekul, ItsGuardBlocksAMonstersSwing) {
     body().motion_type.state.time = 10.0f;
     Swing(0.0f, 5.0f, 18.0f, 3.0f, 20, 200, expanded::kHitsPlayer);
     int life = pockle().hp;
-    EXPECT_EQ(expanded::MonsterFriendlyHit(ally(), 0), MONSTER_DMG_NONE);
+    EXPECT_EQ(expanded::MonsterFriendlyHit(ally(), 0), MonsterDamageResult::None);
     EXPECT_EQ(pockle().hp, life);
 }
 
@@ -634,7 +634,7 @@ TEST_F(Pocklekul, AMonstersShotStrikesIt) {
     int shot = Swing(0.0f, 5.0f, 17.0f, 2.0f, 15, -1, expanded::kHitsPlayer);
     NowColData->hit[shot].monster_no = 0;
     int life = pockle().hp;
-    EXPECT_EQ(expanded::MonsterFriendlyHit(ally(), 0), MONSTER_DMG_HIT);
+    EXPECT_EQ(expanded::MonsterFriendlyHit(ally(), 0), MonsterDamageResult::Hit);
     EXPECT_EQ(pockle().hp, life - std::max(1, 15 - pockle().defense));
     EXPECT_EQ(NowColData->active[shot], 0);
 }
@@ -645,7 +645,7 @@ TEST_F(Pocklekul, ItsOwnShotsAreNotAMonsters) {
     ally().current_monster = kAllyMonster;
     int shot = Swing(0.0f, 5.0f, 17.0f, 2.0f, 15, -1, expanded::kHitsPlayer);
     NowColData->hit[shot].monster_no = expanded::kAllyShooter;
-    EXPECT_EQ(expanded::MonsterFriendlyHit(ally(), 0), -1);
+    EXPECT_EQ(expanded::MonsterFriendlyHit(ally(), 0), std::nullopt);
 }
 
 TEST_F(Pocklekul, ItsShotIsAHitOfTheSummoners) {

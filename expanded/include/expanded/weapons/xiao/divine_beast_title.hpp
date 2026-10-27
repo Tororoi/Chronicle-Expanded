@@ -2,10 +2,12 @@
 
 #include "expanded/dungeon/own_sounds.hpp"
 
+namespace dc::game {
 class CCharacter;
 class CSHOT;
 struct COLLISION_HIT;
 struct MONSTOR_EFFECT_STATE;
+} // namespace dc::game
 
 namespace expanded {
 

@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "expanded/status/confuse.hpp"
-#include "texture_port.hpp"
+#include "render/texture_registry.hpp"
 
 namespace expanded {
 

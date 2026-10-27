@@ -130,14 +130,14 @@ int MotionCount(const CCharacter &character) {
     return count;
 }
 
-void BossPackFile(char *filename, int model_no) {
+void BossPackFile(std::string &filename, int model_no) {
     for (const BuiltPack &pack : kBuiltPacks) {
         if (model_no != No(pack.boss)) {
             continue;
         }
         std::error_code error;
         if (std::filesystem::is_regular_file(PathsDataRoot() / pack.file, error)) {
-            std::strcpy(filename, pack.file);
+            filename = pack.file;
         } else if (!logged_missing) {
             logged_missing = true;
             std::fprintf(stderr, "bosses: the data lacks %s; the boss falls with %s (dcdata expanded <data> adds the new one)\n",

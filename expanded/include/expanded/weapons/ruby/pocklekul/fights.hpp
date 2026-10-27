@@ -1,7 +1,12 @@
 #pragma once
 
+#include <optional>
+
+namespace dc::game {
+enum class MonsterDamageResult : int;
 class CMonstorUnit;
 struct COLLISION_HIT;
+} // namespace dc::game
 
 namespace expanded::pocklekul {
 
@@ -43,14 +48,14 @@ void FightsStep();
 // unit blocked it (both ways); where a floor monster it provoked finds the player, true when it set it; a floor
 // monster's kill ABS (logged when its hit felled it). A hit planted for it lands on its monster alone: a floor monster
 // refuses one meant for another (PockleHitMeantElsewhere).
-void PockleSwingSet(CMonstorUnit &unit, int hit);
-int  PockleHitOn(CMonstorUnit &unit, int sphere);
-bool PockleRefuses(const COLLISION_HIT &hit);
-bool PockleHitMeantElsewhere(int monster, const COLLISION_HIT &hit);
-void PockleMonsterDamaged(int monster, const COLLISION_HIT &hit, int amount);
-void PockleShots();
-void PockleMoveChecked(CMonstorUnit &unit, int monster);
-bool PockleProvoked(int monster, float *position);
-void PockleKillAbs(int monster, int abs);
+void                               PockleSwingSet(CMonstorUnit &unit, int hit);
+std::optional<MonsterDamageResult> PockleHitOn(CMonstorUnit &unit, int sphere);
+bool                               PockleRefuses(const COLLISION_HIT &hit);
+bool                               PockleHitMeantElsewhere(int monster, const COLLISION_HIT &hit);
+void                               PockleMonsterDamaged(int monster, const COLLISION_HIT &hit, int amount);
+void                               PockleShots();
+void                               PockleMoveChecked(CMonstorUnit &unit, int monster);
+bool                               PockleProvoked(int monster, float *position);
+void                               PockleKillAbs(int monster, int abs);
 
 } // namespace expanded::pocklekul

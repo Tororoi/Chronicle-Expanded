@@ -24,7 +24,7 @@
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
-#include "localize.hpp"
+#include "localize/localize.hpp"
 #include "main.hpp"
 #include "mathutil.hpp"
 #include "menu_misc.hpp"
@@ -33,8 +33,9 @@
 #include "userstatus.hpp"
 #include "weaponelement.hpp"
 
-extern s32          mode;
-extern CSHOT_EFFECT CharaMainEffect;
+namespace dc::game {
+extern s32 mode;
+} // namespace dc::game
 
 namespace expanded {
 
@@ -213,7 +214,7 @@ void Steer(CMonstorUnit &unit, CSHOT_EFFECT &arrows) {
 
 bool CursedPrismActive() {
     return Playing(CHARA_RUBY) && WeaponWielded(ITEM_WEAPON_CRYSTAL_RING) && CurseOn(CHARA_RUBY) == &kCursedPrism &&
-           NowMainEffect == &CharaMainEffect;
+           NowMainEffect == &CharaMainShotEffect();
 }
 
 int HeldElement(const WEAPON_HAVE &weapon) {
@@ -245,7 +246,7 @@ void HoldCrystalRings(CUserStatus &status) {
 
 void PrismOrbThrown(CSHOT_EFFECT &effect, int slot, float scale, bool repeat) {
     CSHOT_EFFECT *arrows = PrismArrows();
-    if (arrows == nullptr || &effect != &CharaMainEffect || slot < 0 || slot >= effect.slot_count || effect.active[slot] == 0 ||
+    if (arrows == nullptr || &effect != &CharaMainShotEffect() || slot < 0 || slot >= effect.slot_count || effect.active[slot] == 0 ||
         !CursedPrismActive()) {
         return;
     }

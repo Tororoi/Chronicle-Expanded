@@ -1,7 +1,9 @@
 #pragma once
 
+namespace dc::game {
 class CMonstorUnit;
 struct RS_STACKDATA;
+} // namespace dc::game
 
 namespace expanded {
 

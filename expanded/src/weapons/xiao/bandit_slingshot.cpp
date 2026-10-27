@@ -14,19 +14,19 @@
 #include "expanded/enemies/species.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
-#include "gametext.hpp"
 #include "itemdata.hpp"
-#include "localize.hpp"
+#include "localize/localize.hpp"
 #include "menu_misc.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
+#include "text/gametext.hpp"
 #include "userstatus.hpp"
 
 namespace expanded {
 
 namespace {
 
-constexpr int kNameMessage = 3000;       // a monster's name: CharaNameMes's name_no + 3000
+constexpr int kNameMessage = 3000;       // a monster's name: MonsterNameMessages()'s name_no + 3000
 const int     kNotices[] = {10, 20, 30}; // ItemGetMes's "acquired" templates
 
 struct Stolen {
@@ -58,10 +58,10 @@ int Projectile(int index) {
 }
 
 std::string MonsterName(const CMonstorUnit &unit, int monster) {
-    if (CharaNameMes == nullptr) {
+    if (MonsterNameMessages() == nullptr) {
         return {};
     }
-    const short *codes = CharaNameMes->GetTextLineDataTop(unit.monster[monster].name_no + kNameMessage);
+    const short *codes = MonsterNameMessages()->GetTextLineDataTop(unit.monster[monster].name_no + kNameMessage);
     return codes != nullptr ? GameTextDecode(codes) : std::string{};
 }
 

@@ -1,5 +1,6 @@
 #include "expanded/weapons/ungaga/mirage/clone.hpp"
 
+#include <array>
 #include <cstdio>
 
 #include "btitem.hpp"
@@ -20,6 +21,16 @@
 namespace expanded::mirage {
 
 namespace {
+
+// Each party member's character file, as the dungeon loads it (btitem's selectChrUnit).
+constexpr std::array<const char *, 6> kCharaFiles = {
+    "dun/mainchara/c01d.chr",
+    "dun/mainchara/c04b.chr",
+    "dun/mainchara/c06b.chr",
+    "dun/mainchara/c05a.chr",
+    "dun/mainchara/c10b.chr",
+    "dun/mainchara/c18a.chr",
+};
 
 constexpr char kBaseCfg[] = "base.cfg";             // the dungeon model's cfg in its pack, as LoadChara2 reads it
 constexpr char kHandFrame[] = "weapon";             // the bone the weapon in hand hangs from
@@ -99,10 +110,10 @@ bool CloneLoad() {
     if (clone.failed == chara) {
         return false; // not again this floor
     }
-    CCharacter *body = EnterFloorCopy(charaNameTbl[chara], kBaseCfg);
+    CCharacter *body = EnterFloorCopy(kCharaFiles[chara], kBaseCfg);
     if (body == nullptr || body->frame == nullptr) {
         clone.failed = chara;
-        std::fprintf(stderr, "mirage: no copy, %s could not be loaded\n", charaNameTbl[chara]);
+        std::fprintf(stderr, "mirage: no copy, %s could not be loaded\n", kCharaFiles[chara]);
         return false;
     }
     CloneDown();

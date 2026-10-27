@@ -1,9 +1,13 @@
 #pragma once
 
+#include <string>
+
 #include "expanded/enemies/monsters.hpp"
 
+namespace dc::game {
 class CCharacter;
 class CMonstorUnit;
+} // namespace dc::game
 
 namespace expanded {
 
@@ -26,7 +30,7 @@ inline constexpr int kBossFadeFrames = 96;
 int MotionCount(const CCharacter &character);
 
 // SetupBaseModel's pack: Joe's or the Black Knight's built model when the data has it.
-void BossPackFile(char *filename, int model_no);
+void BossPackFile(std::string &filename, int model_no);
 
 // _SET_MONSTOR_POS from a boss setting up or beaten: true keeps the monsters where they are.
 bool BossKeepsPlace(const CMonstorUnit &unit, int monster);
