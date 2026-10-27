@@ -3,23 +3,55 @@
 A feature's clip is a headless run of the release build: a **stage** puts a save's party on a dungeon floor with
 the member, weapon and monsters it needs, an **input script** plays the feature, an **event log** gives the numbers
 for its caption, and the same run with the **Weapon Abilities** option off is the before to its after.
-`scripts/port/clip.py` does all of it in one command:
+`scripts/port/clip.py` does all of it in one command. A clip's stage and input script belong to that clip, not to the
+repository: keep them beside its recordings in `port/run/clips/` (which git ignores) or outside the repository. For
+Hercules' Wrath's Air Strike, `air-strike.stage`:
+
+```
+# Ungaga on Sun & Moon Temple floor 4, five Mummies set out 100 ahead, walking in.
+roster     = 44
+dungeon    = 3
+floor      = 3
+character  = ungaga
+weapon     = 356
+attack     = 25
+seed       = 1
+place      = 5
+distance   = 100
+keep_alive = yes
+```
+
+and `air-strike.in`, timed from a dry run's `stage` events (Ungaga out at frame 469, the Mummies placed at 568): lock
+on, guard (the decoy, then the five-second charge), step back and aside, let go once primed, and swing.
+
+```
+600 128 128 128 255
+650 circle 128 128 128 255
+656 128 128 128 255
+670 r1 128 128 128 255
+695 r1 128 255 128 255
+820 r1 255 128 128 255
+920 r1 128 128 128 255
+1020 128 128 128 255
+1045 cross 128 128 128 255
+1050 128 128 128 255
+1520
+```
+
+Then, with a release build:
 
 ```
 cmake --preset macos-arm64-release -DCHRONICLE_EXPANDED=ON
 cmake --build port/build/macos-arm64-release --target darkcloud
-python3 scripts/port/clip.py air-strike --compare \
-    --stage scripts/port/stages/hercules-air-strike.stage --input scripts/port/stages/hercules-air-strike.in \
+python3 scripts/port/clip.py air-strike --compare --stage air-strike.stage --input air-strike.in \
     --from 600 --length 920 --data <game data> --save <a save folder with a late-game save in slot 1>
 ```
 
 That writes `port/run/clips/air-strike.mp4` (the run on the left, the one with Weapon Abilities off on the right, each
 one's sound in its own ear), `air-strike.events.jsonl`, `air-strike.off.events.jsonl` and `air-strike.sheet.png` (a
-frame a second),
-in about half a minute. Record with a release build: a debug build is about ten times slower, most of it in writing
-the frames. Recordings go in `port/run/clips/`, which git ignores (all of `port/run/` is), or outside the
-repository: `clip.py` and `record_clip.py` refuse to write a video, a kept folder or a log anywhere in the
-repository that git does not ignore, so a recording is never committed.
+frame a second), in about half a minute. A debug build is about ten times slower, most of it in writing the frames.
+Recordings go in `port/run/clips/` or outside the repository: `clip.py` and `record_clip.py` refuse to write a video,
+a kept folder or a log anywhere in the repository that git does not ignore, so a recording is never committed.
 
 ## Stages
 
