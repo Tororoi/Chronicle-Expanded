@@ -123,9 +123,12 @@ void Steal(CMonstorUnit &floor, CMonstorUnit &ally, int victim) {
     from.money_chance = 0;
 }
 
+// A monster turned on the pockle, unless the pockle has fallen (its death playing out).
 void Provoke(int monster, const char *why) {
     CMonstorUnit *floor = AllyFloor();
-    if (floor == nullptr || fights.provoked[monster] || !MonsterLiving(floor->monster[monster]) || confuse::Confused(*floor, monster)) {
+    CMonstorUnit *ally = AllyStanding();
+    if (floor == nullptr || ally == nullptr || ally->monster[kAllyMonster].hp <= 0 || fights.provoked[monster] ||
+        !MonsterLiving(floor->monster[monster]) || confuse::Confused(*floor, monster)) {
         return;
     }
     fights.provoked[monster] = true;

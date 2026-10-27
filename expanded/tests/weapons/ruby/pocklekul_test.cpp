@@ -733,6 +733,21 @@ TEST_F(Pocklekul, ItsBodyStopsAMonsterThatThenGoesAfterIt) {
     EXPECT_NEAR(target[2], PockleAt(2), 1e-4f);
 }
 
+TEST_F(Pocklekul, FallenItsBodyStopsAMonsterThatStaysOnThePlayer) {
+    Stand(1, 0.0f, 25.0f);
+    Summon();
+    pockle().hp = 0; // its death playing out
+    MONSTOR &mummy = floor().monster[1];
+    mummy.movement[0] = 0.0f;
+    mummy.movement[2] = -1.0f;
+    mummy.movement_speed = 2.0f;
+    expanded::MonsterMoveChecked(floor(), 1);
+    EXPECT_EQ(mummy.movement_speed, 0.0f);
+    float target[4];
+    FloorTarget(1, target);
+    EXPECT_NEAR(target[2], 0.0f, 1e-4f);
+}
+
 TEST_F(Pocklekul, TheFloorsFeaturesPassItBy) {
     Stand(0, 0.0f, 100.0f);
     Summon();
