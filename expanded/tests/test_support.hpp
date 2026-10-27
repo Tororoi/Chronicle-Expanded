@@ -175,6 +175,32 @@ private:
     CMonstorUnit                 *saved_unit_;
 };
 
+// The monsters stepping unpaused for a test (MonstersStepping): the floor drawn, no event, no hold.
+class StepsUnpaused {
+public:
+    StepsUnpaused() : draw_(BtAllDrawFlag), event_(BtEventMode), drive_(driveStepHold), unit_(CMonUnitHold) {
+        BtAllDrawFlag = 1;
+        BtEventMode = 0;
+        driveStepHold = CMonUnitHold = 0;
+    }
+
+    ~StepsUnpaused() {
+        BtAllDrawFlag = draw_;
+        BtEventMode = event_;
+        driveStepHold = drive_;
+        CMonUnitHold = unit_;
+    }
+
+    StepsUnpaused(const StepsUnpaused &) = delete;
+    StepsUnpaused &operator=(const StepsUnpaused &) = delete;
+
+private:
+    s32 draw_;
+    s32 event_;
+    int drive_;
+    int unit_;
+};
+
 // A fresh save (SaveData) for a test: its dungeon status (the party's weapons) and storage.
 class TestSave {
 public:

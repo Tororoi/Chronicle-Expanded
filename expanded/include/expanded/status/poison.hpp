@@ -7,6 +7,10 @@ namespace expanded {
 // Steps a monster's poison lasts: ten of its 180-step ticks, 30 seconds.
 inline constexpr int kPoisonSteps = 1800;
 
+// Whether the monsters step this frame: the floor is drawn and no event or hold stops them. Poison, confusion and
+// blindness count only these frames.
+bool MonstersStepping();
+
 // Advances the floor step clock poison is timed by, on each step monsters step unpaused.
 void MonsterStepClockAdvance();
 

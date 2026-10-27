@@ -14,6 +14,7 @@
 #include "expanded/core/random.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/status/confuse_icon.hpp"
+#include "expanded/status/poison.hpp"
 #include "itembombeffect.hpp"
 #include "itemdata.hpp"
 #include "mathutil.hpp"
@@ -211,7 +212,7 @@ int ConfuseOptionMessage(int bit) {
 }
 
 void ConfuseTick() {
-    if (BtAllDrawFlag == 0 || BtEventMode != 0 || (driveStepHold | CMonUnitHold) != 0) {
+    if (!MonstersStepping()) {
         return;
     }
     Confusion &state = State();

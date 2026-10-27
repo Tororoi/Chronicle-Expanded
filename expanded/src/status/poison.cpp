@@ -16,8 +16,12 @@ int poison_start[16];
 
 } // namespace
 
+bool MonstersStepping() {
+    return BtAllDrawFlag != 0 && BtEventMode == 0 && (driveStepHold | CMonUnitHold) == 0;
+}
+
 void MonsterStepClockAdvance() {
-    if (BtAllDrawFlag != 0 && BtEventMode == 0 && (driveStepHold | CMonUnitHold) == 0) {
+    if (MonstersStepping()) {
         step_clock++;
     }
 }

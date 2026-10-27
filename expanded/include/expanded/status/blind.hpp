@@ -32,7 +32,7 @@ bool Blinding();
 int  BlindFramesLeft();
 bool Blinded(int monster);
 
-// Counts the blinding down (once a step the monsters are not held).
+// Counts the blinding down on a frame the monsters step (MonstersStepping): an event or a hold pauses it.
 void BlindTick();
 
 // Hooks: a monster's step in place of its script while blinded; whether its guard windows block a hit.
