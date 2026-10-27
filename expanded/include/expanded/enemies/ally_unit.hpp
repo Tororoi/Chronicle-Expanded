@@ -28,7 +28,8 @@ CMonstorUnit *AllyStanding();
 CMonstorUnit *AllyFloor();
 
 // Loads kind (a MonstorTable kind) into the ally's unit and stands it at position, beside the floor's unit
-// (NowMonstorUnit); one standing goes first. False, nothing standing, when it cannot load or stand.
+// (NowMonstorUnit); one standing goes first. False, nothing standing, when it cannot load or stand, or when the texture
+// table or the VRAM above the monsters' block has no room for its images.
 bool AllySummon(int kind, const float *position);
 
 // Takes it down: its monster gone, and what its load added to the texture table, the texture animations and the shot

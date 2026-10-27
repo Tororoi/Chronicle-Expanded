@@ -12,6 +12,7 @@
 #include "dataalloc.hpp"
 #include "dataread_port.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/pack_files.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/sounds.hpp"
 #include "monstorunit.hpp"
@@ -37,6 +38,10 @@ constexpr int kMonsterBlock = 0x2A, kShotBlock = 0x26;
 // script copy and shot data load into: a pockle takes about 35,000 quadwords of it, this over three times that.
 constexpr int kScriptQuads = 1875;
 constexpr int kModelQuads = 0x20000;
+
+// The VRAM (the texture manager's units) a load needs free from the monsters' block's end up to the fixed textures or the
+// manager's top, whichever is lower: less refuses the summon.
+constexpr int kVramRoom = 0x180;
 
 constexpr int kTextureEntries = sizeof(CTextureManager::textures) / sizeof(CTextureManager::textures[0]);
 constexpr int kTexAnimeRecords = sizeof(MonsterTexAnim) / sizeof(MonsterTexAnim[0]);
@@ -185,8 +190,26 @@ void Release(Ally &ally) {
     ally.ends.clear();
 }
 
+// Whether the texture table and the VRAM above the monsters' block have room for its images: the table keeps its reserve
+// for the dungeon's own (pack_files.hpp), and the VRAM kVramRoom.
+bool TextureRoom() {
+    int free = 0;
+    for (int i = 1; i < kTextureEntries; i++) {
+        free += TexManager.textures[i].name[0] == 0 ? 1 : 0;
+    }
+    int top = TexManager.vram_fix < TexManager.vram_max ? TexManager.vram_fix : TexManager.vram_max;
+    if (free <= kTextureReserve || top - TexManager.blocks[kMonsterBlock].vram_end < kVramRoom) {
+        std::fprintf(stderr, "ally: no texture room (%d entries free, %d VRAM units)\n", free, top - TexManager.blocks[kMonsterBlock].vram_end);
+        return false;
+    }
+    return true;
+}
+
 bool LoadKind(CMonstorUnit &unit, int kind, const float *position) {
     Ally &ally = State();
+    if (!TextureRoom()) {
+        return false;
+    }
     if (ally.model.base == nullptr) {
         ally.model.base = ArenaBlock(&ally.model, static_cast<std::size_t>(kModelQuads) * 16);
         ally.model.limit = kModelQuads;
