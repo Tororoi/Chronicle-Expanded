@@ -104,10 +104,14 @@ inline constexpr int         kNutHopAimFrames = 15; // where the hop comes down,
 
 // The nut's sounds in Brownboo Village's scene, where it drops from the tree onto Toan's head (the village set's bank):
 // the whistle of its fall (SE 350: program 46, note 50), a rise that cuts off at its end, kNutFallSoundFrames long,
-// started as the nut is that many frames from the head, so the bonk lands as it ends; and the knock as it lands (SE
-// 351: program 46, note 51).
+// started as the nut is kNutWhistleGap frames more than that from the head, so it ends just before the bonk; and the
+// knock as it lands (SE 351: program 46, note 51), the game's other sounds ducked under it. The knock is short and far
+// quieter than the whistle: the whistle plays at kNutFallVolume, and the gap keeps its cut-off from masking the knock.
 inline constexpr int      kNutFallSoundFrames = 122;
-inline constexpr OwnSound kNutFallSound = {.path = "sound/set/snd14.snd", .bank = "s04a_g.hd", .program = 46, .note = 50, .frames = kNutFallSoundFrames};
+inline constexpr int      kNutWhistleGap = 10;
+inline constexpr int      kNutFallVolume = 0x5A;
+inline constexpr OwnSound kNutFallSound = {
+    .path = "sound/set/snd14.snd", .bank = "s04a_g.hd", .program = 46, .note = 50, .frames = kNutFallSoundFrames, .volume = kNutFallVolume};
 inline constexpr OwnSound kNutBonkSound = {.path = "sound/set/snd14.snd", .bank = "s04a_g.hd", .program = 46, .note = 51, .frames = 10};
 
 enum class BigRockPhase {

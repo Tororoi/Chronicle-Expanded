@@ -704,8 +704,8 @@ TEST_F(BigRockBySuperSteve, TheNutBonksTheHeadAndConfusesIt) {
     EXPECT_FALSE(expanded::confuse::Confused(floor_.unit(), 0));
 }
 
-// DC_TEST_DATA, an extracted data directory: the nut's whistle goes off as it comes within the whistle's length of the
-// head, so the knock of the bonk comes as the whistle ends.
+// DC_TEST_DATA, an extracted data directory: the nut's whistle goes off as it comes within the whistle's length and the
+// gap of the head, so it ends just before the knock of the bonk.
 TEST_F(BigRockBySuperSteve, ItWhistlesDownAndKnocks) {
     const char *data = std::getenv("DC_TEST_DATA");
     if (data == nullptr) {
@@ -726,8 +726,8 @@ TEST_F(BigRockBySuperSteve, ItWhistlesDownAndKnocks) {
         }
     }
     ASSERT_GT(whistled, 1); // not as it drops: the fall is longer than the whistle
-    EXPECT_GE(frames - whistled, expanded::kNutFallSoundFrames - 1);
-    EXPECT_LE(frames - whistled, expanded::kNutFallSoundFrames);
+    EXPECT_GE(frames - whistled, expanded::kNutFallSoundFrames + expanded::kNutWhistleGap - 1);
+    EXPECT_LE(frames - whistled, expanded::kNutFallSoundFrames + expanded::kNutWhistleGap);
     EXPECT_EQ(Planted().size(), 1u);
     EXPECT_EQ(mixer.ActiveVoices(), before + 2);
 }

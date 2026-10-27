@@ -334,7 +334,7 @@ void Bonk() {
         return;
     }
     NutBonk(Unit(), monster);
-    PlayOwnSound(kNutBonkSound, false);
+    PlayOwnSound(kNutBonkSound, true);
     ConfuseMonster(Unit(), monster, kNutConfusionSteps);
     d.bonked = monster;
     LogEvent("big_rock", std::format("\"step\":\"bonk\",\"monster\":{}", monster));
@@ -351,10 +351,10 @@ float FramesToStop() {
     return (-b + std::sqrt(b * b + 2.0f * d.gravity * h)) / d.gravity;
 }
 
-// The nut's whistle, as it comes within the sound's length of the head: the bonk lands as it ends.
+// The nut's whistle, as it comes within the sound's length and the gap of the head: it ends just before the bonk.
 void Whistle() {
     Drop &d = state.drop;
-    if (d.whistled || !d.head || std::ceil(FramesToStop()) > kNutFallSoundFrames) {
+    if (d.whistled || !d.head || std::ceil(FramesToStop()) > kNutFallSoundFrames + kNutWhistleGap) {
         return;
     }
     d.whistled = true;
