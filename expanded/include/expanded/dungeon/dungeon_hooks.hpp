@@ -147,7 +147,12 @@ float XiaoShotWear(float wear);
 // The percentage of the hit's damage a monster's sphere takes from owner (CheckDmg).
 int MonsterSpherePercent(const CMonstorUnit &unit, int monster, int sphere, int owner, const COLLISION_HIT &hit, int percent);
 
-// Whether a monster's guard window blocks the hit that reached it (CheckDmg).
+// Whether a monster's guard windows can block at all: not while it is blinded. Any hit on a monster, another monster's
+// too, is held to it.
+bool MonsterCanGuard(int monster);
+
+// Whether a monster's guard window blocks the hit that reached it (CheckDmg): MonsterCanGuard, unless the hit is one of
+// the weapons that pass a guard.
 bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, int window, const COLLISION_HIT &hit);
 
 } // namespace expanded
