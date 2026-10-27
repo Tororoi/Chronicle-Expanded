@@ -133,6 +133,13 @@ TEST_F(BossCasts, HerDefeatTakesHerBarrierAwayWithoutAKill) {
     EXPECT_EQ(unit_->monster[1].state, 1);
     EXPECT_EQ(unit_->alive_count, 2);
     EXPECT_EQ(unit_->monster[0].requested_motion, 11);
+
+    // On her death's last frame she lies in its loop and fades.
+    unit_->chara[0][0].motion_type.state.time = 20.0f;
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(unit_->monster[0].requested_motion, 12);
+    EXPECT_EQ(unit_->monster[0].requested_motion_flags, 0);
+    EXPECT_FLOAT_EQ(unit_->monster[0].palette_alpha_step, 128.0f / expanded::kBossFadeFrames);
 }
 
 TEST_F(BossCasts, KingsCurseComesWholeOnlyWithUngagaInTheParty) {
@@ -195,6 +202,11 @@ TEST_F(BossCasts, TheCoffinsDefeatTakesTheKingAway) {
     EXPECT_EQ(unit_->monster[1].state, -1);
     EXPECT_EQ(unit_->alive_count, 1);
     EXPECT_EQ(unit_->monster[0].requested_motion, 5);
+
+    unit_->chara[0][0].motion_type.state.time = 20.0f;
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(unit_->monster[0].requested_motion, 6);
+    EXPECT_EQ(unit_->monster[0].requested_motion_flags, 0);
 }
 
 TEST_F(BossCasts, TheMountBringsTheBlackKnightWhoMayAlsoComeAlone) {

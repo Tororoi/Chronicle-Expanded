@@ -13,6 +13,7 @@
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/scaling.hpp"
+#include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "platform/paths.hpp"
 #include "test_support.hpp"
@@ -322,6 +323,41 @@ TEST_F(OutOfPlaceBoss, BeatenBlackKnightBowsWrithesAndFadesWhenTheLightComes) {
     EXPECT_EQ(knight.state, -1);
     EXPECT_EQ(unit_->alive_count, 0);
     expanded::SetShotEffectLoader(nullptr);
+}
+
+TEST_F(OutOfPlaceBoss, WithoutTheBuiltModelTheBlackKnightFallsWithHisDismount) {
+    expanded::SetShotEffectLoader([](CSHOT_EFFECT &, CDataAlloc2<1> &, BT_SHOT_EFFECT *, int, const char *) { return false; });
+    expanded::ShotEffectsClear();
+    LoadFloor(true, {Monster::BLACK_KNIGHT});
+    Spawn(0, 0);
+    GiveMotions(0, 15);
+    MONSTOR &knight = unit_->monster[0];
+    knight.state = 2;
+    knight.hp = 0;
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(knight.requested_motion, 7);
+    EXPECT_EQ(knight.requested_motion_flags, 2);
+    FinishMotion(0);
+    EXPECT_TRUE(expanded::BossDeathStep(*unit_, 0));
+    EXPECT_EQ(knight.requested_motion, 8);
+    EXPECT_EQ(knight.requested_motion_flags, 0);
+    EXPECT_FLOAT_EQ(knight.palette_alpha_step, 128.0f / expanded::kBossFadeFrames);
+    expanded::SetShotEffectLoader(nullptr);
+}
+
+TEST_F(OutOfPlaceBoss, KingsCurseSmokesOnHisFloorAndWhereARosterBringsHim) {
+    LoadFloor(false, {});
+    UserStatus->cur_georama = 3;
+    UserStatus->cur_floor = 17;
+    EXPECT_TRUE(expanded::BossSmokes(1, 0));
+    EXPECT_FALSE(expanded::BossSmokes(0, 0));
+    UserStatus->cur_floor = 16;
+    EXPECT_FALSE(expanded::BossSmokes(1, 0));
+
+    UserStatus->party_size = CHARA_UNGAGA + 1;
+    LoadFloor(true, {Monster::KINGS_CURSE_COFFIN});
+    EXPECT_FALSE(expanded::BossSmokes(5, 0));
+    EXPECT_TRUE(expanded::BossSmokes(5, 1));
 }
 
 TEST(BossPack, JoeLoadsHisBuiltModelWhenTheDataHasIt) {
