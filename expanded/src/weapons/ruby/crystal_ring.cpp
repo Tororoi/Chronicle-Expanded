@@ -137,15 +137,18 @@ bool CrystalAim(const float *from, float *aim) {
     return found;
 }
 
-// Turns a flying arrow kPrismTurnDegrees toward aim, wherever aim lies, at the same speed: its heading swings toward the
+// Turns a flying arrow kPrismTurnDegrees toward aim, wherever aim lies, at its own speed: its heading swings toward the
 // part of the way to aim that lies across it. Within that angle of aim, or with aim dead ahead or behind, the arrow
 // flies on as it points.
 void Turn(CSHOT_EFFECT &arrows, int slot, const float *aim) {
-    const float speed = arrows.effect_data->speed[kFlying];
+    float      *flight = arrows.velocity[slot];
+    const float speed = std::sqrt(flight[0] * flight[0] + flight[1] * flight[1] + flight[2] * flight[2]);
+    if (speed == 0.0f) {
+        return;
+    }
     const float angle = kPrismTurnDegrees * PI / 180.0f;
     const float sine = std::sin(angle);
     const float cosine = std::cos(angle);
-    float      *flight = arrows.velocity[slot];
     float       at[4];
     arrows.chara[slot].GetPosition(at);
     float heading[4] = {flight[0] / speed, flight[1] / speed, flight[2] / speed, 1.0f};
@@ -240,7 +243,7 @@ void HoldCrystalRings(CUserStatus &status) {
     }
 }
 
-void PrismOrbThrown(CSHOT_EFFECT &effect, int slot, bool repeat) {
+void PrismOrbThrown(CSHOT_EFFECT &effect, int slot, float scale, bool repeat) {
     CSHOT_EFFECT *arrows = PrismArrows();
     if (arrows == nullptr || &effect != &CharaMainEffect || slot < 0 || slot >= effect.slot_count || effect.active[slot] == 0 ||
         !CursedPrismActive()) {
@@ -266,6 +269,13 @@ void PrismOrbThrown(CSHOT_EFFECT &effect, int slot, bool repeat) {
     int fired = arrows->current_slot;
     if (fired < 0) { // with no room, the orb flies
         return;
+    }
+    if (scale > 1.0f) { // a charged throw's arrow, a little faster
+        float *arrow = arrows->velocity[fired];
+        float  speed = std::sqrt(arrow[0] * arrow[0] + arrow[1] * arrow[1] + arrow[2] * arrow[2]);
+        for (int i = 0; i < 3; i++) {
+            arrow[i] *= kPrismChargedSpeed / speed;
+        }
     }
     arrows->SetDmg(effect.damage[slot]);
     arrows->SetWepStatus(effect.weapon_status[slot]);

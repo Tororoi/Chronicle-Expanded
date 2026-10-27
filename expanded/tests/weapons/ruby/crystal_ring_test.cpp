@@ -144,9 +144,9 @@ protected:
         expanded::CurseStep();
     }
 
-    // An orb of hers flying from (0, 8, 0) along flight for damage, let go into slot 0 as BattleActionShotRuby does (a
-    // full charge's second orb when repeat).
-    void Throw(float x, float y, float z, int damage, bool repeat = false) {
+    // An orb of hers flying from (0, 8, 0) along flight for damage, let go into slot 0 as BattleActionShotRuby does: scale
+    // the throw's charge, repeat a full charge's second orb.
+    void Throw(float x, float y, float z, int damage, float scale = 1.0f, bool repeat = false) {
         CharaMainEffect.chara[0].SetPosition(0.0f, 8.0f, 0.0f);
         CharaMainEffect.velocity[0][0] = x;
         CharaMainEffect.velocity[0][1] = y;
@@ -157,7 +157,7 @@ protected:
         CharaMainEffect.weapon_status[0] = 0x40;
         CharaMainEffect.vs_monster[0] = vs_monster_;
         CharaMainEffect.current_slot = 0;
-        expanded::RubyOrbThrown(CharaMainEffect, 0, repeat);
+        expanded::RubyOrbThrown(CharaMainEffect, 0, scale, repeat);
     }
 
     // A monster of kind set out at (x, 0, z) in monster slot.
@@ -368,12 +368,26 @@ TEST_F(CrystalRing, EveryOrbFliesOnAsTheIceArrow) {
     EXPECT_FLOAT_EQ(arrow->radius[2], 8.0f);
 
     // A full charge: the first orb's arrow, and the second orb, shimmering over it, gone with no arrow of its own.
-    Throw(0.0f, 0.0f, 0.9f, 140);
-    Throw(0.0f, 0.0f, 0.9f, 140, true);
+    Throw(0.0f, 0.0f, 0.9f, 140, 2.2f);
+    Throw(0.0f, 0.0f, 0.9f, 140, 2.2f, true);
     EXPECT_NE(arrows_->active[1], 0);
     EXPECT_EQ(arrows_->damage[1], 140);
     EXPECT_EQ(arrows_->active[2], 0);
     EXPECT_EQ(CharaMainEffect.active[0], 0);
+}
+
+TEST_F(CrystalRing, AChargedThrowsArrowFliesALittleFaster) {
+    SetOut(0, 100.0f, 0.0f);
+    Throw(0.0f, 0.0f, 0.9f, 60);        // a quick shot
+    Throw(0.0f, 0.0f, 0.9f, 90, 1.5f);  // a part charge
+    Throw(0.0f, 0.0f, 0.9f, 132, 2.2f); // a full charge
+    EXPECT_NEAR(Speed(arrows_->velocity[0]), 1.2f, 1e-5f);
+    EXPECT_NEAR(Speed(arrows_->velocity[1]), expanded::kPrismChargedSpeed, 1e-5f);
+    EXPECT_NEAR(Speed(arrows_->velocity[2]), expanded::kPrismChargedSpeed, 1e-5f);
+    // and keeps its speed as it turns.
+    Steps(30);
+    EXPECT_NEAR(Speed(arrows_->velocity[0]), 1.2f, 1e-5f);
+    EXPECT_NEAR(Speed(arrows_->velocity[2]), expanded::kPrismChargedSpeed, 1e-5f);
 }
 
 TEST_F(CrystalRing, WithNoRoomLeftTheOrbFlies) {
@@ -383,7 +397,7 @@ TEST_F(CrystalRing, WithNoRoomLeftTheOrbFlies) {
     Throw(0.0f, 0.0f, 0.9f, 10);
     EXPECT_NE(CharaMainEffect.active[0], 0);
     // and so does a full charge's second orb with it.
-    Throw(0.0f, 0.0f, 0.9f, 10, true);
+    Throw(0.0f, 0.0f, 0.9f, 10, 2.2f, true);
     EXPECT_NE(CharaMainEffect.active[0], 0);
 }
 

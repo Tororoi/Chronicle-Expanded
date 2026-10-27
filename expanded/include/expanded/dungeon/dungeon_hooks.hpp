@@ -99,9 +99,10 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster);
 // Xiao fired a pellet into slot of shots (BattleActionPlay_Jinn), and a pellet ended at point, on a monster when struck
 // (CSHOT::step): the weapons that ride or answer her shots.
 void PelletFired(CSHOT &shots, int slot);
-// Ruby let an orb go into slot of effect (BattleActionShotRuby), its damage and her weapon's abilities on it; repeat for
-// a full charge's second orb, drawn shimmering over the first along its path.
-void RubyOrbThrown(CSHOT_EFFECT &effect, int slot, bool repeat);
+// Ruby let an orb go into slot of effect (BattleActionShotRuby), its damage and her weapon's abilities on it: scale is
+// the throw's charge on her damage (1 a quick shot, more a charged one), repeat for a full charge's second orb, drawn
+// shimmering over the first along its path.
+void RubyOrbThrown(CSHOT_EFFECT &effect, int slot, float scale, bool repeat);
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck);
 // A pellet's hit just planted (CSHOT::step).
 void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit);

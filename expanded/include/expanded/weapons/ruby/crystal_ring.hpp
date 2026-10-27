@@ -19,7 +19,8 @@ namespace expanded {
 // Cursed with the ring in her hand, every orb she lets go (her quick shot, a part charge's, a full charge's) flies on
 // as the Crystal Gemron's ice arrow (enemies/ice_shots.hpp) at the orb's damage, along the orb's flight at the
 // arrow's own speed and for its life, turned on the monsters with only its Ice element on its hit, her weapon's
-// abilities riding on it as on the orb. A full charge's second orb, which the game draws shimmering over the first,
+// abilities riding on it as on the orb. A charged throw's arrow (a part or full charge) flies at kPrismChargedSpeed, a
+// little faster than a quick shot's. A full charge's second orb, which the game draws shimmering over the first,
 // goes out with no arrow of its own. Each frame of its flight an arrow turns kPrismTurnDegrees toward its target
 // wherever that lies, so a miss comes round again: the locked-on monster, else the living monster nearest the arrow
 // within kPrismMonsterReach, else her door crystal nearest it within kPrismCrystalReach. A monster's target is its
@@ -29,6 +30,7 @@ namespace expanded {
 // where it strikes, then keeps quiet kPrismStrikeWait frames; while every arrow in flight is on a crystal, the arrows
 // plant a hit of kPrismCrystalRadius every frame of their flight, as a crystal opens on a hit landing near it.
 // Super Steve has no form of it. Times are game frames.
+inline constexpr float kPrismChargedSpeed = 1.5f;
 inline constexpr float kPrismTurnDegrees = 1.5f;
 inline constexpr float kPrismMonsterReach = 200.0f;
 inline constexpr float kPrismCrystalReach = 250.0f;
@@ -55,7 +57,7 @@ void HoldCrystalRings(CUserStatus &status);
 // Hooks: an orb of Ruby's let go into slot of effect (BattleActionShotRuby); a dungeon step, before the shot effects
 // step (the rings held, the arrows steered); a floor ending (a lifted curse with it); a frame of the weapon menu (the
 // rings held); a weapon built up there, once its effect is done.
-void PrismOrbThrown(CSHOT_EFFECT &effect, int slot, bool repeat);
+void PrismOrbThrown(CSHOT_EFFECT &effect, int slot, float scale, bool repeat);
 void CursedPrismStep(CMonstorUnit &unit);
 void CursedPrismFloorEnds();
 void CrystalRingMenuStep();
