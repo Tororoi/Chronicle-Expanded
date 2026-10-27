@@ -57,6 +57,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/core/save.hpp"
+#include "expanded/debug/stage.hpp"
 #endif
 
 int  EditInit(void *param);
@@ -1019,6 +1020,13 @@ int RunGame(int argc, char **argv) {
             std::ranges::find(languages, language) != languages.end()) {
             LanguageCode = language;
         }
+#ifdef CHRONICLE_EXPANDED
+        // A stage starts in its dungeon with its save's game.
+        if (!expanded::StageLoadSave()) {
+            std::fprintf(stderr, "stage: cannot load save %d from %s\n", expanded::ActiveStage()->slot, PathsDisplay(PathsSaveRoot()).c_str());
+            std::exit(2);
+        }
+#endif
         ApplyJump();
     }
 

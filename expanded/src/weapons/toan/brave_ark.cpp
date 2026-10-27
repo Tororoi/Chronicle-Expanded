@@ -15,16 +15,8 @@ constexpr int kTimed = AILMENT_FREEZE | AILMENT_STAMINA;
 } // namespace
 
 bool HerosCourage(int chara) {
-    if (UserStatus == nullptr || chara < 0 || chara >= kMembers) {
-        return false;
-    }
-    int slot = UserStatus->equipped_weapon_slot[chara];
-    if (slot < 0 || slot >= 11) {
-        return false;
-    }
-    const WEAPON_HAVE &weapon = UserStatus->chara_weapons[chara][slot];
-    return weapon.item_no == ITEM_WEAPON_BRAVE_ARK ||
-           (weapon.item_no == ITEM_WEAPON_SUPER_STEVE && SphereWeapon(weapon) == ITEM_WEAPON_BRAVE_ARK);
+    const WEAPON_HAVE *weapon = UserStatus != nullptr ? EquippedWeapon(*UserStatus, chara) : nullptr;
+    return weapon != nullptr && CarriesWeapon(*weapon, ITEM_WEAPON_BRAVE_ARK);
 }
 
 void HerosCourageHit(COLLISION_HIT &hit) {

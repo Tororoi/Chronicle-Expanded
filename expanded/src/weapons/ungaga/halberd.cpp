@@ -102,7 +102,7 @@ const TornadoTier *TornadoChargeTier() {
     if (UserStatus == nullptr || UserStatus->cur_chara != CHARA_UNGAGA || NowWeaponHave == nullptr || NowMainEffect != &CharaMainEffect) {
         return nullptr;
     }
-    return TornadoTierOf(NowWeaponHave->item_no);
+    return TornadoTierOf(HeldWeapon());
 }
 
 const TornadoTier *TornadoShotTier() {

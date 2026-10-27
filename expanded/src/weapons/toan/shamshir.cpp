@@ -29,7 +29,7 @@ float TableSpeed(const CCharacter &chara, int motion_no) {
 } // namespace
 
 bool SwiftStrikesSword() {
-    return NowWeaponHave != nullptr && SwiftStrikesWeapon(NowWeaponHave->item_no);
+    return SwiftStrikesWeapon(HeldWeapon());
 }
 
 bool SwiftStrikesSphere() {

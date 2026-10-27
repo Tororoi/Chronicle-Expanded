@@ -2,7 +2,9 @@
 
 #include "dngstatusdata.hpp"
 #include "expanded/weapons/ownership.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #include "savedata.hpp"
+#include "test_support.hpp"
 
 namespace {
 
@@ -47,4 +49,14 @@ TEST(WeaponOwnership, CountsEveryCopy) {
     stock->weapons[3].item_no = ITEM_WEAPON_FLAMINGO;
     status->chara_weapons[1][10].item_no = ITEM_WEAPON_FLAMINGO;
     EXPECT_EQ(expanded::WeaponsOwned(status, stock, ITEM_WEAPON_FLAMINGO), 3);
+}
+
+TEST(WeaponOwnership, WeaponAbilitiesOffOwnNothing) {
+    alignas(64) static CSaveData owned;
+    owned.GetDngStatus()->chara_weapons[0][0].item_no = ITEM_WEAPON_MACHO_SWORD;
+    expanded::test::OptionScope options;
+    ASSERT_TRUE(options.Set(expanded::kWeaponAbilities, false));
+    EXPECT_FALSE(expanded::WeaponOwned(owned.GetDngStatus(), owned.GetStockItem(), ITEM_WEAPON_MACHO_SWORD));
+    ASSERT_TRUE(options.Set(expanded::kWeaponAbilities, true));
+    EXPECT_TRUE(expanded::WeaponOwned(owned.GetDngStatus(), owned.GetStockItem(), ITEM_WEAPON_MACHO_SWORD));
 }

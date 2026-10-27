@@ -576,6 +576,12 @@ For tests and debugging only; nothing the game does depends on them.
   would: an item into the dungeon inventory, a weapon to the character it
   belongs to. One already held is skipped. `--give 210,211` gives the Sun and
   Moon Signets. A bad list exits with status 2.
+- Expanded builds add `--roster KIND,...` (every dungeon floor's monster kinds,
+  in debug mode), and for recording a feature `--stage FILE` (a save's party
+  started on a dungeon floor with a member, weapon and monsters set out) and
+  `--event-log FILE` (damage, kills, life, weapon HP and sounds as JSON lines); see
+  `expanded/docs/recording.md`. `scripts/port/record_clip.py` and
+  `scripts/port/clip.py` use a release build when one is built.
 
 `darkcloud --headless --jump dungeon:0 --fast-load --frames 60` shows the first
 dungeon's floor select after about five seconds on lavapipe.

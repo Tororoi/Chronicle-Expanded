@@ -1,6 +1,7 @@
 #include "expanded/weapons/super_steve.hpp"
 
 #include "dun/gameloop.hpp"
+#include "expanded/core/options.hpp"
 #include "expanded/weapons/xiao/double_impact.hpp"
 #include "itemdata.hpp"
 #include "mglib.hpp"
@@ -23,14 +24,17 @@ constexpr int kIconX = 29;
 constexpr int kIconY = 399;
 constexpr int kIconSize = 20;
 
-// The active character's equipped weapon record.
-const WEAPON_HAVE *EquippedWeapon() {
-    if (UserStatus == nullptr) {
-        return nullptr;
-    }
+[[maybe_unused]] const bool kRegistered = AddToggle({.key = kWeaponAbilities,
+                                                     .label = "Weapon Abilities",
+                                                     .help = "\"Weapon Abilities\"\nEach weapon's special\nability. Off, weapons\nwork as in the\noriginal game.",
+                                                     .on = true});
 
-    int chara = UserStatus->cur_chara;
-    return &UserStatus->chara_weapons[chara][UserStatus->equipped_weapon_slot[chara]];
+constexpr int kMembers = 6;
+constexpr int kWeaponSlots = 11;
+
+// The active character's equipped weapon record.
+const WEAPON_HAVE *ActiveWeapon() {
+    return UserStatus != nullptr ? EquippedWeapon(*UserStatus, UserStatus->cur_chara) : nullptr;
 }
 
 // The sphere of a Super Steve record, or 0.
@@ -46,6 +50,9 @@ int SuperSteveSphere(const WEAPON_HAVE *weapon) {
 
 // A weapon holds one SynthSphere at most, so the first is the one.
 int SphereWeapon(const WEAPON_HAVE &weapon) {
+    if (!WeaponAbilitiesOn()) {
+        return 0;
+    }
     for (const ATTACH_LIST &attach : weapon.attach) {
         if (attach.item_no == ITEM_ATTACH_SYNTHESIS_SPHERE) {
             return attach.sphere_weapon_no;
@@ -59,8 +66,35 @@ int SuperSteveSphere() {
     return SuperSteveSphere(NowWeaponHave);
 }
 
+int HeldWeapon() {
+    return NowWeaponHave == nullptr || !WeaponAbilitiesOn() ? 0 : NowWeaponHave->item_no;
+}
+
 bool WeaponWielded(int weapon_no) {
-    return NowWeaponHave != nullptr && NowWeaponHave->item_no == weapon_no;
+    return weapon_no != 0 && HeldWeapon() == weapon_no;
+}
+
+WEAPON_HAVE *EquippedWeapon(CUserStatus &status, int chara) {
+    if (chara < 0 || chara >= kMembers) {
+        return nullptr;
+    }
+    int slot = status.equipped_weapon_slot[chara];
+    return slot >= 0 && slot < kWeaponSlots ? &status.chara_weapons[chara][slot] : nullptr;
+}
+
+const WEAPON_HAVE *EquippedWeapon(const CUserStatus &status, int chara) {
+    return EquippedWeapon(const_cast<CUserStatus &>(status), chara);
+}
+
+bool CarriesWeapon(const WEAPON_HAVE &weapon, int weapon_no) {
+    if (weapon_no == 0 || !WeaponAbilitiesOn()) {
+        return false;
+    }
+    return weapon.item_no == weapon_no || (weapon.item_no == ITEM_WEAPON_SUPER_STEVE && SphereWeapon(weapon) == weapon_no);
+}
+
+bool WeaponAbilitiesOn() {
+    return OptionOn(kWeaponAbilities);
 }
 
 bool WeaponActive(int weapon_no) {
@@ -84,7 +118,7 @@ int PelletWeapon() {
 
 // Reads the sphere off the equipped record, so the icon follows a sphere attached in the menu.
 void SphereIconCopy(char *source) {
-    int            sphere = SuperSteveSphere(EquippedWeapon());
+    int            sphere = SuperSteveSphere(ActiveWeapon());
     COM_ITEM_INFO *info = sphere != 0 ? GetCommonItemInfo(sphere) : nullptr;
 
     if (info == nullptr) {
@@ -96,7 +130,7 @@ void SphereIconCopy(char *source) {
 }
 
 void SphereIconDraw(int alpha) {
-    if (SuperSteveSphere(EquippedWeapon()) == 0) {
+    if (SuperSteveSphere(ActiveWeapon()) == 0) {
         return;
     }
 

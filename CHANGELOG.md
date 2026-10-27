@@ -104,6 +104,7 @@ Each section lists this repository's own changes first, then those that come fro
 
 ## Weapons
 
+- Weapon Abilities option (Options, Expanded page), on by default: off, every weapon's special ability below is off, Super Steve's SynthSpheres lend nothing, and the weapons work as in the original game; what a weapon was given when it was made or built up stays with it. [#237](https://github.com/Tororoi/Chronicle-Expanded/pull/237)
 - The Heal ability heals every 3 seconds instead of 4. [#3](https://github.com/Tororoi/Chronicle-Expanded/pull/3)
 - Ungaga's charge shots wear his weapon only when fired, not again for every hit. [#5](https://github.com/Tororoi/Chronicle-Expanded/pull/5)
 - New Confuse ability: 5% of hits confuse a non-boss monster for 20 seconds, turning it on other monsters. A weapon's SynthSphere passes it on. [#6](https://github.com/Tororoi/Chronicle-Expanded/pull/6)
@@ -366,6 +367,7 @@ Blessing Gun → Skunk ★
 
 - Enemy roster: the developer menu's "enemy roster" row (typed in) or `--roster 20!,60` lays out these monster kinds on every dungeon floor from the next dungeon visit, in debug mode. [#156](https://github.com/Tororoi/Chronicle-Expanded/pull/156)
 - The enemy roster refuses a roster it cannot lay out and says why, naming the kinds to add or drop: the Ice Queen (80) and King's Curse (81, 82) need another kind beside them, since they come only with Ruby or Ungaga in the party. [#182](https://github.com/Tororoi/Chronicle-Expanded/pull/182)
+- Staged recordings: `--stage` starts a save's party on a dungeon floor with the member, weapon and monsters a clip needs, `--event-log` writes damage, kills, life, weapon HP and sounds as JSON lines, and `scripts/port/clip.py` records a clip and the same run with Weapon Abilities off side by side ([recording.md](expanded/docs/recording.md)). [#237](https://github.com/Tororoi/Chronicle-Expanded/pull/237)
 
 ### From Chronicle
 

@@ -1435,6 +1435,9 @@ void GameInit() {
     selectMapNo = main_select_menu_no;
     UserStatus = (CUserStatus *) SaveData->GetDngStatus();
     UserStatus->Init();
+#ifdef CHRONICLE_EXPANDED
+    expanded::DungeonStatusReady();
+#endif
 
     if (BtEventInfo.no_status_recover != 1) {
         int          i;
@@ -2004,6 +2007,9 @@ int GameLoop() {
     float fade[4];
     int   i;
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::DungeonFrameBegins();
+#endif
     switch (BtGameModeFlag) {
         case BT_GAME_MODE_PLAY:
             MoveChara();

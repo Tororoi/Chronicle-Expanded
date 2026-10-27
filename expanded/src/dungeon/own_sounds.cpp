@@ -16,6 +16,7 @@
 #include "dataread.hpp"
 #include "dataread_port.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/debug/event_log.hpp"
 #include "sound_port.hpp"
 
 namespace expanded {
@@ -132,6 +133,7 @@ bool PlayOwnSound(const OwnSound &sound, bool ducked, int cut) {
         duck = {0, std::max(sound.frames, kDuckHold + 1)};
         DuckPorts(kDuckLevel, kOwnSoundPort);
     }
+    EventLogSound(sound);
     return true;
 }
 

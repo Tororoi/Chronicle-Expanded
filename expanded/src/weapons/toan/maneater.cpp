@@ -14,20 +14,10 @@ namespace {
 
 constexpr int kMembers = 6;
 
-// chara's equipped Maneater: the sword in Toan's hand or Super Steve carrying its sphere in Xiao's, else nullptr.
+// chara's equipped Maneater: the sword (Toan's) or Super Steve carrying its sphere (Xiao's), else nullptr.
 WEAPON_HAVE *Maneater(CUserStatus &status, int chara) {
-    int slot = status.equipped_weapon_slot[chara];
-    if (slot < 0 || slot >= 11) {
-        return nullptr;
-    }
-    WEAPON_HAVE &weapon = status.chara_weapons[chara][slot];
-    if (chara == CHARA_TOAN && weapon.item_no == ITEM_WEAPON_MANEATER) {
-        return &weapon;
-    }
-    if (chara == CHARA_XIAO && weapon.item_no == ITEM_WEAPON_SUPER_STEVE && SphereWeapon(weapon) == ITEM_WEAPON_MANEATER) {
-        return &weapon;
-    }
-    return nullptr;
+    WEAPON_HAVE *weapon = EquippedWeapon(status, chara);
+    return weapon != nullptr && CarriesWeapon(*weapon, ITEM_WEAPON_MANEATER) ? weapon : nullptr;
 }
 
 bool Cursing(const CUserStatus &status, int chara) {

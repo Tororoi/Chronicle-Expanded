@@ -31,7 +31,7 @@ bool QuickDrawWeapon(int weapon_no) {
 } // namespace
 
 bool QuickDrawSword() {
-    return NowWeaponHave != nullptr && QuickDrawWeapon(NowWeaponHave->item_no);
+    return QuickDrawWeapon(HeldWeapon());
 }
 
 bool QuickDrawSphere() {
