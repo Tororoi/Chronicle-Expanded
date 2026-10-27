@@ -4,7 +4,6 @@
 #include <cmath>
 
 #include "bt_shot_effect.hpp"
-#include "btactstatus.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/data/gemron_models.hpp"
@@ -13,8 +12,8 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/species.hpp"
-#include "expanded/status/blind.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
@@ -24,7 +23,6 @@
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
-
 
 namespace expanded {
 
@@ -74,22 +72,20 @@ struct Flight {
 };
 
 struct State {
-    int    effect = -1; // the bomb's effect, as last asked
-    Charge charge = Charge::kIdle;
-    int    frames = 0; // in the phase
-    int    charged = 0;
-    int    unguarded = 0;
-    int    hold = 0; // frames the slingshot has been held drawn
-    int    held = 0; // how long it was held drawn before it last let go
-    int    target = -1;
-    int    hover = -1; // the hanging bomb's slot
-    float  hover_pos[4] = {};
-    float  ground = 0.0f;
-    float  speed = 0.0f;
-    float  shown = 0.0f; // the hanging bomb, 0..1
-    int    pulse = 0;    // frames it has hung fully in
-    float  flash_at[4] = {};
-    Flight flights[kPelletSlots];
+    int         effect = -1; // the bomb's effect, as last asked
+    Charge      charge = Charge::kIdle;
+    int         frames = 0;               // in the phase
+    GuardCharge guard;                    // the guard's charge
+    ShotCharge  draw{kChargedShotFrames}; // the slingshot drawn and held
+    int         target = -1;
+    int         hover = -1; // the hanging bomb's slot
+    float       hover_pos[4] = {};
+    float       ground = 0.0f;
+    float       speed = 0.0f;
+    float       shown = 0.0f; // the hanging bomb, 0..1
+    int         pulse = 0;    // frames it has hung fully in
+    float       flash_at[4] = {};
+    Flight      flights[kPelletSlots];
 };
 
 State state;
@@ -234,41 +230,32 @@ void BigBangShotStep() {
         }
     }
     // How long the slingshot was last held drawn: the shot it lets go of reads it.
-    if (BtActStatus.action_on != 0 && (BtActStatus.action_no == kXiaoDraw || BtActStatus.action_no == kXiaoHold)) {
-        if (++state.hold == kChargedShotFrames) {
-            ChargeCompleteFlash();
-        }
-    } else if (state.hold > 0) {
-        state.held = state.hold;
-        state.hold = 0;
-    }
+    state.draw.Step(true);
     state.frames++;
 
     switch (state.charge) {
         case Charge::kIdle:
-            if (Guarding() && !Blinding()) {
+            if (state.guard.Start()) {
                 state.charge = Charge::kCharging;
-                state.charged = state.unguarded = state.frames = 0;
+                state.frames = 0;
             }
             break;
-        case Charge::kCharging:
-            state.unguarded = Guarding() ? 0 : state.unguarded + 1;
-            if (state.unguarded > kSolarGuardGrace || Blinding()) {
+        case Charge::kCharging: {
+            GuardCharge::Step step = state.guard.Charge(kBombChargeFrames);
+            if (step == GuardCharge::Step::kDropped) {
                 Spend();
                 break;
             }
-            if (state.unguarded == 0) {
-                state.charged++;
-            }
             // The bomb fades in over the target with the charge.
             Hang();
-            state.shown = std::min(1.0f, static_cast<float>(state.charged) / kBombChargeFrames);
-            if (state.charged >= kBombChargeFrames) {
+            state.shown = state.guard.Progress(kBombChargeFrames);
+            if (step == GuardCharge::Step::kFull) {
                 ChargeCompleteFlash();
                 state.charge = Charge::kPrimed;
                 state.frames = state.pulse = 0;
             }
             break;
+        }
         case Charge::kPrimed:
             Hang();
             state.shown = state.hover >= 0 ? 1.0f : 0.0f;
@@ -335,8 +322,8 @@ void BigBangShotFired(CSHOT &shots, int slot) {
     HideBomb(flight.bomb);
     flight.shots = &shots;
     flight.pellet = slot;
-    flight.charged = std::max(state.hold, state.held) >= kChargedShotFrames;
-    state.held = 0;
+    flight.charged = state.draw.Ready();
+    state.draw.Reset();
     flight.scale = flight.charged ? kChargedBomb : kPlainBomb;
     flight.bomb = ShowBomb(shots.pos[slot], flight.scale, false);
     if (flight.bomb >= 0) {
@@ -377,7 +364,7 @@ void BigBangShotLight(const CCharacter &character, float *ambient) {
     if (state.charge != Charge::kCharging && state.charge != Charge::kPrimed) {
         return;
     }
-    float k = state.charge == Charge::kCharging ? static_cast<float>(state.charged) / kBombChargeFrames : 1.0f;
+    float k = state.charge == Charge::kCharging ? static_cast<float>(state.guard.Charged()) / kBombChargeFrames : 1.0f;
     float add = &character == NowWeapon ? kSlingWhite * k : &character == &CharaMain ? kPrimedWhite * k
                                                                                      : 0.0f;
     for (int c = 0; c < 3; c++) {

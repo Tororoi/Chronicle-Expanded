@@ -9,10 +9,10 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
-#include "expanded/weapons/xiao/shot_charge.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -49,7 +49,7 @@ void Build() {
 
 constexpr int kEffectSlots = 8;
 u32           struck[kDragonShots][kEffectSlots] = {}; // the monsters each ball has hit, one bit each
-int           planted[kHitRecords] = {};                  // the ball (its shot and slot) each marked hit is from
+int           planted[kHitRecords] = {};               // the ball (its shot and slot) each marked hit is from
 
 bool Ours(const BT_SHOT_EFFECT *shot) {
     return built && shot >= balls && shot < balls + kDragonShots;

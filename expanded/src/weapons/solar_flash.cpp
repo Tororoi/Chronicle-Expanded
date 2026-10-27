@@ -13,6 +13,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/status/blind.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -24,7 +25,6 @@
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
-
 
 namespace expanded {
 
@@ -125,10 +125,8 @@ constexpr Swing kCombo[] = {
 };
 
 // The game's charge-complete colour, which the build-up ramps toward (half of it at the last frame).
-constexpr float kChargeColour[3] = {0.0f, 122.0f, 208.0f};
 constexpr float kChargeRampPeak = 0.5f;
-// The game's own pulses: the charge-complete one at priming, the flash's own in its light.
-constexpr float kPulseSpeed = 15.0f;
+// The flash's own pulse in its light.
 constexpr float kFlashPulseSpeed = 30.0f;
 
 // How far toward the camera the glow disc's depth is tested from.
@@ -138,17 +136,16 @@ constexpr float kJudgementGlowNearer = 4.0f; // the hanging blade's glow before 
 struct State {
     SolarPhase          phase = SolarPhase::kIdle;
     const SolarProfile *profile = nullptr;
-    int                 frames = 0;      // in the phase
-    int                 charged = 0;     // frames guarded in the charge
-    int                 unguarded = 0;   // frames since the guard was last up
-    float               blade = 0.0f;    // the blade's white, 0..1
-    float               wielder[3] = {}; // the wielder's own tint
-    float               glow = 0.0f;     // the glow's size, 0..1
+    int                 frames = 0;         // in the phase
+    GuardCharge         guard;              // the guard's charge
+    float               blade = 0.0f;       // the blade's white, 0..1
+    float               wielder[3] = {};    // the wielder's own tint
+    float               glow = 0.0f;        // the glow's size, 0..1
     float               glow_shrink = 0.0f; // what it loses each frame while it shrinks away
-    const CSHOT        *shots = nullptr; // the charged pellet's pool and slot while it flies
+    const CSHOT        *shots = nullptr;    // the charged pellet's pool and slot while it flies
     int                 pellet = -1;
-    sceVu0FVECTOR       landed = {}; // where it ended
-    int                 struck = -1; // the monster it struck there, or -1
+    sceVu0FVECTOR       landed = {};         // where it ended
+    int                 struck = -1;         // the monster it struck there, or -1
     int                 chain_action = -1;   // the Sword of Zeus's combo: the swing that last came forward …
     bool                chain_fired = false; // … and whether its bolt came down
 };
@@ -421,10 +418,6 @@ void SolarBlastFlash(const SolarProfile &profile, const float *point, float whp)
     BlindAfter(kBlastThrowFrames);
 }
 
-void ChargeCompleteFlash() {
-    setUnitAmbientAnime(kPulseSpeed, 1.0f, kChargeColour[0], kChargeColour[1], kChargeColour[2]);
-}
-
 void SolarFlashStep() {
     GlowStep();
     const SolarProfile *profile = ActiveProfile();
@@ -437,34 +430,31 @@ void SolarFlashStep() {
     switch (s.phase) {
         case SolarPhase::kIdle:
             // One flash at a time.
-            if (Guarding() && !Blinding()) {
+            if (s.guard.Start()) {
                 s.phase = SolarPhase::kCharging;
                 s.profile = profile;
-                s.frames = s.charged = s.unguarded = 0;
+                s.frames = 0;
             }
             break;
 
         case SolarPhase::kCharging: {
-            s.unguarded = Guarding() ? 0 : s.unguarded + 1;
-            if (s.unguarded > kSolarGuardGrace || Blinding()) {
+            const int         full = profile->charge_frames;
+            GuardCharge::Step step = s.guard.Charge(full);
+            if (step == GuardCharge::Step::kDropped) {
                 Clear();
                 break;
             }
-            if (s.unguarded == 0) {
-                s.charged++;
-            }
-            const int full = profile->charge_frames;
-            float     k = std::min(1.0f, static_cast<float>(s.charged) / full);
+            float k = s.guard.Progress(full);
             s.blade = k;
             SceneDim(profile->prime_dim * k);
             // The cyan build-up over the charge's last frames.
-            float ramp = std::clamp(1.0f - static_cast<float>(full - s.charged) / kSolarRampFrames, 0.0f, 1.0f);
+            float ramp = std::clamp(1.0f - static_cast<float>(full - s.guard.Charged()) / kSolarRampFrames, 0.0f, 1.0f);
             SetWielder(kChargeColour[0] * kChargeRampPeak * ramp, kChargeColour[1] * kChargeRampPeak * ramp,
                        kChargeColour[2] * kChargeRampPeak * ramp);
             // The glow grows with the charge, full the moment it primes.
             s.glow = profile->glow ? k : 0.0f;
             s.glow_shrink = 0.0f;
-            if (s.charged >= full) {
+            if (step == GuardCharge::Step::kFull) {
                 s.phase = SolarPhase::kPrimed;
                 s.frames = 0;
                 ChargeCompleteFlash();

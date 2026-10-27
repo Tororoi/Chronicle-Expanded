@@ -8,8 +8,8 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/player_state.hpp"
-#include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/ungaga/mirage/clone.hpp"
 #include "expanded/weapons/ungaga/mirage/heat_haze.hpp"
@@ -24,7 +24,6 @@ namespace {
 
 using namespace mirage;
 
-
 struct Decoy {
     bool  up = false;
     int   chara = -1; // the party member who planted it
@@ -33,19 +32,14 @@ struct Decoy {
     float at[4] = {}; // where it was planted
     float yaw = 0.0f;
     bool  handoff = false;
-    int   handoff_age = 0; // frames since the hand-off began
-    float old_at[4] = {};  // the old decoy's spot, its copy dissolving there
-    int   hold = 0;        // frames left the monsters keep to the old spot
-    bool  hit[kFloorMonsters] = {};    // the monsters hit since they last took to a decoy
+    int   handoff_age = 0;          // frames since the hand-off began
+    float old_at[4] = {};           // the old decoy's spot, its copy dissolving there
+    int   hold = 0;                 // frames left the monsters keep to the old spot
+    bool  hit[kFloorMonsters] = {}; // the monsters hit since they last took to a decoy
 };
 
-struct Guard {
-    int  held = -1;       // frames since the guard pose was first taken with the button down, or -1
-    bool planted = false; // this guard planted (or handed off): no more until the button is let go
-};
-
-Decoy decoy;
-Guard guard;
+Decoy     decoy;
+GuardHold guard; // latched once it plants (or hands off): no more until R1 is let go
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(MirageReset), true);
 
@@ -179,29 +173,19 @@ void MirageStep() {
     }
     CloneLoad(); // ahead of a plant
 
-    bool held = GamePad.On(PAD_R1) != 0;
-    bool in_pose = held && Guarding();
-    if (!held) {
-        guard = Guard{};
-    } else if (guard.held >= 0) {
-        guard.held++;
-    }
+    guard.Step(GamePad.On(PAD_R1) != 0);
     bool fresh = false;
-    if (in_pose && !guard.planted) {
-        if (guard.held < 0) {
-            guard.held = 0;
-        } else if (guard.held >= kMirageGuardFrames) {
-            ChargeCompleteFlash();
-            if (!decoy.handoff) {
-                if (decoy.up) {
-                    HandOff();
-                } else {
-                    Plant();
-                }
-                fresh = true;
+    if (guard.Reached(kMirageGuardFrames)) {
+        ChargeCompleteFlash();
+        if (!decoy.handoff) {
+            if (decoy.up) {
+                HandOff();
+            } else {
+                Plant();
             }
-            guard.planted = true;
+            fresh = true;
         }
+        guard.Latch();
     }
     if (decoy.up) {
         Update(fresh);
@@ -293,7 +277,7 @@ void MirageDispel() {
 
 void MirageReset() {
     decoy = Decoy{};
-    guard = Guard{};
+    guard.Reset();
     CloneReset();
     HazeReset();
 }

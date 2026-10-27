@@ -3,12 +3,11 @@
 #include <algorithm>
 #include <cmath>
 
-#include "btactstatus.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/enemies/enemy_events.hpp"
-#include "expanded/status/blind.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
@@ -19,11 +18,9 @@
 #include "shot_effect.hpp"
 #include "userstatus.hpp"
 
-
 namespace expanded {
 
 namespace {
-
 
 enum class Charge {
     kIdle,
@@ -39,16 +36,14 @@ struct Flight {
 };
 
 struct State {
-    Charge        charge = Charge::kIdle;
-    int           frames = 0; // in the phase
-    int           charged = 0;
-    int           unguarded = 0;
-    int           hold = 0; // frames the slingshot has been held drawn
-    int           held = 0; // how long it was held drawn before it last let go
-    bool          dimmed = false;
-    bool          struck = false; // a bolt came down in the window
-    float         sling = 0.0f;   // the slingshot's white, 0..1
-    Flight        flights[kPelletSlots];
+    Charge      charge = Charge::kIdle;
+    int         frames = 0;               // in the phase
+    GuardCharge guard;                    // the guard's charge
+    ShotCharge  draw{kZeusChargedFrames}; // the slingshot drawn and held
+    bool        dimmed = false;
+    bool        struck = false; // a bolt came down in the window
+    float       sling = 0.0f;   // the slingshot's white, 0..1
+    Flight      flights[kPelletSlots];
 };
 
 State state;
@@ -110,18 +105,14 @@ void ZeusShotStep() {
         return;
     }
     // How long the slingshot was last held drawn: the shot it lets go of reads it; the room darkens as it builds.
-    if (BtActStatus.action_on != 0 && (BtActStatus.action_no == kXiaoDraw || BtActStatus.action_no == kXiaoHold)) {
-        if (++state.hold == kZeusChargedFrames) {
-            ChargeCompleteFlash();
-        }
+    bool was_drawn = state.draw.Holding();
+    state.draw.Step(true);
+    if (state.draw.Holding()) {
         if (state.charge == Charge::kIdle || state.charge == Charge::kChain) {
             state.dimmed = true;
-            SceneDim(kZeusFlash.prime_dim * std::min(1.0f, static_cast<float>(state.hold) / kZeusChargedFrames));
+            SceneDim(kZeusFlash.prime_dim * std::min(1.0f, static_cast<float>(state.draw.Drawn()) / kZeusChargedFrames));
         }
-    } else if (state.hold > 0) {
-        state.held = state.hold;
-        state.hold = 0;
-    } else if (state.dimmed && state.charge == Charge::kIdle && !ChargedOut()) {
+    } else if (!was_drawn && state.dimmed && state.charge == Charge::kIdle && !ChargedOut()) {
         state.dimmed = false; // let go short of the charge, or its bolt came: the dim lifts
         SceneDimEnd();
     }
@@ -130,24 +121,21 @@ void ZeusShotStep() {
     switch (state.charge) {
         case Charge::kIdle:
             state.sling = std::max(0.0f, state.sling - 1.0f / kSolarFadeFrames);
-            if (Guarding() && !Blinding()) {
+            if (state.guard.Start()) {
                 state.charge = Charge::kCharging;
-                state.charged = state.unguarded = state.frames = 0;
+                state.frames = 0;
             }
             break;
         case Charge::kCharging: {
-            state.unguarded = Guarding() ? 0 : state.unguarded + 1;
-            if (state.unguarded > kSolarGuardGrace || Blinding()) {
+            GuardCharge::Step step = state.guard.Charge(kZeusGuardFrames);
+            if (step == GuardCharge::Step::kDropped) {
                 Spend();
                 break;
             }
-            if (state.unguarded == 0) {
-                state.charged++;
-            }
-            float k = std::min(1.0f, static_cast<float>(state.charged) / kZeusGuardFrames);
+            float k = state.guard.Progress(kZeusGuardFrames);
             state.sling = k;
             SceneDim(kZeusFlash.prime_dim * k);
-            if (state.charged >= kZeusGuardFrames) {
+            if (step == GuardCharge::Step::kFull) {
                 state.charge = Charge::kPrimed;
                 state.frames = 0;
                 ChargeCompleteFlash();
@@ -199,11 +187,11 @@ void ZeusShotFired(CSHOT &shots, int slot) {
             // until it comes down.
             state.charge = Charge::kIdle;
             state.dimmed = true;
-            state.held = kZeusChargedFrames;
+            state.draw.MarkReady();
         }
     }
-    bool charged = std::max(state.hold, state.held) >= kZeusChargedFrames;
-    state.held = 0;
+    bool charged = state.draw.Ready();
+    state.draw.Reset();
     if (!charged && state.charge != Charge::kChain) {
         return;
     }
