@@ -35,6 +35,24 @@ std::array<double, 4> TrackAt(const MotTrack &track, double frame) {
     return BlendKeys(ka.Values(), kb.Values(), t, track.w2 == mot::kRotation);
 }
 
+const MdsFrame &RequireFrame(const std::vector<MdsFrame> &frames, std::string_view name, std::string_view mds) {
+    const MdsFrame *frame = FindFrame(frames, name);
+    if (frame == nullptr) {
+        throw std::runtime_error(std::format("{} has no {}", mds, name));
+    }
+    return *frame;
+}
+
+void ApplyLook(ImgBank &bank, const SheetLook &look, const GemronPack &gemron) {
+    for (auto &[name, block] : bank.entries) {
+        if (name == gemron.sheet) {
+            block = look.ApplyToSheet(block);
+        } else if (name == gemron.sheet2) {
+            block = look.ApplyBaseToSheet(block);
+        }
+    }
+}
+
 MotTrack TrackLike(const MotTrack &reference, std::uint32_t node, std::uint32_t w1, std::uint32_t channel) {
     MotTrack track;
     track.w0 = node;
@@ -123,6 +141,12 @@ void DeathClip(MotFile &mot, int start, int from, int to, int end) {
         made.push_back(MotKeyframe::Make(std::uint32_t(end + 1), TrackAt(track, to)));
         track.keys.insert(track.keys.end(), made.begin(), made.end());
     }
+}
+
+void DeathClip(ChrRecord &mot, int start, int from, int to, int end) {
+    MotFile file = MotFile::FromRecord(mot);
+    DeathClip(file, start, from, to, end);
+    mot.ReplacePayload(file.BuildPayload());
 }
 
 void DeathCfg(ChrPack &pack, int start, int end, const char *scroll) {

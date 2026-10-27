@@ -18,13 +18,8 @@ namespace expanded {
 
 namespace {
 
-constexpr const char *kMds = "e115a.mds";
-constexpr const char *kMot = "e115a.mot";
-constexpr const char *kShadowMot = "e115s.mot";
-constexpr const char *kBbp = "e115a.bbp";
-constexpr const char *kImg = "e115a01.img";
-constexpr const char *kSheet = "e115a01";
-constexpr const char *kSheet2 = "e115a02";
+constexpr const GemronPack &kGemron = kHolyGemronPack;
+
 constexpr const char *kBallMds = "e209ball_b.mds";
 constexpr const char *kBallMot = "e209ball_b.mot";
 
@@ -183,12 +178,12 @@ std::pair<Bytes, Bytes> SplitEyes(std::span<const unsigned char> mds, const MdsF
 Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<const unsigned char> ball_chr) {
     ChrPack               pack = ChrPack::Parse(gemron);
     ChrPack               ball = ChrPack::Parse(ball_chr);
-    Bytes                 mds = pack.Require(kMds).Payload();
+    Bytes                 mds = pack.Require(kGemron.mds).Payload();
     std::vector<MdsFrame> frames = ReadMdsSkeleton(mds);
     Bytes                 bmds = ball.Require(kBallMds).Payload();
     std::vector<MdsFrame> bframes = ReadMdsSkeleton(bmds);
     MotFile               bmot = MotFile::FromRecord(ball.Require(kBallMot));
-    MotFile               mot = MotFile::FromRecord(pack.Require(kMot));
+    MotFile               mot = MotFile::FromRecord(pack.Require(kGemron.mot));
     std::vector<Mat4>     broken = PoseWorld(frames, mot, kShatterFrom); // the pose the balls break in
     const MotTrack        reference = mot.tracks.back();
     std::set<int>         pieces, effects;
@@ -200,23 +195,14 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
             effects.insert(f.index);
         }
     }
-    auto named = [&](std::string_view name) {
-        const MdsFrame *f = FindFrame(bframes, name);
-        if (f == nullptr) {
-            throw std::runtime_error(std::format("{} has no {}", kBallMds, name));
-        }
-        return f->index;
-    };
+    auto                  named = [&](std::string_view name) { return RequireFrame(bframes, name, kBallMds).index; };
     std::vector<Graft>    grafts;
     std::vector<MotTrack> added;
     int                   at = static_cast<int>(frames.size());
     for (const char *gem_name : kGems) {
-        const MdsFrame *gem = FindFrame(frames, gem_name);
-        if (gem == nullptr) {
-            throw std::runtime_error(std::format("{} has no {}", kMds, gem_name));
-        }
-        MdtMesh gem_mesh = MdtMesh::Parse(MdtAt(mds, std::size_t(gem->mesh)));
-        double  most = 0;
+        const MdsFrame *gem = &RequireFrame(frames, gem_name, kGemron.mds);
+        MdtMesh         gem_mesh = MdtMesh::Parse(MdtAt(mds, std::size_t(gem->mesh)));
+        double          most = 0;
         for (const auto &p : gem_mesh.positions) {
             most = std::max({most, std::fabs(p[0]), std::fabs(p[1]), std::fabs(p[2])});
         }
@@ -319,40 +305,29 @@ Bytes BuildCrystalGemronModel(std::span<const unsigned char> gemron, std::span<c
         at += static_cast<int>(keep.size());
     }
     // The eyes: their triangles out of the head into a frame of their own, which keeps its bind pose.
-    const MdsFrame *head = FindFrame(frames, kEyeHead);
-    if (head == nullptr) {
-        throw std::runtime_error(std::format("{} has no {}", kMds, kEyeHead));
-    }
+    const MdsFrame *head = &RequireFrame(frames, kEyeHead, kGemron.mds);
     auto [head_mdt, eye_mdt] = SplitEyes(mds, *head);
     grafts.push_back({{FrameRecord(at, kEyeFrame, head->index)}, {{0, eye_mdt}}});
     at += 1;
-    pack.Require(kMds).ReplacePayload(GraftMds(mds, grafts, {
-                                                                {kEyeHead, head_mdt}
+    pack.Require(kGemron.mds).ReplacePayload(GraftMds(mds, grafts, {
+                                                                       {kEyeHead, head_mdt}
     }));
-    AppendBindPoses(pack, kBbp, std::size_t(at) - frames.size());
+    AppendBindPoses(pack, kGemron.bbp, std::size_t(at) - frames.size());
     DeathClip(mot, kDeathStart, kClipFrom, kClipTo, kDeathEnd);
     mot.tracks.insert(mot.tracks.end(), added.begin(), added.end());
-    pack.Require(kMot).ReplacePayload(mot.BuildPayload());
-    MotFile shadow = MotFile::FromRecord(pack.Require(kShadowMot));
-    DeathClip(shadow, kDeathStart, kClipFrom, kClipTo, kDeathEnd);
-    pack.Require(kShadowMot).ReplacePayload(shadow.BuildPayload());
+    pack.Require(kGemron.mot).ReplacePayload(mot.BuildPayload());
+    DeathClip(pack.Require(kGemron.shadow_mot), kDeathStart, kClipFrom, kClipTo, kDeathEnd);
     // The sheets in the look; the ball's pictures into the bank (e209ex's from a row-major IMG bank, swizzled).
-    ImgBank   bank = ImgBank::Parse(pack.Require(kImg).Payload());
+    ImgBank   bank = ImgBank::Parse(pack.Require(kGemron.img).Payload());
     SheetLook look = SheetLook::Parse(kCrystalGemronLook);
-    for (auto &[name, block] : bank.entries) {
-        if (name == kSheet) {
-            block = look.ApplyToSheet(block);
-        } else if (name == kSheet2) {
-            block = look.ApplyBaseToSheet(block);
-        }
-    }
+    ApplyLook(bank, look, kGemron);
     ImgBank pictures = ImgBank::Parse(ball.Require("ball.img").Payload());
     bank.entries.insert(bank.entries.end(), pictures.entries.begin(), pictures.entries.end());
     ImgBank effect_pictures = ImgBank::Parse(ball.Require("e209ex.img").Payload());
     for (const auto &[name, block] : effect_pictures.entries) {
         bank.entries.emplace_back(name, tim8::Swizzled(block));
     }
-    pack.Require(kImg).ReplacePayload(bank.Build());
+    pack.Require(kGemron.img).ReplacePayload(bank.Build());
     DeathCfg(pack, kDeathStart, kDeathEnd, kBallScroll);
     return pack.Rebuild();
 }

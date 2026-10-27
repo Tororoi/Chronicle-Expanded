@@ -31,12 +31,9 @@ constexpr double kWingSpin = 180 * kDegrees;
 constexpr double kBodyPitch = -2.5, kBodyRoll = -45.0, kBodyYaw = -3.5;
 constexpr Vec3   kForward = {0.0, 0.0, 1.0}, kUp = {0.0, 1.0, 0.0}; // the rig at rest: head at +Z, Y up
 
-constexpr const char *kMds = "e112a.mds";
-constexpr const char *kImg = "e112a01.img";
-constexpr const char *kBbp = "e112a.bbp";
-constexpr const char *kSheet = "e112a01";
-constexpr const char *kSheet2 = "e112a02";
-constexpr const char *kMotions[] = {"e112a.mot", "e112s.mot"}; // the body's and the shadow's
+constexpr const GemronPack &kGemron = kIceGemronPack;
+
+constexpr const char *kMotions[] = {kGemron.mot, kGemron.shadow_mot}; // the body's and the shadow's
 constexpr const char *kBodyFrame = kGemronBigGem;
 constexpr const char *kWingFrames[] = {"tamas00__m", "tamas03__m"};
 constexpr const char *kGlowFrames[] = {"tama__appz", "tamas01__appz", "tamas02__appz"};
@@ -203,12 +200,9 @@ Mat3 BodyTurn(const MdsFrame &body) {
 // The glow sprite's quad re-laid as the disc, its material on the disc's picture.
 Bytes GlowQuad(std::span<const unsigned char> quad_mds) {
     std::vector<MdsFrame> frames = ReadMdsSkeleton(quad_mds);
-    const MdsFrame       *quad = FindFrame(frames, kQuadFrame);
-    if (quad == nullptr) {
-        throw std::runtime_error(std::format("{} has no {}", kQuadMds, kQuadFrame));
-    }
-    MdtMesh mesh = MdtMesh::Parse(MdtAt(quad_mds, std::size_t(quad->mesh)));
-    double  r = kGlowDiameter / 2;
+    const MdsFrame       *quad = &RequireFrame(frames, kQuadFrame, kQuadMds);
+    MdtMesh               mesh = MdtMesh::Parse(MdtAt(quad_mds, std::size_t(quad->mesh)));
+    double                r = kGlowDiameter / 2;
     // (x, y, u, v) per position, in the source quad's winding.
     const std::array<std::array<double, 4>, 4> corners = {
         {{-r, r, 0.0, 0.0}, {-r, -r, 0.0, 1.0}, {r, r, 1.0, 0.0}, {r, -r, 1.0, 1.0}}
@@ -269,13 +263,10 @@ void AddGlowTrack(ChrPack &pack, int frame) {
 Bytes BuildBombGemronModel(std::span<const unsigned char> gemron, std::span<const unsigned char> bomb_mds,
                            std::span<const unsigned char> bomb_img, std::span<const unsigned char> quad_chr,
                            std::span<const unsigned char> glow_pack) {
-    ChrPack               pack = ChrPack::Parse(gemron);
-    Bytes                 mds = pack.Require(kMds).Payload();
-    std::vector<MdsFrame> frames = ReadMdsSkeleton(mds);
-    const MdsFrame       *body = FindFrame(frames, kBodyFrame);
-    if (body == nullptr) {
-        throw std::runtime_error(std::format("{} has no {}", kMds, kBodyFrame));
-    }
+    ChrPack                                     pack = ChrPack::Parse(gemron);
+    Bytes                                       mds = pack.Require(kGemron.mds).Payload();
+    std::vector<MdsFrame>                       frames = ReadMdsSkeleton(mds);
+    const MdsFrame                             *body = &RequireFrame(frames, kBodyFrame, kGemron.mds);
     Vec3                                        right = Cross(kForward, kUp);
     std::map<std::string, std::optional<Bytes>> replaced;
     for (const char *glow : kGlowFrames) {
@@ -286,38 +277,29 @@ Bytes BuildBombGemronModel(std::span<const unsigned char> gemron, std::span<cons
     replaced[kBodyFrame] = BombMesh(bomb_mds, 3.5 / kBombRadius, MatMul(BodyTurn(*body), RotationYTo(Unit(body->ToLocal(aim)))), kBodySpin);
     // The wing bombs: wick up, toward the body and forward.
     for (const char *name : kWingFrames) {
-        const MdsFrame *wing = FindFrame(frames, name);
-        if (wing == nullptr) {
-            throw std::runtime_error(std::format("{} has no {}", kMds, name));
-        }
-        Vec3 to_body = Unit(Add(body->WorldPosition(), Scale(wing->WorldPosition(), -1.0)));
+        const MdsFrame *wing = &RequireFrame(frames, name, kGemron.mds);
+        Vec3            to_body = Unit(Add(body->WorldPosition(), Scale(wing->WorldPosition(), -1.0)));
         aim = Unit(Add(Add(kUp, to_body), kForward));
         replaced[name] = BombMesh(bomb_mds, 1.3 / kBombRadius, RotationYTo(Unit(wing->ToLocal(aim))), kWingSpin);
     }
     // The glow disc: a frame of its own on the big bomb's bone, after the last.
     int   glow = static_cast<int>(frames.size());
     Bytes quad_mds = ChrPack::Parse(quad_chr).Require(kQuadMds).Payload();
-    pack.Require(kMds).ReplacePayload(ReplaceMeshes(mds, replaced, {
-                                                                       {FrameRecord(glow, kBombGlowFrame, body->index), GlowQuad(quad_mds)}
+    pack.Require(kGemron.mds).ReplacePayload(ReplaceMeshes(mds, replaced, {
+                                                                              {FrameRecord(glow, kBombGlowFrame, body->index), GlowQuad(quad_mds)}
     }));
-    AppendBindPoses(pack, kBbp, 1); // the glow disc's
+    AppendBindPoses(pack, kGemron.bbp, 1); // the glow disc's
     // The sheets in the look, the bomb's sheet and the glow disc added to the bank.
-    ImgBank   bank = ImgBank::Parse(pack.Require(kImg).Payload());
+    ImgBank   bank = ImgBank::Parse(pack.Require(kGemron.img).Payload());
     ImgBank   bomb = ImgBank::Parse(bomb_img);
     SheetLook look = SheetLook::Parse(kBombGemronLook);
-    Bytes     sheet = bank.Block(kSheet);
-    for (auto &[name, block] : bank.entries) {
-        if (name == kSheet) {
-            block = look.ApplyToSheet(block);
-        } else if (name == kSheet2) {
-            block = look.ApplyBaseToSheet(block);
-        }
-    }
+    Bytes     sheet = bank.Block(kGemron.sheet);
+    ApplyLook(bank, look, kGemron);
     bank.entries.insert(bank.entries.end(), bomb.entries.begin(), bomb.entries.end());
     Bytes torch = ImgBank::Parse(ChrPack::Parse(glow_pack).Require(kGlowSourceBank).Payload()).Block(kGlowSourcePicture);
     Bytes disc = BuildGlowDisc(sheet, torch, kFireGlowCore, kFireGlowOuter);
     bank.entries.emplace_back(kGlowTexture, tim8::Swizzled(tim8::Resample(disc, false, kGlowTextureSize)));
-    pack.Require(kImg).ReplacePayload(bank.Build());
+    pack.Require(kGemron.img).ReplacePayload(bank.Build());
     BakeSelfDestruct(pack);
     AddGlowTrack(pack, glow);
     return pack.Rebuild();

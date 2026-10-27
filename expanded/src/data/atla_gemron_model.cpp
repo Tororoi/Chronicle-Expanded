@@ -21,13 +21,7 @@ namespace {
 
 namespace rc = atla_recipe;
 
-constexpr const char *kMds = "e112a.mds";
-constexpr const char *kMot = "e112a.mot";
-constexpr const char *kShadowMot = "e112s.mot";
-constexpr const char *kBbp = "e112a.bbp";
-constexpr const char *kImg = "e112a01.img";
-constexpr const char *kSheet = "e112a01";
-constexpr const char *kSheet2 = "e112a02";
+constexpr const GemronPack &kGemron = kIceGemronPack;
 
 // The held atla: the dungeon's own, under the big gem.
 constexpr const char *kAtlaMds = "atr.mds";
@@ -53,14 +47,6 @@ constexpr double      kFlySaturation = 0.5;
 constexpr int           kClipFrom = 105, kClipTo = 125;
 constexpr int           kTimelineEnd = kAtlaGemronDeathEnd + 1;
 constexpr std::uint32_t kCameraChannels[] = {mot::kCameraPosition, mot::kCameraReference, mot::kCameraRoll, mot::kCameraFov};
-
-const MdsFrame &Frame(const std::vector<MdsFrame> &frames, std::string_view name, const char *mds) {
-    const MdsFrame *f = FindFrame(frames, name);
-    if (f == nullptr) {
-        throw std::runtime_error(std::format("{} has no {}", mds, name));
-    }
-    return *f;
-}
 
 bool Camera(std::uint32_t channel) {
     return std::ranges::find(kCameraChannels, channel) != std::end(kCameraChannels);
@@ -175,9 +161,9 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
                            std::span<const unsigned char> atla_img, std::span<const unsigned char> toan,
                            std::span<const unsigned char> light_chr, std::span<const unsigned char> fly_chr) {
     ChrPack               pack = ChrPack::Parse(gemron);
-    Bytes                 mds = pack.Require(kMds).Payload();
+    Bytes                 mds = pack.Require(kGemron.mds).Payload();
     std::vector<MdsFrame> frames = ReadMdsSkeleton(mds);
-    MotFile               mot = MotFile::FromRecord(pack.Require(kMot));
+    MotFile               mot = MotFile::FromRecord(pack.Require(kGemron.mot));
     const MotTrack        reference = mot.tracks.back();
     std::vector<Graft>    grafts;
 
@@ -187,7 +173,7 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
     int                   at = static_cast<int>(frames.size());
     Graft                 held;
     for (const MdsFrame &f : aframes) {
-        held.records.push_back(f.parent < 0 ? GraftRecord(f.record, at + f.index, Frame(frames, kGem, kMds).index, rc::kGraftR, rc::kGraftT, 1.0)
+        held.records.push_back(f.parent < 0 ? GraftRecord(f.record, at + f.index, RequireFrame(frames, kGem, kGemron.mds).index, rc::kGraftR, rc::kGraftT, 1.0)
                                             : GraftRecord(f.record, at + f.index, at + f.parent, std::nullopt, std::nullopt, rc::kGraftScale));
         if (f.mesh != 0) {
             held.meshes[f.index] = ScaledMesh(amds, std::size_t(f.mesh), rc::kGraftScale);
@@ -201,7 +187,7 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
     ChrPack               toan_pack = ChrPack::Parse(toan);
     Bytes                 tmds = toan_pack.Require(kToanMds).Payload();
     std::vector<MdsFrame> tframes = ReadMdsSkeleton(tmds);
-    const MdsFrame       &lens = Frame(tframes, kLens, kToanMds);
+    const MdsFrame       &lens = RequireFrame(tframes, kLens, kToanMds);
     MdtMesh               lens_mesh = MdtMesh::Parse(MdtAt(tmds, std::size_t(lens.mesh)));
     Scale(lens_mesh.positions, rc::kLensStretch);
     Scale(lens_mesh.positions, {rc::kLensSize, rc::kLensSize, rc::kLensSize});
@@ -209,7 +195,7 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
         uv[0] = (uv[0] * 256 - kLensCrop[0]) / kLensCrop[2];
         uv[1] = (uv[1] * 256 - kLensCrop[1]) / kLensCrop[3];
     }
-    grafts.push_back({{GraftRecord(lens.record, lens_at, Frame(frames, kHead, kMds).index, rc::kLensR, rc::kLensT, 1.0)},
+    grafts.push_back({{GraftRecord(lens.record, lens_at, RequireFrame(frames, kHead, kGemron.mds).index, rc::kLensR, rc::kLensT, 1.0)},
                       {{0, lens_mesh.Build()}}});
 
     // The light: its root on the lens, e503ex_atall's glow pair and their ancestors under it.
@@ -244,12 +230,12 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
     Graft                 wing;
     for (const char *gem : kGemronSmallGems) {
         for (std::size_t n = 0; n < std::size(kFlyNodes); n++) {
-            const MdsFrame &f = Frame(fframes, kFlyNodes[n], kFlyMds);
+            const MdsFrame &f = RequireFrame(fframes, kFlyNodes[n], kFlyMds);
             MdtMesh         m = MdtMesh::Parse(MdtAt(fmds, std::size_t(f.mesh)));
             Scale(m.positions, rc::kFlyScale[n]);
             int place = static_cast<int>(wing.records.size());
             wing.meshes[place] = m.Build();
-            wing.records.push_back(GraftRecord(f.record, wing_at + place, Frame(frames, gem, kMds).index, kIdentity, Vec3{0, 0, 0}, 1.0));
+            wing.records.push_back(GraftRecord(f.record, wing_at + place, RequireFrame(frames, gem, kGemron.mds).index, kIdentity, Vec3{0, 0, 0}, 1.0));
         }
     }
     int spawn_at = wing_at + static_cast<int>(wing.records.size());
@@ -258,8 +244,8 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
     // The shot's spawn bone, under the root.
     grafts.push_back({{FrameRecord(spawn_at, kAtlaShotSpawn, 0, kIdentity, rc::kSpawnT)}, {}});
     int total = spawn_at + 1;
-    pack.Require(kMds).ReplacePayload(GraftMds(mds, grafts, {}));
-    AppendBindPoses(pack, kBbp, std::size_t(total) - frames.size());
+    pack.Require(kGemron.mds).ReplacePayload(GraftMds(mds, grafts, {}));
+    AppendBindPoses(pack, kGemron.bbp, std::size_t(total) - frames.size());
 
     // The death copied and held; the held atla out of the draw from the swap; the light on the Gemron's frames.
     DeathClip(mot, kAtlaGemronDeathStart, kClipFrom, kClipTo, kAtlaGemronDeathEnd);
@@ -296,23 +282,15 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
     added.push_back(std::move(scale));
     added.push_back(std::move(place));
     mot.tracks.insert(mot.tracks.end(), added.begin(), added.end());
-    pack.Require(kMot).ReplacePayload(mot.BuildPayload());
-    MotFile shadow = MotFile::FromRecord(pack.Require(kShadowMot));
-    DeathClip(shadow, kAtlaGemronDeathStart, kClipFrom, kClipTo, kAtlaGemronDeathEnd);
-    pack.Require(kShadowMot).ReplacePayload(shadow.BuildPayload());
+    pack.Require(kGemron.mot).ReplacePayload(mot.BuildPayload());
+    DeathClip(pack.Require(kGemron.shadow_mot), kAtlaGemronDeathStart, kClipFrom, kClipTo, kAtlaGemronDeathEnd);
     DeathCfg(pack, kAtlaGemronDeathStart, kAtlaGemronDeathEnd, nullptr);
 
     // The sheets in the look; the atla's, the lens's, the light's (IMG banks row-major, swizzled) and the wing lights'
     // pictures.
-    ImgBank   bank = ImgBank::Parse(pack.Require(kImg).Payload());
+    ImgBank   bank = ImgBank::Parse(pack.Require(kGemron.img).Payload());
     SheetLook look = SheetLook::Parse(kAtlaGemronLook);
-    for (auto &[name, block] : bank.entries) {
-        if (name == kSheet) {
-            block = look.ApplyToSheet(block);
-        } else if (name == kSheet2) {
-            block = look.ApplyBaseToSheet(block);
-        }
-    }
+    ApplyLook(bank, look, kGemron);
     for (const auto &[name, block] : ImgBank::Parse(atla_img).entries) {
         bank.entries.emplace_back(name, tim8::Swizzled(block));
     }
@@ -331,7 +309,7 @@ Bytes BuildAtlaGemronModel(std::span<const unsigned char> gemron, std::span<cons
     bool    blocked = light_bank.magic[2] == '2'; // an IM2 bank's pictures are in block order already
     bank.entries.emplace_back(kLightTexture, blocked ? light_bank.Block(kLightTexture) : tim8::Swizzled(light_bank.Block(kLightTexture)));
     bank.entries.emplace_back(kFlyTexture, Desaturate(ImgBank::Parse(fly_pack.Require(kFlyImg).Payload()).Block(kFlyTexture), kFlySaturation));
-    pack.Require(kImg).ReplacePayload(bank.Build());
+    pack.Require(kGemron.img).ReplacePayload(bank.Build());
     return pack.Rebuild();
 }
 
