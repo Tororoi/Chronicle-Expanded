@@ -75,12 +75,13 @@ menus. Every key is optional.
 | `place_kind` | only monsters of this kind |
 | `place_after` | monster steps after the member is out (default 100) |
 | `big_room` | `yes`: walk the member to the middle of the nearest big room first |
+| `circle` | 0-9: the floor's first magic circle set to this kind (`ps2/include/dungeonmap.hpp`) and moved 40 in front of the member, as the monsters are set out, for the member to walk onto |
 | `keep_alive` | `yes`: the party's life kept full |
 
 A run is the same every time for the same stage, inputs and build. Time the input script from the stage's own
 events: a dry run (`darkcloud --headless --frames 700 --data D --save S --fast-load --stage F --event-log dry.jsonl`)
-logs `stage` events for when the member is out, has walked and the monsters are placed. The game's frame numbers
-count the main loop, as `--input`, `--record` and `--from` do.
+logs `stage` events for when the member is out, has walked and the monsters and the circle are placed. The game's
+frame numbers count the main loop, as `--input`, `--record` and `--from` do.
 
 ## Event log
 
@@ -94,7 +95,7 @@ count the main loop, as `--input`, `--record` and `--from` do.
 |---|---|
 | `floor` | `dungeon`, `floor` as a floor's monsters load |
 | `character` | `chara`, the member out, as it changes |
-| `stage` | `step`: `out`, `walked`, `placed` |
+| `stage` | `step`: `out`, `walked`, `placed`, `circle` |
 | `damage` | `monster`, `kind`, `amount`, `life` left, for a weapon's hit |
 | `kill` | `monster`, `kind` |
 | `life` | `chara`, `from`, `to`, the member's life as it changes |

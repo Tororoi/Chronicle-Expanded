@@ -36,6 +36,7 @@
     "expanded.kitchen_knife.blessed": "La bénédiction de la source parcourt le Couteau de cuisine !",
     "expanded.kitchen_knife.faded": "La bénédiction de la source quitte le Couteau de cuisine...",
     "expanded.kitchen_knife.mended": "La source répare le Couteau de cuisine.",
+    "expanded.magic_circles.slowed": "Les monstres sont ralentis.",
     "expanded.seven_branch.break_confirm": "{alert}Enfermer 77% des facultés\nde l'arme dans la sphère\n(Effectuer sans accessoire)\nEffectuer la mutation ?",
     "expanded.seven_branch.break_hint": "\"Muter\"\nDès +7, garde\n77% dans la sphère.",
     "expanded.seven_branch.break_refused": "L'épée 7 branches\nrefuse la mutation\navant +7.",

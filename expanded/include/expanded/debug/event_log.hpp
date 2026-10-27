@@ -15,7 +15,7 @@ struct OwnSound;
 // Events: floor (dungeon, floor), character (chara) as the member out changes, damage (monster, kind, amount, life
 // left) from a weapon's hit, kill (monster, kind), life (chara, from, to) and whp (chara, weapon, from, to) as the
 // member out's life and weapon HP change, sound (program, note) as an own sound plays, and a stage's progress (stage:
-// out, walked, placed), the frames an input script can be timed from. Features can add their own.
+// out, walked, placed, circle), the frames an input script can be timed from. Features can add their own.
 
 // Opens the log, truncating it (null or empty path: none). False, with why, when it cannot be opened.
 bool SetEventLog(const char *path, std::string *why = nullptr);
