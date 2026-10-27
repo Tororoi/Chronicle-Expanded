@@ -18,6 +18,7 @@
 #include "expanded/core/random.hpp"
 #include "expanded/debug/enemy_roster.hpp"
 #include "expanded/debug/event_log.hpp"
+#include "expanded/dungeon/floor_grid.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "framevu1.hpp"
@@ -38,7 +39,6 @@ namespace {
 constexpr int   kWalkFrom = 10;    // the monster step the walk to a big room starts on
 constexpr float kWalkStep = 10.0f; // and how far it goes a step (further flings the player off stale collision)
 constexpr int   kBigRoomCells = 9;
-constexpr float kCell = 160.0f;
 constexpr float kAway = 2000.0f; // where monsters not set out are sent
 
 std::optional<Stage> active;
@@ -173,8 +173,8 @@ bool NearestBigRoom(float *to) {
         if (room.width * room.height < kBigRoomCells) {
             continue;
         }
-        float x = (static_cast<float>(room.x) + static_cast<float>(room.width - 1) * 0.5f) * kCell;
-        float z = (static_cast<float>(room.y) + static_cast<float>(room.height - 1) * 0.5f) * kCell;
+        float x = 0.0f, z = 0.0f;
+        RoomMiddle(room, &x, &z);
         float distance = std::hypot(x - CharaMain.pos[0], z - CharaMain.pos[2]);
         if (best < 0.0f || distance < best) {
             best = distance;

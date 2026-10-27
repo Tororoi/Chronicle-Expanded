@@ -13,6 +13,7 @@
 #include "dun/gameloop.hpp"
 #include "dungeonmap.hpp"
 #include "dungeonparts.hpp"
+#include "expanded/dungeon/floor_grid.hpp"
 #include "gameutil.hpp"
 
 namespace expanded {
@@ -20,9 +21,8 @@ namespace expanded {
 namespace {
 
 constexpr int   kTiles = 20;
-constexpr float kTile = 160.0f;
-constexpr float kOrigin = -kTile / 2.0f; // the grid's corner: tile 0 spans -80 to 80
-constexpr int   kCells = static_cast<int>(kTiles * kTile / kNavCell);
+constexpr float kOrigin = -kDungeonTile / 2.0f; // the grid's corner: tile 0 spans -80 to 80
+constexpr int   kCells = static_cast<int>(kTiles * kDungeonTile / kNavCell);
 constexpr float kReach = 48.0f;      // the widest clearance a tile's polygons serve
 constexpr float kHeight = 80.0f;     // how far above and below the ground they are gathered
 constexpr float kStep = 30.0f;       // the most the floor may rise or fall from the ground
@@ -114,8 +114,8 @@ const std::vector<CCPoly> &TilePolys(int tile, float ground) {
         return found->second;
     }
     static std::vector<CCPoly> scratch(kPolyLimit);
-    float                      radius = kTile / 2.0f + kReach;
-    float                      center[4] = {kTile * static_cast<float>(tile % kTiles), ground, kTile * static_cast<float>(tile / kTiles), 1.0f};
+    float                      radius = kDungeonTile / 2.0f + kReach;
+    float                      center[4] = {kDungeonTile * static_cast<float>(tile % kTiles), ground, kDungeonTile * static_cast<float>(tile / kTiles), 1.0f};
     int                        count = std::clamp(floor_now->polys(center, radius, kHeight / radius, scratch.data(), kPolyLimit), 0, kPolyLimit);
     // Kept at the size found: the cache holds a tile for every height a body crossed it at.
     return tile_polys.emplace(key, std::vector<CCPoly>(scratch.begin(), scratch.begin() + count)).first->second;
@@ -130,8 +130,8 @@ bool Wall(const CCPoly &poly) {
 Cell Test(int i, int j, float clearance, float ground) {
     float x = CellCenter(i);
     float z = CellCenter(j);
-    int   col = static_cast<int>(std::floor((x - kOrigin) / kTile));
-    int   row = static_cast<int>(std::floor((z - kOrigin) / kTile));
+    int   col = static_cast<int>(std::floor((x - kOrigin) / kDungeonTile));
+    int   row = static_cast<int>(std::floor((z - kOrigin) / kDungeonTile));
     if (col < 0 || row < 0 || col >= kTiles || row >= kTiles || !floor_now->open(col, row)) {
         return kBlocked;
     }
