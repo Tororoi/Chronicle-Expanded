@@ -8,6 +8,8 @@
 #include "dun/gameloop.hpp"
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/dungeon_hooks.hpp"
+#include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #endif
 #include "hit_machingun_effect.hpp"
 #include "itembombeffect.hpp"
@@ -20,14 +22,6 @@
 #include "shot_utils.hpp"
 #include "snd.hpp"
 #include "texture.hpp"
-
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/weapons/super_steve.hpp"
-
-#ifdef CHRONICLE_EXPANDED
-#include "expanded/dungeon/shot_effects.hpp"
-#endif
-#endif
 
 int GetWeaponElementAttr(int element);
 

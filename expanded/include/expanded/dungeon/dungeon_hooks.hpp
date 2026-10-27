@@ -136,6 +136,9 @@ void PlayerMoveChecked(const float *position, float *velocity);
 // The units' shadow pass (Draw_MainUnitShadow), before it darkens the screen: for shadows the game casts none for.
 void DungeonShadowsDrawing();
 
+// Whether an ailment may take hold of the party (BtSetStatusErr): false when a weapon's effect keeps it off.
+bool AilmentAllowed(int ailment);
+
 // Poison took hold of a monster that had none (Poison, from CheckDmg's rolls).
 void MonsterPoisoned(const MONSTOR &target);
 

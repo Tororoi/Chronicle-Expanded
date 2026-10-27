@@ -420,6 +420,10 @@ bool KillAbsTaken(WEAPON_HAVE &weapon, int abs, int max_abs) {
     return OvertrainingAbs(weapon, abs, max_abs);
 }
 
+bool AilmentAllowed(int ailment) {
+    return CurseAllowsAilment(ailment) && HerosCourageAllowsAilment(ailment);
+}
+
 bool MonsterCanGuard(int monster) {
     return BlindGuardBlocks(monster);
 }
