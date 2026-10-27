@@ -1,8 +1,12 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <optional>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #include "expanded/data/model_parts.hpp"
 #include "expanded/data/sheet_look.hpp"
@@ -131,6 +135,28 @@ TEST(ModelParts, MeshRoundTripsAndKeepsItsBlocks) {
     mesh.positions[0][0] = 5.0;
     expanded::MdtMesh moved = expanded::MdtMesh::Parse(mesh.Build());
     EXPECT_EQ(moved.positions[0][0], 5.0);
+}
+
+TEST(ModelParts, FramesAppendAfterTheLastWithTheirMeshes) {
+    namespace mds = expanded::mds;
+    Bytes header = {'M', 'D', 'S', 0, 0, 0, 0, 0}, own(0x30, 7), mesh(20, 9);
+    Bytes model = expanded::LayOutMds(header, {expanded::FrameRecord(0, "root", -1)}, {own});
+    Bytes out = expanded::AppendMdsFrames(model, {
+                                                     {expanded::FrameRecord(5, "a", 0), mesh        },
+                                                     {expanded::FrameRecord(6, "b", 1), std::nullopt}
+    });
+    auto  record = [](std::size_t i) { return mds::kTable + i * mds::kRecord; };
+    EXPECT_EQ(expanded::ReadMdsFrames(out), (std::vector<std::string>{"root", "a", "b"}));
+    EXPECT_EQ(expanded::Get32(out, record(1) + mds::kIndex), 1u);
+    EXPECT_EQ(expanded::Get32(out, record(2) + mds::kIndex), 2u);
+    // The model's own mesh keeps its bytes past the new records; the appended one follows it, padded to 16.
+    std::size_t moved = record(3), appended = moved + own.size();
+    EXPECT_EQ(expanded::Get32(out, record(0) + mds::kMesh), moved);
+    EXPECT_EQ(expanded::Get32(out, record(1) + mds::kMesh), appended);
+    EXPECT_EQ(expanded::Get32(out, record(2) + mds::kMesh), 0u);
+    EXPECT_TRUE(std::equal(own.begin(), own.end(), out.begin() + std::ptrdiff_t(moved)));
+    EXPECT_TRUE(std::equal(mesh.begin(), mesh.end(), out.begin() + std::ptrdiff_t(appended)));
+    EXPECT_EQ(out.size(), appended + 32);
 }
 
 TEST(ModelParts, RotationTakesYOntoADirection) {
