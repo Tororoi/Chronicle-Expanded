@@ -23,10 +23,7 @@ namespace expanded {
 
 namespace {
 
-constexpr int kKinds = kSpeciesCount;
 constexpr int kStats = 6;
-constexpr int kBands = 5;
-constexpr int kBandFloors = 20;
 constexpr int kBeyond = kEnemyRegions; // past Demon Shaft's last band, for Stronger enemies
 
 // Look-alikes (one rig and its reskins), weakest to strongest: none outstrips the next on a floor.
@@ -100,20 +97,20 @@ bool IsFloorEnemy(int model_no) {
 }
 
 struct Pools {
-    bool                             member[kEnemyRegions][kKinds] = {};
-    int                              home[kKinds];      // lowest region laying the kind out, or -1
-    float                            average[kEnemyRegions + 1][kStats] = {};
-    float                            cap[kEnemyRegions][kStats] = {}; // highest of this region and the earlier ones
-    const std::vector<Monster>      *look_alikes[kKinds] = {};
-    const Monster                   *mimic_line[kKinds] = {};
-    int                              mimic_index[kKinds] = {};
+    bool                        member[kEnemyRegions][kSpeciesCount] = {};
+    int                         home[kSpeciesCount]; // lowest region laying the kind out, or -1
+    float                       average[kEnemyRegions + 1][kStats] = {};
+    float                       cap[kEnemyRegions][kStats] = {}; // highest of this region and the earlier ones
+    const std::vector<Monster> *look_alikes[kSpeciesCount] = {};
+    const Monster              *mimic_line[kSpeciesCount] = {};
+    int                         mimic_index[kSpeciesCount] = {};
 };
 
 Pools Build() {
     Pools pools;
     std::fill(std::begin(pools.home), std::end(pools.home), -1);
     ForEachLaidOutKind([&](int dungeon, int floor, int kind) {
-        if (kind < kKinds) {
+        if (ValidKind(kind)) {
             int region = EnemyRegion(dungeon, floor);
             pools.member[region][kind] = true;
             int &home = pools.home[kind];
@@ -121,7 +118,7 @@ Pools Build() {
         }
     });
     // Expanded's kinds are at home where their stand-ins are.
-    for (int kind = kRetailSpecies; kind < kKinds; kind++) {
+    for (int kind = kRetailSpecies; kind < kSpeciesCount; kind++) {
         pools.home[kind] = pools.home[SpeciesStandIn(kind)];
     }
     for (int region = 0; region < kEnemyRegions; region++) {
@@ -129,7 +126,7 @@ Pools Build() {
             EnemyStat stat = static_cast<EnemyStat>(s);
             long long sum = 0;
             int       count = 0, most = 0;
-            for (int kind = 0; kind < kKinds; kind++) {
+            for (int kind = 0; kind < kSpeciesCount; kind++) {
                 int value = Native(kind, stat);
                 if (!pools.member[region][kind] || !IsFloorEnemy(kind) || (IsAttack(stat) && value <= 0)) {
                     continue;
@@ -152,7 +149,7 @@ Pools Build() {
             pools.look_alikes[No(kind)] = &chain;
         }
     }
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < kMimicLineLength; i++) {
         pools.mimic_line[No(kMimicLine[i])] = kMimicLine;
         pools.mimic_index[No(kMimicLine[i])] = i;
         pools.mimic_line[No(kKingMimicLine[i])] = kKingMimicLine;
@@ -184,7 +181,7 @@ int StrongerRatio(EnemyStat stat, int region) {
 
 // The next mimic's stat, or the stats past the last one.
 std::optional<int> NextMimicStat(const Monster *line, int index, EnemyStat stat) {
-    if (index + 1 < 10) {
+    if (index + 1 < kMimicLineLength) {
         return Native(No(line[index + 1]), stat);
     }
     const EnemyStats &beyond = line == kKingMimicLine ? kKingMimicBeyond : kMimicBeyond;
@@ -256,15 +253,19 @@ const bool kRegistered = (AddEnemyModelListener(Normalize), true);
 
 } // namespace
 
+int DemonShaftBand(int floor) {
+    return std::clamp(floor / kDemonShaftBandFloors, 0, kDemonShaftBands - 1);
+}
+
 int EnemyRegion(int dungeon, int floor) {
     if (dungeon < 0 || dungeon > DUNGEON_DEMON_SHAFT) {
         return -1;
     }
-    return dungeon < DUNGEON_DEMON_SHAFT ? dungeon : DUNGEON_DEMON_SHAFT + std::clamp(floor / kBandFloors, 0, kBands - 1);
+    return dungeon < DUNGEON_DEMON_SHAFT ? dungeon : DUNGEON_DEMON_SHAFT + DemonShaftBand(floor);
 }
 
 int NormalizedStat(int model_no, EnemyStat stat, int region, bool stronger) {
-    if (model_no < 0 || model_no >= kKinds || region < 0 || region >= kEnemyRegions) {
+    if (!ValidKind(model_no) || region < 0 || region >= kEnemyRegions) {
         return Native(model_no, stat);
     }
     const std::vector<Monster> *chain = State().look_alikes[model_no];
@@ -288,7 +289,7 @@ int NormalizedStat(int model_no, EnemyStat stat, int region, bool stronger) {
 
 EnemyStats NormalizedStats(int model_no, int region, bool stronger) {
     EnemyStats native = NativeStats(model_no);
-    if (model_no < 0 || model_no >= kKinds || region < 0 || region >= kEnemyRegions || !IsFloorEnemy(model_no) ||
+    if (!ValidKind(model_no) || region < 0 || region >= kEnemyRegions || !IsFloorEnemy(model_no) ||
         State().home[model_no] == -1) {
         return native;
     }

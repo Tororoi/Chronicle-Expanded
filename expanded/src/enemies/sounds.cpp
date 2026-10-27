@@ -15,6 +15,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/boss_table.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/normalize.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/enemies/species.hpp"
 #include "monstorunit.hpp"
@@ -25,7 +26,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kKinds = kSpeciesCount;
 constexpr int kMonsterBankSlot = 3; // the *_g bank's slot in CSound's state
 constexpr int kExtraBanks = 15;     // CC 0 selects 1 to 15
 
@@ -90,11 +90,15 @@ bool Resolves(const audio::Bank *bank, int program, int note) {
 
 } // namespace
 
+int DungeonSoundSet(int dungeon, int floor) {
+    return kDungeonSoundSets + EnemyRegion(dungeon, floor);
+}
+
 std::vector<int> HomeSoundSets(int model_no) {
     int              native = SpeciesStandIn(model_no);
     std::vector<int> sets;
     ForEachLaidOutKind([&](int dungeon, int floor, int kind) {
-        int set = 100 + (dungeon == DUNGEON_DEMON_SHAFT ? DUNGEON_DEMON_SHAFT + floor / 20 : dungeon);
+        int set = DungeonSoundSet(dungeon, floor);
         if (kind == native && std::find(sets.begin(), sets.end(), set) == sets.end()) {
             sets.push_back(set);
         }
@@ -123,7 +127,7 @@ void MonsterSoundsFloorLoaded(const CMonstorUnit &unit) {
     bound_for = now;
     for (int slot = 0; slot < unit.model_count; slot++) {
         int kind = ModelKind(slot);
-        if (kind < 0 || kind >= kKinds) {
+        if (!ValidKind(kind)) {
             continue;
         }
         for (int set : HomeSoundSets(kind)) {

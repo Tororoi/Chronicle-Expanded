@@ -1,5 +1,7 @@
 #pragma once
 
+#include "dungeon.h"
+
 #include <vector>
 
 #include "expanded/enemies/monsters.hpp"
@@ -8,8 +10,16 @@ class CMonstorUnit;
 
 namespace expanded {
 
-// The dungeon sound sets that carry a kind's sounds: snd100 + the dungeon of each floor laying it out,
-// Demon Shaft's five 20-floor bands snd106 to snd110, and the arena set of a boss whose event loads its own.
+// The dungeon sound sets: snd100 + a floor's region (normalize.hpp), each dungeon's, then Demon Shaft's five bands from
+// snd106 to snd110.
+inline constexpr int kDungeonSoundSets = 100;
+inline constexpr int kDemonShaftSoundSets = kDungeonSoundSets + DUNGEON_DEMON_SHAFT;
+
+// The dungeon sound set of a dungeon's floor (UserStatus->cur_floor).
+int DungeonSoundSet(int dungeon, int floor);
+
+// The sound sets that carry a kind's sounds: the dungeon sound set of each floor laying it out, and the arena set of a
+// boss whose event loads its own.
 std::vector<int> HomeSoundSets(int model_no);
 
 inline std::vector<int> HomeSoundSets(Monster monster) {

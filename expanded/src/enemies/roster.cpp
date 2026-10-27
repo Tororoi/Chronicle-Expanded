@@ -15,8 +15,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kKinds = kSpeciesCount;
-
 // This visit's staged floors, and the roster of the floor side loaded last.
 std::map<int, FloorRosters> staged;
 int                         visits = 0;
@@ -85,10 +83,7 @@ bool Roster::Remove(int kind) {
 }
 
 bool SpawnsOnceNatively(int model_no) {
-    if (model_no < 0 || model_no >= kKinds) {
-        return false;
-    }
-    if (Species(model_no) == nullptr) {
+    if (!ValidKind(model_no) || Species(model_no) == nullptr) {
         return false;
     }
     s16 kind = Species(model_no)->kind;

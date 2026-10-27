@@ -9,10 +9,15 @@ struct MONSTOR_MODEL;
 
 namespace expanded {
 
-// Monster kinds: retail's 167 (MonstorTable), then Expanded's own, each a record of its own built on a retail kind
-// (its stand-in: where it counts as native, whose sounds it makes) and a model dcdata builds.
-inline constexpr int kRetailSpecies = 167;
-inline constexpr int kSpeciesCount = 170;
+// Monster kinds: retail's (MonstorTable, through the Black Knight's mount), then Expanded's own, each a record of its
+// own built on a retail kind (its stand-in: where it counts as native, whose sounds it makes) and a model dcdata builds.
+inline constexpr int kRetailSpecies = No(Monster::BLACK_KNIGHT_MOUNT) + 1;
+inline constexpr int kSpeciesCount = No(Monster::ATLA_GEMRON) + 1;
+
+// Whether a number is a kind's, retail's or Expanded's.
+constexpr bool ValidKind(int model_no) {
+    return model_no >= 0 && model_no < kSpeciesCount;
+}
 
 struct ExpandedSpecies {
     Monster     kind;

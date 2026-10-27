@@ -19,9 +19,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kKinds = kSpeciesCount;
-constexpr int kDemonShaftSet = 106;
-
 // The sound sets of the staged floor's kinds, and the Steve files read so far.
 std::vector<int>                          floor_sets;
 std::map<std::string, std::vector<short>> files;
@@ -48,11 +45,11 @@ const short *Cached(const std::string &path) {
 
 std::string SteveFile(int sound_set, int language) {
     char path[64];
-    if (sound_set >= kDemonShaftSet) {
-        std::snprintf(path, sizeof(path), "dun/message/ww_mes/steve07_%d_%d.mes", sound_set - kDemonShaftSet + 1,
+    if (sound_set >= kDemonShaftSoundSets) {
+        std::snprintf(path, sizeof(path), "dun/message/ww_mes/steve07_%d_%d.mes", sound_set - kDemonShaftSoundSets + 1,
                       language);
     } else {
-        std::snprintf(path, sizeof(path), "dun/message/ww_mes/steve0%d_%d.mes", sound_set - 99, language);
+        std::snprintf(path, sizeof(path), "dun/message/ww_mes/steve0%d_%d.mes", sound_set - kDungeonSoundSets + 1, language);
     }
     return path;
 }
@@ -85,7 +82,7 @@ void SteveLinesFloorLoaded(const CMonstorUnit &unit) {
     }
     for (int slot = 0; slot < unit.model_count; slot++) {
         int kind = ModelKind(slot);
-        if (kind < 0 || kind >= kKinds || unit.model[slot].name_no <= 0) {
+        if (!ValidKind(kind) || unit.model[slot].name_no <= 0) {
             continue;
         }
         for (int set : HomeSoundSets(kind)) {

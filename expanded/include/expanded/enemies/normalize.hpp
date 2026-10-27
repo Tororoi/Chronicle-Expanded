@@ -1,12 +1,21 @@
 #pragma once
 
+#include "dungeon.h"
+
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/enemies/scaling.hpp"
 
 namespace expanded {
 
-// Regions monsters are normalized to: the first six dungeons, then Demon Shaft's five 20-floor bands.
-inline constexpr int kEnemyRegions = 11;
+// Demon Shaft's bands of floors.
+inline constexpr int kDemonShaftBands = 5;
+inline constexpr int kDemonShaftBandFloors = 20;
+
+// Regions monsters are normalized to: the first six dungeons, then Demon Shaft's bands.
+inline constexpr int kEnemyRegions = DUNGEON_DEMON_SHAFT + kDemonShaftBands;
+
+// The band of a Demon Shaft floor (UserStatus->cur_floor, 0 for its first): 0 to kDemonShaftBands - 1.
+int DemonShaftBand(int floor);
 
 // The region of a dungeon's floor (UserStatus->cur_floor, 0 for its first), or -1 outside the seven dungeons.
 int EnemyRegion(int dungeon, int floor);
