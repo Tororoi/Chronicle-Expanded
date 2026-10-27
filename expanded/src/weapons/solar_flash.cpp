@@ -1,3 +1,4 @@
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 
@@ -250,7 +251,7 @@ void GlowShrink() {
 }
 
 bool HitFree() {
-    for (int i = 0; i < 96; i++) {
+    for (int i = 0; i < kHitRecords; i++) {
         if (NowColData->active[i] == 0) {
             return true;
         }

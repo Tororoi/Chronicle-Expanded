@@ -1,3 +1,4 @@
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/ungaga/hercules_wrath.hpp"
 
@@ -30,7 +31,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int   kMonsters = 2;         // whom the sparkle is aimed at: none of the monsters' blocks stop it
 constexpr int   kStopAndRestart = 6;   // motion flags: from the clip's first frame, held on its last
 constexpr float kOwnRate = -1.0f;      // a clip at its own rate
 constexpr float kClipLead = 0.5f;      // a clip is taken as over this short of its end, where its cursor stops
@@ -40,7 +40,7 @@ constexpr char  kSpearTip[] = "dcol0"; // the spear's tip, 15.66 along it
 // e508_ex.chr: played where it is put, no flight and no hit. Its first phase is its third clip, whose end the game ends
 // it on; the strike plays the first two in its place, so the game never does.
 // clang-format off
-BT_SHOT_EFFECT sparkle = {"e508_ex", 0, 0, {}, {}, -1, 0, 0, 3, kMonsters, {2, -1, -1, -1}, 0, {0, 0}, 1.0f, 0, {-1, -1, -1, -1}};
+BT_SHOT_EFFECT sparkle = {"e508_ex", 0, 0, {}, {}, -1, 0, 0, 3, kHitsMonsters, {2, -1, -1, -1}, 0, {0, 0}, 1.0f, 0, {-1, -1, -1, -1}};
 // clang-format on
 
 [[maybe_unused]] const bool kRegistered =

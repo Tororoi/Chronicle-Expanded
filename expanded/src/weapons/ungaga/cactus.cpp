@@ -1,3 +1,5 @@
+#include "expanded/dungeon/collision_hits.hpp"
+#include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/ungaga/cactus.hpp"
 #include "sound_effect.h"
@@ -69,10 +71,7 @@ constexpr Monster kDryKinds[] = {
     Monster::LIVING_ARMOR_ENHANCED,
 };
 
-constexpr int kMonsters = 2;           // a hit's target: the monsters
-constexpr int kHitKind = 2;            // the reaction a swing's hit carries
 constexpr int kKickAway = 2;           // thrown away from the hit's origin
-constexpr int kPrickMark = 0x02000000; // in a hit's weapon flags: a prick's
 constexpr int kHitReserve = 16;        // free hit records a prick leaves the game
 
 // The smoke's frames as game frames from the summon.
@@ -232,7 +231,7 @@ void Prick(CMonstorUnit &unit, int monster) {
     float centre[4];
     float radius = std::max(kBloomHitRadius, BodyCentre(unit, monster, centre));
     int   damage = std::max(1, static_cast<int>(std::nearbyint(static_cast<double>(NowWeaponHave->attack * kBloomHitShare))));
-    int   hit = NowColData->Set(centre, damage, 1, radius, 0.0f, kMonsters, kHitKind, 0, 0);
+    int   hit = NowColData->Set(centre, damage, 1, radius, 0.0f, kHitsMonsters, kSwingReaction, 0, 0);
     if (hit < 0) {
         return;
     }

@@ -1,3 +1,4 @@
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/xiao/angel_gear/shot_reflect.hpp"
 
 #include <algorithm>
@@ -22,8 +23,6 @@ namespace expanded::angel_gear {
 namespace {
 
 constexpr int   kPlayerOnly = 1;   // a collision test's target: the player and walls
-constexpr int   kMonstersOnly = 2; // monsters and walls: the shots of the player's side
-constexpr int   kHitKind = 2;
 constexpr int   kElements = 0x1F, kAilments = 0xFF00;
 constexpr int   kFreeze = 0x100, kPoison = 0x200, kSlow = 0x800;
 constexpr float kLockOnReach = 200.0f; // a lock-on point farther than this from the monster is stale
@@ -155,7 +154,7 @@ void Land(const CSHOT_EFFECT &effect, const float *point, float radius, int mons
     int   flags = effect.effect_data->hit_flags;
     int   element = (flags & kElements) != 0 && (flags & kAilments) == 0 ? flags & kElements : 0;
     float at[4] = {point[0], point[1], point[2], 1.0f};
-    int   hit = NowColData->Set(at, damage, kHitLife, radius, 0.0f, kMonstersOnly, kHitKind, element, 0);
+    int   hit = NowColData->Set(at, damage, kHitLife, radius, 0.0f, kHitsMonsters, kSwingReaction, element, 0);
     if (hit < 0) {
         return;
     }
@@ -198,7 +197,7 @@ SHOT_COLLISION_RESULT ReturnTest(CSHOT_EFFECT &effect, int slot, float *hit_posi
 void ClaimShots(const float *her) {
     for (int e = 0; e < ShotEffectCount(); e++) {
         CSHOT_EFFECT *effect = Effect(e);
-        if (effect == nullptr || effect->effect_data == nullptr || effect->effect_data->target == kMonstersOnly) {
+        if (effect == nullptr || effect->effect_data == nullptr || effect->effect_data->target == kHitsMonsters) {
             continue;
         }
         for (int i = 0; i < effect->slot_count && i < 8; i++) {

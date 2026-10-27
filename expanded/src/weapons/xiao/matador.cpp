@@ -1,3 +1,5 @@
+#include "expanded/dungeon/collision_hits.hpp"
+#include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
 
 #include <algorithm>
@@ -29,7 +31,6 @@ namespace expanded {
 namespace {
 
 constexpr int   kShots = 12;
-constexpr int   kMark = 0x20000000; // in a hit's weapon flags: a charged pellet's
 constexpr int   kWeaponTextureBlock = 0x1D;
 constexpr int   kArenaQuads = 0x4000; // 256 KB for the copy's frames
 constexpr float kGlowPull = 6.0f;
@@ -177,7 +178,7 @@ void ChargingBullHit(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     if (!Ours(shots, slot)) {
         return;
     }
-    hit.weapon_flags |= kMark;
+    hit.weapon_flags |= kChargingBullMark;
     // Shoved along its flight, from a point back down its line.
     const float *v = shots.vector[slot];
     float        length = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
@@ -190,7 +191,7 @@ void ChargingBullHit(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     hit.knockback_origin[3] = 1.0f;
     hit.knockback_speed = kChargingBullKickSpeed;
     hit.knockback_decay = kChargingBullKickDecay;
-    hit.knockback_mode = 2;
+    hit.knockback_mode = kKnockbackFromOrigin;
 }
 
 void ChargingBullEnded(const CSHOT &shots, int slot) {
@@ -200,7 +201,7 @@ void ChargingBullEnded(const CSHOT &shots, int slot) {
 }
 
 bool ChargingBullHit(const COLLISION_HIT &hit) {
-    return (hit.weapon_flags & kMark) != 0;
+    return (hit.weapon_flags & kChargingBullMark) != 0;
 }
 
 bool ChargingBullCharged(const CSHOT &shots, int slot) {

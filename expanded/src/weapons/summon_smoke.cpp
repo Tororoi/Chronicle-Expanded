@@ -1,3 +1,4 @@
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/summon_smoke.hpp"
 
 #include <algorithm>
@@ -12,11 +13,10 @@ namespace expanded {
 
 namespace {
 
-constexpr int kMonsters = 2; // whom it is aimed at: none of the monsters' blocks stop it
 
 // e228ex.chr: its one clip playing once where it is put, no flight and no hit.
 // clang-format off
-BT_SHOT_EFFECT smoke = {"e228ex", 0, 0, {}, {}, -1, 0, 0, 3, kMonsters, {0, -1, -1, -1}, 0, {0, 0}, 1.0f, 0, {-1, -1, -1, -1}};
+BT_SHOT_EFFECT smoke = {"e228ex", 0, 0, {}, {}, -1, 0, 0, 3, kHitsMonsters, {0, -1, -1, -1}, 0, {0, 0}, 1.0f, 0, {-1, -1, -1, -1}};
 // clang-format on
 
 struct Puff {

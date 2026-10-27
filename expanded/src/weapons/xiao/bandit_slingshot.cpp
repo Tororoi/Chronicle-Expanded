@@ -1,3 +1,4 @@
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
 
 #include <cstring>
@@ -24,7 +25,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int kMonsters = 2;             // a collision target that only monsters take
 constexpr int kXiao = 1;                 // the shot's owner, as her pellets' hits are
 constexpr int kNameMessage = 3000;       // a monster's name: CharaNameMes's name_no + 3000
 const int     kNotices[] = {10, 20, 30}; // ItemGetMes's "acquired" templates
@@ -133,7 +133,7 @@ void StealShotTaken(const CMonstorUnit &unit, int monster, int item) {
         return;
     }
     stolen.shot = *BtEntryEffectTbl[index];
-    stolen.shot.target = kMonsters;
+    stolen.shot.target = kHitsMonsters;
     stolen.held = EnterShotEffect(&stolen.shot, kStealShots) >= 0;
     stolen.item = stolen.held ? item : -1;
     stolen.name = stolen.held ? MonsterName(unit, monster) : std::string{};

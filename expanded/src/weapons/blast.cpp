@@ -1,3 +1,4 @@
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/blast.hpp"
 
 #include <algorithm>
@@ -8,6 +9,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
+#include "expanded/weapons/hit_marks.hpp"
 #include "gamepad.hpp"
 #include "itembombeffect.hpp"
 #include "itemdata.hpp"
@@ -21,7 +23,6 @@ namespace expanded {
 namespace {
 
 // An unguardable blast's hit carries this bit in its weapon flags, above the ones a weapon's record has.
-constexpr int kBlastMark = 0x40000000;
 
 // The game's own rumbles on the big motor, as BtCheckDamageProc gives the player: a knockdown blow, and a lighter hit.
 constexpr int kRumbleMotor = 1;
@@ -31,7 +32,7 @@ constexpr int kLightStrength = 0xDC;
 constexpr int kLightFrames = 12;
 
 bool HitFree() {
-    for (int i = 0; i < 96; i++) {
+    for (int i = 0; i < kHitRecords; i++) {
         if (NowColData->active[i] == 0) {
             return true;
         }

@@ -1,3 +1,5 @@
+#include "expanded/dungeon/collision_hits.hpp"
+#include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
 
 #include <algorithm>
@@ -93,9 +95,6 @@ constexpr Monster kTallLeapers[] = {
     Monster::DRAGON,
     Monster::OPAR,
 };
-constexpr int         kMark = 0x08000000; // in a hit's weapon flags: the cat's
-constexpr int         kMonsters = 2;
-constexpr int         kHitKind = 2;   // the reaction kind a pellet's entry carries
 constexpr int         kGlowDelay = 4; // the torch flame's first draws are empty
 constexpr float       kGlowSize = 22.5f, kGlowPull = 5.0f;
 constexpr float       kHeadFallback[3] = {0.0f, 6.0f, 0.0f};
@@ -469,7 +468,7 @@ void HeadPoint(float *point) {
 SHOT_COLLISION_RESULT TouchTest(float *point, float *move) {
     float out[4];
     if (NowDngMap != nullptr) {
-        return checkCollision(out, point, move, kMonsters, kSpiritBeastTouch);
+        return checkCollision(out, point, move, kHitsMonsters, kSpiritBeastTouch);
     }
     for (int m = 0; m < 16; m++) { // with no map, its monster test alone
         const MONSTOR &live = NowMonstorUnit->monster[m];
@@ -495,14 +494,14 @@ void Touch() {
     }
     int element = NowWeaponHave->best_elem;
     int attribute = element >= 0 && element < 5 && NowWeaponHave->elem[element] > 0 ? GetWeaponElementAttr(element) : 0;
-    int hit = NowColData->Set(point, std::max(1, cat.damage), 1, kSpiritBeastHitRadius, 0.0f, kMonsters, kHitKind, attribute, 0);
+    int hit = NowColData->Set(point, std::max(1, cat.damage), 1, kSpiritBeastHitRadius, 0.0f, kHitsMonsters, kSwingReaction, attribute, 0);
     if (hit < 0) {
         return;
     }
     COLLISION_HIT &record = NowColData->hit[hit];
     record.owner = CHARA_XIAO;
     record.attack_no = 0;
-    record.weapon_flags = NowWeaponHave->flags | kMark;
+    record.weapon_flags = NowWeaponHave->flags | kSpiritBeastMark;
     record.vs_monster = NowWeaponHave->vs_monster;
     sceVu0CopyVector(record.knockback_origin, point);
     record.knockback_speed = kSpiritBeastKickSpeed;
@@ -1010,7 +1009,7 @@ void SpiritBeastLight(const CCharacter &character, float *ambient) {
 }
 
 bool SpiritBeastHit(const COLLISION_HIT &hit) {
-    return (hit.weapon_flags & kMark) != 0;
+    return (hit.weapon_flags & kSpiritBeastMark) != 0;
 }
 
 void SpiritBeastHitTaken(const COLLISION_HIT &hit) {

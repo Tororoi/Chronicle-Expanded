@@ -1,3 +1,4 @@
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/blade_scale.hpp"
 
 #include <libvu0.h>
@@ -16,7 +17,7 @@ namespace {
 constexpr int kToan = 0;
 
 int FreeHit(const CCollisionData &hits) {
-    for (int i = 0; i < 96; i++) {
+    for (int i = 0; i < kHitRecords; i++) {
         if (hits.active[i] == 0) {
             return i;
         }
@@ -34,7 +35,7 @@ void PlantAlongBlade(const float *hit_pos, float scale) {
     MainWeapon.frame->GetWorldPosition(grip, origin);
     const int       points = static_cast<int>(std::ceil(scale)) - 1;
     CCollisionData &hits = *NowColData;
-    for (int i = 0; i < 96; i++) {
+    for (int i = 0; i < kHitRecords; i++) {
         const COLLISION_HIT &swing = hits.hit[i];
         if (hits.active[i] == 0 || swing.owner != kToan || swing.pos[0] != hit_pos[0] || swing.pos[1] != hit_pos[1] ||
             swing.pos[2] != hit_pos[2]) {

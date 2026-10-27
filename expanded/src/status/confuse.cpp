@@ -1,3 +1,4 @@
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/status/confuse.hpp"
 
 #include <libvu0.h>
@@ -340,7 +341,7 @@ int ConfuseFriendlyHit(CMonstorUnit &unit, int victim, const float *position, fl
     if (state.unit != &unit || NowColData == nullptr) {
         return -1;
     }
-    for (int i = 0; i < 96; i++) {
+    for (int i = 0; i < kHitRecords; i++) {
         const COLLISION_HIT &hit = NowColData->hit[i];
         if (NowColData->active[i] == 0 || hit.phase != hit.ready_phase) {
             continue;

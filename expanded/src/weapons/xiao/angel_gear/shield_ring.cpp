@@ -1,3 +1,4 @@
+#include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_ring.hpp"
 #include "sound_effect.h"
 
@@ -47,7 +48,7 @@ bool SpendOnShield(bool quiet) {
     }
     float root[3];
     PropRoot(root);
-    for (int i = 0; i < 96; i++) {
+    for (int i = 0; i < kHitRecords; i++) {
         COLLISION_HIT &hit = NowColData->hit[i];
         if (NowColData->active[i] == 0 || (hit.target_mask & kHurtsPlayer) == 0 || hit.phase != hit.ready_phase) {
             continue;
