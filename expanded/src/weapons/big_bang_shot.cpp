@@ -4,7 +4,6 @@
 #include <cmath>
 
 #include "bt_shot_effect.hpp"
-#include "btactstatus.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/data/gemron_models.hpp"
@@ -80,8 +79,7 @@ struct State {
     int    frames = 0; // in the phase
     int    charged = 0;
     int    unguarded = 0;
-    int    hold = 0; // frames the slingshot has been held drawn
-    int    held = 0; // how long it was held drawn before it last let go
+    ShotCharge draw{kChargedShotFrames}; // the slingshot drawn and held
     int    target = -1;
     int    hover = -1; // the hanging bomb's slot
     float  hover_pos[4] = {};
@@ -235,14 +233,7 @@ void BigBangShotStep() {
         }
     }
     // How long the slingshot was last held drawn: the shot it lets go of reads it.
-    if (BtActStatus.action_on != 0 && (BtActStatus.action_no == kXiaoDraw || BtActStatus.action_no == kXiaoHold)) {
-        if (++state.hold == kChargedShotFrames) {
-            ChargeCompleteFlash();
-        }
-    } else if (state.hold > 0) {
-        state.held = state.hold;
-        state.hold = 0;
-    }
+    state.draw.Step(true);
     state.frames++;
 
     switch (state.charge) {
@@ -336,8 +327,8 @@ void BigBangShotFired(CSHOT &shots, int slot) {
     HideBomb(flight.bomb);
     flight.shots = &shots;
     flight.pellet = slot;
-    flight.charged = std::max(state.hold, state.held) >= kChargedShotFrames;
-    state.held = 0;
+    flight.charged = state.draw.Ready();
+    state.draw.Reset();
     flight.scale = flight.charged ? kChargedBomb : kPlainBomb;
     flight.bomb = ShowBomb(shots.pos[slot], flight.scale, false);
     if (flight.bomb >= 0) {

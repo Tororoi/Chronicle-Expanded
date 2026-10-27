@@ -4,13 +4,11 @@
 #include <algorithm>
 #include <cmath>
 
-#include "btactstatus.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/pellets.hpp"
-#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "itemdata.hpp"
@@ -31,11 +29,16 @@ struct Flight {
     float        charge = 0.0f;
 };
 
+// The frame a stage comes at: the first whole frame at or past its share of kTyphoonShotFrames.
+constexpr int StageFrame(float share) {
+    float at = share * static_cast<float>(kTyphoonShotFrames);
+    int   whole = static_cast<int>(at);
+    return static_cast<float>(whole) < at ? whole + 1 : whole;
+}
+
 struct State {
-    int    hold = 0; // frames the slingshot has been held drawn
-    int    held = 0; // how long it was held drawn before it last let go
-    bool   flashed[2] = {};
-    Flight flights[kPelletSlots];
+    ShotCharge draw{StageFrame(kTyphoonShotFull), StageFrame(kTyphoonShotEmpowered)}; // a flash at each stage
+    Flight     flights[kPelletSlots];
 };
 
 State state;
@@ -118,28 +121,7 @@ float TyphoonShotCharge(int frames) {
 }
 
 void TyphoonShotStep() {
-    if (!TyphoonShotActive()) {
-        state.hold = state.held = 0;
-        state.flashed[0] = state.flashed[1] = false;
-        return;
-    }
-    bool drawn = BtActStatus.action_on != 0 && (BtActStatus.action_no == kXiaoDraw || BtActStatus.action_no == kXiaoHold);
-    if (!drawn) {
-        if (state.hold > 0) {
-            state.held = state.hold;
-        }
-        state.hold = 0;
-        state.flashed[0] = state.flashed[1] = false;
-        return;
-    }
-    state.hold++;
-    float hold = static_cast<float>(state.hold) / static_cast<float>(kTyphoonShotFrames);
-    for (int stage = 0; stage < 2; stage++) {
-        if (!state.flashed[stage] && hold >= (stage == 0 ? kTyphoonShotEmpowered : kTyphoonShotFull)) {
-            state.flashed[stage] = true;
-            ChargeCompleteFlash();
-        }
-    }
+    state.draw.Step(TyphoonShotActive());
 }
 
 void TyphoonShotFired(CSHOT &shots, int slot) {
@@ -150,8 +132,8 @@ void TyphoonShotFired(CSHOT &shots, int slot) {
     if (!TyphoonShotActive()) {
         return;
     }
-    float charge = TyphoonShotCharge(std::max(state.hold, state.held));
-    state.held = 0;
+    float charge = TyphoonShotCharge(state.draw.Held());
+    state.draw.Reset();
     if (charge <= 0.0f) {
         return;
     }

@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 
-#include "btactstatus.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/scene_light.hpp"
@@ -44,8 +43,7 @@ struct State {
     int           frames = 0; // in the phase
     int           charged = 0;
     int           unguarded = 0;
-    int           hold = 0; // frames the slingshot has been held drawn
-    int           held = 0; // how long it was held drawn before it last let go
+    ShotCharge    draw{kZeusChargedFrames}; // the slingshot drawn and held
     bool          dimmed = false;
     bool          struck = false; // a bolt came down in the window
     float         sling = 0.0f;   // the slingshot's white, 0..1
@@ -111,18 +109,14 @@ void ZeusShotStep() {
         return;
     }
     // How long the slingshot was last held drawn: the shot it lets go of reads it; the room darkens as it builds.
-    if (BtActStatus.action_on != 0 && (BtActStatus.action_no == kXiaoDraw || BtActStatus.action_no == kXiaoHold)) {
-        if (++state.hold == kZeusChargedFrames) {
-            ChargeCompleteFlash();
-        }
+    bool was_drawn = state.draw.Holding();
+    state.draw.Step(true);
+    if (state.draw.Holding()) {
         if (state.charge == Charge::kIdle || state.charge == Charge::kChain) {
             state.dimmed = true;
-            SceneDim(kZeusFlash.prime_dim * std::min(1.0f, static_cast<float>(state.hold) / kZeusChargedFrames));
+            SceneDim(kZeusFlash.prime_dim * std::min(1.0f, static_cast<float>(state.draw.Drawn()) / kZeusChargedFrames));
         }
-    } else if (state.hold > 0) {
-        state.held = state.hold;
-        state.hold = 0;
-    } else if (state.dimmed && state.charge == Charge::kIdle && !ChargedOut()) {
+    } else if (!was_drawn && state.dimmed && state.charge == Charge::kIdle && !ChargedOut()) {
         state.dimmed = false; // let go short of the charge, or its bolt came: the dim lifts
         SceneDimEnd();
     }
@@ -200,11 +194,11 @@ void ZeusShotFired(CSHOT &shots, int slot) {
             // until it comes down.
             state.charge = Charge::kIdle;
             state.dimmed = true;
-            state.held = kZeusChargedFrames;
+            state.draw.MarkReady();
         }
     }
-    bool charged = std::max(state.hold, state.held) >= kZeusChargedFrames;
-    state.held = 0;
+    bool charged = state.draw.Ready();
+    state.draw.Reset();
     if (!charged && state.charge != Charge::kChain) {
         return;
     }
