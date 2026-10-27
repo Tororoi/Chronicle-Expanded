@@ -31,6 +31,7 @@ Each section lists this repository's own changes first, then those that come fro
 - Depth of field, heat haze and water refraction are drawn at full resolution without retail's blocky blur; the heat haze ramps smoothly to the horizon. [c49d92b8](https://github.com/TheMoonPeople/Chronicle/commit/c49d92b8), [Chronicle#120](https://github.com/TheMoonPeople/Chronicle/pull/120)
 - Optional settings to draw distant town buildings, villagers and dungeon monsters in full detail and with their shadows, softened by the town's haze. [e928c0ee](https://github.com/TheMoonPeople/Chronicle/commit/e928c0ee), [Chronicle#176](https://github.com/TheMoonPeople/Chronicle/pull/176)
 - Georama mode draws town parts at walking's level of detail, and the part on the cursor at its finest. [Chronicle#173](https://github.com/TheMoonPeople/Chronicle/pull/173)
+- Enhanced cloth, on the Display page (Original by default): cloth still moves as on the PS2, but no longer passes through the wearer's arms, legs and chest. [Chronicle#234](https://github.com/TheMoonPeople/Chronicle/pull/234)
 
 ## Controls
 
@@ -390,3 +391,4 @@ Blessing Gun → Skunk ★
 - Text wipe (F9) compares the original picture text with the new runtime text. [Chronicle#174](https://github.com/TheMoonPeople/Chronicle/pull/174)
 - Gameplay documents and datapacks: the item tables are extracted as documents that datapacks beside the data folder can override. [Chronicle#223](https://github.com/TheMoonPeople/Chronicle/pull/223)
 - `dcdata publish-sound` writes the game's sound banks as WAV and JSON in ChronicleTwo's formats. [Chronicle#226](https://github.com/TheMoonPeople/Chronicle/pull/226)
+- `dcdata extract` and `dcdata bake-assets` publish every model, motion, skin weight and bind pose as glTF, indexed in `models.json`; the game rebuilds the disc's files from them byte for byte as it reads them. `convert-models` converts into a folder of its own and `strip-models` empties the converted sources. [Chronicle#234](https://github.com/TheMoonPeople/Chronicle/pull/234)
