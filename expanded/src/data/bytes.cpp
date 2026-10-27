@@ -57,10 +57,24 @@ void Append32(Bytes &out, std::uint32_t value) {
     }
 }
 
+void PadTo4(Bytes &out) {
+    while (out.size() % 4 != 0) {
+        out.push_back(0);
+    }
+}
+
 void PadTo16(Bytes &out) {
     while (out.size() % 16 != 0) {
         out.push_back(0);
     }
+}
+
+Bytes ToBytes(std::string_view text) {
+    return Bytes(text.begin(), text.end());
+}
+
+std::string ToText(std::span<const unsigned char> bytes) {
+    return std::string(bytes.begin(), bytes.end());
 }
 
 std::span<const unsigned char> Slice(std::span<const unsigned char> data, std::size_t offset, std::size_t size, const char *what) {
@@ -83,6 +97,14 @@ char FoldCase(char c) {
 
 bool EqualsFolded(std::string_view a, std::string_view b) {
     return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [](char x, char y) { return FoldCase(x) == FoldCase(y); });
+}
+
+bool EndsFolded(std::string_view text, std::string_view tail) {
+    return text.size() >= tail.size() && EqualsFolded(text.substr(text.size() - tail.size()), tail);
+}
+
+[[noreturn]] void Bad(const std::string &what) {
+    throw std::runtime_error(what);
 }
 
 } // namespace expanded

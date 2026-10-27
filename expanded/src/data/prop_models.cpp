@@ -24,13 +24,7 @@ constexpr const char *kRockModel = "iwa.mds";
 constexpr const char *kRockBank = "iwa.img";
 constexpr const char *kRockPicture = "d02b10";
 
-constexpr std::size_t kMdsNodeTable = 0xC, kMdsNodeCount = 8, kMdsNode = 0x70, kMdsNodeName = 8, kMdsNodeMesh = 0x28;
-constexpr std::size_t kMdsOneNode = 0x80; // the header and one frame; the mesh follows
-constexpr std::size_t kPackEnd = 0x50;    // the zero record that ends a pack
-
-Bytes Text(const std::string &text) {
-    return Bytes(text.begin(), text.end());
-}
+constexpr std::size_t kMdsOneNode = mds::kTable + mds::kRecord; // the header and one frame; the mesh follows
 
 // A character's cfg: its one bank, its model (and shadow model, when given), no motion.
 std::string Cfg(const std::string &title, const std::string &bank, const std::string &model, const std::string &shadow = "") {
@@ -39,13 +33,6 @@ std::string Cfg(const std::string &title, const std::string &bank, const std::st
         cfg += "SHADOW_MODEL \"" + shadow + "\"\r\n";
     }
     return cfg + "BODY_SIZE 17,7,60\r\n\r\nMOTION 0, \"\", \"\", \"\"\r\nSHADOW_MOTION \"\", \"\", \"\"\r\nKEY_START 0\r\nMOTION_END\r\n";
-}
-
-Bytes Pack(std::vector<ChrRecord> records) {
-    ChrPack pack;
-    pack.records = std::move(records);
-    pack.trailer.assign(kPackEnd, 0);
-    return pack.Rebuild();
 }
 
 // The scene's sub-file: its directory has 0x30-byte entries from 0x10, the name then its offset and size at +0x10 / +0x14.
@@ -140,11 +127,11 @@ Bytes BuildQueensTrees(std::span<const unsigned char> scene, std::span<const uns
     Bytes mds(part.begin() + static_cast<std::ptrdiff_t>(starts[0]), part.begin() + static_cast<std::ptrdiff_t>(starts[1]));
     // The grass square's mesh dropped: its frame stays (every other keeps its index and parent), with no mesh to build.
     bool        dropped = false;
-    std::size_t table = Get32(mds, kMdsNodeTable);
-    for (std::uint32_t i = 0; i < Get32(mds, kMdsNodeCount); i++) {
-        std::size_t node = table + i * kMdsNode;
-        if (NameAt(mds, node + kMdsNodeName, 0x20) == kTreesGround) {
-            Set32(mds, node + kMdsNodeMesh, 0);
+    std::size_t table = Get32(mds, mds::kTableAt);
+    for (std::uint32_t i = 0; i < Get32(mds, mds::kCountAt); i++) {
+        std::size_t node = table + i * mds::kRecord;
+        if (NameAt(mds, node + mds::kName, mds::kNameSize) == kTreesGround) {
+            Set32(mds, node + mds::kMesh, 0);
             dropped = true;
         }
     }
@@ -156,14 +143,14 @@ Bytes BuildQueensTrees(std::span<const unsigned char> scene, std::span<const uns
     bank.magic = source.magic;
     bank.entries.emplace_back(kTreesPicture, source.Block(kTreesPicture));
     std::string name = kTreesSubFile;
-    return Pack({ChrRecord::Make(kQueensTreesCfg, Text(Cfg("queens trees", name + ".img", name + ".mds"))), ChrRecord::Make(name + ".mds", mds),
-                 ChrRecord::Make(name + ".img", bank.Build())});
+    return ChrPack::Build({ChrRecord::Make(kQueensTreesCfg, ToBytes(Cfg("queens trees", name + ".img", name + ".mds"))), ChrRecord::Make(name + ".mds", mds),
+                           ChrRecord::Make(name + ".img", bank.Build())});
 }
 
 Bytes BuildShadowDisc(std::span<const unsigned char> rock) {
     ChrPack pack = ChrPack::Parse(rock);
     Bytes   model = pack.Require(kRockModel).Payload();
-    if (model.size() < kMdsOneNode + 0x40 || Get32(model, kMdsNodeCount) != 1) {
+    if (model.size() < kMdsOneNode + 0x40 || Get32(model, mds::kCountAt) != 1) {
         throw std::runtime_error(std::string(kRockModel) + " is not a one-frame model");
     }
     std::span<const unsigned char> mdt = std::span<const unsigned char>(model).subspan(kMdsOneNode);
@@ -198,16 +185,16 @@ Bytes BuildShadowDisc(std::span<const unsigned char> rock) {
     ImgBank bank;
     bank.magic = {'I', 'M', 'G', 0};
     bank.entries.emplace_back(kRockPicture, tim8::Resample(source.Block(kRockPicture), source.magic[2] == '2', kShadowDiscStandIn));
-    return Pack({ChrRecord::Make(kShadowDiscCfg, Text(Cfg("shadow disc", "disc.img", "disc.mds", "disc_shadow.mds"))),
-                 ChrRecord::Make("disc.mds", disc), ChrRecord::Make("disc_shadow.mds", disc), ChrRecord::Make("disc.img", bank.Build())});
+    return ChrPack::Build({ChrRecord::Make(kShadowDiscCfg, ToBytes(Cfg("shadow disc", "disc.img", "disc.mds", "disc_shadow.mds"))),
+                           ChrRecord::Make("disc.mds", disc), ChrRecord::Make("disc_shadow.mds", disc), ChrRecord::Make("disc.img", bank.Build())});
 }
 
-int BuildPropModels(const std::filesystem::path &data, std::FILE *log) {
-    std::vector<DataBuild> builds = {
-        {"Queens' trees", kQueensTreesFile, {kQueensSceneFile, kQueensImagesFile}, [](const DiscReader &read) { return BuildQueensTrees(read(kQueensSceneFile), read(kQueensImagesFile)); }},
-        {"shadow disc",   kShadowDiscFile,  {kShadowDiscSource},                   [](const DiscReader &read) { return BuildShadowDisc(read(kShadowDiscSource)); }                         },
+std::vector<DataBuild> PropModelBuilds() {
+    using Files = const std::vector<Bytes> &;
+    return {
+        DataBuild::FromSources("Queens' trees", kQueensTreesFile, {kQueensSceneFile, kQueensImagesFile}, [](Files s) { return BuildQueensTrees(s[0], s[1]); }),
+        DataBuild::FromSources("shadow disc", kShadowDiscFile, {kShadowDiscSource}, [](Files s) { return BuildShadowDisc(s[0]); }),
     };
-    return RunDataBuilds(data, "prop model", builds, log);
 }
 
 } // namespace expanded

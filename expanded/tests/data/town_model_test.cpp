@@ -218,6 +218,6 @@ TEST(TownModel, GraftsReversesAndOffsetsSlots) {
 
 TEST(TownModel, SkipsAnAllyWhoseBaseIsMissing) {
     expanded::test::ScratchDir dir("town_model");
-    EXPECT_EQ(BuildTownModels(dir.path(), nullptr), 0);
+    EXPECT_EQ(RunDataBuilds(dir.path(), "town model", TownModelBuilds(), nullptr), 0);
     EXPECT_FALSE(fs::exists(dir.path() / "expanded"));
 }

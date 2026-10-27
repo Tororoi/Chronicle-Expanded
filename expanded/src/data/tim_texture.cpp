@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cmath>
-#include <cstring>
 #include <stdexcept>
 
 #include "expanded/data/model_parts.hpp"
@@ -72,13 +71,13 @@ int BlockOffset(int x, int y, int w) {
 } // namespace
 
 Picture Read(std::span<const unsigned char> tim, bool swizzled) {
-    if (tim.size() < kPicture + 0x30 || tim[0] != 'T' || tim[1] != 'I' || tim[2] != 'M' || tim[3] != '2' || tim[kPicture + 0x13] != 5) {
+    if (tim.size() < kPicture + kHeader || tim[0] != 'T' || tim[1] != 'I' || tim[2] != 'M' || tim[3] != '2' || tim[kPicture + kType] != kType8) {
         throw std::runtime_error("not an 8-bit TIM2 picture");
     }
-    std::size_t clut = Get32(tim, kPicture + 4), image = Get32(tim, kPicture + 8), header = Get16(tim, kPicture + 0xC);
+    std::size_t clut = Get32(tim, kPicture + kClutSize), image = Get32(tim, kPicture + kImageSize), header = Get16(tim, kPicture + kHeaderSize);
     Picture     p;
-    p.width = Get16(tim, kPicture + 0x14);
-    p.height = Get16(tim, kPicture + 0x16);
+    p.width = Get16(tim, kPicture + kWidth);
+    p.height = Get16(tim, kPicture + kHeight);
     auto pixels = Slice(tim, kPicture + header, image, "a TIM2 picture's pixels");
     p.pixels = swizzled ? Unswizzle(pixels, p.width, p.height) : Bytes(pixels.begin(), pixels.end());
     auto colours = Slice(tim, kPicture + header + image, clut, "a TIM2 picture's CLUT");
@@ -88,16 +87,16 @@ Picture Read(std::span<const unsigned char> tim, bool swizzled) {
 
 Bytes Build(std::span<const unsigned char> templ, int width, int height, std::span<const unsigned char> pixels,
             std::span<const unsigned char> clut) {
-    if (templ[kPicture + 0x13] != 5 || Get16(templ, kPicture + 0xC) != 0x30) {
+    if (templ[kPicture + kType] != kType8 || Get16(templ, kPicture + kHeaderSize) != kHeader) {
         throw std::runtime_error("TIM2 template is not an 8-bit picture with a 0x30 header");
     }
-    Bytes out(templ.begin(), templ.begin() + kPicture + 0x30);
-    Set32(out, kPicture, static_cast<std::uint32_t>(0x30 + pixels.size() + clut.size()));
-    Set32(out, kPicture + 4, static_cast<std::uint32_t>(clut.size()));
-    Set32(out, kPicture + 8, static_cast<std::uint32_t>(pixels.size()));
-    Set16(out, kPicture + 0x14, static_cast<std::uint16_t>(width));
-    Set16(out, kPicture + 0x16, static_cast<std::uint16_t>(height));
-    std::fill(out.begin() + kPicture + 0x18, out.begin() + kPicture + 0x30, 0);
+    Bytes out(templ.begin(), templ.begin() + kPicture + kHeader);
+    Set32(out, kPicture + kTotalSize, static_cast<std::uint32_t>(kHeader + pixels.size() + clut.size()));
+    Set32(out, kPicture + kClutSize, static_cast<std::uint32_t>(clut.size()));
+    Set32(out, kPicture + kImageSize, static_cast<std::uint32_t>(pixels.size()));
+    Set16(out, kPicture + kWidth, static_cast<std::uint16_t>(width));
+    Set16(out, kPicture + kHeight, static_cast<std::uint16_t>(height));
+    std::fill(out.begin() + kPicture + kGsWords, out.begin() + kPicture + kHeader, 0);
     out.insert(out.end(), pixels.begin(), pixels.end());
     out.insert(out.end(), clut.begin(), clut.end());
     return out;
@@ -105,7 +104,7 @@ Bytes Build(std::span<const unsigned char> templ, int width, int height, std::sp
 
 Bytes Resample(std::span<const unsigned char> tim, bool swizzled, int n) {
     Picture     p = Read(tim, swizzled);
-    std::size_t header = Get16(tim, kPicture + 0xC);
+    std::size_t header = Get16(tim, kPicture + kHeaderSize);
     Bytes       pixels(static_cast<std::size_t>(n * n));
     for (int y = 0; y < n; y++) {
         for (int x = 0; x < n; x++) {
@@ -114,10 +113,10 @@ Bytes Resample(std::span<const unsigned char> tim, bool swizzled, int n) {
         }
     }
     Bytes out(tim.begin(), tim.begin() + static_cast<std::ptrdiff_t>(kPicture + header));
-    Set32(out, kPicture, static_cast<std::uint32_t>(header + 4 * static_cast<std::size_t>(n * n)));
-    Set32(out, kPicture + 8, static_cast<std::uint32_t>(n * n));
-    Set16(out, kPicture + 0x14, static_cast<std::uint16_t>(n));
-    Set16(out, kPicture + 0x16, static_cast<std::uint16_t>(n));
+    Set32(out, kPicture + kTotalSize, static_cast<std::uint32_t>(header + 4 * static_cast<std::size_t>(n * n)));
+    Set32(out, kPicture + kImageSize, static_cast<std::uint32_t>(n * n));
+    Set16(out, kPicture + kWidth, static_cast<std::uint16_t>(n));
+    Set16(out, kPicture + kHeight, static_cast<std::uint16_t>(n));
     out.insert(out.end(), pixels.begin(), pixels.end());
     out.insert(out.end(), p.clut.begin(), p.clut.end());
     return out;
@@ -147,8 +146,8 @@ Bytes Unswizzle(std::span<const unsigned char> blocks, int width, int height) {
 }
 
 Bytes Swizzled(std::span<const unsigned char> tim) {
-    std::size_t header = Get16(tim, kPicture + 0xC);
-    int         width = Get16(tim, kPicture + 0x14), height = Get16(tim, kPicture + 0x16);
+    std::size_t header = Get16(tim, kPicture + kHeaderSize);
+    int         width = Get16(tim, kPicture + kWidth), height = Get16(tim, kPicture + kHeight);
     Bytes       out(tim.begin(), tim.end());
     Bytes       blocks = Swizzle(Slice(tim, kPicture + header, static_cast<std::size_t>(width) * height, "a TIM2 picture's pixels"), width, height);
     std::copy(blocks.begin(), blocks.end(), out.begin() + static_cast<std::ptrdiff_t>(kPicture + header));

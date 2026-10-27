@@ -2,8 +2,10 @@
 
 #include <format>
 #include <stdexcept>
+#include <vector>
 
 #include "expanded/data/boss_model.hpp"
+#include "expanded/data/data_build.hpp"
 #include "expanded/data/gemron_models.hpp"
 #include "expanded/data/monster_scripts.hpp"
 #include "expanded/data/prop_models.hpp"
@@ -13,9 +15,33 @@
 
 namespace expanded {
 
+namespace {
+
+// What is built, in order, by kind (the log's word for it): a kind's files, or a build of its own.
+struct DataKind {
+    const char *kind;
+    std::vector<DataBuild> (*builds)();
+    int (*run)(const std::filesystem::path &data, std::FILE *log) = nullptr;
+};
+
+const DataKind kDataKinds[] = {
+    {"town model", TownModelBuilds},
+    {"boss model", BossModelBuilds},
+    {"gemron model", GemronModelBuilds},
+    {"spirit cat", SpiritCatModelBuilds},
+    {"monster script", MonsterScriptBuilds},
+    {"script damage", nullptr, BuildScriptDamage}, // one file from every script in a folder
+    {"prop model", PropModelBuilds},
+};
+
+} // namespace
+
 int BuildExpandedData(const std::filesystem::path &data, std::FILE *log) {
-    return BuildTownModels(data, log) + BuildBossModels(data, log) + BuildGemronModels(data, log) + BuildSpiritCatModels(data, log) +
-           BuildMonsterScripts(data, log) + BuildScriptDamage(data, log) + BuildPropModels(data, log);
+    int failures = 0;
+    for (const DataKind &kind : kDataKinds) {
+        failures += kind.run != nullptr ? kind.run(data, log) : RunDataBuilds(data, kind.kind, kind.builds(), log);
+    }
+    return failures;
 }
 
 int RebuildExpandedData(const std::filesystem::path &data, std::FILE *log) {

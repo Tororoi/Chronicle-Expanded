@@ -3,11 +3,11 @@
 // The Expanded Gemrons' models (expanded/docs/gemrons.md), built from the disc at extraction. Includes no game
 // header, so dcdata can build with it.
 
-#include <cstdio>
-#include <filesystem>
 #include <span>
+#include <vector>
 
 #include "expanded/data/chr_pack.hpp"
+#include "expanded/data/data_build.hpp"
 
 namespace expanded {
 
@@ -93,7 +93,7 @@ Bytes BuildBombGemronModel(std::span<const unsigned char> gemron, std::span<cons
 Bytes BuildBombThrowPack(std::span<const unsigned char> apple, std::span<const unsigned char> bomb_mds,
                          std::span<const unsigned char> bomb_img);
 
-// Builds every Gemron's files under data; the number that failed.
-int BuildGemronModels(const std::filesystem::path &data, std::FILE *log);
+// Every Gemron's files.
+std::vector<DataBuild> GemronModelBuilds();
 
 } // namespace expanded

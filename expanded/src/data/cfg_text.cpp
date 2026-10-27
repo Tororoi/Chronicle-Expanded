@@ -18,10 +18,6 @@ std::size_t MotionEnd(const std::string &text) {
     return end;
 }
 
-Bytes ToBytes(const std::string &text) {
-    return Bytes(text.begin(), text.end());
-}
-
 } // namespace
 
 Bytes AppendCfgKeys(std::span<const unsigned char> cfg, std::string_view lines) {

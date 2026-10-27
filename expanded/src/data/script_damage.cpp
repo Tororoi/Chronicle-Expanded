@@ -18,8 +18,7 @@ namespace {
 namespace fs = std::filesystem;
 
 // The script's layout and cells as stb.hpp has them; an int local (stb::kIntLocal) is a function's argument.
-constexpr std::int32_t  kSetDmgPara = 132, kSetShot = 133, kSetShot2 = 229;
-constexpr int           kMaxDepth = 8;
+constexpr int kMaxDepth = 8;
 
 struct Value {
     enum Kind { Unknown, Constant, Argument } kind = Unknown;
@@ -30,12 +29,8 @@ class Script {
 public:
     explicit Script(std::span<const std::uint8_t> bytes) : bytes_(bytes) {}
 
-    std::uint32_t U32(std::size_t at) const {
-        if (at + 4 > bytes_.size()) {
-            return 0;
-        }
-        return bytes_[at] | bytes_[at + 1] << 8 | bytes_[at + 2] << 16 | static_cast<std::uint32_t>(bytes_[at + 3]) << 24;
-    }
+    // A word, 0 past the end.
+    std::uint32_t U32(std::size_t at) const { return at + 4 > bytes_.size() ? 0 : Get32(bytes_, at); }
 
     std::size_t Size() const { return bytes_.size(); }
 
@@ -65,11 +60,11 @@ struct Use {
 
 std::optional<ScriptDamage> ReadScriptDamage(std::span<const std::uint8_t> bytes) {
     Script script(bytes);
-    if (bytes.size() < 0x14) {
+    if (bytes.size() < stb::kLabelCountAt + 4) {
         return std::nullopt;
     }
-    std::size_t base = script.U32(8), table = script.U32(0xC), count = script.U32(0x10);
-    if (base >= bytes.size() || table + count * 8 > bytes.size()) {
+    std::size_t base = script.U32(stb::kCodeBaseAt), table = script.U32(stb::kLabelTableAt), count = script.U32(stb::kLabelCountAt);
+    if (base >= bytes.size() || table + count * stb::kLabelEntry > bytes.size()) {
         return std::nullopt;
     }
 
@@ -77,7 +72,7 @@ std::optional<ScriptDamage> ReadScriptDamage(std::span<const std::uint8_t> bytes
     std::set<std::size_t>    functions;
     std::vector<std::size_t> todo;
     for (std::size_t i = 0; i < count; i++) {
-        std::size_t header = script.U32(table + i * 8 + 4);
+        std::size_t header = script.U32(table + i * stb::kLabelEntry + 4);
         if (functions.insert(header).second) {
             todo.push_back(header);
         }
@@ -119,27 +114,18 @@ std::optional<ScriptDamage> ReadScriptDamage(std::span<const std::uint8_t> bytes
                 case stb::kJumpTrue:
                     pop(1);
                     break;
-                case stb::kStore:
-                case 6: case 7: case 8: case 9: case 10: case 14: case 24: case 25: // binary operators
-                    pop(2);
-                    stack.push_back({});
-                    break;
-                case 11: case 12: case 13: case 26: case 29: case 30: // unary operators
-                    pop(1);
-                    stack.push_back({});
-                    break;
                 case stb::kExt: {
                     std::size_t        n = std::min<std::size_t>(a1, stack.size());
                     std::vector<Value> args(stack.end() - static_cast<std::ptrdiff_t>(n), stack.end());
                     pop(n);
                     if (!args.empty() && args[0].kind == Value::Constant) {
                         std::int32_t command = args[0].value;
-                        if (command == kSetDmgPara && args.size() >= 2) {
+                        if (command == stb::kSetDmgPara && args.size() >= 2) {
                             uses.push_back({true, args[1], header});
-                        } else if ((command == kSetShot || command == kSetShot2) && a1 == 6 && args.size() == 6) {
+                        } else if ((command == stb::kSetShot || command == stb::kSetShot2) && a1 == 6 && args.size() == 6) {
                             uses.push_back({false, args[5], header});
-                        } else if (command == kSetShot || command == kSetShot2) {
-                            damage.default_shot[command == kSetShot ? 0 : 1] = true;
+                        } else if (command == stb::kSetShot || command == stb::kSetShot2) {
+                            damage.default_shot[command == stb::kSetShot ? 0 : 1] = true;
                         }
                     }
                     stack.push_back({});
@@ -151,6 +137,13 @@ std::optional<ScriptDamage> ReadScriptDamage(std::span<const std::uint8_t> bytes
                     stack.push_back({});
                     break;
                 default:
+                    if (op == stb::kStore || stb::IsBinaryOperator(op)) {
+                        pop(2);
+                        stack.push_back({});
+                    } else if (stb::IsUnaryOperator(op)) {
+                        pop(1);
+                        stack.push_back({});
+                    }
                     break;
             }
         }

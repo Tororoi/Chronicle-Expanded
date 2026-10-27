@@ -11,13 +11,13 @@
 // A rebuilt script carries kBakedScriptMark, and one that has it is not rebuilt.
 
 #include <array>
-#include <cstdio>
-#include <filesystem>
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "expanded/data/bytes.hpp"
+#include "expanded/data/data_build.hpp"
 
 namespace expanded {
 
@@ -34,11 +34,11 @@ inline constexpr std::array<const char *, 7> kKingMimicScripts = {"e34a", "e36a"
 bool        ScriptIsBaked(std::string_view script);
 std::string BakedScriptFile(std::string_view script);
 
-// The script rebuilt from the disc's, and what was done; throws when the script is not one rebuilt, when it has
-// nothing the bake changes, or when it has the mark.
-Bytes BakeMonsterScript(std::string_view script, std::span<const unsigned char> stb, std::string *done = nullptr);
+// The script rebuilt from the disc's; throws when the script is not one rebuilt, when it has nothing the bake changes,
+// or when it has the mark.
+Bytes BakeMonsterScript(std::string_view script, std::span<const unsigned char> stb);
 
-// Builds every one from data's dun/monstor scripts. Returns the failures.
-int BuildMonsterScripts(const std::filesystem::path &data, std::FILE *log);
+// Every one, from data's dun/monstor scripts.
+std::vector<DataBuild> MonsterScriptBuilds();
 
 } // namespace expanded

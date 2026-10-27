@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
-#include <fstream>
-#include <functional>
 #include <map>
 #include <numbers>
 #include <stdexcept>
@@ -12,14 +10,13 @@
 
 #include "expanded/data/cfg_text.hpp"
 #include "expanded/data/data_build.hpp"
+#include "expanded/data/gemron_parts.hpp"
 #include "expanded/data/model_parts.hpp"
 #include "expanded/data/sheet_look.hpp"
 
 namespace expanded {
 
 namespace {
-
-namespace fs = std::filesystem;
 
 constexpr double kDegrees = std::numbers::pi / 180.0;
 
@@ -32,12 +29,9 @@ constexpr double kWingSpin = 180 * kDegrees;
 constexpr double kBodyPitch = -2.5, kBodyRoll = -45.0, kBodyYaw = -3.5;
 constexpr Vec3   kForward = {0.0, 0.0, 1.0}, kUp = {0.0, 1.0, 0.0}; // the rig at rest: head at +Z, Y up
 
-constexpr const char *kMds = "e112a.mds";
-constexpr const char *kImg = "e112a01.img";
-constexpr const char *kBbp = "e112a.bbp";
-constexpr const char *kSheet = "e112a01";
-constexpr const char *kSheet2 = "e112a02";
-constexpr const char *kMotions[] = {"e112a.mot", "e112s.mot"}; // the body's and the shadow's
+constexpr const GemronPack &kGemron = kIceGemronPack;
+
+constexpr const char *kMotions[] = {kGemron.mot, kGemron.shadow_mot}; // the body's and the shadow's
 constexpr const char *kBodyFrame = kGemronBigGem;
 constexpr const char *kWingFrames[] = {"tamas00__m", "tamas03__m"};
 constexpr const char *kGlowFrames[] = {"tama__appz", "tamas01__appz", "tamas02__appz"};
@@ -52,7 +46,6 @@ constexpr double      kGlowDiameter = 30.0;
 constexpr double      kGlowPull = 9.4;
 constexpr float       kGlowNone = 0.001f; // a scale of 0 would zero the frame's axes
 constexpr int         kGlowTextureSize = 128;
-constexpr std::size_t kBbpEntry = 64;
 // (frame, scale): none until a fuse, full at its blast, gone the frame after: the death 105-122, the self-destruct
 // 200-217. The last key lies past the self-destruct's end, as the engine plays a track only between two keys.
 constexpr std::pair<std::uint32_t, float> kGlowKeys[] = {
@@ -132,20 +125,8 @@ MotKeyframe Sample(const std::map<std::uint32_t, MotKeyframe> &keys, std::uint32
     if (s == before->first) {
         return key;
     }
-    double               t = (s - before->first) / (after->first - before->first);
-    std::array<float, 4> a, b;
-    for (int i = 0; i < 4; i++) {
-        a[std::size_t(i)] = before->second.Value(i);
-        b[std::size_t(i)] = after->second.Value(i);
-    }
-    std::array<double, 4> v;
-    if (channel == mot::kRotation) {
-        v = SlerpKeys(a, b, t);
-    } else {
-        for (int i = 0; i < 4; i++) {
-            v[std::size_t(i)] = a[std::size_t(i)] + (b[std::size_t(i)] - double(a[std::size_t(i)])) * t;
-        }
-    }
+    double                t = (s - before->first) / (after->first - before->first);
+    std::array<double, 4> v = BlendKeys(before->second.Values(), after->second.Values(), t, channel == mot::kRotation);
     for (int i = 0; i < 4; i++) {
         key.SetValue(i, static_cast<float>(v[std::size_t(i)]));
     }
@@ -217,12 +198,9 @@ Mat3 BodyTurn(const MdsFrame &body) {
 // The glow sprite's quad re-laid as the disc, its material on the disc's picture.
 Bytes GlowQuad(std::span<const unsigned char> quad_mds) {
     std::vector<MdsFrame> frames = ReadMdsSkeleton(quad_mds);
-    const MdsFrame       *quad = FindFrame(frames, kQuadFrame);
-    if (quad == nullptr) {
-        throw std::runtime_error(std::format("{} has no {}", kQuadMds, kQuadFrame));
-    }
-    MdtMesh mesh = MdtMesh::Parse(MdtAt(quad_mds, std::size_t(quad->mesh)));
-    double  r = kGlowDiameter / 2;
+    const MdsFrame       *quad = &RequireFrame(frames, kQuadFrame, kQuadMds);
+    MdtMesh               mesh = MdtMesh::Parse(MdtAt(quad_mds, std::size_t(quad->mesh)));
+    double                r = kGlowDiameter / 2;
     // (x, y, u, v) per position, in the source quad's winding.
     const std::array<std::array<double, 4>, 4> corners = {
         {{-r, r, 0.0, 0.0}, {-r, -r, 0.0, 1.0}, {r, r, 1.0, 0.0}, {r, -r, 1.0, 1.0}}
@@ -251,8 +229,8 @@ Bytes GlowQuad(std::span<const unsigned char> quad_mds) {
         mesh.uvs.push_back(*coordinate);
     }
     Bytes material = mesh.materials.at(0);
-    std::fill(material.begin() + 0x34, material.begin() + 0x54, 0);
-    std::copy_n(kGlowTexture, std::char_traits<char>::length(kGlowTexture), material.begin() + 0x34);
+    std::fill_n(material.begin() + MdtMesh::kMaterialTexture, 0x20, 0);
+    std::copy_n(kGlowTexture, std::char_traits<char>::length(kGlowTexture), material.begin() + MdtMesh::kMaterialTexture);
     mesh.materials = {material};
     return mesh.Build();
 }
@@ -262,7 +240,7 @@ void AddGlowTrack(ChrPack &pack, int frame) {
     MotFile    mot = MotFile::FromRecord(record);
     MotTrack   track;
     track.w0 = std::uint32_t(frame);
-    track.w2 = 1; // scale
+    track.w2 = mot::kScale;
     track.w3 = mot.tracks.back().w3;
     track.w6 = mot.tracks.back().w6;
     track.w7 = mot.tracks.back().w7;
@@ -283,13 +261,10 @@ void AddGlowTrack(ChrPack &pack, int frame) {
 Bytes BuildBombGemronModel(std::span<const unsigned char> gemron, std::span<const unsigned char> bomb_mds,
                            std::span<const unsigned char> bomb_img, std::span<const unsigned char> quad_chr,
                            std::span<const unsigned char> glow_pack) {
-    ChrPack               pack = ChrPack::Parse(gemron);
-    Bytes                 mds = pack.Require(kMds).Payload();
-    std::vector<MdsFrame> frames = ReadMdsSkeleton(mds);
-    const MdsFrame       *body = FindFrame(frames, kBodyFrame);
-    if (body == nullptr) {
-        throw std::runtime_error(std::format("{} has no {}", kMds, kBodyFrame));
-    }
+    ChrPack                                     pack = ChrPack::Parse(gemron);
+    Bytes                                       mds = pack.Require(kGemron.mds).Payload();
+    std::vector<MdsFrame>                       frames = ReadMdsSkeleton(mds);
+    const MdsFrame                             *body = &RequireFrame(frames, kBodyFrame, kGemron.mds);
     Vec3                                        right = Cross(kForward, kUp);
     std::map<std::string, std::optional<Bytes>> replaced;
     for (const char *glow : kGlowFrames) {
@@ -300,40 +275,29 @@ Bytes BuildBombGemronModel(std::span<const unsigned char> gemron, std::span<cons
     replaced[kBodyFrame] = BombMesh(bomb_mds, 3.5 / kBombRadius, MatMul(BodyTurn(*body), RotationYTo(Unit(body->ToLocal(aim)))), kBodySpin);
     // The wing bombs: wick up, toward the body and forward.
     for (const char *name : kWingFrames) {
-        const MdsFrame *wing = FindFrame(frames, name);
-        if (wing == nullptr) {
-            throw std::runtime_error(std::format("{} has no {}", kMds, name));
-        }
-        Vec3 to_body = Unit(Add(body->WorldPosition(), Scale(wing->WorldPosition(), -1.0)));
+        const MdsFrame *wing = &RequireFrame(frames, name, kGemron.mds);
+        Vec3            to_body = Unit(Add(body->WorldPosition(), Scale(wing->WorldPosition(), -1.0)));
         aim = Unit(Add(Add(kUp, to_body), kForward));
         replaced[name] = BombMesh(bomb_mds, 1.3 / kBombRadius, RotationYTo(Unit(wing->ToLocal(aim))), kWingSpin);
     }
     // The glow disc: a frame of its own on the big bomb's bone, after the last.
     int   glow = static_cast<int>(frames.size());
     Bytes quad_mds = ChrPack::Parse(quad_chr).Require(kQuadMds).Payload();
-    pack.Require(kMds).ReplacePayload(ReplaceMeshes(mds, replaced, {
-                                                                       {FrameRecord(glow, kBombGlowFrame, body->index), GlowQuad(quad_mds)}
+    pack.Require(kGemron.mds).ReplacePayload(ReplaceMeshes(mds, replaced, {
+                                                                              {FrameRecord(glow, kBombGlowFrame, body->index), GlowQuad(quad_mds)}
     }));
-    Bytes bbp = pack.Require(kBbp).Payload();
-    bbp.resize(bbp.size() + kBbpEntry, 0); // its bind pose; the model is not skinned
-    pack.Require(kBbp).ReplacePayload(bbp);
+    AppendBindPoses(pack, kGemron.bbp, 1); // the glow disc's
     // The sheets in the look, the bomb's sheet and the glow disc added to the bank.
-    ImgBank   bank = ImgBank::Parse(pack.Require(kImg).Payload());
+    ImgBank   bank = ImgBank::Parse(pack.Require(kGemron.img).Payload());
     ImgBank   bomb = ImgBank::Parse(bomb_img);
     SheetLook look = SheetLook::Parse(kBombGemronLook);
-    Bytes     sheet = bank.Block(kSheet);
-    for (auto &[name, block] : bank.entries) {
-        if (name == kSheet) {
-            block = look.ApplyToSheet(block);
-        } else if (name == kSheet2) {
-            block = look.ApplyBaseToSheet(block);
-        }
-    }
+    Bytes     sheet = bank.Block(kGemron.sheet);
+    ApplyLook(bank, look, kGemron);
     bank.entries.insert(bank.entries.end(), bomb.entries.begin(), bomb.entries.end());
     Bytes torch = ImgBank::Parse(ChrPack::Parse(glow_pack).Require(kGlowSourceBank).Payload()).Block(kGlowSourcePicture);
     Bytes disc = BuildGlowDisc(sheet, torch, kFireGlowCore, kFireGlowOuter);
     bank.entries.emplace_back(kGlowTexture, tim8::Swizzled(tim8::Resample(disc, false, kGlowTextureSize)));
-    pack.Require(kImg).ReplacePayload(bank.Build());
+    pack.Require(kGemron.img).ReplacePayload(bank.Build());
     BakeSelfDestruct(pack);
     AddGlowTrack(pack, glow);
     return pack.Rebuild();
@@ -356,31 +320,19 @@ Bytes BuildBombThrowPack(std::span<const unsigned char> apple, std::span<const u
     return pack.Rebuild();
 }
 
-int BuildGemronModels(const fs::path &data, std::FILE *log) {
-    // Each built from its sources in turn.
-    auto from = [](std::vector<std::string> sources, auto build) {
-        return std::pair{sources, [sources, build](const DiscReader &read) {
-                             std::vector<Bytes> files;
-                             for (const std::string &source : sources) {
-                                 files.push_back(read(source));
-                             }
-                             return build(files);
-                         }};
-    };
-    std::vector<DataBuild> builds;
-
-    auto add = [&](const char *name, const char *target, auto made) { builds.push_back({name, target, made.first, made.second}); };
+std::vector<DataBuild> GemronModelBuilds() {
     using Files = const std::vector<Bytes> &;
     // clang-format off
-    add("Bomb Gemron",             kBombGemronModelFile,     from({kBombGemronSource, kBombModelFile, kBombPictureFile, kGlowQuadFile, kGlowSourcePack},                    [](Files s) { return BuildBombGemronModel(s[0], s[1], s[2], s[3], s[4]); }));
-    add("Bomb Gemron's bomb",      kBombThrowFile,           from({kBombThrowSource, kBombModelFile, kBombPictureFile},                                                     [](Files s) { return BuildBombThrowPack(s[0], s[1], s[2]); }));
-    add("Crystal Gemron",          kCrystalGemronModelFile,  from({kCrystalGemronSource, kCrystalBallFile},                                                                 [](Files s) { return BuildCrystalGemronModel(s[0], s[1]); }));
-    add("Crystal Gemron's script", kCrystalGemronScriptFile, from({kCrystalGemronScriptSource},                                                                             [](Files s) { return BuildCrystalGemronScript(s[0]); }));
-    add("Atla Gemron",             kAtlaGemronModelFile,     from({kAtlaGemronSource, kAtlaPackFile, kAtlaPictureFile, kToanPackFile, kAtlamilliaLightFile, kFlyLightFile}, [](Files s) { return BuildAtlaGemronModel(s[0], s[1], s[2], s[3], s[4], s[5]); }));
-    add("Atla Gemron's shot",      kAtlaShotFile,            from({kAtlamilliaLightFile},                                                                                   [](Files s) { return BuildAtlaShotPack(s[0]); }));
-    add("Atla Gemron's script",    kAtlaGemronScriptFile,    from({kAtlaGemronScriptSource},                                                                                [](Files s) { return BuildAtlaGemronScript(s[0]); }));
+    return {
+        DataBuild::FromSources("Bomb Gemron",             kBombGemronModelFile,     {kBombGemronSource, kBombModelFile, kBombPictureFile, kGlowQuadFile, kGlowSourcePack},                    [](Files s) { return BuildBombGemronModel(s[0], s[1], s[2], s[3], s[4]); }),
+        DataBuild::FromSources("Bomb Gemron's bomb",      kBombThrowFile,           {kBombThrowSource, kBombModelFile, kBombPictureFile},                                                     [](Files s) { return BuildBombThrowPack(s[0], s[1], s[2]); }),
+        DataBuild::FromSources("Crystal Gemron",          kCrystalGemronModelFile,  {kCrystalGemronSource, kCrystalBallFile},                                                                 [](Files s) { return BuildCrystalGemronModel(s[0], s[1]); }),
+        DataBuild::FromSources("Crystal Gemron's script", kCrystalGemronScriptFile, {kCrystalGemronScriptSource},                                                                             [](Files s) { return BuildCrystalGemronScript(s[0]); }),
+        DataBuild::FromSources("Atla Gemron",             kAtlaGemronModelFile,     {kAtlaGemronSource, kAtlaPackFile, kAtlaPictureFile, kToanPackFile, kAtlamilliaLightFile, kFlyLightFile}, [](Files s) { return BuildAtlaGemronModel(s[0], s[1], s[2], s[3], s[4], s[5]); }),
+        DataBuild::FromSources("Atla Gemron's shot",      kAtlaShotFile,            {kAtlamilliaLightFile},                                                                                   [](Files s) { return BuildAtlaShotPack(s[0]); }),
+        DataBuild::FromSources("Atla Gemron's script",    kAtlaGemronScriptFile,    {kAtlaGemronScriptSource},                                                                                [](Files s) { return BuildAtlaGemronScript(s[0]); }),
+    };
     // clang-format on
-    return RunDataBuilds(data, "gemron model", builds, log);
 }
 
 } // namespace expanded
