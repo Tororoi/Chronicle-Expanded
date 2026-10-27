@@ -35,6 +35,7 @@
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/kick_back.hpp"
 #include "expanded/weapons/osmond/snail.hpp"
+#include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/solid_column.hpp"
 #include "expanded/weapons/toan/agas_sword.hpp"
@@ -84,6 +85,7 @@
 namespace expanded {
 
 void DungeonShotsStep(CMonstorUnit &unit) {
+    CursedPrismStep(unit);
     ShotEffectsStep();
     BossCastStep(unit);
     IceQueenStep(unit);
@@ -97,6 +99,7 @@ void DungeonShotsStep(CMonstorUnit &unit) {
 void DungeonFloorUnloaded() {
     ShotEffectsClear();
     FloorCharactersClear();
+    CursedPrismFloorEnds();
 }
 
 void DungeonFloorLoaded(CMonstorUnit &unit) {
@@ -281,6 +284,10 @@ void PelletFired(CSHOT &shots, int slot) {
     TornadoShotFired(shots, slot);
     SpiritBeastFired(shots, slot);
     AirStrikeFired(shots, slot);
+}
+
+void RubyOrbThrown(CSHOT_EFFECT &effect, int slot) {
+    PrismOrbThrown(effect, slot);
 }
 
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {

@@ -24,6 +24,12 @@ constexpr int   kShatterSound = 1776;
 
 } // namespace
 
+BT_SHOT_EFFECT IceArrowShot() {
+    // clang-format off
+    return {"info", 0, 1, {1.4f, 1.2f, 0.0f, 0.0f}, {2.6f, 7.0f, 8.0f, 0.0f}, 360, 58, 0x102, 2, 1, {-1, 0, 1, -1}, -1, {}, 0.0f, 0, {-1, -1, -1, -1}};
+    // clang-format on
+}
+
 BT_SHOT_EFFECT IcePrisonShot() {
     // clang-format off
     return {"info", 1, 0, {}, {-100.0f, -100.0f, -100.0f, -100.0f}, 1800, 0, 0, 2, 1, {0, 0, 1, 1}, 0, {}, 0.0f, 0, {-1, -1, -1, -1}};

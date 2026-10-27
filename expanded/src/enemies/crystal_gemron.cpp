@@ -35,12 +35,8 @@ namespace {
     .rare_item = ITEM_CRYSTAL_EYEBALL,
 });
 
-// Its shot, Holy Gemron's own on the Ice Queen's arrow (flying from the moment it is fired at 1.2, Freeze and the Ice
-// element, a guardable knockback), and her prison (no hit, held while the player stays frozen).
-// clang-format off
-BT_SHOT_EFFECT arrow_shot = {"info", 0, 1, {1.4f, 1.2f, 0.0f, 0.0f}, {2.6f, 7.0f, 8.0f, 0.0f}, 360, 58, 0x102, 2, 1,
-                             {-1, 0, 1, -1}, -1, {}, 0.0f, 0, {-1, -1, -1, -1}};
-// clang-format on
+// Its shot, the ice arrow, and her prison (no hit, held while the player stays frozen).
+BT_SHOT_EFFECT arrow_shot = IceArrowShot();
 BT_SHOT_EFFECT prison_shot = IcePrisonShot();
 constexpr int  kArrows = 4;
 

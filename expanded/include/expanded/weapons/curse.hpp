@@ -4,7 +4,7 @@ struct CUserStatus;
 
 namespace expanded {
 
-// Curses weapons put on the party members who equip them (Evilcise, Maneater; the Crystal Ring to come).
+// Curses weapons put on the party members who equip them (Evilcise, Maneater, the Crystal Ring).
 // A member is cursed while a rule says so, again on every floor, and freed when it stops. An item lifting the
 // curse is the rule's to answer, and the curse stays off until the next floor or the next equip. A knock-out
 // is not a lift: the curse comes back with the revival.

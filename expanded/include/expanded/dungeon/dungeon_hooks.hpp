@@ -99,6 +99,8 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster);
 // Xiao fired a pellet into slot of shots (BattleActionPlay_Jinn), and a pellet ended at point, on a monster when struck
 // (CSHOT::step): the weapons that ride or answer her shots.
 void PelletFired(CSHOT &shots, int slot);
+// Ruby let an orb go into slot of effect (BattleActionShotRuby), its damage and her weapon's abilities on it.
+void RubyOrbThrown(CSHOT_EFFECT &effect, int slot);
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck);
 // A pellet's hit just planted (CSHOT::step).
 void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit);
