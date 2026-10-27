@@ -99,7 +99,7 @@ void OnFloor() {
 // The bomb's effect, loaded with the floor while the sphere is with the party (asked each time, never loading).
 CSHOT_EFFECT *Bombs() {
     state.effect = ShotEffectIndex(&bomb_shot);
-    return state.effect >= 0 ? ShotEffectAt(state.effect) : nullptr;
+    return LoadedShotEffect(state.effect);
 }
 
 int ShowBomb(const float *at, float scale, bool still) {
@@ -107,18 +107,10 @@ int ShowBomb(const float *at, float scale, bool still) {
     if (bombs == nullptr) {
         return -1;
     }
-    // A shot that does not fly: aimed straight up at no speed (Set lets it go of the model it was copied from).
-    sceVu0FVECTOR from, to;
-    sceVu0CopyVector(from, const_cast<float *>(at));
-    from[3] = 1.0f;
-    sceVu0CopyVector(to, from);
-    to[1] += 1.0f;
-    bombs->Set(from, to, 1, -1, 0, nullptr, 1);
-    int slot = bombs->current_slot;
+    int slot = SpawnStill(*bombs, at, 1, 1);
     if (slot < 0) {
         return -1;
     }
-    bombs->velocity[slot][0] = bombs->velocity[slot][1] = bombs->velocity[slot][2] = 0.0f;
     bombs->chara[slot].SetScale(scale, scale, scale);
     bombs->chara[slot].ambient_offset[3] = -1.0f;
     // The apple's flight motion turns it; a hanging bomb holds still.
@@ -127,7 +119,7 @@ int ShowBomb(const float *at, float scale, bool still) {
 }
 
 void MoveBomb(int slot, const float *at, float scale) {
-    CSHOT_EFFECT *bombs = state.effect >= 0 ? ShotEffectAt(state.effect) : nullptr;
+    CSHOT_EFFECT *bombs = LoadedShotEffect(state.effect);
     if (bombs == nullptr || slot < 0 || bombs->active[slot] == 0) {
         return;
     }
@@ -136,7 +128,7 @@ void MoveBomb(int slot, const float *at, float scale) {
 }
 
 void HideBomb(int &slot) {
-    CSHOT_EFFECT *bombs = state.effect >= 0 ? ShotEffectAt(state.effect) : nullptr;
+    CSHOT_EFFECT *bombs = LoadedShotEffect(state.effect);
     if (bombs != nullptr && slot >= 0) {
         bombs->active[slot] = 0;
         bombs->chara[slot].ambient_offset[3] = -1.0f;
@@ -354,7 +346,7 @@ void BigBangShotLight(const CCharacter &character, float *ambient) {
         return;
     }
     // The hanging bomb: red while it fades in, then a cosine to black and back once a second.
-    CSHOT_EFFECT *bombs = state.hover >= 0 && state.effect >= 0 ? ShotEffectAt(state.effect) : nullptr;
+    CSHOT_EFFECT *bombs = state.hover >= 0 ? LoadedShotEffect(state.effect) : nullptr;
     if (bombs != nullptr && &character == &bombs->chara[state.hover]) {
         float red = state.charge == Charge::kPrimed ? kBombRed * (0.5f + 0.5f * std::cos(state.pulse * kPulseStep)) : kBombRed;
         ambient[0] += red;

@@ -6,9 +6,12 @@
 #include <cstring>
 #include <unordered_map>
 
+#include "dataalloc.hpp"
 #include "dataread.hpp"
+#include "dataread_port.hpp"
 #include "mglib.hpp"
 #include "nowload.hpp"
+#include "platform/arena.hpp"
 #include "texture.hpp"
 #include "tim2.hpp"
 
@@ -92,6 +95,22 @@ const std::vector<unsigned char> *CachedPackFile(const std::string &path) {
     wait_now_loading_vsync();
     auto *bytes = reinterpret_cast<unsigned char *>(read_buffer);
     return &FileCache().emplace(path, std::vector<unsigned char>(bytes, bytes + size)).first->second;
+}
+
+unsigned int *ReadPackIntoArena(const std::string &path, CDataAlloc2<1> &arena, int copies) {
+    const std::vector<unsigned char> *bytes = CachedPackFile(path);
+    if (bytes == nullptr) {
+        return nullptr;
+    }
+    std::size_t pack_bytes = (bytes->size() + 2048 + 63) & ~std::size_t{63};
+    int         quads = static_cast<int>((pack_bytes / 16) * copies * kArenaHeadroom) + 4096;
+    arena.base = ArenaBlock(&arena, static_cast<std::size_t>(quads) * 16);
+    arena.limit = quads;
+    arena.used = 0;
+    auto *pack = reinterpret_cast<u_int *>(arena.Alloc64(static_cast<int>(pack_bytes / 16)));
+    std::memcpy(pack, bytes->data(), bytes->size());
+    DataReadTrackPack(pack, bytes->size());
+    return pack;
 }
 
 bool PackTexturesFit(unsigned int *pack, int block, const char *what) {

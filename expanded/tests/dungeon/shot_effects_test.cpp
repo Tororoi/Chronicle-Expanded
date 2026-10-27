@@ -83,6 +83,20 @@ TEST_F(ShotEffects, LoadsACustomDescriptionPastRetailsFive) {
     EXPECT_EQ(expanded::ShotEffectCount(), expanded::kRetailShotEffects + 1);
 }
 
+// Only an index in use has an effect: not -1, not one past the loaded ones, not retail's while no pack is up.
+TEST_F(ShotEffects, OnlyAnIndexInUseIsLoaded) {
+    BT_SHOT_EFFECT custom = Described("custom");
+    int            index = expanded::EnterShotEffect(&custom, 3);
+
+    EXPECT_EQ(expanded::LoadedShotEffect(index), expanded::ShotEffectAt(index));
+    EXPECT_EQ(expanded::LoadedShotEffect(0), &pack_->effect[0]);
+    EXPECT_EQ(expanded::LoadedShotEffect(-1), nullptr);
+    EXPECT_EQ(expanded::LoadedShotEffect(index + 1), nullptr);
+    NowShotEffect = nullptr;
+    EXPECT_EQ(expanded::LoadedShotEffect(0), nullptr);
+    EXPECT_EQ(expanded::LoadedShotEffect(index), expanded::ShotEffectAt(index));
+}
+
 TEST_F(ShotEffects, ALoadedDescriptionKeepsItsSlot) {
     BT_SHOT_EFFECT custom = Described("custom");
     BT_SHOT_EFFECT retail = Described("retail");

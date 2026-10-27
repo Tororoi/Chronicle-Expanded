@@ -2,9 +2,6 @@
 
 #include <cmath>
 #include <cstdio>
-#include <cstring>
-#include <deque>
-#include <iterator>
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -13,7 +10,6 @@
 #include "collisiondata.hpp"
 #include "dataalloc.hpp"
 #include "dataread.hpp"
-#include "dataread_port.hpp"
 #include "dataset.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/pack_files.hpp"
@@ -24,7 +20,6 @@
 #include "mglib.hpp"
 #include "monstorunit.hpp"
 #include "nowload.hpp"
-#include "platform/arena.hpp"
 #include "shot_effect_pack.hpp"
 #include "texture.hpp"
 #include "tim2.hpp"
@@ -41,10 +36,8 @@ struct Slot {
     CDataAlloc2<1> arena{-1};
 };
 
-struct Store {
-    std::deque<Slot> slots; // only grows, so no effect moves
-    int              live = 0;
-    bool             floor = false;
+struct Store : FloorSlots<Slot> {
+    bool floor = false;
 };
 
 Store &State() {
@@ -71,22 +64,9 @@ std::string PathOf(const BT_SHOT_EFFECT *effect, const char *path) {
 
 // Reads the effect's pack from the cache into its own arena and sets the effect up from it.
 bool DiscLoad(CSHOT_EFFECT &effect, CDataAlloc2<1> &arena, BT_SHOT_EFFECT *description, int shots, const char *path) {
-    std::string                       file = PathOf(description, path);
-    const std::vector<unsigned char> *bytes = CachedPackFile(file);
-    if (bytes == nullptr) {
-        return false;
-    }
-    std::size_t pack_bytes = (bytes->size() + 2048 + 63) & ~std::size_t{63};
-    // The pack, then the model, motions and images it copies out, then each shot's frame copy.
-    int quads = static_cast<int>((pack_bytes / 16) * (4 + 2 * shots) * kArenaHeadroom) + 4096;
-    arena.base = ArenaBlock(&arena, static_cast<std::size_t>(quads) * 16);
-    arena.limit = quads;
-    arena.used = 0;
-    auto *pack = reinterpret_cast<u_int *>(arena.Alloc64(static_cast<int>(pack_bytes / 16)));
-    std::memcpy(pack, bytes->data(), bytes->size());
-    DataReadTrackPack(pack, bytes->size());
-
-    if (!PackTexturesFit(pack, kShotEffectBlock, file.c_str())) {
+    std::string file = PathOf(description, path);
+    u_int      *pack = ReadPackIntoArena(file, arena, 4 + 2 * shots);
+    if (pack == nullptr || !PackTexturesFit(pack, kShotEffectBlock, file.c_str())) {
         return false;
     }
     effect.Initialize();
@@ -99,11 +79,12 @@ ShotEffectLoader &Loader() {
 }
 
 int StoreIndex(const BT_SHOT_EFFECT *effect) {
-    Store &store = State();
-    for (int i = 0; i < store.live; i++) {
-        if (store.slots[i].effect.effect_data == effect) {
-            return i;
+    int index = 0;
+    for (Slot &slot : State()) {
+        if (slot.effect.effect_data == effect) {
+            return index;
         }
+        index++;
     }
     return -1;
 }
@@ -139,6 +120,52 @@ CSHOT_EFFECT *ShotEffectAt(int index) {
     return &empty;
 }
 
+CSHOT_EFFECT *LoadedShotEffect(int index) {
+    if (index < 0 || index >= ShotEffectCount() || (index < kRetailShotEffects && NowShotEffect == nullptr)) {
+        return nullptr;
+    }
+    return ShotEffectAt(index);
+}
+
+int FireShotEffect(int index, float *position, float *target, int owner) {
+    CSHOT_EFFECT *effect = LoadedShotEffect(index);
+    if (effect == nullptr) {
+        return -1;
+    }
+    NowShotEffect->Set(index, position, target);
+    if (effect->current_slot >= 0 && owner >= 0) {
+        NowShotEffect->SetUserID2(owner);
+    }
+    return effect->current_slot;
+}
+
+int SpawnStill(CSHOT_EFFECT &effect, const float *at, int user, int phase) {
+    float from[4] = {at[0], at[1], at[2], 1.0f};
+    float to[4] = {at[0], at[1] + 1.0f, at[2], 1.0f};
+    effect.Set(from, to, user, -1, 0, nullptr, phase);
+    int slot = effect.current_slot;
+    if (slot >= 0) {
+        StopShot(effect, slot);
+    }
+    return slot;
+}
+
+void StopShot(CSHOT_EFFECT &effect, int slot) {
+    effect.velocity[slot][0] = effect.velocity[slot][1] = effect.velocity[slot][2] = 0.0f;
+}
+
+void EnterShotPhase(CSHOT_EFFECT &effect, int slot, int phase) {
+    effect.phase[slot] = static_cast<s16>(phase);
+    int motion = effect.effect_data->motion[phase];
+    if (motion == -1) {
+        effect.active[slot] = 0;
+        return;
+    }
+    effect.chara[slot].motion_type.state.time = static_cast<float>(effect.chara[slot].motion_type.motion_info[motion].start);
+    effect.chara[slot].SetMotion(motion, 6);
+    StopShot(effect, slot);
+}
+
 int ShotEffectIndex(const BT_SHOT_EFFECT *effect) {
     if (effect == nullptr) {
         return -1;
@@ -160,10 +187,7 @@ int EnterShotEffect(BT_SHOT_EFFECT *effect, int shots, const char *path) {
         return index;
     }
     Store &store = State();
-    if (store.live == static_cast<int>(store.slots.size())) {
-        store.slots.emplace_back();
-    }
-    Slot &slot = store.slots[store.live];
+    Slot  &slot = store.Next();
     if (!Loader()(slot.effect, slot.arena, effect, shots, path)) {
         slot.effect.Initialize();
         return -1;
@@ -208,9 +232,9 @@ void ShotEffectsWeaponsChanged() {
 
 void ShotEffectsClear() {
     Store &store = State();
-    for (int i = 0; i < store.live; i++) {
-        store.slots[i].effect.Initialize();
-        store.slots[i].arena.used = 0;
+    for (Slot &slot : store) {
+        slot.effect.Initialize();
+        slot.arena.used = 0;
     }
     store.live = 0;
     store.floor = false;
@@ -218,9 +242,8 @@ void ShotEffectsClear() {
 }
 
 void ShotEffectsReset() {
-    Store &store = State();
-    for (int i = 0; i < store.live; i++) {
-        store.slots[i].effect.OffEffect(-1);
+    for (Slot &slot : State()) {
+        slot.effect.OffEffect(-1);
     }
 }
 
@@ -236,16 +259,14 @@ void ShotEffectsFloorLoaded() {
 }
 
 void ShotEffectsStep() {
-    Store &store = State();
-    for (int i = 0; i < store.live; i++) {
-        store.slots[i].effect.Step();
+    for (Slot &slot : State()) {
+        slot.effect.Step();
     }
 }
 
 void ShotEffectsDraw() {
-    Store &store = State();
-    for (int i = 0; i < store.live; i++) {
-        store.slots[i].effect.Draw();
+    for (Slot &slot : State()) {
+        slot.effect.Draw();
     }
 }
 

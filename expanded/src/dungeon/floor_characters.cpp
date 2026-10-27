@@ -2,16 +2,12 @@
 
 #include <algorithm>
 #include <cstdio>
-#include <cstring>
-#include <deque>
 #include <iterator>
 #include <string>
 
 #include "character.hpp"
 #include "dataalloc.hpp"
-#include "dataread_port.hpp"
 #include "expanded/dungeon/pack_files.hpp"
-#include "platform/arena.hpp"
 #include "texture.hpp"
 
 namespace expanded {
@@ -26,31 +22,14 @@ struct Slot {
     bool           images = true; // its pack's images loaded, not the original's textures shared
 };
 
-struct Store {
-    std::deque<Slot> slots; // only grows, so no character moves
-    int              live = 0;
-};
-
-Store &State() {
-    static Store store;
+FloorSlots<Slot> &State() {
+    static FloorSlots<Slot> store;
     return store;
 }
 
 bool PackLoad(CCharacter &chara, CDataAlloc2<1> &arena, const char *path, const char *cfg, bool images) {
-    const std::vector<unsigned char> *bytes = CachedPackFile(path);
-    if (bytes == nullptr) {
-        return false;
-    }
-    std::size_t pack_bytes = (bytes->size() + 2048 + 63) & ~std::size_t{63};
-    // The pack, then the model, motions, skins and images it copies out.
-    int quads = static_cast<int>((pack_bytes / 16) * 4 * kArenaHeadroom) + 4096;
-    arena.base = ArenaBlock(&arena, static_cast<std::size_t>(quads) * 16);
-    arena.limit = quads;
-    arena.used = 0;
-    auto *pack = reinterpret_cast<u_int *>(arena.Alloc64(static_cast<int>(pack_bytes / 16)));
-    std::memcpy(pack, bytes->data(), bytes->size());
-    DataReadTrackPack(pack, bytes->size());
-    if (images && !PackTexturesFit(pack, kFloorCharacterBlock, path)) {
+    u_int *pack = ReadPackIntoArena(path, arena, 4);
+    if (pack == nullptr || (images && !PackTexturesFit(pack, kFloorCharacterBlock, path))) {
         return false;
     }
     chara.Initialize();
@@ -66,10 +45,9 @@ FloorCharacterLoader &Loader() {
 }
 
 CCharacter *Entered(const char *path, bool images) {
-    Store &store = State();
-    for (int i = 0; i < store.live; i++) {
-        if (store.slots[i].path == path && store.slots[i].images == images) {
-            return &store.slots[i].chara;
+    for (Slot &slot : State()) {
+        if (slot.path == path && slot.images == images) {
+            return &slot.chara;
         }
     }
     return nullptr;
@@ -79,12 +57,9 @@ CCharacter *Enter(const char *path, const char *cfg, bool images) {
     if (CCharacter *entered = Entered(path, images)) {
         return entered;
     }
-    Store &store = State();
-    if (store.live == static_cast<int>(store.slots.size())) {
-        store.slots.emplace_back();
-    }
-    Slot &slot = store.slots[store.live];
-    bool  loaded = Loader() != nullptr ? Loader()(slot.chara, slot.arena, path, cfg) : PackLoad(slot.chara, slot.arena, path, cfg, images);
+    FloorSlots<Slot> &store = State();
+    Slot             &slot = store.Next();
+    bool              loaded = Loader() != nullptr ? Loader()(slot.chara, slot.arena, path, cfg) : PackLoad(slot.chara, slot.arena, path, cfg, images);
     if (!loaded) {
         slot.chara.Initialize();
         return nullptr;
@@ -108,13 +83,12 @@ CCharacter *EnterFloorCopy(const char *path, const char *cfg) {
 }
 
 void FloorCharactersClear() {
-    Store &store = State();
-    for (int i = 0; i < store.live; i++) {
-        store.slots[i].chara.Initialize();
-        store.slots[i].arena.used = 0;
-        store.slots[i].path.clear();
+    for (Slot &slot : State()) {
+        slot.chara.Initialize();
+        slot.arena.used = 0;
+        slot.path.clear();
     }
-    store.live = 0;
+    State().live = 0;
     TexManager.DeleteTextureBlock(kFloorCharacterBlock);
 }
 

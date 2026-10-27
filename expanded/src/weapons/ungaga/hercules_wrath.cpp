@@ -128,18 +128,13 @@ bool Burst(const float *at) {
     if (index < 0) {
         return false;
     }
-    // A shot that does not fly: aimed straight up at no speed.
     CSHOT_EFFECT *effect = ShotEffectAt(index);
-    float         from[4] = {at[0], at[1], at[2], 1.0f};
-    float         to[4] = {at[0], at[1] + 1.0f, at[2], 1.0f};
-    effect->Set(from, to, 0, -1, 0, nullptr, 0);
-    int slot = effect->current_slot;
+    int           slot = SpawnStill(*effect, at);
     if (slot < 0) {
         return false;
     }
     state.effect = effect;
     state.slot = slot;
-    effect->velocity[slot][0] = effect->velocity[slot][1] = effect->velocity[slot][2] = 0.0f;
     CCharacter &model = Model();
     model.SetScale(1.0f, 1.0f, 1.0f);
     FadeUnlitFrames(model.frame, 1.0f); // a slot an earlier sparkle faded, back to full

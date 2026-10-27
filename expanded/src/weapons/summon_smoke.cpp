@@ -13,7 +13,6 @@ namespace expanded {
 
 namespace {
 
-
 // e228ex.chr: its one clip playing once where it is put, no flight and no hit.
 // clang-format off
 BT_SHOT_EFFECT smoke = {"e228ex", 0, 0, {}, {}, -1, 0, 0, 3, kHitsMonsters, {0, -1, -1, -1}, 0, {0, 0}, 1.0f, 0, {-1, -1, -1, -1}};
@@ -59,12 +58,8 @@ bool SummonSmokeStart(const float *spot, float yaw, float scale, const void *own
         std::printf("summon smoke: not loaded on this floor\n");
         return false;
     }
-    // A shot that does not fly: aimed straight up at no speed.
     CSHOT_EFFECT *effect = ShotEffectAt(index);
-    float         from[4] = {spot[0], spot[1], spot[2], 1.0f};
-    float         to[4] = {spot[0], spot[1] + 1.0f, spot[2], 1.0f};
-    effect->Set(from, to, 0, -1, 0, nullptr, 0);
-    int slot = effect->current_slot;
+    int           slot = SpawnStill(*effect, spot);
     if (slot < 0) {
         return false;
     }
@@ -72,7 +67,6 @@ bool SummonSmokeStart(const float *spot, float yaw, float scale, const void *own
     puff.slot = slot;
     puff.owner = owner;
     std::copy(spot, spot + 3, puff.spot);
-    effect->velocity[slot][0] = effect->velocity[slot][1] = effect->velocity[slot][2] = 0.0f;
     CCharacter &model = effect->chara[slot];
     model.SetScale(scale, scale, scale);
     model.SetRotation(0.0f, yaw, 0.0f);

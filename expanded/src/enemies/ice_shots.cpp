@@ -4,6 +4,7 @@
 
 #include "bt_shot_effect.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/shot_effects.hpp"
 #include "mathutil.hpp"
 #include "shot_effect.hpp"
 #include "snd.hpp"
@@ -83,18 +84,6 @@ void SteerIceArrow(CSHOT_EFFECT &effect, int slot) {
     LookAtMatrixZ(facing, effect.velocity[slot]);
     effect.chara[slot].frame->SetTransMatrix(facing);
     effect.chara[slot].SetPosition(position);
-}
-
-void EnterShotPhase(CSHOT_EFFECT &effect, int slot, int phase) {
-    effect.phase[slot] = static_cast<s16>(phase);
-    int motion = effect.effect_data->motion[phase];
-    if (motion == -1) {
-        effect.active[slot] = 0;
-        return;
-    }
-    effect.chara[slot].motion_type.state.time = static_cast<float>(effect.chara[slot].motion_type.motion_info[motion].start);
-    effect.chara[slot].SetMotion(motion, 6);
-    effect.velocity[slot][0] = effect.velocity[slot][1] = effect.velocity[slot][2] = 0.0f;
 }
 
 bool HoldIcePrison(CSHOT_EFFECT &effect, int slot) {

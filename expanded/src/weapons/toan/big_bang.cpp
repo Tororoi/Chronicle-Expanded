@@ -61,20 +61,12 @@ void DetonationAt(const float *point, float scale, float ring) {
         ExplosionAt(point, scale, ring, BlastSound::kToan);
         return;
     }
-    // A shot that does not fly: aimed straight up at no speed (Set lets it go of the model it was copied from).
     CSHOT_EFFECT *explosions = ShotEffectAt(index);
-    sceVu0FVECTOR from, to;
-    sceVu0CopyVector(from, const_cast<float *>(point));
-    from[3] = 1.0f;
-    sceVu0CopyVector(to, from);
-    to[1] += 1.0f;
-    explosions->Set(from, to, 0, -1, 0, nullptr, 0);
-    int slot = explosions->current_slot;
+    int           slot = SpawnStill(*explosions, point);
     if (slot < 0) {
         ExplosionAt(point, scale, ring, BlastSound::kToan);
         return;
     }
-    explosions->velocity[slot][0] = explosions->velocity[slot][1] = explosions->velocity[slot][2] = 0.0f;
     explosions->chara[slot].SetScale(scale, scale, scale);
     // The ring a little over the ground, so the floor does not cut it.
     sceVu0FVECTOR lifted = {point[0], point[1] + kRingLift, point[2], 1.0f};

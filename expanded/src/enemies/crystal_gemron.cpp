@@ -15,7 +15,6 @@
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
-#include "shot_effect_pack.hpp"
 
 namespace expanded {
 
@@ -82,17 +81,14 @@ void Imprison(CMonstorUnit &unit) {
     if (shots.prison < 0 || shots.standing >= 0) {
         return;
     }
-    CSHOT_EFFECT *effect = ShotEffectAt(shots.prison);
-    float         feet[4];
+    float feet[4];
     PlayerFeet(feet);
-    NowShotEffect->Set(shots.prison, feet, feet);
-    if (effect->current_slot < 0) {
+    int owner = shots.owner >= 0 && IsKind(unit, shots.owner, Monster::CRYSTAL_GEMRON) ? shots.owner : -1;
+    int slot = FireShotEffect(shots.prison, feet, feet, owner);
+    if (slot < 0) {
         return;
     }
-    if (shots.owner >= 0 && IsKind(unit, shots.owner, Monster::CRYSTAL_GEMRON)) {
-        NowShotEffect->SetUserID2(shots.owner);
-    }
-    shots.standing = effect->current_slot;
+    shots.standing = slot;
     shots.breaking = false;
     PlayIceFreeze();
 }
@@ -100,7 +96,7 @@ void Imprison(CMonstorUnit &unit) {
 } // namespace
 
 void CrystalGemronStep(CMonstorUnit &unit) {
-    CSHOT_EFFECT *arrows = shots.arrow >= 0 ? ShotEffectAt(shots.arrow) : nullptr;
+    CSHOT_EFFECT *arrows = LoadedShotEffect(shots.arrow);
     if (arrows == nullptr) {
         return;
     }
@@ -124,7 +120,7 @@ void CrystalGemronStep(CMonstorUnit &unit) {
         Imprison(unit);
     }
     // The prison holds while the freeze lasts, then shatters.
-    CSHOT_EFFECT *prison = shots.prison >= 0 ? ShotEffectAt(shots.prison) : nullptr;
+    CSHOT_EFFECT *prison = LoadedShotEffect(shots.prison);
     if (prison == nullptr || shots.standing < 0) {
         return;
     }
