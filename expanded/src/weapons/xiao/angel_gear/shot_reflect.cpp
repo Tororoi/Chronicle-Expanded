@@ -10,6 +10,7 @@
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_prop.hpp"
 #include "frame.hpp"
@@ -160,16 +161,12 @@ void Land(const CSHOT_EFFECT &effect, const float *point, float radius, int mons
 // reach (the monster into monster), else a wall; never the player.
 SHOT_COLLISION_RESULT ReturnTest(CSHOT_EFFECT &effect, int slot, float *hit_position, float *position, int *monster) {
     float radius = effect.effect_data->radius[effect.phase[slot]];
-    for (int m = 0; NowMonstorUnit != nullptr && m < kFloorMonsters; m++) {
-        const MONSTOR &live = NowMonstorUnit->monster[m];
-        for (int sphere = 0; live.state != -1 && live.revealed != 0 && sphere < kMonsterSpheres; sphere++) {
-            const MONSTOR_EFFECT_STATE &body = NowMonstorUnit->effect[m];
-            if (body.timer[sphere] != 0 && DistVector(const_cast<float *>(body.position[sphere]), position) <= radius + body.radius[sphere]) {
-                sceVu0CopyVector(hit_position, const_cast<float *>(body.position[sphere]));
-                *monster = m;
-                return SHOT_COLLISION_MONSTER;
-            }
-        }
+    int   sphere = -1;
+    int   touched = NowMonstorUnit != nullptr ? MonsterTouching(*NowMonstorUnit, position, radius, &sphere) : -1;
+    if (touched >= 0) {
+        sceVu0CopyVector(hit_position, NowMonstorUnit->effect[touched].position[sphere]);
+        *monster = touched;
+        return SHOT_COLLISION_MONSTER;
     }
     if (NowDngMap == nullptr) {
         return SHOT_COLLISION_NONE;

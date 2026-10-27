@@ -10,6 +10,7 @@
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "gamepad.hpp"
 #include "itembombeffect.hpp"
@@ -87,8 +88,7 @@ int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOp
     int reached = 0;
     for (int monster = 0; monster < kFloorMonsters; monster++) {
         const MONSTOR &live = unit.monster[monster];
-        if (monster == options.except || (options.spared >> monster & 1) != 0 || live.state == -1 || live.hp <= 0 ||
-            live.revealed != -1) {
+        if (monster == options.except || (options.spared >> monster & 1) != 0 || !MonsterInPlay(live)) {
             continue;
         }
         float distance = BlastDistance(unit, monster, point);

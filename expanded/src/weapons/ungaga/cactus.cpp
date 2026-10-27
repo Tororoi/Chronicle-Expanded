@@ -16,6 +16,7 @@
 #include "expanded/dungeon/ground_shadow.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/player_state.hpp"
@@ -165,10 +166,6 @@ void RootAcross(float s, float *root) {
     root[2] = bloom.spot[2] - (-n * Shape().base_x + c * Shape().base_z) * s;
 }
 
-bool Live(const MONSTOR &live) {
-    return live.state >= 1 && live.hp > 0;
-}
-
 // How far (x, z) is across the ground from the nearest edge of a monster's posed body spheres (0 inside one); with none,
 // from its root less kBodyFallback.
 float BodyEdge(CMonstorUnit &unit, int monster, float x, float z) {
@@ -244,7 +241,7 @@ void Pricks() {
         return;
     }
     for (int monster = 0; monster < kFloorMonsters; monster++) {
-        if (Live(NowMonstorUnit->monster[monster]) &&
+        if (MonsterLiving(NowMonstorUnit->monster[monster]) &&
             BodyEdge(*NowMonstorUnit, monster, bloom.spot[0], bloom.spot[2]) <= Shape().block_radius + kBloomHitReach) {
             Prick(*NowMonstorUnit, monster);
         }

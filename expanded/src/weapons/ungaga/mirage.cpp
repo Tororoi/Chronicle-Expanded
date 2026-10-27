@@ -8,6 +8,7 @@
 #include "character.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -50,11 +51,8 @@ float PlayerYaw() {
 }
 
 bool Live(int monster) {
-    if (NowMonstorUnit == nullptr || monster < 0 || monster >= kFloorMonsters) {
-        return false;
-    }
-    const MONSTOR &live = NowMonstorUnit->monster[monster];
-    return live.state >= 1 && live.hp > 0;
+    const MONSTOR *live = FloorMonster(monster);
+    return live != nullptr && MonsterLiving(*live);
 }
 
 // The clock runs from planting: alpha and gain from the frames it has stood and those it has left.

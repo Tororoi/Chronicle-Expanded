@@ -18,6 +18,7 @@
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/miniboss.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/hit_marks.hpp"
@@ -304,11 +305,8 @@ bool WallAhead(const float *move) {
 }
 
 bool Live(int monster) {
-    if (NowMonstorUnit == nullptr || monster < 0 || monster >= kFloorMonsters) {
-        return false;
-    }
-    const MONSTOR &live = NowMonstorUnit->monster[monster];
-    return live.state >= 1 && live.hp > 0;
+    const MONSTOR *live = FloorMonster(monster);
+    return live != nullptr && MonsterLiving(*live);
 }
 
 // Whether the monster is a mimic not yet out of its chest and in play.
@@ -468,16 +466,8 @@ SHOT_COLLISION_RESULT TouchTest(float *point, float *move) {
     if (NowDngMap != nullptr) {
         return checkCollision(out, point, move, kHitsMonsters, kSpiritBeastTouch);
     }
-    for (int m = 0; m < kFloorMonsters; m++) { // with no map, its monster test alone
-        const MONSTOR &live = NowMonstorUnit->monster[m];
-        for (int sphere = 0; live.state != -1 && live.revealed != 0 && sphere < kMonsterSpheres; sphere++) {
-            const MONSTOR_EFFECT_STATE &effect = NowMonstorUnit->effect[m];
-            if (effect.timer[sphere] != 0 && DistVector(const_cast<float *>(effect.position[sphere]), point) <= kSpiritBeastTouch + effect.radius[sphere]) {
-                return SHOT_COLLISION_MONSTER;
-            }
-        }
-    }
-    return SHOT_COLLISION_NONE;
+    // With no map, its monster test alone.
+    return MonsterTouching(*NowMonstorUnit, point, kSpiritBeastTouch) >= 0 ? SHOT_COLLISION_MONSTER : SHOT_COLLISION_NONE;
 }
 
 // Falling or landing: the monster its head touches is planted the cat's hit, which waits on its CheckDmg.

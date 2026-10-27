@@ -5,6 +5,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
@@ -49,11 +50,6 @@ float Distance(const float *a, const float *b) {
     return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-// A monster checkCollision tests: on the floor and shown.
-bool Hittable(const CMonstorUnit &unit, int monster) {
-    return unit.monster[monster].state != -1 && unit.monster[monster].revealed != 0;
-}
-
 // Whether monster's hurt sphere takes hits now: in use, and within its motion window when it has one (CheckDmg's test).
 bool Valid(const CMonstorUnit &unit, int monster, int sphere) {
     const MONSTOR_EFFECT_STATE &effect = unit.effect[monster];
@@ -93,7 +89,7 @@ int NextTarget(const CMonstorUnit &unit, int struck, int avoid, const float *poi
     int   target = -1;
     float best = kRicochetRange;
     for (int monster = 0; monster < kMonsters; monster++) {
-        if (monster == struck || monster == avoid || !Hittable(unit, monster) || unit.monster[monster].hp <= 0) {
+        if (monster == struck || monster == avoid || !MonsterShown(unit.monster[monster]) || unit.monster[monster].hp <= 0) {
             continue;
         }
         const float *sphere = LargestSphere(unit, monster);
@@ -119,7 +115,7 @@ bool Ricochet(int slot) {
 
 int RicochetStruck(const CMonstorUnit &unit, const float *point) {
     for (int monster = 0; monster < kMonsters; monster++) {
-        if (!Hittable(unit, monster)) {
+        if (!MonsterShown(unit.monster[monster])) {
             continue;
         }
         const MONSTOR_EFFECT_STATE &effect = unit.effect[monster];
@@ -162,10 +158,10 @@ void RicochetStep(CSHOT &shots, int slot) {
         shots.pos[slot][i] += v[i];
     }
     float speed = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-    bool  clear = !Hittable(unit, from) || !Inside(unit, from, shots.pos[slot], speed);
+    bool  clear = !MonsterShown(unit.monster[from]) || !Inside(unit, from, shots.pos[slot], speed);
     bool  met = false;
     for (int monster = 0; monster < kMonsters && !met; monster++) {
-        met = monster != from && Hittable(unit, monster) && Inside(unit, monster, shots.pos[slot]);
+        met = monster != from && MonsterShown(unit.monster[monster]) && Inside(unit, monster, shots.pos[slot]);
     }
     // The game tests monsters in slot order, so one met while still within the struck monster could land on it.
     bool left = clear || !Inside(unit, from, shots.pos[slot]);
