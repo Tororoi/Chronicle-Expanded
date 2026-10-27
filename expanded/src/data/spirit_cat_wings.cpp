@@ -261,6 +261,35 @@ private:
     std::map<int, Local>             WingLocals(double f);
     std::pair<std::map<int, M4>, V3> WingPose(double f);
 
+    // The bones placed: the reference frame and the cat's spine rotation there, obj1's mesh and its vertices in the
+    // world, each wing bone's bind.
+    struct Placed {
+        int                               ref_frame;
+        M3                                r_ref;
+        MdtMesh                           om;
+        std::vector<V3>                   vw_all;
+        std::map<int, WingData::BindOpen> bind_open;
+    };
+
+    // The reference pose: the wing bones' worlds and the anchor there, obj1's edges with their triangle counts, the
+    // cat's bones' worlds, its skin and the skin's vertices there.
+    struct RefPose {
+        std::map<int, M4>   wref;
+        V3                  anchor;
+        std::map<Edge, int> full_edges;
+        std::vector<M4>     wcat;
+        const SkinMesh     *skin_me;
+        std::vector<V3>     skin_ref;
+    };
+
+    Placed             PlaceBones();
+    void               FoldChains(const Placed &placed);
+    std::vector<Tri>   CarveMeshes(const Placed &placed, WingData &data);
+    void               DriveWindows();
+    RefPose            ReferencePose(int ref_frame, const std::vector<Tri> &tris, const WingData &data);
+    void               BuildTabs(const std::string &sd, const RefPose &ref, WingData &data);
+    std::vector<Track> BakeTracks();
+
     const std::vector<RigNode>    &cat_nodes_;
     const Bytes                   &cat_mds_;
     const std::vector<RigNode>    &dran_nodes_;
@@ -437,7 +466,9 @@ std::pair<std::map<int, M4>, V3> Graft::WingPose(double f) {
     return {w, XformPt(pw, anchor_local_)};
 }
 
-WingData Graft::Build() {
+// The wing bones on the cat's spine as Dran has them, scaled to the cat and seen from the reference frame (the level key's
+// middle).
+Graft::Placed Graft::PlaceBones() {
     const V3 r1 = Dn("r_wing1").t, l1 = Dn("l_wing1").t, r4 = Dn("r_wing4").t;
     center_ = {(r1[0] + l1[0]) / 2, (r1[1] + l1[1]) / 2, (r1[2] + l1[2]) / 2};
     double         wing_len = Dist(r1, r4);
@@ -506,6 +537,13 @@ WingData Graft::Build() {
     for (std::size_t k = std::size_t(base_); k < nodes_.size(); k++) {
         bind_open[nodes_[k].i] = {nodes_[k].r, nodes_[k].t, nodes_[k].world};
     }
+    return {ref_frame, r_ref, std::move(om), std::move(vw_all), std::move(bind_open)};
+}
+
+// Each chain folded along the back at rest, each bone then parented to the one before.
+void Graft::FoldChains(const Placed &placed) {
+    const std::vector<V3> &vw_all = placed.vw_all;
+    const M3              &r_ref = placed.r_ref;
     for (const std::string sd : {"r", "l"}) {
         const auto &ch = Chain(sd);
         for (std::size_t i = 0; i < 3; i++) {
@@ -588,8 +626,12 @@ WingData Graft::Build() {
             }
         }
     }
+}
 
-    // The wing meshes carved from obj1 by weight.
+// The wing meshes carved from obj1 by weight, then the cat's own meshes skinned; obj1's triangles.
+std::vector<Tri> Graft::CarveMeshes(const Placed &placed, WingData &data) {
+    const MdtMesh         &om = placed.om;
+    const std::vector<V3> &vw_all = placed.vw_all;
     std::vector<Tri> tris = MdtTriangles(om);
     auto             side = [&](int vi) -> std::string {
         const auto *infl = weights_all_.Find(vi);
@@ -606,7 +648,6 @@ WingData Graft::Build() {
         return nm.starts_with("r_wing") ? "r" : nm.starts_with("l_wing") ? "l"
                                                                          : "";
     };
-    WingData data;
     for (auto [sd, root_name] : {
              std::pair<std::string, std::string>{"r", "r_wing1"},
              {"l", "l_wing1"}
@@ -689,8 +730,12 @@ WingData Graft::Build() {
             data.meshes.push_back(std::move(*mesh));
         }
     }
+    return tris;
+}
 
-    // The tracks: the wing bones rigid to the spine, Dran's sampled pose inside the driven windows, the authored landing.
+// The tracks' driven windows (the wing bones rigid to the spine, Dran's sampled pose inside them, the authored landing)
+// and each side's flap and sweep signs.
+void Graft::DriveWindows() {
     for (const WingClip &clip : kWingClips) {
         const CatKeyWindow &key = kCatKeys[clip.ki];
         double              win_game = (key.end - key.start) / key.speed, loop_game = (clip.de - clip.ds) / clip.dspd;
@@ -717,6 +762,10 @@ WingData Graft::Build() {
             sweep_sign_[sd] = tip(back_rs)[0] < tip(g)[0] ? 1.0 : -1.0;
         }
     }
+}
+
+// The reference pose: the wings' and the cat's bones, obj1's edges and the cat's skin there.
+Graft::RefPose Graft::ReferencePose(int ref_frame, const std::vector<Tri> &tris, const WingData &data) {
     auto [wref, anchor_ref] = WingPose(ref_frame);
     std::map<Edge, int> full_edges;
     for (const Tri &t : tris) {
@@ -737,472 +786,483 @@ WingData Graft::Build() {
     for (int i = 0; i < skin_me->nv; i++) {
         skin_ref.push_back(Skinned(*skin_me, i, cat_world));
     }
-    auto mref = [&](int b) -> const M4 & {
+    return {std::move(wref), anchor_ref, std::move(full_edges), std::move(wcat), skin_me, std::move(skin_ref)};
+}
+
+// A side's wing joined to the body: its base closed, its tabs reaching to the spine, the fold rounded.
+void Graft::BuildTabs(const std::string &sd, const RefPose &ref, WingData &data) {
+    const std::map<int, M4>   &wref = ref.wref;
+    const V3                  &anchor_ref = ref.anchor;
+    const std::map<Edge, int> &full_edges = ref.full_edges;
+    const std::vector<M4>     &wcat = ref.wcat;
+    const SkinMesh            *skin_me = ref.skin_me;
+    const std::vector<V3>     &skin_ref = ref.skin_ref;
+    auto                       mref = [&](int b) -> const M4                       &{
         auto found = wref.find(b);
         return found != wref.end() ? found->second : wcat[std::size_t(b)];
     };
-    for (const std::string sd : {"r", "l"}) {
-        SkinMesh                &me = data.meshes[sd == "r" ? 0 : 1];
-        const WingData::WingSet &set = data.wing_sets[sd];
-        const auto              &wt = set.tris;
-        const auto              &used = set.used;
-        auto                     remap = [&](int v) { return set.remap.at(v); };
-        std::vector<Edge>        wedge_order;
-        std::map<Edge, int>      wedges;
-        for (const Tri &t : wt) {
-            for (Edge e : {MakeEdge(t[0], t[1]), MakeEdge(t[1], t[2]), MakeEdge(t[2], t[0])}) {
-                if (!wedges.contains(e)) {
-                    wedges[e] = 0;
-                    wedge_order.push_back(e);
+    SkinMesh                &me = data.meshes[sd == "r" ? 0 : 1];
+    const WingData::WingSet &set = data.wing_sets[sd];
+    const auto              &wt = set.tris;
+    const auto              &used = set.used;
+    auto                     remap = [&](int v) { return set.remap.at(v); };
+    std::vector<Edge>        wedge_order;
+    std::map<Edge, int>      wedges;
+    for (const Tri &t : wt) {
+        for (Edge e : {MakeEdge(t[0], t[1]), MakeEdge(t[1], t[2]), MakeEdge(t[2], t[0])}) {
+            if (!wedges.contains(e)) {
+                wedges[e] = 0;
+                wedge_order.push_back(e);
+            }
+            wedges[e]++;
+        }
+    }
+    std::vector<Edge> attach_edges;
+    for (Edge e : wedge_order) {
+        auto full = full_edges.find(e);
+        if (wedges[e] == 1 && full != full_edges.end() && full->second >= 2) {
+            attach_edges.push_back(e);
+        }
+    }
+    std::map<int, std::vector<int>> adj;
+    std::vector<int>                adj_order;
+    for (auto [va, vb] : attach_edges) {
+        if (!adj.contains(va)) {
+            adj[va] = {};
+            adj_order.push_back(va);
+        }
+        adj[va].push_back(vb);
+        if (!adj.contains(vb)) {
+            adj[vb] = {};
+            adj_order.push_back(vb);
+        }
+        adj[vb].push_back(va);
+    }
+    std::vector<int> starts = adj_order;
+    std::stable_sort(starts.begin(), starts.end(), [&](int a, int b) {
+        if (adj[a].size() != adj[b].size()) {
+            return adj[a].size() < adj[b].size();
+        }
+        return a < b;
+    });
+    std::vector<std::vector<int>> chains;
+    std::set<int>                 seen;
+    for (int start : starts) {
+        if (seen.contains(start)) {
+            continue;
+        }
+        std::vector<int>   chain = {start};
+        int                cur = start;
+        std::optional<int> prev;
+        seen.insert(start);
+        while (true) {
+            std::vector<int> next;
+            for (int v : adj[cur]) {
+                if ((!prev || v != *prev) && !seen.contains(v)) {
+                    next.push_back(v);
                 }
-                wedges[e]++;
             }
+            if (next.empty()) {
+                break;
+            }
+            prev = cur;
+            cur = next[0];
+            chain.push_back(cur);
+            seen.insert(cur);
         }
-        std::vector<Edge> attach_edges;
-        for (Edge e : wedge_order) {
-            auto full = full_edges.find(e);
-            if (wedges[e] == 1 && full != full_edges.end() && full->second >= 2) {
-                attach_edges.push_back(e);
-            }
+        const auto &last_adj = adj[chain.back()];
+        if (chain.size() > 2 && std::find(last_adj.begin(), last_adj.end(), chain[0]) != last_adj.end()) {
+            chain.push_back(chain[0]);
         }
-        std::map<int, std::vector<int>> adj;
-        std::vector<int>                adj_order;
-        for (auto [va, vb] : attach_edges) {
-            if (!adj.contains(va)) {
-                adj[va] = {};
-                adj_order.push_back(va);
-            }
-            adj[va].push_back(vb);
-            if (!adj.contains(vb)) {
-                adj[vb] = {};
-                adj_order.push_back(vb);
-            }
-            adj[vb].push_back(va);
-        }
-        std::vector<int> starts = adj_order;
-        std::stable_sort(starts.begin(), starts.end(), [&](int a, int b) {
-            if (adj[a].size() != adj[b].size()) {
-                return adj[a].size() < adj[b].size();
-            }
-            return a < b;
-        });
-        std::vector<std::vector<int>> chains;
-        std::set<int>                 seen;
-        for (int start : starts) {
-            if (seen.contains(start)) {
+        chains.push_back(chain);
+    }
+    auto   wpos = [&](int li) { return Skinned(me, li, mref); };
+    double sx = sd == "l" ? 1.0 : -1.0;
+    int    arm = Cn(sd == "l" ? "cat_arm_hidari" : "cat_arm_migi").i;
+    int    sb1 = Cn("cat_sebone1").i, sb2 = Cn("cat_sebone2").i;
+    auto   skin_y2 = [&](double x, double z) -> std::optional<double> {
+        std::optional<double> best;
+        for (const Tri &t : skin_me->tris) {
+            const V3 &a = skin_ref[std::size_t(t[0])], &b = skin_ref[std::size_t(t[1])], &c = skin_ref[std::size_t(t[2])];
+            double    det = (b[0] - a[0]) * (c[2] - a[2]) - (c[0] - a[0]) * (b[2] - a[2]);
+            if (std::fabs(det) < 1e-9) {
                 continue;
             }
-            std::vector<int>   chain = {start};
-            int                cur = start;
-            std::optional<int> prev;
-            seen.insert(start);
-            while (true) {
-                std::vector<int> next;
-                for (int v : adj[cur]) {
-                    if ((!prev || v != *prev) && !seen.contains(v)) {
-                        next.push_back(v);
-                    }
-                }
-                if (next.empty()) {
-                    break;
-                }
-                prev = cur;
-                cur = next[0];
-                chain.push_back(cur);
-                seen.insert(cur);
-            }
-            const auto &last_adj = adj[chain.back()];
-            if (chain.size() > 2 && std::find(last_adj.begin(), last_adj.end(), chain[0]) != last_adj.end()) {
-                chain.push_back(chain[0]);
-            }
-            chains.push_back(chain);
-        }
-        auto   wpos = [&](int li) { return Skinned(me, li, mref); };
-        double sx = sd == "l" ? 1.0 : -1.0;
-        int    arm = Cn(sd == "l" ? "cat_arm_hidari" : "cat_arm_migi").i;
-        int    sb1 = Cn("cat_sebone1").i, sb2 = Cn("cat_sebone2").i;
-        auto   skin_y2 = [&](double x, double z) -> std::optional<double> {
-            std::optional<double> best;
-            for (const Tri &t : skin_me->tris) {
-                const V3 &a = skin_ref[std::size_t(t[0])], &b = skin_ref[std::size_t(t[1])], &c = skin_ref[std::size_t(t[2])];
-                double    det = (b[0] - a[0]) * (c[2] - a[2]) - (c[0] - a[0]) * (b[2] - a[2]);
-                if (std::fabs(det) < 1e-9) {
-                    continue;
-                }
-                double l1 = ((b[0] - x) * (c[2] - z) - (c[0] - x) * (b[2] - z)) / det;
-                double l2 = ((c[0] - x) * (a[2] - z) - (a[0] - x) * (c[2] - z)) / det;
-                double l3 = 1 - l1 - l2;
-                if (l1 < -1e-6 || l2 < -1e-6 || l3 < -1e-6) {
-                    continue;
-                }
-                double y = l1 * a[1] + l2 * b[1] + l3 * c[1];
-                if (!best || y > *best) {
-                    best = y;
-                }
-            }
-            return best;
-        };
-        std::size_t longest = 0;
-        for (std::size_t k = 1; k < chains.size(); k++) {
-            if (chains[k].size() > chains[longest].size()) {
-                longest = k;
-            }
-        }
-        std::vector<int> chain0 = chains[longest];
-        if (chain0.size() > 1 && chain0[0] == chain0.back()) {
-            chain0.pop_back();
-        }
-        std::map<int, V3> p;
-        for (int vi : chain0) {
-            p[vi] = wpos(remap(vi));
-        }
-        std::size_t bi = 0;
-        for (std::size_t k = 1; k < chain0.size(); k++) {
-            if (std::fabs(p[chain0[k]][0]) < std::fabs(p[chain0[bi]][0])) {
-                bi = k;
-            }
-        }
-        std::vector<int> chain(chain0.begin() + std::ptrdiff_t(bi), chain0.end());
-        chain.insert(chain.end(), chain0.begin(), chain0.begin() + std::ptrdiff_t(bi));
-        if (chain.size() > 2 && p[chain[1]][1] < p[chain.back()][1]) {
-            std::reverse(chain.begin() + 1, chain.end());
-        }
-        std::size_t fi = 0;
-        for (std::size_t k = 1; k < chain.size(); k++) {
-            if (p[chain[k]][2] > p[chain[fi]][2]) {
-                fi = k;
-            }
-        }
-        std::vector<int>           top(chain.begin() + 1, chain.begin() + 1 + std::ptrdiff_t(fi));
-        std::map<std::string, int> pts = {
-            {"Rb", remap(chain[0])                                            },
-            {"Ri", remap(top[0])                                              },
-            {"Rf", remap(top.back())                                          },
-            {"Rg", remap(fi + 1 < chain.size() ? chain[fi + 1] : chain.back())}
-        };
-        int              eb = chain[0], ei = top[0];
-        std::vector<int> rt;
-        for (const Tri &t : wt) {
-            if (std::find(t.begin(), t.end(), eb) != t.end() && std::find(t.begin(), t.end(), ei) != t.end()) {
-                for (int v : t) {
-                    if (v != eb && v != ei) {
-                        rt.push_back(v);
-                    }
-                }
-            }
-        }
-        pts["Rt"] = !rt.empty() ? remap(rt[0]) : pts["Ri"];
-        auto wp_any = [&](int i) { return Skinned(me, i, mref); };
-        // The inboard fan's tip pulled outward toward the wing root.
-        for (int vi : used) {
-            int    li = remap(vi);
-            V3     q = wpos(li);
-            double x = std::fabs(q[0]);
-            if (x >= kApexReach) {
+            double l1 = ((b[0] - x) * (c[2] - z) - (c[0] - x) * (b[2] - z)) / det;
+            double l2 = ((c[0] - x) * (a[2] - z) - (a[0] - x) * (c[2] - z)) / det;
+            double l3 = 1 - l1 - l2;
+            if (l1 < -1e-6 || l2 < -1e-6 || l3 < -1e-6) {
                 continue;
             }
-            double d = kApexPull * (kApexReach - x) / kApexReach;
-            V3     q2 = {q[0] + (sd == "r" ? -d : d), q[1], q[2]};
-            me.p0[std::size_t(li)] = XformPt(RigidInv(mref(me.b0[std::size_t(li)])), q2);
-            me.p1[std::size_t(li)] = XformPt(RigidInv(mref(me.b1[std::size_t(li)])), q2);
-        }
-        auto [wfold, unused_anchor] = WingPose(kWingFoldFrame);
-        std::vector<M4> wc_fold = CatWorld(kWingFoldFrame);
-        auto            mfold = [&](int b) -> const M4            &{
-            auto found = wfold.find(b);
-            return found != wfold.end() ? found->second : wc_fold[std::size_t(b)];
-        };
-        // The fan's back edge moved forward so it stops cutting into the folded wing behind it.
-        for (int vi : used) {
-            int    li = remap(vi);
-            V3     q = wpos(li);
-            double x = std::fabs(q[0]);
-            if (q[2] >= kRootZMax || x >= kRootXMax) {
-                continue;
-            }
-            double f = kRootFwd * std::min(1.0, (kRootXMax - x) / (kRootXMax - kRootXFull));
-            for (int slot : {0, 1}) {
-                const M4 &m = mfold(slot == 0 ? me.b0[std::size_t(li)] : me.b1[std::size_t(li)]);
-                V3        dl = {f * m[0][2], f * m[1][2], f * m[2][2]};
-                V3       &pp = slot == 0 ? me.p0[std::size_t(li)] : me.p1[std::size_t(li)];
-                pp = {pp[0] + dl[0], pp[1] + dl[1], pp[2] + dl[2]};
+            double y = l1 * a[1] + l2 * b[1] + l3 * c[1];
+            if (!best || y > *best) {
+                best = y;
             }
         }
-        auto fit = [&](std::size_t li, const V3 &offset) {
-            int                               b0 = me.b0[li], b1 = me.b1[li];
-            double                            w = me.w0[li];
-            std::pair<ColumnPose, ColumnPose> ma = {Col(mref(b0)), Col(mref(b1))}, mb = {Col(mfold(b0)), Col(mfold(b1))};
-            V3                                target_a = Blend(w, ma.first, ma.second, me.p0[li], me.p1[li]);
-            V3                                target_b = Add(Blend(w, mb.first, mb.second, me.p0[li], me.p1[li]), offset);
-            if (auto sol = TwoPoseFit(w, ma, mb, target_a, target_b)) {
-                me.p0[li] = sol->first;
-                me.p1[li] = sol->second;
-            }
-        };
-        for (auto [li, d] : kWingFoldLift) {
-            if (li < static_cast<int>(used.size())) {
-                fit(std::size_t(li), {0.0, d, 0.0}); // lifted in the folded pose only
-            }
+        return best;
+    };
+    std::size_t longest = 0;
+    for (std::size_t k = 1; k < chains.size(); k++) {
+        if (chains[k].size() > chains[longest].size()) {
+            longest = k;
         }
-        // Rm: the midpoint of the base's rear edge Rb-Rt, skinned as the pooled average of its ends.
-        pts["Rm"] = me.nv;
-        Pool(me, {
-                     {pts["Rb"], 0.5},
-                     {pts["Rt"], 0.5}
-        });
-        auto back_pt = [&](double x, double z) {
-            double                xx = sx * x;
-            std::optional<double> sy = skin_y2(xx, z);
-            while (!sy && std::fabs(xx) > 0.05) {
-                xx -= sx * 0.05;
-                sy = skin_y2(xx, z);
-            }
-            double syv = sy ? *sy : (anchor_ref[1] - 0.4);
-            V3     pos = {xx, syv + kWingExtendLift, z};
-            int    spine = z < 0.9 ? sb1 : sb2;
-            double w_spine = std::min(std::max((0.6 - std::fabs(xx)) / (0.6 - 0.35), 0.0), 1.0);
-            int    i = me.nv;
-            me.nv++;
-            me.b0.push_back(spine);
-            me.p0.push_back(XformPt(RigidInv(wcat[std::size_t(spine)]), pos));
-            me.b1.push_back(arm);
-            me.p1.push_back(XformPt(RigidInv(wcat[std::size_t(arm)]), pos));
-            me.w0.push_back(w_spine);
-            return std::pair{i, pos};
-        };
-        const std::map<std::string, std::pair<double, double>> corners = {
-            {"ir", {kWingExtendXIn, kWingExtendZBack}     },
-            {"if", {kWingExtendXIn, kWingExtendZFront}    },
-            {"of", {kWingExtendXOut, kWingExtendZFrontOut}},
-            {"or", {kWingExtendXOut, kWingExtendZBack}    }
-        };
-        std::vector<std::pair<int, V3>> cpos;
-        for (const auto &poly : kWingTabPolys) {
-            for (const std::string &nm : poly) {
-                auto corner = corners.find(nm);
-                if (corner != corners.end() && !pts.contains(nm)) {
-                    auto [i, pos] = back_pt(corner->second.first, corner->second.second);
-                    pts[nm] = i;
-                    cpos.emplace_back(i, pos);
+    }
+    std::vector<int> chain0 = chains[longest];
+    if (chain0.size() > 1 && chain0[0] == chain0.back()) {
+        chain0.pop_back();
+    }
+    std::map<int, V3> p;
+    for (int vi : chain0) {
+        p[vi] = wpos(remap(vi));
+    }
+    std::size_t bi = 0;
+    for (std::size_t k = 1; k < chain0.size(); k++) {
+        if (std::fabs(p[chain0[k]][0]) < std::fabs(p[chain0[bi]][0])) {
+            bi = k;
+        }
+    }
+    std::vector<int> chain(chain0.begin() + std::ptrdiff_t(bi), chain0.end());
+    chain.insert(chain.end(), chain0.begin(), chain0.begin() + std::ptrdiff_t(bi));
+    if (chain.size() > 2 && p[chain[1]][1] < p[chain.back()][1]) {
+        std::reverse(chain.begin() + 1, chain.end());
+    }
+    std::size_t fi = 0;
+    for (std::size_t k = 1; k < chain.size(); k++) {
+        if (p[chain[k]][2] > p[chain[fi]][2]) {
+            fi = k;
+        }
+    }
+    std::vector<int>           top(chain.begin() + 1, chain.begin() + 1 + std::ptrdiff_t(fi));
+    std::map<std::string, int> pts = {
+        {"Rb", remap(chain[0])                                            },
+        {"Ri", remap(top[0])                                              },
+        {"Rf", remap(top.back())                                          },
+        {"Rg", remap(fi + 1 < chain.size() ? chain[fi + 1] : chain.back())}
+    };
+    int              eb = chain[0], ei = top[0];
+    std::vector<int> rt;
+    for (const Tri &t : wt) {
+        if (std::find(t.begin(), t.end(), eb) != t.end() && std::find(t.begin(), t.end(), ei) != t.end()) {
+            for (int v : t) {
+                if (v != eb && v != ei) {
+                    rt.push_back(v);
                 }
             }
         }
-        std::vector<Tri> polys;
-        std::vector<int> upper, lower = {remap(chain[0])};
-        for (std::size_t k = 0; k <= fi; k++) {
-            upper.push_back(remap(chain[k]));
+    }
+    pts["Rt"] = !rt.empty() ? remap(rt[0]) : pts["Ri"];
+    auto wp_any = [&](int i) { return Skinned(me, i, mref); };
+    // The inboard fan's tip pulled outward toward the wing root.
+    for (int vi : used) {
+        int    li = remap(vi);
+        V3     q = wpos(li);
+        double x = std::fabs(q[0]);
+        if (x >= kApexReach) {
+            continue;
         }
-        for (std::size_t k = chain.size(); k-- > fi + 1;) {
-            lower.push_back(remap(chain[k]));
+        double d = kApexPull * (kApexReach - x) / kApexReach;
+        V3     q2 = {q[0] + (sd == "r" ? -d : d), q[1], q[2]};
+        me.p0[std::size_t(li)] = XformPt(RigidInv(mref(me.b0[std::size_t(li)])), q2);
+        me.p1[std::size_t(li)] = XformPt(RigidInv(mref(me.b1[std::size_t(li)])), q2);
+    }
+    auto [wfold, unused_anchor] = WingPose(kWingFoldFrame);
+    std::vector<M4> wc_fold = CatWorld(kWingFoldFrame);
+    auto            mfold = [&](int b) -> const M4            &{
+        auto found = wfold.find(b);
+        return found != wfold.end() ? found->second : wc_fold[std::size_t(b)];
+    };
+    // The fan's back edge moved forward so it stops cutting into the folded wing behind it.
+    for (int vi : used) {
+        int    li = remap(vi);
+        V3     q = wpos(li);
+        double x = std::fabs(q[0]);
+        if (q[2] >= kRootZMax || x >= kRootXMax) {
+            continue;
         }
-        lower.push_back(remap(chain[fi]));
-        {
-            // Close the base: zip the ring's upper rim to its lower rim, always closing the shorter diagonal.
-            std::size_t i = 0, j = 0;
-            while (i < upper.size() - 1 || j < lower.size() - 1) {
-                bool advance_upper;
-                if (i == upper.size() - 1) {
-                    advance_upper = false;
-                } else if (j == lower.size() - 1) {
-                    advance_upper = true;
-                } else {
-                    V3 a = wp_any(upper[i + 1]), b = wp_any(lower[j]), c = wp_any(upper[i]), d = wp_any(lower[j + 1]);
-                    advance_upper = Dist(a, b) <= Dist(c, d);
-                }
-                if (advance_upper) {
-                    if (upper[i + 1] != lower[j]) {
-                        polys.push_back({upper[i], upper[i + 1], lower[j]});
-                    }
-                    i++;
-                } else {
-                    if (lower[j + 1] != upper[i]) {
-                        polys.push_back({upper[i], lower[j + 1], lower[j]});
-                    }
-                    j++;
-                }
+        double f = kRootFwd * std::min(1.0, (kRootXMax - x) / (kRootXMax - kRootXFull));
+        for (int slot : {0, 1}) {
+            const M4 &m = mfold(slot == 0 ? me.b0[std::size_t(li)] : me.b1[std::size_t(li)]);
+            V3        dl = {f * m[0][2], f * m[1][2], f * m[2][2]};
+            V3       &pp = slot == 0 ? me.p0[std::size_t(li)] : me.p1[std::size_t(li)];
+            pp = {pp[0] + dl[0], pp[1] + dl[1], pp[2] + dl[2]};
+        }
+    }
+    auto fit = [&](std::size_t li, const V3 &offset) {
+        int                               b0 = me.b0[li], b1 = me.b1[li];
+        double                            w = me.w0[li];
+        std::pair<ColumnPose, ColumnPose> ma = {Col(mref(b0)), Col(mref(b1))}, mb = {Col(mfold(b0)), Col(mfold(b1))};
+        V3                                target_a = Blend(w, ma.first, ma.second, me.p0[li], me.p1[li]);
+        V3                                target_b = Add(Blend(w, mb.first, mb.second, me.p0[li], me.p1[li]), offset);
+        if (auto sol = TwoPoseFit(w, ma, mb, target_a, target_b)) {
+            me.p0[li] = sol->first;
+            me.p1[li] = sol->second;
+        }
+    };
+    for (auto [li, d] : kWingFoldLift) {
+        if (li < static_cast<int>(used.size())) {
+            fit(std::size_t(li), {0.0, d, 0.0}); // lifted in the folded pose only
+        }
+    }
+    // Rm: the midpoint of the base's rear edge Rb-Rt, skinned as the pooled average of its ends.
+    pts["Rm"] = me.nv;
+    Pool(me, {
+                 {pts["Rb"], 0.5},
+                 {pts["Rt"], 0.5}
+    });
+    auto back_pt = [&](double x, double z) {
+        double                xx = sx * x;
+        std::optional<double> sy = skin_y2(xx, z);
+        while (!sy && std::fabs(xx) > 0.05) {
+            xx -= sx * 0.05;
+            sy = skin_y2(xx, z);
+        }
+        double syv = sy ? *sy : (anchor_ref[1] - 0.4);
+        V3     pos = {xx, syv + kWingExtendLift, z};
+        int    spine = z < 0.9 ? sb1 : sb2;
+        double w_spine = std::min(std::max((0.6 - std::fabs(xx)) / (0.6 - 0.35), 0.0), 1.0);
+        int    i = me.nv;
+        me.nv++;
+        me.b0.push_back(spine);
+        me.p0.push_back(XformPt(RigidInv(wcat[std::size_t(spine)]), pos));
+        me.b1.push_back(arm);
+        me.p1.push_back(XformPt(RigidInv(wcat[std::size_t(arm)]), pos));
+        me.w0.push_back(w_spine);
+        return std::pair{i, pos};
+    };
+    const std::map<std::string, std::pair<double, double>> corners = {
+        {"ir", {kWingExtendXIn, kWingExtendZBack}     },
+        {"if", {kWingExtendXIn, kWingExtendZFront}    },
+        {"of", {kWingExtendXOut, kWingExtendZFrontOut}},
+        {"or", {kWingExtendXOut, kWingExtendZBack}    }
+    };
+    std::vector<std::pair<int, V3>> cpos;
+    for (const auto &poly : kWingTabPolys) {
+        for (const std::string &nm : poly) {
+            auto corner = corners.find(nm);
+            if (corner != corners.end() && !pts.contains(nm)) {
+                auto [i, pos] = back_pt(corner->second.first, corner->second.second);
+                pts[nm] = i;
+                cpos.emplace_back(i, pos);
             }
         }
-        std::vector<std::pair<Tri, bool>> tab_polys;
-        for (const auto &poly : kWingTabPolys) {
-            if (poly[0] == "RIM") {
-                std::vector<int> rim;
-                for (int v : top) {
-                    rim.push_back(remap(v));
-                }
-                for (std::size_t k = 0; k + 1 < rim.size(); k++) {
-                    tab_polys.push_back({
-                        {rim[k], rim[k + 1], pts[poly[1]]},
-                        false
-                    });
-                }
+    }
+    std::vector<Tri> polys;
+    std::vector<int> upper, lower = {remap(chain[0])};
+    for (std::size_t k = 0; k <= fi; k++) {
+        upper.push_back(remap(chain[k]));
+    }
+    for (std::size_t k = chain.size(); k-- > fi + 1;) {
+        lower.push_back(remap(chain[k]));
+    }
+    lower.push_back(remap(chain[fi]));
+    {
+        // Close the base: zip the ring's upper rim to its lower rim, always closing the shorter diagonal.
+        std::size_t i = 0, j = 0;
+        while (i < upper.size() - 1 || j < lower.size() - 1) {
+            bool advance_upper;
+            if (i == upper.size() - 1) {
+                advance_upper = false;
+            } else if (j == lower.size() - 1) {
+                advance_upper = true;
             } else {
+                V3 a = wp_any(upper[i + 1]), b = wp_any(lower[j]), c = wp_any(upper[i]), d = wp_any(lower[j + 1]);
+                advance_upper = Dist(a, b) <= Dist(c, d);
+            }
+            if (advance_upper) {
+                if (upper[i + 1] != lower[j]) {
+                    polys.push_back({upper[i], upper[i + 1], lower[j]});
+                }
+                i++;
+            } else {
+                if (lower[j + 1] != upper[i]) {
+                    polys.push_back({upper[i], lower[j + 1], lower[j]});
+                }
+                j++;
+            }
+        }
+    }
+    std::vector<std::pair<Tri, bool>> tab_polys;
+    for (const auto &poly : kWingTabPolys) {
+        if (poly[0] == "RIM") {
+            std::vector<int> rim;
+            for (int v : top) {
+                rim.push_back(remap(v));
+            }
+            for (std::size_t k = 0; k + 1 < rim.size(); k++) {
                 tab_polys.push_back({
-                    {pts[poly[0]], pts[poly[1]], pts[poly[2]]},
-                    poly.size() > 3
+                    {rim[k], rim[k + 1], pts[poly[1]]},
+                    false
                 });
             }
+        } else {
+            tab_polys.push_back({
+                {pts[poly[0]], pts[poly[1]], pts[poly[2]]},
+                poly.size() > 3
+            });
         }
-        {
-            // The tabs' dihedral: each corner lowered toward the spine from the rim's height beside it.
-            double th = Radians(kWingTabTiltDeg), hx = p[top[0]][0];
-            double z0 = p[top[0]][2], y0 = p[top[0]][1], z1 = p[top.back()][2], y1 = p[top.back()][1];
-            for (auto &[i, pos] : cpos) {
-                double t = z1 == z0 ? 0.0 : std::min(std::max((pos[2] - z0) / (z1 - z0), 0.0), 1.0);
-                double y_rim = y0 + (y1 - y0) * t - kWingRaise;
-                pos[1] = y_rim - std::fabs(pos[0] - hx) * std::tan(th);
-                me.p0[std::size_t(i)] = XformPt(RigidInv(wcat[std::size_t(me.b0[std::size_t(i)])]), pos);
-                me.p1[std::size_t(i)] = XformPt(RigidInv(wcat[std::size_t(me.b1[std::size_t(i)])]), pos);
-            }
-        }
-        // The top tabs subdivided: each into n^2 triangles, the new points pooled from their edge's ends.
-        const int                  n = kWingTabSubdiv;
-        int                        rm_idx = pts["Rm"];
-        auto                       wing_vert = [&](int i) { return i < static_cast<int>(used.size()) || i == rm_idx; };
-        std::vector<int>           mixed;
-        std::map<std::string, int> cache;
-        auto                       sub_vertex = [&](const std::string &key, const std::vector<std::pair<int, double>> &ends) {
-            auto have = cache.find(key);
-            if (have != cache.end()) {
-                return have->second;
-            }
-            int i = me.nv;
-            Pool(me, ends);
-            bool any = false, all = true;
-            for (const auto &e : ends) {
-                any = any || wing_vert(e.first);
-                all = all && wing_vert(e.first);
-            }
-            if (any && !all) {
-                mixed.push_back(i);
-            }
-            cache[key] = i;
-            return i;
-        };
-        std::vector<Tri> fine;
-        for (const auto &[tri, under] : tab_polys) {
-            if (under) {
-                polys.push_back(tri);
-                continue;
-            }
-            std::map<std::array<int, 3>, int> grid;
-            for (int a = 0; a <= n; a++) {
-                for (int b = 0; b <= n - a; b++) {
-                    int                c = n - a - b;
-                    std::array<int, 3> bc = {a, b, c};
-                    int                full = int(a == n) + int(b == n) + int(c == n);
-                    if (full == 1) {
-                        grid[bc] = tri[std::size_t(std::find(bc.begin(), bc.end(), n) - bc.begin())];
-                        continue;
-                    }
-                    std::vector<int> zero;
-                    for (int k = 0; k < 3; k++) {
-                        if (bc[std::size_t(k)] == 0) {
-                            zero.push_back(k);
-                        }
-                    }
-                    std::string                         key;
-                    std::vector<std::pair<int, double>> ends;
-                    if (zero.size() == 1) {
-                        std::vector<int> nz;
-                        for (int k = 0; k < 3; k++) {
-                            if (k != zero[0]) {
-                                nz.push_back(k);
-                            }
-                        }
-                        std::size_t e0 = std::size_t(nz[0]), e1 = std::size_t(nz[1]);
-                        std::size_t lo_e = tri[e0] < tri[e1] ? e0 : e1, hi_e = tri[e0] < tri[e1] ? e1 : e0;
-                        key = std::format("e|{}|{}|{}", tri[lo_e], tri[hi_e], bc[hi_e]);
-                        ends = {
-                            {tri[e0], bc[e0] / double(n)},
-                            {tri[e1], bc[e1] / double(n)}
-                        };
-                    } else {
-                        key = std::format("t|{},{},{}|{},{},{}", tri[0], tri[1], tri[2], a, b, c);
-                        for (std::size_t k = 0; k < 3; k++) {
-                            ends.emplace_back(tri[k], bc[k] / double(n));
-                        }
-                    }
-                    grid[bc] = sub_vertex(key, ends);
-                }
-            }
-            for (int a = 0; a < n; a++) {
-                for (int b = 0; b < n - a; b++) {
-                    int c = n - a - b;
-                    fine.push_back({grid[{a + 1, b, c - 1}], grid[{a, b + 1, c - 1}], grid[{a, b, c}]});
-                    if (c >= 2) {
-                        fine.push_back({grid[{a + 1, b, c - 1}], grid[{a + 1, b + 1, c - 2}], grid[{a, b + 1, c - 1}]});
-                    }
-                }
-            }
-        }
-        auto mid_of = [&](int a, int b) -> std::optional<int> {
-            auto found = cache.find(std::format("e|{}|{}|1", std::min(a, b), std::max(a, b)));
-            return found != cache.end() ? std::optional<int>(found->second) : std::nullopt;
-        };
-        auto conform = [&](const Tri &t) {
-            int                               a = t[0], b = t[1], c = t[2];
-            std::array<std::optional<int>, 3> m = {mid_of(a, b), mid_of(b, c), mid_of(c, a)};
-            int                               k = int(m[0].has_value()) + int(m[1].has_value()) + int(m[2].has_value());
-            if (k == 0) {
-                return std::vector<Tri>{t};
-            }
-            if (k == 3) {
-                return std::vector<Tri>{
-                    {a,     *m[0], *m[2]},
-                    {*m[0], b,     *m[1]},
-                    {*m[2], *m[1], c    },
-                    {*m[0], *m[1], *m[2]}
-                };
-            }
-            while (!m[0] || (k == 2 && !m[1])) {
-                std::tie(a, b, c) = std::tuple{b, c, a};
-                m = {m[1], m[2], m[0]};
-            }
-            if (k == 1) {
-                return std::vector<Tri>{
-                    {a,     *m[0], c},
-                    {*m[0], b,     c}
-                };
-            }
-            return std::vector<Tri>{
-                {*m[0], b,     *m[1]},
-                {a,     *m[0], *m[1]},
-                {a,     *m[1], c    }
-            };
-        };
-        auto conform_all = [&](const std::vector<Tri> &list) {
-            std::vector<Tri> out;
-            for (const Tri &t : list) {
-                for (const Tri &u : conform(t)) {
-                    out.push_back(u);
-                }
-            }
-            return out;
-        };
-        me.tris = conform_all(me.tris);
-        polys = conform_all(polys);
-        if (pts.contains("ir") && pts.contains("if")) {
-            std::vector<Tri> floor;
-            for (std::size_t k = 0; k + 2 < lower.size(); k++) {
-                floor.push_back({pts["ir"], lower[k], lower[k + 1]});
-            }
-            floor.push_back({pts["ir"], lower[lower.size() - 2], pts["if"]});
-            floor = conform_all(floor);
-            polys.insert(polys.end(), floor.begin(), floor.end());
-        }
-        polys.insert(polys.end(), fine.begin(), fine.end());
-        if (!mixed.empty()) {
-            // The fold rounded: each wing-body midpoint pushed out along the shoulder in the folded pose (exact in the leap).
-            V3 nrm = UnitExact({0.6 * (sd == "l" ? 1.0 : -1.0), 0.8, 0.0});
-            for (int i : mixed) {
-                fit(std::size_t(i), {kWingTabBulge * nrm[0], kWingTabBulge * nrm[1], kWingTabBulge * nrm[2]});
-            }
-        }
-        me.tris.insert(me.tris.end(), polys.begin(), polys.end());
-        log_(std::format("  {} wing tabs: {} tris, {} new verts", sd, polys.size(), cache.size()));
     }
+    {
+        // The tabs' dihedral: each corner lowered toward the spine from the rim's height beside it.
+        double th = Radians(kWingTabTiltDeg), hx = p[top[0]][0];
+        double z0 = p[top[0]][2], y0 = p[top[0]][1], z1 = p[top.back()][2], y1 = p[top.back()][1];
+        for (auto &[i, pos] : cpos) {
+            double t = z1 == z0 ? 0.0 : std::min(std::max((pos[2] - z0) / (z1 - z0), 0.0), 1.0);
+            double y_rim = y0 + (y1 - y0) * t - kWingRaise;
+            pos[1] = y_rim - std::fabs(pos[0] - hx) * std::tan(th);
+            me.p0[std::size_t(i)] = XformPt(RigidInv(wcat[std::size_t(me.b0[std::size_t(i)])]), pos);
+            me.p1[std::size_t(i)] = XformPt(RigidInv(wcat[std::size_t(me.b1[std::size_t(i)])]), pos);
+        }
+    }
+    // The top tabs subdivided: each into n^2 triangles, the new points pooled from their edge's ends.
+    const int                  n = kWingTabSubdiv;
+    int                        rm_idx = pts["Rm"];
+    auto                       wing_vert = [&](int i) { return i < static_cast<int>(used.size()) || i == rm_idx; };
+    std::vector<int>           mixed;
+    std::map<std::string, int> cache;
+    auto                       sub_vertex = [&](const std::string &key, const std::vector<std::pair<int, double>> &ends) {
+        auto have = cache.find(key);
+        if (have != cache.end()) {
+            return have->second;
+        }
+        int i = me.nv;
+        Pool(me, ends);
+        bool any = false, all = true;
+        for (const auto &e : ends) {
+            any = any || wing_vert(e.first);
+            all = all && wing_vert(e.first);
+        }
+        if (any && !all) {
+            mixed.push_back(i);
+        }
+        cache[key] = i;
+        return i;
+    };
+    std::vector<Tri> fine;
+    for (const auto &[tri, under] : tab_polys) {
+        if (under) {
+            polys.push_back(tri);
+            continue;
+        }
+        std::map<std::array<int, 3>, int> grid;
+        for (int a = 0; a <= n; a++) {
+            for (int b = 0; b <= n - a; b++) {
+                int                c = n - a - b;
+                std::array<int, 3> bc = {a, b, c};
+                int                full = int(a == n) + int(b == n) + int(c == n);
+                if (full == 1) {
+                    grid[bc] = tri[std::size_t(std::find(bc.begin(), bc.end(), n) - bc.begin())];
+                    continue;
+                }
+                std::vector<int> zero;
+                for (int k = 0; k < 3; k++) {
+                    if (bc[std::size_t(k)] == 0) {
+                        zero.push_back(k);
+                    }
+                }
+                std::string                         key;
+                std::vector<std::pair<int, double>> ends;
+                if (zero.size() == 1) {
+                    std::vector<int> nz;
+                    for (int k = 0; k < 3; k++) {
+                        if (k != zero[0]) {
+                            nz.push_back(k);
+                        }
+                    }
+                    std::size_t e0 = std::size_t(nz[0]), e1 = std::size_t(nz[1]);
+                    std::size_t lo_e = tri[e0] < tri[e1] ? e0 : e1, hi_e = tri[e0] < tri[e1] ? e1 : e0;
+                    key = std::format("e|{}|{}|{}", tri[lo_e], tri[hi_e], bc[hi_e]);
+                    ends = {
+                        {tri[e0], bc[e0] / double(n)},
+                        {tri[e1], bc[e1] / double(n)}
+                    };
+                } else {
+                    key = std::format("t|{},{},{}|{},{},{}", tri[0], tri[1], tri[2], a, b, c);
+                    for (std::size_t k = 0; k < 3; k++) {
+                        ends.emplace_back(tri[k], bc[k] / double(n));
+                    }
+                }
+                grid[bc] = sub_vertex(key, ends);
+            }
+        }
+        for (int a = 0; a < n; a++) {
+            for (int b = 0; b < n - a; b++) {
+                int c = n - a - b;
+                fine.push_back({grid[{a + 1, b, c - 1}], grid[{a, b + 1, c - 1}], grid[{a, b, c}]});
+                if (c >= 2) {
+                    fine.push_back({grid[{a + 1, b, c - 1}], grid[{a + 1, b + 1, c - 2}], grid[{a, b + 1, c - 1}]});
+                }
+            }
+        }
+    }
+    auto mid_of = [&](int a, int b) -> std::optional<int> {
+        auto found = cache.find(std::format("e|{}|{}|1", std::min(a, b), std::max(a, b)));
+        return found != cache.end() ? std::optional<int>(found->second) : std::nullopt;
+    };
+    auto conform = [&](const Tri &t) {
+        int                               a = t[0], b = t[1], c = t[2];
+        std::array<std::optional<int>, 3> m = {mid_of(a, b), mid_of(b, c), mid_of(c, a)};
+        int                               k = int(m[0].has_value()) + int(m[1].has_value()) + int(m[2].has_value());
+        if (k == 0) {
+            return std::vector<Tri>{t};
+        }
+        if (k == 3) {
+            return std::vector<Tri>{
+                {a,     *m[0], *m[2]},
+                {*m[0], b,     *m[1]},
+                {*m[2], *m[1], c    },
+                {*m[0], *m[1], *m[2]}
+            };
+        }
+        while (!m[0] || (k == 2 && !m[1])) {
+            std::tie(a, b, c) = std::tuple{b, c, a};
+            m = {m[1], m[2], m[0]};
+        }
+        if (k == 1) {
+            return std::vector<Tri>{
+                {a,     *m[0], c},
+                {*m[0], b,     c}
+            };
+        }
+        return std::vector<Tri>{
+            {*m[0], b,     *m[1]},
+            {a,     *m[0], *m[1]},
+            {a,     *m[1], c    }
+        };
+    };
+    auto conform_all = [&](const std::vector<Tri> &list) {
+        std::vector<Tri> out;
+        for (const Tri &t : list) {
+            for (const Tri &u : conform(t)) {
+                out.push_back(u);
+            }
+        }
+        return out;
+    };
+    me.tris = conform_all(me.tris);
+    polys = conform_all(polys);
+    if (pts.contains("ir") && pts.contains("if")) {
+        std::vector<Tri> floor;
+        for (std::size_t k = 0; k + 2 < lower.size(); k++) {
+            floor.push_back({pts["ir"], lower[k], lower[k + 1]});
+        }
+        floor.push_back({pts["ir"], lower[lower.size() - 2], pts["if"]});
+        floor = conform_all(floor);
+        polys.insert(polys.end(), floor.begin(), floor.end());
+    }
+    polys.insert(polys.end(), fine.begin(), fine.end());
+    if (!mixed.empty()) {
+        // The fold rounded: each wing-body midpoint pushed out along the shoulder in the folded pose (exact in the leap).
+        V3 nrm = UnitExact({0.6 * (sd == "l" ? 1.0 : -1.0), 0.8, 0.0});
+        for (int i : mixed) {
+            fit(std::size_t(i), {kWingTabBulge * nrm[0], kWingTabBulge * nrm[1], kWingTabBulge * nrm[2]});
+        }
+    }
+    me.tris.insert(me.tris.end(), polys.begin(), polys.end());
+    log_(std::format("  {} wing tabs: {} tris, {} new verts", sd, polys.size(), cache.size()));
+}
 
-    // The wing tracks: keys over the driven windows, the landing and the hold, bind brackets one frame outside.
+// The wing tracks: keys over the driven windows, the landing and the hold, bind brackets one frame outside.
+std::vector<Track> Graft::BakeTracks() {
     std::vector<std::pair<int, int>> spans;
     for (const Window &w : windows_) {
         spans.emplace_back(w.cs, w.ce);
@@ -1269,14 +1329,27 @@ WingData Graft::Build() {
         }
     }
     log_(std::format("  wing tracks: keys at {}..{} ({} frames)", *frames_all.begin(), *frames_all.rbegin(), frames_all.size()));
+    return tracks;
+}
+
+WingData Graft::Build() {
+    Placed placed = PlaceBones();
+    FoldChains(placed);
+    WingData         data;
+    std::vector<Tri> tris = CarveMeshes(placed, data);
+    DriveWindows();
+    RefPose ref = ReferencePose(placed.ref_frame, tris, data);
+    for (const std::string sd : {"r", "l"}) {
+        BuildTabs(sd, ref, data);
+    }
+    data.tracks = BakeTracks();
     data.nodes = nodes_;
-    data.tracks = std::move(tracks);
     data.base = base_;
     data.parent = parent_;
-    data.om = om;
-    data.wref = wref;
-    data.wcat = wcat;
-    data.bind_open = bind_open;
+    data.om = placed.om;
+    data.wref = ref.wref;
+    data.wcat = ref.wcat;
+    data.bind_open = placed.bind_open;
     return data;
 }
 
