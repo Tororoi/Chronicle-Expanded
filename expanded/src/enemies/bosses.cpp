@@ -33,6 +33,10 @@ constexpr int kKnightLightAfterThroes = 195;
 // The arena crowd's cheer, which Joe's script plays when he is hit.
 constexpr int kCrowdCheer = 1798;
 
+// King's Curse's own floor (Sun and Moon Temple's, cur_georama being the dungeon), where the king is monster 1.
+constexpr int kKingsCurseFloor = 17;
+constexpr int kKingsCurseKing = 1;
+
 enum class Phase {
     Fighting,
     Falling,
@@ -156,7 +160,7 @@ bool BossPlace(CMonstorUnit &unit, int monster, float *position) {
 }
 
 bool BossSmokes(int monster, int model_slot) {
-    if (UserStatus->cur_georama == 3 && UserStatus->cur_floor == 17 && monster == 1) {
+    if (UserStatus->cur_georama == DUNGEON_SUN_MOON_TEMPLE && UserStatus->cur_floor == kKingsCurseFloor && monster == kKingsCurseKing) {
         return true;
     }
     return LoadedRoster() != nullptr && ModelKind(model_slot) == No(Monster::KINGS_CURSE);

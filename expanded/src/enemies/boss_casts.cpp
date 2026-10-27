@@ -22,35 +22,51 @@ namespace {
 
 constexpr int kMembers = 2;
 
-struct Cast {
-    Monster     kinds[kMembers]; // in the order its scripts number them
-    const char *names[kMembers];
-    int         needs; // the party member who can hurt the boss, or -1 for anyone
-    // The member that follows the other (when one does): dormant, it waits by it (raised by rise), and its
-    // script's hiding place (when it has one) is taken there too.
-    bool    follows;
-    Monster follower;
-    float   rise;
-    bool    hides;
-    float   hide[3];
-    // A member a roster may bring alone (when one may): it starts with the mailbox's g0 at alone_phase,
-    // waiting in alone_motion, as the rest of the cast would leave it.
-    bool    solo;
-    Monster alone;
-    int     alone_phase;
-    int     alone_motion;
+// A cast's needs when anyone can hurt its boss.
+constexpr int kAnyone = -1;
+
+// A member that follows the other: dormant, it waits by it (raised by rise), and its script's hiding place, when it has
+// one, is taken there too.
+struct Follower {
+    Monster                             kind;
+    float                               rise;
+    std::optional<std::array<float, 3>> hide = std::nullopt;
 };
 
-// The Ice Queen's barrier stands at her chest; King's Curse's coffin hides 500 under the king until his
-// smoke is blown away (in retail at 0, 0, -500, out of the arena). The Black Knight rides his mount, and
-// without it starts as the mount leaves him: dismounted (g0 1), standing (motion 15).
-// clang-format off
-const Cast kCasts[] = {
-    {{Monster::ICE_QUEEN, Monster::ICE_BARRIER},                {"Ice Queen", "Ice Barrier"},                CHARA_RUBY,   true,  Monster::ICE_BARRIER,        10.1f,   false, {},                    false, {},                    0, 0 },
-    {{Monster::KINGS_CURSE_COFFIN, Monster::KINGS_CURSE},       {"King's Curse's coffin", "King's Curse"},   CHARA_UNGAGA, true,  Monster::KINGS_CURSE_COFFIN, -500.0f, true,  {0.0f, 0.0f, -500.0f}, false, {},                    0, 0 },
-    {{Monster::BLACK_KNIGHT_MOUNT, Monster::BLACK_KNIGHT},      {"Black Knight's mount", "Black Knight"},     -1,           false, {},                          0.0f,    false, {},                    true,  Monster::BLACK_KNIGHT, 1, 15},
+// A member a roster may bring alone: it starts with the mailbox's g0 at phase, waiting in motion, as the rest of the
+// cast would leave it.
+struct Alone {
+    Monster kind;
+    int     phase;
+    int     motion;
 };
-// clang-format on
+
+struct Cast {
+    Monster                 kinds[kMembers]; // in the order its scripts number them
+    const char             *names[kMembers];
+    int                     needs = kAnyone; // the party member who can hurt the boss (CHARA_*)
+    std::optional<Follower> follower = std::nullopt;
+    std::optional<Alone>    alone = std::nullopt;
+};
+
+const Cast kCasts[] = {
+    // The Ice Queen's barrier stands at her chest.
+    {.kinds = {Monster::ICE_QUEEN, Monster::ICE_BARRIER},
+     .names = {"Ice Queen", "Ice Barrier"},
+     .needs = CHARA_RUBY,
+     .follower = Follower{.kind = Monster::ICE_BARRIER, .rise = 10.1f}},
+    // King's Curse's coffin hides 500 under the king until his smoke is blown away (in retail at 0, 0, -500, out of
+    // the arena).
+    {.kinds = {Monster::KINGS_CURSE_COFFIN, Monster::KINGS_CURSE},
+     .names = {"King's Curse's coffin", "King's Curse"},
+     .needs = CHARA_UNGAGA,
+     .follower = Follower{.kind = Monster::KINGS_CURSE_COFFIN, .rise = -500.0f, .hide = std::array{0.0f, 0.0f, -500.0f}}},
+    // The Black Knight rides his mount, and without it starts as the mount leaves him: dismounted (g0 1), standing
+    // (motion 15).
+    {.kinds = {Monster::BLACK_KNIGHT_MOUNT, Monster::BLACK_KNIGHT},
+     .names = {"Black Knight's mount", "Black Knight"},
+     .alone = Alone{.kind = Monster::BLACK_KNIGHT, .phase = 1, .motion = 15}},
+};
 
 constexpr int kCastCount = static_cast<int>(std::size(kCasts));
 
@@ -74,34 +90,54 @@ int Member(const Cast &cast, Monster kind) {
     return -1;
 }
 
-// The cast and member a monster plays, or false.
-bool Find(int monster, int &cast, int &member) {
-    for (cast = 0; cast < kCastCount; cast++) {
-        for (member = 0; member < kMembers; member++) {
-            if (monster >= 0 && playing[cast].monster[member] == monster) {
-                return true;
+// The cast and member a monster plays on this floor.
+struct Role {
+    int cast;
+    int member;
+};
+
+std::optional<Role> RoleOf(int monster) {
+    if (monster < 0) {
+        return std::nullopt;
+    }
+    for (int cast = 0; cast < kCastCount; cast++) {
+        for (int member = 0; member < kMembers; member++) {
+            if (playing[cast].monster[member] == monster) {
+                return Role{.cast = cast, .member = member};
             }
         }
     }
-    return false;
+    return std::nullopt;
+}
+
+// Whether the party has the member who can hurt the cast's boss.
+bool PartyCanFight(const Cast &cast) {
+    return cast.needs == kAnyone || (UserStatus != nullptr && UserStatus->party_size > cast.needs);
+}
+
+// Whether a position is the follower's script's hiding place.
+bool Hiding(const Follower &follower, const float *position) {
+    return follower.hide && position[0] == (*follower.hide)[0] && position[1] == (*follower.hide)[1] &&
+           position[2] == (*follower.hide)[2];
 }
 
 bool Live(const CMonstorUnit &unit, int monster) {
     return monster >= 0 && monster < kFloorMonsters && unit.monster[monster].state != -1;
 }
 
-// Where the follower of a cast waits: by its partner, or -1 without one.
+// Where a cast's follower waits: by its partner, raised by its rise; false when the cast has none or the partner is
+// gone.
 bool WaitingPlace(CMonstorUnit &unit, int cast, float *place) {
     const Cast &spec = kCasts[cast];
-    if (!spec.follows) {
+    if (!spec.follower) {
         return false;
     }
-    int followed = playing[cast].monster[1 - Member(spec, spec.follower)];
+    int followed = playing[cast].monster[1 - Member(spec, spec.follower->kind)];
     if (!Live(unit, followed)) {
         return false;
     }
     unit.chara[followed][0].GetPosition(place);
-    place[1] += spec.rise;
+    place[1] += spec.follower->rise;
     return true;
 }
 
@@ -138,10 +174,9 @@ void OnSpawn(CMonstorUnit &unit, int monster) {
                 BossCastAttached(unit, waiting, monster);
             }
         }
-        bool alone = spec.solo && spec.kinds[member] == spec.alone && !roster->Contains(spec.kinds[1 - member]);
-        if (alone) {
-            playing[cast].mailbox[0] = spec.alone_phase;
-            unit.chara[monster][0].SetMotion(spec.alone_motion, 0);
+        if (spec.alone && spec.kinds[member] == spec.alone->kind && !roster->Contains(spec.kinds[1 - member])) {
+            playing[cast].mailbox[0] = spec.alone->phase;
+            unit.chara[monster][0].SetMotion(spec.alone->motion, 0);
         }
     }
 }
@@ -159,18 +194,18 @@ void BossCastRoster(Roster &roster) {
         if (!any) {
             continue;
         }
-        bool kept = cast.needs < 0 || (UserStatus != nullptr && UserStatus->party_size > cast.needs);
-        if (cast.solo && roster.Contains(cast.alone)) {
+        bool kept = PartyCanFight(cast);
+        if (cast.alone && roster.Contains(cast.alone->kind)) {
             bool rest = false;
             for (Monster kind : cast.kinds) {
-                rest |= kind != cast.alone && roster.Contains(kind);
+                rest |= kind != cast.alone->kind && roster.Contains(kind);
             }
             if (!rest) {
                 // The member that may come alone does.
                 if (kept) {
-                    roster.SetOnce(cast.alone, true);
+                    roster.SetOnce(cast.alone->kind, true);
                 } else {
-                    roster.Remove(cast.alone);
+                    roster.Remove(cast.alone->kind);
                 }
                 continue;
             }
@@ -197,7 +232,7 @@ std::optional<BossCastInfo> BossCastOf(Monster kind) {
                 .names = {cast.names[0], cast.names[1]},
                 .member = member,
                 .needs = cast.needs,
-                .alone = cast.solo && cast.alone == kind,
+                .alone = cast.alone && cast.alone->kind == kind,
             };
         }
     }
@@ -207,16 +242,14 @@ std::optional<BossCastInfo> BossCastOf(Monster kind) {
 bool BossCastAllowed(Monster kind) {
     for (const Cast &cast : kCasts) {
         if (Member(cast, kind) >= 0) {
-            return cast.needs < 0 || (UserStatus != nullptr && UserStatus->party_size > cast.needs);
+            return PartyCanFight(cast);
         }
     }
     return true;
 }
 
 bool BossCastMember(int monster) {
-    int cast;
-    int member;
-    return Find(monster, cast, member);
+    return RoleOf(monster).has_value();
 }
 
 int BossCastMonster(Monster kind) {
@@ -239,32 +272,29 @@ int *BossCastMailbox(Monster kind) {
 }
 
 int *BossCastGlobals(int monster, int *globals) {
-    int cast;
-    int member;
-    return Find(monster, cast, member) ? playing[cast].mailbox : globals;
+    std::optional<Role> role = RoleOf(monster);
+    return role ? playing[role->cast].mailbox : globals;
 }
 
 int BossCastMonsterRef(int monster, int target) {
-    int cast;
-    int member;
-    if (!Find(monster, cast, member) || target < 0 || target >= kMembers) {
+    std::optional<Role> role = RoleOf(monster);
+    if (!role || target < 0 || target >= kMembers) {
         return target;
     }
     // A partner that did not come is the member itself.
-    return playing[cast].monster[target] >= 0 ? playing[cast].monster[target] : monster;
+    int partner = playing[role->cast].monster[target];
+    return partner >= 0 ? partner : monster;
 }
 
 bool BossCastPlace(CMonstorUnit &unit, int monster, float *position) {
-    int cast;
-    int member;
-    if (!Find(monster, cast, member)) {
+    std::optional<Role> role = RoleOf(monster);
+    if (!role) {
         return false;
     }
-    const Cast &spec = kCasts[cast];
-    if (spec.hides && spec.kinds[member] == spec.follower && position[0] == spec.hide[0] && position[1] == spec.hide[1] &&
-        position[2] == spec.hide[2]) {
+    const Cast &spec = kCasts[role->cast];
+    if (spec.follower && spec.kinds[role->member] == spec.follower->kind && Hiding(*spec.follower, position)) {
         float place[4];
-        if (WaitingPlace(unit, cast, place)) {
+        if (WaitingPlace(unit, role->cast, place)) {
             position[0] = place[0];
             position[1] = place[1];
             position[2] = place[2];
@@ -275,18 +305,17 @@ bool BossCastPlace(CMonstorUnit &unit, int monster, float *position) {
 }
 
 bool BossCastCountsKill(int monster) {
-    int cast;
-    int member;
-    return !Find(monster, cast, member) || BossSupported(No(kCasts[cast].kinds[member]));
+    std::optional<Role> role = RoleOf(monster);
+    return !role || BossSupported(No(kCasts[role->cast].kinds[role->member]));
 }
 
 void BossCastStep(CMonstorUnit &unit) {
     for (int cast = 0; cast < kCastCount; cast++) {
         const Cast &spec = kCasts[cast];
-        if (!spec.follows) {
+        if (!spec.follower) {
             continue;
         }
-        int   follower = playing[cast].monster[Member(spec, spec.follower)];
+        int   follower = playing[cast].monster[Member(spec, spec.follower->kind)];
         float place[4];
         if (Live(unit, follower) && unit.monster[follower].state == 1 && unit.monster[follower].hp > 0 &&
             WaitingPlace(unit, cast, place)) {
@@ -296,24 +325,21 @@ void BossCastStep(CMonstorUnit &unit) {
 }
 
 void BossCastReferLater(int monster, int target, const char *frame) {
-    int           cast;
-    int           member;
-    const Roster *roster = LoadedRoster();
-    if (!Find(monster, cast, member) || target < 0 || target >= kMembers || roster == nullptr ||
-        !roster->Contains(kCasts[cast].kinds[target])) {
+    std::optional<Role> role = RoleOf(monster);
+    const Roster       *roster = LoadedRoster();
+    if (!role || target < 0 || target >= kMembers || roster == nullptr || !roster->Contains(kCasts[role->cast].kinds[target])) {
         return;
     }
-    playing[cast].later[member] = target;
-    playing[cast].later_frame[member] = frame;
+    playing[role->cast].later[role->member] = target;
+    playing[role->cast].later_frame[role->member] = frame;
 }
 
 void BossCastAttached(CMonstorUnit &unit, int monster, int partner) {
-    int cast;
-    int member;
-    if (!Find(monster, cast, member)) {
+    std::optional<Role> role = RoleOf(monster);
+    if (!role) {
         return;
     }
-    playing[cast].riding[member] = partner;
+    playing[role->cast].riding[role->member] = partner;
     if (partner >= 0) {
         // Onto the anchor: what the member held was its spot on the floor.
         unit.chara[monster][0].SetPosition(0.0f, 0.0f, 0.0f);
@@ -321,21 +347,19 @@ void BossCastAttached(CMonstorUnit &unit, int monster, int partner) {
 }
 
 void BossCastWakePosition(CMonstorUnit &unit, int monster, float *position) {
-    int cast;
-    int member;
-    if (!Find(monster, cast, member) || !Live(unit, playing[cast].riding[member])) {
+    std::optional<Role> role = RoleOf(monster);
+    if (!role || !Live(unit, playing[role->cast].riding[role->member])) {
         return;
     }
-    unit.chara[playing[cast].riding[member]][0].GetPosition(position);
+    unit.chara[playing[role->cast].riding[role->member]][0].GetPosition(position);
 }
 
 void BossCastDefeated(CMonstorUnit &unit, int monster) {
-    int cast;
-    int member;
-    if (!Find(monster, cast, member)) {
+    std::optional<Role> role = RoleOf(monster);
+    if (!role) {
         return;
     }
-    for (int other : playing[cast].monster) {
+    for (int other : playing[role->cast].monster) {
         if (other != monster && Live(unit, other)) {
             RemoveMonster(unit, other);
         }
