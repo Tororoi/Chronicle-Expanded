@@ -3,6 +3,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/monsters.hpp"
+#include "expanded/status/poison.hpp"
 #include "monstorunit.hpp"
 
 namespace expanded {
@@ -169,7 +170,7 @@ bool Blinded(int monster) {
 }
 
 void BlindTick() {
-    if (frames_left > 0 && --frames_left == 0) {
+    if (MonstersStepping() && frames_left > 0 && --frames_left == 0) {
         BlindEnd();
     }
 }

@@ -82,6 +82,7 @@ Each section lists this repository's own changes first, then those that come fro
 
 ## Fixes
 
+- A blinding (the Sun Sword's Solar Flash and the attacks that share it) no longer wears off during an event or while the monsters are held, such as a chest opening: like poison and confusion, it waits. [#238](https://github.com/Tororoi/Chronicle-Expanded/pull/238)
 - The Bomb Gemron throws its bombs again, and Expanded's other shot effects load again: since the last upstream update the game could not look inside the effect files Expanded reads for itself. [#202](https://github.com/Tororoi/Chronicle-Expanded/pull/202)
 
 ### From Chronicle

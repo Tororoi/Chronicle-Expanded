@@ -13,8 +13,9 @@ using expanded::Monster;
 
 // A floor of monsters of kind in play at slots 0.., each with the motions a blinding plays.
 struct Floor {
-    expanded::test::TestFloor floor;
-    MOTION_INFO               motions[12] = {};
+    expanded::test::TestFloor     floor;
+    expanded::test::StepsUnpaused steps;
+    MOTION_INFO                   motions[12] = {};
 
     explicit Floor(Monster kind, int monsters = 1) {
         floor.SetUpModel(0, kind);
@@ -132,4 +133,26 @@ TEST(Blind, LeavesBossesAndChestsAlone) {
     unit.model[0].kind = MONSTER_KIND_NO_LOCK_ON;
     expanded::Blind(unit, 100);
     EXPECT_FALSE(expanded::Blinded(0));
+}
+
+// The blinding counts down only on frames the monsters step: an event or a hold on them pauses it.
+TEST(Blind, AnEventOrAHoldPausesIt) {
+    Floor floor(Monster::MASTER_JACKET);
+    expanded::Blind(floor.unit(), 10);
+    expanded::BlindTick();
+    EXPECT_EQ(expanded::BlindFramesLeft(), 9);
+    BtEventMode = 1;
+    expanded::BlindTick();
+    EXPECT_EQ(expanded::BlindFramesLeft(), 9);
+    BtEventMode = 0;
+    CMonUnitHold = 1;
+    expanded::BlindTick();
+    EXPECT_EQ(expanded::BlindFramesLeft(), 9);
+    CMonUnitHold = 0;
+    BtAllDrawFlag = 0;
+    expanded::BlindTick();
+    EXPECT_EQ(expanded::BlindFramesLeft(), 9);
+    BtAllDrawFlag = 1;
+    expanded::BlindTick();
+    EXPECT_EQ(expanded::BlindFramesLeft(), 8);
 }
