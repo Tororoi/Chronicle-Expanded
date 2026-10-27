@@ -140,14 +140,27 @@ int Target(float *spot) {
     return -1;
 }
 
-// Every living monster not yet confused, confused for frames, until the copy has gone (one in play, never a boss).
+// Whether a monster can be confused: alive and in play (out of any chest), not a boss.
+bool Confusable(int monster) {
+    const MONSTOR *live = FloorMonster(monster);
+    return live != nullptr && MonsterLiving(*live) && live->state == 2 && live->revealed != 0 && live->kind != MONSTER_KIND_NO_LOCK_ON;
+}
+
+// Confused for frames, until the copy has gone.
+void Confuse(int monster, int frames) {
+    if (Confusable(monster)) {
+        ConfuseMonster(*NowMonstorUnit, monster, frames);
+    }
+}
+
+// Every monster that can be and is not yet confused.
 void ConfuseAll(int frames) {
     if (NowMonstorUnit == nullptr) {
         return;
     }
     for (int monster = 0; monster < kFloorMonsters; monster++) {
-        if (Live(monster) && !MonsterConfused(*NowMonstorUnit, monster)) {
-            ConfuseMonster(*NowMonstorUnit, monster, frames);
+        if (!MonsterConfused(*NowMonstorUnit, monster)) {
+            Confuse(monster, frames);
         }
     }
 }
@@ -185,8 +198,8 @@ void Summon() {
     float root[3] = {curse.spot[0], from, curse.spot[2]};
     CopyPlace(root, curse.yaw, Form().scale, kBabelTint, 1.0f);
     LogEvent("babel", std::format("\"step\":\"summoned\",\"target\":{},\"x\":{:.1f},\"z\":{:.1f}", curse.target, curse.spot[0], curse.spot[2]));
-    if (curse.target >= 0 && NowMonstorUnit != nullptr) {
-        ConfuseMonster(*NowMonstorUnit, curse.target, kBabelLifeFrames);
+    if (curse.target >= 0) {
+        Confuse(curse.target, kBabelLifeFrames);
     }
     ConfuseAll(kBabelLifeFrames);
     BeamStart(curse.spot, Form().beam_scale);

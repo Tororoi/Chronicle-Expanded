@@ -25,19 +25,6 @@ using namespace confuse;
 constexpr int   kConfuseSteps = 20 * kStepsPerSecond;
 constexpr float kConfuseChance = 5.0f;
 
-// The floor's unit taken up: what was kept of another unit forgotten, the step count going on.
-void Adopt(CMonstorUnit &unit) {
-    Confusion &state = State();
-    if (state.unit == &unit) {
-        return;
-    }
-    StarsOff();
-    int tick = state.tick;
-    state = Confusion();
-    state.unit = &unit;
-    state.tick = tick;
-}
-
 // A monster's confusion, in the event log: confused, its target (another monster's slot, -1 the player) or its senses back.
 void LogConfusion(const char *step, int slot, int target = -2) {
     LogEvent("confuse", target == -2 ? std::format("\"step\":\"{}\",\"monster\":{}", step, slot)
@@ -55,6 +42,19 @@ void LogTarget(int slot, int target) {
     } else {
         std::fprintf(stderr, "confuse: monster %d goes after the player\n", slot);
     }
+}
+
+// The state, kept for unit: another unit's is put away.
+Confusion &Adopt(CMonstorUnit &unit) {
+    Confusion &state = State();
+    if (state.unit != &unit) {
+        StarsOff();
+        int tick = state.tick;
+        state = Confusion();
+        state.unit = &unit;
+        state.tick = tick;
+    }
+    return state;
 }
 
 } // namespace
@@ -102,8 +102,7 @@ void ConfuseStep(CMonstorUnit &unit, int slot) {
     if (AllyUnit(unit)) {
         return;
     }
-    Adopt(unit);
-    Confusion &state = State();
+    Confusion &state = Adopt(unit);
     if (unit.monster[slot].hp <= 0) {
         state.Forget(slot);
         return;
@@ -137,20 +136,17 @@ void ConfuseRoll(CMonstorUnit &unit, int slot) {
     state.until[slot] = state.tick + kConfuseSteps;
 }
 
-bool ConfuseMonster(CMonstorUnit &unit, int slot, int steps) {
-    if (slot < 0 || slot >= kFloorMonsters || steps <= 0 || AllyUnit(unit) || !InPlay(unit, slot) ||
-        unit.monster[slot].kind == MONSTER_KIND_NO_LOCK_ON) {
-        return false;
+void ConfuseMonster(CMonstorUnit &unit, int slot, int steps) {
+    if (slot < 0 || slot >= kFloorMonsters || steps <= 0 || AllyUnit(unit) || unit.monster[slot].hp <= 0) {
+        return;
     }
-    Adopt(unit);
-    Confusion &state = State();
+    Confusion &state = Adopt(unit);
     if (state.until[slot] == 0) {
         state.target[slot] = -2;
         std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
         LogConfusion("confused", slot);
     }
     state.until[slot] = std::max(state.until[slot], state.tick + steps);
-    return true;
 }
 
 bool MonsterConfused(const CMonstorUnit &unit, int slot) {

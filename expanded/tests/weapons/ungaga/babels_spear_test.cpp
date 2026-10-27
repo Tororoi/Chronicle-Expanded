@@ -29,8 +29,6 @@
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
-extern s32 lockOnTargetNo;
-
 namespace {
 
 namespace babel = expanded::babels_spear;
