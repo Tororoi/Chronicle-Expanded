@@ -84,6 +84,7 @@ Each section lists this repository's own changes first, then those that come fro
 
 ## Fixes
 
+- When two of Expanded's models are out on one dungeon floor (the Cactus's cactus and its shadow, Angel Gear's shield and the spirit cat), the one brought out first keeps its own picture instead of drawing with the other's. [#260](https://github.com/Tororoi/Chronicle-Expanded/pull/260)
 - With Heaven's Cloud's SynthSphere on Super Steve, an ordinary pellet no longer bursts like a charged one when a charged pellet was still flying as you left the last floor. [#240](https://github.com/Tororoi/Chronicle-Expanded/pull/240)
 - A monster confused by Babel's Spear can't be blocked by a blinded monster's guard, and a shot it fires that bursts on another monster bursts with its full blast damage and size, as it does on you. [#239](https://github.com/Tororoi/Chronicle-Expanded/pull/239)
 - A blinding (the Sun Sword's Solar Flash and the attacks that share it) no longer wears off during an event or while the monsters are held, such as a chest opening: like poison and confusion, it waits. [#238](https://github.com/Tororoi/Chronicle-Expanded/pull/238)
