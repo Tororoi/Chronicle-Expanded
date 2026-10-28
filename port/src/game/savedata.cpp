@@ -12,6 +12,10 @@
 #include "editatra.hpp"
 #include "object.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town/fish_records.hpp"
+#endif
+
 namespace dc::game {
 
 void CObject::SetPosition(float *position) {
@@ -137,6 +141,9 @@ void CSaveData::SetFishingRank(int fish_id, float score) {
             }
         }
     }
+#ifdef CHRONICLE_EXPANDED
+    expanded::FishRecordsChanged(*this);
+#endif
 }
 
 SV_FISH_DATA *CSaveData::GetFishingRank(int rank_index) {

@@ -591,4 +591,22 @@ std::vector<PlacedMesh> PlacedMeshes(std::span<const unsigned char> scene, std::
     return placed;
 }
 
+Bytes ReplaceSub(std::span<const unsigned char> scene, std::string_view name, std::span<const unsigned char> sub) {
+    std::size_t count = Get32(scene, 4);
+    for (std::size_t i = 0; i < count; i++) {
+        std::size_t entry = kDirectory + i * kDirectoryEntry;
+        if (NameAt(scene, entry, name.size() + 1) != name) {
+            continue;
+        }
+        Bytes out(scene.begin(), scene.end());
+        PadTo16(out);
+        std::size_t at = out.size();
+        out.insert(out.end(), sub.begin(), sub.end());
+        Set32(out, entry + 0x10, static_cast<std::uint32_t>(at));
+        Set32(out, entry + 0x14, static_cast<std::uint32_t>(sub.size()));
+        return out;
+    }
+    Bad(std::format("the scene has no part {}", name));
+}
+
 } // namespace expanded::scene

@@ -75,4 +75,7 @@ struct PlacedMesh {
 // Every mesh frame of every sub-file a GROUND or WATER line places, in the mapinfo's order.
 std::vector<PlacedMesh> PlacedMeshes(std::span<const unsigned char> scene, std::span<const unsigned char> cfg);
 
+// The scene with sub-file name's bytes replaced by sub: appended 16-aligned, its directory entry moved to it.
+Bytes ReplaceSub(std::span<const unsigned char> scene, std::string_view name, std::span<const unsigned char> sub);
+
 } // namespace expanded::scene
