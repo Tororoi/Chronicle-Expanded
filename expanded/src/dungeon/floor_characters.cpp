@@ -37,7 +37,9 @@ bool PackLoad(CCharacter &chara, CDataAlloc2<1> &arena, const char *path, const 
     chara.Initialize();
     // Without an image arena the pack's images are passed over; none left from an earlier character may stand in for them.
     std::fill(std::begin(chara.images), std::end(chara.images), nullptr);
-    chara.LoadPackData2(pack, const_cast<char *>(cfg), &arena, kFloorCharacterBlock, images ? &arena : nullptr, 0);
+    // Every floor character's images go in the one block: loading keeps those already there, or the characters entered
+    // before would draw with this one's.
+    chara.LoadPackData3(pack, const_cast<char *>(cfg), &arena, kFloorCharacterBlock, images ? &arena : nullptr, 1, 0);
     return chara.frame != nullptr;
 }
 
