@@ -387,6 +387,8 @@ Blessing Gun → Skunk ★
 
 ## Fishing
 
+- The fishing prize exchange offers the Flamingo for 1000 FP in place of the Matador. [#273](https://github.com/Tororoi/Chronicle-Expanded/pull/273)
+
 ### From Chronicle
 
 - Fish sizes taper smoothly into each species' maximum instead of piling up at it. [Chronicle#141](https://github.com/TheMoonPeople/Chronicle/pull/141)
