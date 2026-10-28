@@ -37,6 +37,7 @@ struct Star {
     Phase        phase = Phase::kWaiting;
     StarPath     path;
     float        frames = 0.0f; // since it started down
+    float        shine = 0.0f;  // since its trail ran into it at rest
     bool         bounced = false;
     CRandomItem *items = nullptr; // its drop, lying
     int          slot = -1;
@@ -185,9 +186,10 @@ bool Gone(Star &star) {
 // The frames between the head and the last of its trail.
 constexpr float kTrailFrames = kStarTrailGap / kStarFallSpeed * static_cast<float>(kStarTrail);
 
-// The sparkle and its trail, sitting on its path: at rest the trail runs on into the head.
+// The sparkle and its trail, sitting on its path: at rest the trail runs on into the head, which then shines.
 void DrawStar(const Star &star) {
     const float gap = kStarTrailGap / kStarFallSpeed;
+    const float shine = 1.0f + kStarShineDepth * std::sin(2.0f * std::numbers::pi_v<float> * star.shine / kStarShineFrames);
     for (int k = kStarTrail; k >= 0; k--) {
         float frames = star.frames - gap * static_cast<float>(k);
         if (frames < 0.0f) {
@@ -196,7 +198,7 @@ void DrawStar(const Star &star) {
         float fade = 1.0f - static_cast<float>(k) / static_cast<float>(kStarTrail + 1);
         float at[3];
         star.path.At(frames, at);
-        float half = kStarHeadSize / 2.0f * fade;
+        float half = kStarHeadSize / 2.0f * fade * shine;
         at[1] += half / kSparkleWidth;
         DrawEventSparkle(at, half, half / kSparkleWidth, static_cast<int>(128.0f * fade));
     }
@@ -346,9 +348,15 @@ void ShootingStarsStep() {
             case Phase::kFalling:
                 Fall(star);
                 break;
-            case Phase::kLying:
-                star.frames = std::min(star.frames + 1.0f, star.path.FallFrames() + star.path.BounceFrames() + kTrailFrames);
+            case Phase::kLying: {
+                float merged = star.path.FallFrames() + star.path.BounceFrames() + kTrailFrames;
+                if (star.frames < merged) {
+                    star.frames = std::min(star.frames + 1.0f, merged);
+                } else {
+                    star.shine = std::fmod(star.shine + 1.0f, kStarShineFrames);
+                }
                 break;
+            }
         }
     }
     std::erase_if(stars, [](Star &star) { return star.phase == Phase::kLying && Gone(star); });
