@@ -7,6 +7,7 @@
 
 #include "expanded/core/random.hpp"
 #include "expanded/debug/event_log.hpp"
+#include "expanded/town/fishing.hpp"
 #include "expanded/weapons/ownership.hpp"
 #include "expanded/weapons/ruby/fairys_ring.hpp"
 #include "fish.hpp"

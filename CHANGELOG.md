@@ -390,6 +390,7 @@ Blessing Gun → Skunk ★
 
 ## Fishing
 
+- The Matataki waterfall has the Niler in place of the Gummy, and East Harbor the Gobbler in place of the Piccoly. [#272](https://github.com/Tororoi/Chronicle-Expanded/pull/272)
 - At Matataki Waterfall and East Harbor every fish turns toward you every 10 seconds, keeping them within reach. [#275](https://github.com/Tororoi/Chronicle-Expanded/pull/275)
 
 ### From Chronicle
@@ -402,6 +403,7 @@ Blessing Gun → Skunk ★
 - Enemy roster: the developer menu's "enemy roster" row (typed in) or `--roster 20!,60` lays out these monster kinds on every dungeon floor from the next dungeon visit, in debug mode. [#156](https://github.com/Tororoi/Chronicle-Expanded/pull/156)
 - The enemy roster refuses a roster it cannot lay out and says why, naming the kinds to add or drop: the Ice Queen (80) and King's Curse (81, 82) need another kind beside them, since they come only with Ruby or Ungaga in the party. [#182](https://github.com/Tororoi/Chronicle-Expanded/pull/182)
 - Staged recordings: `--stage` starts a save's party on a dungeon floor with the member, weapon and monsters a clip needs, `--event-log` writes damage, kills, life, weapon HP and sounds as JSON lines, and `scripts/port/clip.py` records a clip and the same run with Weapon Abilities off side by side ([recording.md](expanded/docs/recording.md)). [#237](https://github.com/Tororoi/Chronicle-Expanded/pull/237)
+- Fishing stages: `--stage` starts in a town with the save's game and debug mode off, at a fishing sign with a bait ready and the time of day set, and `--event-log` follows the fishing: casts, bites, hooked fish, escapes, catches (kind, size, points) and lost bait ([recording.md](expanded/docs/recording.md#fishing)). [#277](https://github.com/Tororoi/Chronicle-Expanded/pull/277)
 
 ### From Chronicle
 

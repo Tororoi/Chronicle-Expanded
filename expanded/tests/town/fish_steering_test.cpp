@@ -137,7 +137,7 @@ std::vector<bool> Only(int slot) {
 } // namespace
 
 TEST_F(FishSteering, TheWaterfallAndEastHarborTurnEveryFishEvery600Frames) {
-    for (int spot : {expanded::kWaterfallSpot, expanded::kEastHarborSpot}) {
+    for (int spot : {expanded::kMatatakiWaterfall, expanded::kEastHarbor}) {
         expanded::FishSpotLoaded(spot);
         Step(1);
         EXPECT_EQ(Turned(), kEveryFish) << spot;
@@ -160,7 +160,7 @@ TEST_F(FishSteering, OtherSpotsLeaveTheFishAlone) {
 }
 
 TEST_F(FishSteering, AFishAtThePlayerKeepsItsCourse) {
-    expanded::FishSpotLoaded(expanded::kWaterfallSpot);
+    expanded::FishSpotLoaded(expanded::kMatatakiWaterfall);
     float at_player[4] = {100.0f, -12.0f, 0.0f, 1.0f};
     fish_[0].SetPosition(at_player);
     Step(1);
@@ -251,7 +251,7 @@ TEST_F(FishSteering, WithoutWeaponAbilitiesOnlyTheSpotsTurnFish) {
     ASSERT_TRUE(options.Set(expanded::kWeaponAbilities, false));
     Own(ITEM_WEAPON_ARISE_MARDAN);
     esa_type = kPoisonousApple;
-    expanded::FishSpotLoaded(expanded::kEastHarborSpot);
+    expanded::FishSpotLoaded(expanded::kEastHarbor);
     Step(1);
     EXPECT_EQ(Turned(), kEveryFish);
     Step(expanded::kSteerFrames - 1);

@@ -11,6 +11,7 @@
 #include "character.hpp"
 #include "editloop.hpp"
 #include "expanded/debug/event_log.hpp"
+#include "expanded/town/fishing.hpp"
 #include "expanded/weapons/toan/mardan.hpp"
 #include "fish.hpp"
 #include "fishing.hpp"
@@ -62,7 +63,7 @@ void FishSteeringStep() {
 
     sceVu0FVECTOR player;
     Chara->GetPosition(player);
-    const bool spot_turn = g_frame == 0 && (g_spot == kWaterfallSpot || g_spot == kEastHarborSpot);
+    const bool spot_turn = g_frame == 0 && (g_spot == kMatatakiWaterfall || g_spot == kEastHarbor);
     for (int i = 0; i < kFishSlots; i++) {
         CFish &fish = Fish[i];
         if (g_since[i] < INT_MAX) {

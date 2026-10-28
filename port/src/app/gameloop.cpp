@@ -170,6 +170,7 @@ void GiveOnArrival() {
 struct Jump {
     bool set = false;
     bool preset = false;
+    bool loaded = false; // the town goes on with a loaded save's game, debug mode off
     int  mode = GAME_MODE_MENU;
     int  map = 0;
 };
@@ -337,6 +338,13 @@ void ApplyJump() {
     GamePad.AutoRepeatOff();
     switch (g_jump.mode) {
         case GAME_MODE_EDIT:
+            if (g_jump.loaded) {
+                // As the title's Continue goes on, in the jump's map.
+                MapJump(g_jump.map, -1);
+                GameApplyLoopResult(GAME_MODE_TITLE, 2);
+                GameFollowMapJump();
+                break;
+            }
             main_select_menu_no = g_jump.map;
             MapNo = g_jump.map;
             if (g_jump.preset) {
@@ -678,6 +686,10 @@ bool GameSetJump(const char *spec) {
     return true;
 }
 
+void GameSetTownJump(int map) {
+    g_jump = {.set = true, .loaded = true, .mode = GAME_MODE_EDIT, .map = map};
+}
+
 // Retail PAL tests pad 2's four shoulder buttons with R3's press edge after every frame; here they are
 // pad 1's, as the host latched it, so the chord can enable debug mode after an ordinary boot.
 void GameCheckDebugToggle() {
@@ -858,7 +870,7 @@ int RunGame([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
     GlobalNameInit();
 
     if (g_jump.set) {
-        DebugMode = 1;
+        DebugMode = g_jump.loaded ? 0 : 1;
     }
     for (int tick = 0; tick < kWarmUpTicks && !g_jump.set; ++tick) {
         ClockSyncV();
@@ -887,7 +899,7 @@ int RunGame([[maybe_unused]] int argc, [[maybe_unused]] char **argv) {
             LanguageCode = language;
         }
 #ifdef CHRONICLE_EXPANDED
-        // A stage starts in its dungeon with its save's game.
+        // A stage starts in its dungeon or town with its save's game.
         if (!expanded::StageLoadSave()) {
             std::println(stderr, "stage: cannot load save {} from {}", expanded::ActiveStage()->slot, PathsDisplay(PathsSaveRoot()));
             std::exit(2);

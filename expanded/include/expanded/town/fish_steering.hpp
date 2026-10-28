@@ -11,8 +11,6 @@ namespace expanded {
 // While a Mardan sword is owned its fish turn toward the player too, at their own pace (MardanSteerFrames), by the bait
 // last on the hook since the spot's fish loaded.
 inline constexpr int kSteerFrames = 600;
-inline constexpr int kWaterfallSpot = 2; // FishingLoadFish's spots
-inline constexpr int kEastHarborSpot = 3;
 
 // Hooks: FishingLoadFish having loaded a spot's fish, and FishingStepFish about to step them (Fish, turned toward
 // Chara, by esa_type's bait).
