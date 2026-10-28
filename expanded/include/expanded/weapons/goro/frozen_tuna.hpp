@@ -19,7 +19,7 @@ namespace expanded {
 //     wielder for kColdStorageWielderFrames through the game's own freeze (BtSetStatusErr), which a hit on him breaks.
 //     The freeze holds him in the pose it caught him in, a swing too: the frozen wielder's hits land nothing. Each body
 //     it freezes stands in the Ice Queen's prison (frozen_tuna/ice_prisons.hpp) while its freeze lasts.
-inline constexpr float  kColdStorageHealPerWhp = 2.0f;
+inline constexpr float  kColdStorageHealPerWhp = 1.0f;
 inline constexpr int    kColdStorageDrainFrames = 30;
 inline constexpr double kColdStorageChance = 0.05;
 inline constexpr int    kColdStorageMonsterFrames = 300;

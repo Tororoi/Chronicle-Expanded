@@ -113,7 +113,7 @@ void Step(Prison &prison, bool frozen, bool member) {
                 return;
             }
             float formed = static_cast<float>(Clip(kIcePrisonForm).end) - kFormedHold;
-            prison.time += Clip(kIcePrisonForm).speed;
+            prison.time += kPrisonFormSpeed;
             if (prison.time >= formed) {
                 prison.time = formed;
                 prison.stage = PrisonStage::kFormed;

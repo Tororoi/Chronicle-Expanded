@@ -67,7 +67,7 @@ void ExpectSize(const Prison &prison, PrisonSize size, float stretch = 0.0f) {
 }
 
 // Steps from the prison's start to formed, and from the shatter's start to gone.
-constexpr int kFormSteps = 80;
+constexpr int kFormSteps = static_cast<int>((30.0f - 10.0f) / expanded::frozen_tuna::kPrisonFormSpeed);
 constexpr int kShatterSteps = 28;
 
 // Goro (or Xiao) out with weapon_no (carrying sphere when given) at 50 of 60 WHP, with 100 of 200 life, at the origin
@@ -203,21 +203,21 @@ protected:
 
 } // namespace
 
-TEST_F(ColdStorage, EachWhpLostBanksTwoLife) {
+TEST_F(ColdStorage, EachWhpLostBanksALife) {
     Step();
     Weapon().durability_f -= 1.5f;
     Step();
-    EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 3.0f);
+    EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 1.5f);
     Weapon().durability_f -= 4.0f;
     Step();
-    EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 11.0f);
+    EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 5.5f);
     EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(true), 0.0f);
     EXPECT_EQ(Life(), 100);
 }
 
 TEST_F(ColdStorage, DamageDrainsThePoolALifeEveryThirtyFrames) {
     Step();
-    Weapon().durability_f -= 2.0f;
+    Weapon().durability_f -= 4.0f;
     Step();
     Hurt(10);
     Step(expanded::kColdStorageDrainFrames - 1);
@@ -237,7 +237,7 @@ TEST_F(ColdStorage, NothingDrainsBeforeDamage) {
     Weapon().durability_f -= 5.0f;
     Step(expanded::kColdStorageDrainFrames * 4);
     EXPECT_EQ(Life(), 100);
-    EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 10.0f);
+    EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 5.0f);
 }
 
 TEST_F(ColdStorage, DamageWithNothingBankedStartsNoDrain) {
@@ -260,11 +260,11 @@ TEST_F(ColdStorage, TheDrainPausesAtFullLifeAndKeepsThePool) {
     Hurt(1);
     Step(expanded::kColdStorageDrainFrames * 4);
     EXPECT_EQ(Life(), 200);
-    EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 8.0f);
+    EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 3.0f);
     Hurt(1);
     Step(expanded::kColdStorageDrainFrames);
     EXPECT_EQ(Life(), 200);
-    EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 7.0f);
+    EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 2.0f);
 }
 
 TEST_F(ColdStorage, TheDrainCountsOnlyFramesTheMonstersStep) {
@@ -319,7 +319,7 @@ TEST_F(ColdStorage, GorosPoolAndSuperStevesAreTheirOwn) {
     Step();
     Weapon().durability_f -= 5.0f;
     Step();
-    ASSERT_FLOAT_EQ(expanded::ColdStorageBanked(false), 10.0f);
+    ASSERT_FLOAT_EQ(expanded::ColdStorageBanked(false), 5.0f);
 
     // Xiao out with Super Steve and the Tuna's sphere: Goro's pool goes with him, hers starts empty.
     {
@@ -330,7 +330,7 @@ TEST_F(ColdStorage, GorosPoolAndSuperStevesAreTheirOwn) {
         EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(true), 0.0f);
         Weapon().durability_f -= 2.0f;
         Step();
-        EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(true), 4.0f);
+        EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(true), 2.0f);
         EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 0.0f);
     }
 
@@ -343,7 +343,7 @@ TEST_F(ColdStorage, GorosPoolAndSuperStevesAreTheirOwn) {
 
 TEST_F(ColdStorageBySuperSteve, XiaosPoolHealsHer) {
     Step();
-    Weapon().durability_f -= 1.0f;
+    Weapon().durability_f -= 2.0f;
     Step();
     EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(true), 2.0f);
     EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 0.0f);
@@ -502,7 +502,7 @@ TEST_F(ColdStorage, APrisonFormsHoldsWhileFrozenAndShattersAsTheFreezeEnds) {
     ASSERT_TRUE(HitUntilStopped());
     Step(kFormSteps - 1);
     EXPECT_EQ(MonsterPrison(0).stage, PrisonStage::kForming);
-    EXPECT_FLOAT_EQ(MonsterPrison(0).time, 10.0f + 0.25f * (kFormSteps - 1));
+    EXPECT_FLOAT_EQ(MonsterPrison(0).time, 10.0f + expanded::frozen_tuna::kPrisonFormSpeed * (kFormSteps - 1));
     Step();
     EXPECT_EQ(MonsterPrison(0).stage, PrisonStage::kFormed);
     EXPECT_FLOAT_EQ(MonsterPrison(0).time, 30.0f - 0.01f);
