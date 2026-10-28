@@ -534,4 +534,14 @@ char *GetFishFileName(int fish_kind) {
     return fish_file_names[fish_kind];
 }
 
+#ifdef CHRONICLE_EXPANDED
+const FishInfo *GetFishInfo(int fish_kind) {
+    if (fish_kind < 0 || std::cmp_greater_equal(fish_kind, fish_info.size())) {
+        return nullptr;
+    }
+
+    return &fish_info[fish_kind];
+}
+#endif
+
 } // namespace dc::game

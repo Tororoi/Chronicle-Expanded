@@ -3,6 +3,7 @@
 #include "common.h"
 
 #include <cstring>
+#include <span>
 
 #include "dngstatusdata.hpp"
 #include "stockitem.hpp"
@@ -229,6 +230,13 @@ public:
      * Returns a leaderboard entry, or nullptr if the entry is empty.
      */
     SV_FISH_DATA *GetFishingRank(int rank_index);
+
+#ifdef CHRONICLE_EXPANDED
+    /**
+     * Returns the whole leaderboard, empty entries included.
+     */
+    std::span<SV_FISH_DATA, 64> GetFishingRanks() { return this->fish_data; }
+#endif
 
     /**
      * Returns the Georama data of a town, or nullptr if the town number is not valid.
