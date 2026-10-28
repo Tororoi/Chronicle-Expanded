@@ -32,4 +32,13 @@ float AriseSize(float size, float usual_size, float max_size);
 // Hook: CFish::SetScale: a fish's size, size the game's for a kind of info, grown while Arise Mardan is owned.
 float AriseFishSize(float size, const FishInfo &info);
 
+// The fish the Mardan swords steer: while one is owned, a Mardan or Baron Garayan or an Umadakara turns toward the
+// player every kMardanSteerFrames frames for the sword (Mardan Eins, Mardan Twei, Arise Mardan) divided by its liking
+// for the bait last on the hook (FishInfo::food_affinity); one with no liking for it is left alone.
+inline constexpr int kUmadakara = 9;
+inline constexpr int kMardanSteerFrames[] = {240, 180, 120};
+
+// The frames between sword's turns of a fish of fish_kind with affinity for the bait, or 0 for none.
+int MardanSteerFrames(int sword, int fish_kind, float affinity);
+
 } // namespace expanded
