@@ -494,6 +494,16 @@ Bytes PlaceGround(std::span<const unsigned char> cfg, std::string_view part, std
     return ToBytes(text);
 }
 
+std::vector<Vec3> PlacedAt(std::span<const unsigned char> cfg, std::string_view prefix) {
+    std::vector<Vec3> positions;
+    for (const Placement &placement : GroundPlacements(ToText(cfg))) {
+        if (placement.name.starts_with(prefix)) {
+            positions.push_back(placement.position);
+        }
+    }
+    return positions;
+}
+
 std::vector<PlacedMesh> PlacedMeshes(std::span<const unsigned char> scene, std::span<const unsigned char> cfg) {
     std::map<std::string, SubFile> directory;
     for (const SubFile &file : SubFiles(scene)) {

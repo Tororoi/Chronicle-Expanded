@@ -59,7 +59,8 @@ std::vector<Triangle> QueensCollision(std::span<const unsigned char> scene, std:
 }
 
 const FishingSpot kSpots[] = {
-    // Brownboo's pond from the boardwalk by the sign, 10 over the water: fished facing north across it.
+    // Brownboo's pond from the boardwalk by the sign, 10 over the water: fished facing north across it. The landings
+    // at the tops of its ladders (s04r*), high over the pond, are left out of what it gathers, so no float rests there.
     {.code = "s04",
      .map_no = 14,
      .area = 5,
@@ -83,7 +84,8 @@ const FishingSpot kSpots[] = {
      .rare_one_in = 50,
      .collision = BrownbooCollision,
      .edit_scene = BrownbooScene,
-     .edit_cfg = nullptr},
+     .edit_cfg = nullptr,
+     .floor_drop = {.parts = "s04r", .radius = 45.0f, .min_y = 25.0f}},
     // Queens' canal from its north bank, 39 over the water: fished from the stance by the sign, facing south across it.
     {.code = "e03",
      .map_no = 2,
@@ -164,6 +166,17 @@ Bytes BuildMapinfo(const FishingSpot &spot, Files s) {
     return spot.edit_cfg != nullptr ? spot.edit_cfg(town) : town;
 }
 
+// The spot's floor drop round each part the mapinfo places.
+std::vector<FloorDropZone> FloorDropZones(const FishingSpot &spot, std::span<const unsigned char> cfg) {
+    std::vector<FloorDropZone> zones;
+    if (!spot.floor_drop.parts.empty()) {
+        for (const scene::Vec3 &at : scene::PlacedAt(cfg, spot.floor_drop.parts)) {
+            zones.push_back({static_cast<float>(at[0]), static_cast<float>(at[2]), spot.floor_drop.radius, spot.floor_drop.min_y});
+        }
+    }
+    return zones;
+}
+
 } // namespace
 
 std::span<const FishingSpot> FishingSpots() {
@@ -184,15 +197,23 @@ std::string FishingCollisionPath(const FishingSpot &spot) {
     return std::format("expanded/fishing/{}.col", spot.code);
 }
 
-Bytes FishingCollisionFile(int map_no, const std::vector<Triangle> &triangles) {
+Bytes FishingCollisionFile(int map_no, const std::vector<Triangle> &triangles, const std::vector<FloorDropZone> &zones) {
     Bytes out = ToBytes("DCFC");
-    Append32(out, 1);
+    Append32(out, zones.empty() ? 1 : 2);
     Append32(out, static_cast<std::uint32_t>(map_no));
     Append32(out, static_cast<std::uint32_t>(triangles.size()));
     for (const Triangle &triangle : triangles) {
         for (const scene::Vec3 &point : triangle) {
             for (double value : point) {
                 Append32(out, std::bit_cast<std::uint32_t>(static_cast<float>(value)));
+            }
+        }
+    }
+    if (!zones.empty()) {
+        Append32(out, static_cast<std::uint32_t>(zones.size()));
+        for (const FloorDropZone &zone : zones) {
+            for (float value : {zone.x, zone.z, zone.radius, zone.min_y}) {
+                Append32(out, std::bit_cast<std::uint32_t>(value));
             }
         }
     }
@@ -214,6 +235,21 @@ std::vector<Triangle> ReadFishingCollision(std::span<const unsigned char> file) 
         }
     }
     return triangles;
+}
+
+std::vector<FloorDropZone> ReadFloorDropZones(std::span<const unsigned char> file) {
+    std::size_t at = 16 + ReadFishingCollision(file).size() * 36;
+    if (Get32(file, 4) < 2) {
+        return {};
+    }
+    std::size_t                count = Get32(file, at);
+    std::vector<FloorDropZone> zones(count);
+    Slice(file, at + 4, count * 16, "a fishing collision file's floor drop zones");
+    for (std::size_t i = 0; i < count; i++) {
+        std::size_t z = at + 4 + i * 16;
+        zones[i] = {GetF32(file, z), GetF32(file, z + 4), GetF32(file, z + 8), GetF32(file, z + 12)};
+    }
+    return zones;
 }
 
 std::vector<DataBuild> FishingSpotBuilds() {
@@ -238,7 +274,7 @@ std::vector<DataBuild> FishingSpotBuilds() {
         }
         if (spot.collision != nullptr) {
             builds.push_back(DataBuild::FromSources(std::format("{} fishing collision", spot.code), FishingCollisionPath(spot), {scene, cfg},
-                                                    [&spot](Files s) { return FishingCollisionFile(spot.map_no, spot.collision(s[0], s[1])); }));
+                                                    [&spot](Files s) { return FishingCollisionFile(spot.map_no, spot.collision(s[0], s[1]), FloorDropZones(spot, s[1])); }));
         }
     }
     return builds;

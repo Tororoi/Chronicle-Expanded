@@ -1,5 +1,6 @@
 #include "expanded/town/fishing.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -22,20 +23,25 @@ namespace {
 constexpr float kRetailLineSegment = 1.6666666f;
 
 // A spot's collision file, read once.
-const std::vector<scene::Triangle> &SpotTriangles(const FishingSpot &spot) {
-    static std::map<const FishingSpot *, std::vector<scene::Triangle>> read;
-    auto                                                               found = read.find(&spot);
+struct SpotCollision {
+    std::vector<scene::Triangle> triangles;
+    std::vector<FloorDropZone>   zones;
+};
+
+const SpotCollision &ReadSpotCollision(const FishingSpot &spot) {
+    static std::map<const FishingSpot *, SpotCollision> read;
+    auto                                                found = read.find(&spot);
     if (found == read.end()) {
-        std::vector<std::uint8_t>    file;
-        std::vector<scene::Triangle> triangles;
+        std::vector<std::uint8_t> file;
+        SpotCollision             collision;
         if (DataReadReadFile(FishingCollisionPath(spot), file)) {
             try {
-                triangles = ReadFishingCollision(file);
+                collision = {ReadFishingCollision(file), ReadFloorDropZones(file)};
             } catch (const std::exception &) {
-                triangles.clear();
+                collision = {};
             }
         }
-        found = read.emplace(&spot, std::move(triangles)).first;
+        found = read.emplace(&spot, std::move(collision)).first;
     }
     return found->second;
 }
@@ -73,7 +79,33 @@ float SpotFishDepth(float depth) {
 
 int AddSpotCollision(CCPoly *polys, int count, int capacity) {
     const FishingSpot *spot = FishingSpotOfMap(MapNo);
-    return spot != nullptr ? AddCollision(polys, count, capacity, SpotTriangles(*spot)) : count;
+    if (spot == nullptr) {
+        return count;
+    }
+    const SpotCollision &collision = ReadSpotCollision(*spot);
+    return AddCollision(polys, DropPolys(polys, count, collision.zones), capacity, collision.triangles);
+}
+
+int DropPolys(CCPoly *polys, int count, std::span<const FloorDropZone> zones) {
+    auto dropped = [&](const CCPoly &poly) {
+        float low = std::min({poly.vertex[0][1], poly.vertex[1][1], poly.vertex[2][1]});
+        float x = (poly.vertex[0][0] + poly.vertex[1][0] + poly.vertex[2][0]) / 3.0f;
+        float z = (poly.vertex[0][2] + poly.vertex[1][2] + poly.vertex[2][2]) / 3.0f;
+        for (const FloorDropZone &zone : zones) {
+            float dx = x - zone.x, dz = z - zone.z;
+            if (low >= zone.min_y && dx * dx + dz * dz < zone.radius * zone.radius) {
+                return true;
+            }
+        }
+        return false;
+    };
+    int kept = 0;
+    for (int i = 0; i < count; i++) {
+        if (!dropped(polys[i])) {
+            polys[kept++] = polys[i];
+        }
+    }
+    return kept;
 }
 
 int AddCollision(CCPoly *polys, int count, int capacity, std::span<const scene::Triangle> triangles) {

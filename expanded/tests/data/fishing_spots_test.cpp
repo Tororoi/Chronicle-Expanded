@@ -253,6 +253,16 @@ TEST(TownScene, AMovedStandPointLeavesTheOthersWhereTheyStand) {
     EXPECT_THROW(scene::MoveStandPoint(scene_file, "b", 8, {}), std::runtime_error);
 }
 
+TEST(TownScene, PartsArePlacedWhereTheMapinfoSays) {
+    const std::string        cfg = "\tWATER\t\"s04r01\",\t\t//stairs\r\n\t\t\"\",\r\n\t\t0,\t0,\t74,\t//position\r\n\t\t0,\t0,\t0\t//rotation\r\n"
+                                   "\tGROUND\t\"s04g01\",\r\n\t\t1,\t2,\t3,\r\n\t\t0,\t0,\t0\r\n"
+                                   "\tWATER\t\"s04r02\",\r\n\t\t-56.68\t,0\t,47.566,\r\n\t\t0\t,-50\t,0\r\n";
+    std::vector<scene::Vec3> ladders = scene::PlacedAt(expanded::ToBytes(cfg), "s04r");
+    ASSERT_EQ(ladders.size(), 2u);
+    EXPECT_EQ(ladders[0], (scene::Vec3{0, 0, 74}));
+    EXPECT_EQ(ladders[1], (scene::Vec3{-56.68, 0, 47.566}));
+}
+
 TEST(TownScene, AnAppendedPartTakesTheDirectorysRoom) {
     Bytes scene_file(0x400, 0);
     Set32(scene_file, 4, 1);
@@ -370,6 +380,26 @@ TEST(FishingSpot, ACollisionFileHoldsItsTriangles) {
     EXPECT_EQ(expanded::ReadFishingCollision(file), triangles);
 }
 
+TEST(FishingSpot, ACollisionFileCarriesTheZonesItDrops) {
+    std::vector<scene::Triangle> triangles = {
+        {{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}}};
+    std::vector<expanded::FloorDropZone> zones = {
+        {1.5f, -2.0f, 45.0f, 25.0f},
+        {3.0f, 4.0f,  10.0f, 50.0f}
+    };
+    Bytes file = expanded::FishingCollisionFile(14, triangles, zones);
+    EXPECT_EQ(Get32(file, 4), 2u); // the version with zones
+    EXPECT_EQ(expanded::ReadFishingCollision(file), triangles);
+    std::vector<expanded::FloorDropZone> read = expanded::ReadFloorDropZones(file);
+    ASSERT_EQ(read.size(), 2u);
+    EXPECT_EQ(read[1].z, 4.0f);
+    EXPECT_EQ(read[1].min_y, 50.0f);
+    // Without zones a file stays version 1, as the other spots' are.
+    Bytes plain = expanded::FishingCollisionFile(2, triangles);
+    EXPECT_EQ(Get32(plain, 4), 1u);
+    EXPECT_TRUE(expanded::ReadFloorDropZones(plain).empty());
+}
+
 TEST(FishingSpot, BrownbooIsFishedFromTheBoardwalkByItsSign) {
     const expanded::FishingSpot *spot = expanded::FishingSpotOfMap(14);
     ASSERT_NE(spot, nullptr);
@@ -410,10 +440,21 @@ TEST(FishingSpot, BrownbooIsBuiltFromTheDisc) {
     std::string cfg = expanded::ToText(Read(rebuilt / "mapinfo.cfg"));
     EXPECT_NE(cfg.find("\t\t212,\t9,\t-61,\t//position\r\n\t\t0,\t0,\t0\t//rotation"), std::string::npos);
 
-    // The pond's three rocks.
+    // The pond's three rocks, and the high polys round its seven ladders dropped.
     const expanded::FishingSpot *spot = expanded::FishingSpotOfMap(14);
     ASSERT_NE(spot, nullptr);
-    EXPECT_EQ(expanded::ReadFishingCollision(Read(scratch / expanded::FishingCollisionPath(*spot))).size(), 202u);
+    Bytes collision = Read(scratch / expanded::FishingCollisionPath(*spot));
+    EXPECT_EQ(expanded::ReadFishingCollision(collision).size(), 202u);
+    std::vector<expanded::FloorDropZone> zones = expanded::ReadFloorDropZones(collision);
+    std::vector<scene::Vec3>             ladders = scene::PlacedAt(Read(fs::path(data) / "gedit/s04/mapinfo.cfg"), "s04r");
+    ASSERT_EQ(zones.size(), 7u);
+    ASSERT_EQ(ladders.size(), 7u);
+    for (std::size_t i = 0; i < zones.size(); i++) {
+        EXPECT_EQ(zones[i].x, static_cast<float>(ladders[i][0])) << i;
+        EXPECT_EQ(zones[i].z, static_cast<float>(ladders[i][2])) << i;
+        EXPECT_EQ(zones[i].radius, 45.0f);
+        EXPECT_EQ(zones[i].min_y, 25.0f);
+    }
 }
 
 // DC_TEST_DATA, an extracted data directory: Queens built with the sign, its trigger, its scripts and its text.

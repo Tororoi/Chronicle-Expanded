@@ -39,7 +39,7 @@ constexpr Built kBuilt[] = {
     {"effect/bomb_throw.chr",        46544,   0x141e8686c98c4655ULL},
     {"enemies/script_damage.txt",    2475,    0x95ea0a4a8b6351fdULL},
     {"fishing/e03.col",              25684,   0x88799f90c4c174bdULL},
-    {"fishing/s04.col",              7288,    0x2d66fc4b6cb83966ULL},
+    {"fishing/s04.col",              7404,    0xcb314e0a7bd3084eULL},
     {"fishing/sign.img",             17536,   0xf1a83f0e01d393c6ULL},
     {"monstor/c16a.chr",             1137920, 0x30b9ff47a953e4bcULL},
     {"monstor/c16a.stb",             31684,   0x806ea29199a14993ULL},

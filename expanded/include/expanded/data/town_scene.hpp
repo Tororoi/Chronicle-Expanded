@@ -60,6 +60,9 @@ Bytes AppendPart(std::span<const unsigned char> scene, std::string_view name, st
 Bytes PlaceGround(std::span<const unsigned char> cfg, std::string_view part, std::string_view anchor, std::string_view collision,
                   const std::array<int, 3> &position, int yaw);
 
+// Where the mapinfo's GROUND and WATER lines place the parts whose names start with prefix, in its order.
+std::vector<Vec3> PlacedAt(std::span<const unsigned char> cfg, std::string_view prefix);
+
 // A model frame's mesh as the mapinfo places it: its world vertices and its triangles' vertex indices.
 struct PlacedMesh {
     std::string                     frame;
