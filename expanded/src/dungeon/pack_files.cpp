@@ -29,44 +29,47 @@ struct TextureNeed {
     int vram = 0;
 };
 
-// What the pack's images take of the texture table and of a block's VRAM, as CTextureManager enters them.
+// What an image file's pictures take of the texture table and of a block's VRAM, as CTextureManager enters them.
+void AddNeed(TextureNeed &need, u_char *buffer) {
+    u_char *entry = buffer + 16;
+    for (u_int i = 0; i < *reinterpret_cast<u_int *>(buffer + 4); i++, entry += 48) {
+        auto *head = reinterpret_cast<TM2_head *>(buffer + *reinterpret_cast<int *>(entry + 32));
+        int   width = head->image_width;
+        int   height = head->image_height;
+        int   bytes;
+        switch (head->image_type) {
+            case TIM2_RGB16:
+                bytes = width * height * 2;
+                break;
+            case TIM2_RGB24:
+                bytes = width * height * 3;
+                break;
+            case TIM2_RGB32:
+                bytes = width * height * 4;
+                break;
+            case TIM2_IDTEX4:
+                bytes = width * height / 2 + 4 * 256;
+                break;
+            case TIM2_IDTEX8:
+                bytes = width * height + 4 * 256;
+                break;
+            default:
+                continue;
+        }
+        need.textures++;
+        need.vram += ((bytes >> 8) + 31) / 32 * 32;
+    }
+}
+
+// The same of all the pack's images.
 TextureNeed NeedOf(u_int *pack) {
     TextureNeed need;
     char       *name;
     int         size;
     for (int index = 0; u_int *file = GetPackFile(pack, index, &name, &size); index++) {
         std::size_t length = std::strlen(name);
-        if (length < 4 || strcasecmp(name + length - 4, ".img") != 0) {
-            continue;
-        }
-        auto   *buffer = reinterpret_cast<u_char *>(file);
-        u_char *entry = buffer + 16;
-        for (u_int i = 0; i < *reinterpret_cast<u_int *>(buffer + 4); i++, entry += 48) {
-            auto *head = reinterpret_cast<TM2_head *>(buffer + *reinterpret_cast<int *>(entry + 32));
-            int   width = head->image_width;
-            int   height = head->image_height;
-            int   bytes;
-            switch (head->image_type) {
-                case TIM2_RGB16:
-                    bytes = width * height * 2;
-                    break;
-                case TIM2_RGB24:
-                    bytes = width * height * 3;
-                    break;
-                case TIM2_RGB32:
-                    bytes = width * height * 4;
-                    break;
-                case TIM2_IDTEX4:
-                    bytes = width * height / 2 + 4 * 256;
-                    break;
-                case TIM2_IDTEX8:
-                    bytes = width * height + 4 * 256;
-                    break;
-                default:
-                    continue;
-            }
-            need.textures++;
-            need.vram += ((bytes >> 8) + 31) / 32 * 32;
+        if (length >= 4 && strcasecmp(name + length - 4, ".img") == 0) {
+            AddNeed(need, reinterpret_cast<u_char *>(file));
         }
     }
     return need;
@@ -78,6 +81,18 @@ int FreeTextures() {
         free += TexManager.textures[i].name[0] == 0;
     }
     return free;
+}
+
+bool NeedFits(const TextureNeed &need, int block, const char *what) {
+    int free = FreeTextures() - kTextureReserve;
+    int vram_end = TexManager.blocks[block].vram_end;
+    int vram_left = TexManager.vram_max - (vram_end > mgTopVRAM ? vram_end : mgTopVRAM);
+    if (need.textures > free || need.vram > vram_left) {
+        std::fprintf(stderr, "expanded: no texture room for %s: needs %d textures (%d free) and %d VRAM blocks (%d left)\n", what,
+                     need.textures, free, need.vram, vram_left);
+        return false;
+    }
+    return true;
 }
 
 } // namespace
@@ -114,16 +129,13 @@ unsigned int *ReadPackIntoArena(const std::string &path, CDataAlloc2<1> &arena, 
 }
 
 bool PackTexturesFit(unsigned int *pack, int block, const char *what) {
-    TextureNeed need = NeedOf(pack);
-    int         free = FreeTextures() - kTextureReserve;
-    int         vram_end = TexManager.blocks[block].vram_end;
-    int         vram_left = TexManager.vram_max - (vram_end > mgTopVRAM ? vram_end : mgTopVRAM);
-    if (need.textures > free || need.vram > vram_left) {
-        std::fprintf(stderr, "expanded: no texture room for %s: needs %d textures (%d free) and %d VRAM blocks (%d left)\n", what,
-                     need.textures, free, need.vram, vram_left);
-        return false;
-    }
-    return true;
+    return NeedFits(NeedOf(pack), block, what);
+}
+
+bool ImageTexturesFit(unsigned int *image, int block, const char *what) {
+    TextureNeed need;
+    AddNeed(need, reinterpret_cast<u_char *>(image));
+    return NeedFits(need, block, what);
 }
 
 } // namespace expanded

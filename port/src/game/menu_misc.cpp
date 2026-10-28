@@ -49,6 +49,7 @@
 #include "weaponlevelup.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/items/empty_sphere.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/abilities.hpp"
 #include "expanded/weapons/stats.hpp"
@@ -474,6 +475,11 @@ int WeaponStatusBreakEnable(WEAPON_HAVE *weapon) {
         return 0;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::EmptySphereBreaks(*weapon)) {
+        return 1;
+    }
+#endif
     return weapon->level >= 5 ? 1 : 0;
 }
 

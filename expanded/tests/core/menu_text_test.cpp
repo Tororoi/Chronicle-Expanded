@@ -125,6 +125,38 @@ TEST(ExpandedMenuText, AMessageFollowsItsProvider) {
     g_seven = false;
 }
 
+bool g_spent = false;
+
+std::optional<std::string> SpentConfirm() {
+    if (!g_spent) {
+        return std::nullopt;
+    }
+    return "{alert}Seal 60% weapon\nability to sphere.\n(Uses empty sphere.)";
+}
+
+// Two features answer one message, each in its own case: the first with text gives it.
+TEST(ExpandedMenuText, AMessageMayHaveSeveralProviders) {
+    Reset            reset;
+    std::vector<s16> bank = Bank();
+    expanded::MenuTextLoaded("allmenu.mes", bank.data());
+    expanded::SetMenuMessage(kStatusBreakHint, SevenHint);
+    expanded::SetMenuMessage(kStatusBreakHint, SpentConfirm);
+    expanded::SetMenuMessage(kStatusBreakHint, SpentConfirm); // once only
+
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.");
+    g_spent = true;
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.\n(Uses empty sphere.)");
+    g_seven = true;
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 77% weapon\nability to sphere.");
+    g_seven = false;
+    g_spent = false;
+
+    expanded::SetMenuMessage(kStatusBreakHint, nullptr);
+    g_spent = true;
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.");
+    g_spent = false;
+}
+
 TEST(ExpandedMenuText, ASystemMessageIsTheItemLinesBanksOnly) {
     Reset            reset;
     std::vector<s16> bank = Bank();

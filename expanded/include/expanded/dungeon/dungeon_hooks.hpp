@@ -9,6 +9,7 @@ namespace dc::game {
 enum class MonsterDamageResult : int;
 class CCharacter;
 class CMonstorUnit;
+class CRandomItem;
 class CSHOT;
 class CSHOT_EFFECT;
 struct COLLISION_HIT;
@@ -125,6 +126,10 @@ void PelletStepping(CSHOT &shots, int slot);
 // Whether a pellet ending lands its own hit: not one whose hit is a bolt or a bomb's blast.
 bool PelletHurts(const CSHOT &shots, int slot);
 
+// Whether a drop lying on the floor is left undrawn (CRandomItem::Draw): one marked otherwise, as a shooting star's
+// sparkle marks its drop. It is still a drop: taken, refused and marked on the map as any.
+bool RandomItemHidden(const CRandomItem &items, int slot);
+
 // Whether the lock-on target's name plate is left off (setTargetCursor): something hangs over the target.
 bool TargetNameHidden();
 
@@ -135,8 +140,10 @@ bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HI
 // Whether a hit of Xiao's makes the monster flinch (CheckDmg; retail's never do): a blow of one of her weapons' own.
 bool PlayerHitStaggers(const COLLISION_HIT &hit);
 
-// A monster took the hit that reached it, past its guard and invincibility (CheckDmg).
-void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
+// A monster took the hit that reached it, past its guard and invincibility (CheckDmg), and a monster's guard window
+// blocked one (CheckDmg, the record left in play: it may block again on another of the monster's spheres or steps).
+void MonsterHitTaken(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit);
+void MonsterHitBlocked(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit);
 
 // A hit just took amount off a monster's life (CheckDmg; its life is past it, under 0 when it took more than it had).
 void MonsterDamaged(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount);

@@ -4850,12 +4850,19 @@ int ItemShopKey2() {
                     }
                 }
 
-                if (CommonMenuMes2.mes_made != mes_no || (name_mes > 0 && CommonMenuMes2.mes_no[0] != name_mes + 100) || CommonMenuMes2.value != value) {
+#ifdef CHRONICLE_EXPANDED
+                // An empty SynthSphere's weapon (0) is named too, not left the last sphere's.
+                const bool named = name_mes >= 0;
+#else
+                const bool named = name_mes > 0;
+#endif
+
+                if (CommonMenuMes2.mes_made != mes_no || (named && CommonMenuMes2.mes_no[0] != name_mes + 100) || CommonMenuMes2.value != value) {
                     CommonMenuMes2.value_signed = true;
                     CommonMenuMes2.value_show = false;
                     CommonMenuMes2.value = value;
 
-                    if (name_mes > 0) {
+                    if (named) {
                         CommonMenuMes2.mes_no[0] = name_mes + 100;
                     }
 

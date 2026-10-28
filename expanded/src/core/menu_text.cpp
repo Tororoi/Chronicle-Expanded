@@ -35,11 +35,18 @@ struct Loaded {
 struct Registry {
     std::map<const void *, Loaded>                           banks;
     std::map<int, WeaponTextProvider>                        weapons;
-    std::map<int, MenuTextProvider>                          messages;
+    std::map<int, std::vector<MenuTextProvider>>             messages;
     std::map<int, MenuTextProvider>                          system;
     std::map<int, TalkTextProvider>                          talk;
     std::vector<MessagePictureProvider>                      pictures;
     std::map<std::pair<const void *, int>, std::vector<s16>> built;
+    // The providers the features registered as the program started, kept by the first reset.
+    bool                                         kept = false;
+    std::map<int, WeaponTextProvider>            own_weapons;
+    std::map<int, std::vector<MenuTextProvider>> own_messages;
+    std::map<int, MenuTextProvider>              own_system;
+    std::map<int, TalkTextProvider>              own_talk;
+    std::vector<MessagePictureProvider>          own_pictures;
 };
 
 Registry &Text() {
@@ -105,10 +112,13 @@ void SetWeaponDescription(int item_no, WeaponTextProvider provider) {
 }
 
 void SetMenuMessage(int message_id, MenuTextProvider provider) {
-    if (provider != nullptr) {
-        Text().messages[message_id] = provider;
-    } else {
+    if (provider == nullptr) {
         Text().messages.erase(message_id);
+        return;
+    }
+    std::vector<MenuTextProvider> &providers = Text().messages[message_id];
+    if (std::ranges::find(providers, provider) == providers.end()) {
+        providers.push_back(provider);
     }
 }
 
@@ -129,7 +139,10 @@ void SetTalkMessage(int message_id, TalkTextProvider provider) {
 }
 
 void AddMessagePicture(MessagePictureProvider provider) {
-    Text().pictures.push_back(provider);
+    std::vector<MessagePictureProvider> &providers = Text().pictures;
+    if (std::ranges::find(providers, provider) == providers.end()) {
+        providers.push_back(provider);
+    }
 }
 
 bool MessagePicture(const ClsMes &mes, int code, const CRect_i_ &screen, int alpha) {
@@ -183,8 +196,11 @@ short *MenuText(const short *buff, int id) {
     }
     std::vector<s16> codes;
     if (auto message = Text().messages.find(id); bank->second.bank == Bank::AllMenu && message != Text().messages.end()) {
-        if (std::optional<std::string> text = message->second()) {
-            GameTextEncode(*text, codes);
+        for (MenuTextProvider provider : message->second) {
+            if (std::optional<std::string> text = provider()) {
+                GameTextEncode(*text, codes);
+                break;
+            }
         }
     }
     if (codes.empty() && id > kDescriptionBase) {
@@ -209,13 +225,22 @@ short *MenuText(const short *buff, int id) {
 }
 
 void MenuTextReset() {
-    Text().banks.clear();
-    Text().weapons.clear();
-    Text().messages.clear();
-    Text().system.clear();
-    Text().talk.clear();
-    Text().pictures.clear();
-    Text().built.clear();
+    Registry &text = Text();
+    if (!text.kept) {
+        text.kept = true;
+        text.own_weapons = text.weapons;
+        text.own_messages = text.messages;
+        text.own_system = text.system;
+        text.own_talk = text.talk;
+        text.own_pictures = text.pictures;
+    }
+    text.banks.clear();
+    text.built.clear();
+    text.weapons = text.own_weapons;
+    text.messages = text.own_messages;
+    text.system = text.own_system;
+    text.talk = text.own_talk;
+    text.pictures = text.own_pictures;
 }
 
 } // namespace expanded

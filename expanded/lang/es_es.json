@@ -1,6 +1,10 @@
 {
     "meswin.system.69": "Confusión",
     "meswin.system14.69": "Confusión",
+    "meswin.system.100": "ninguna arma",
+    "meswin.system14.100": "ninguna arma",
+    "meswin.system.190": "Esfera de Síntesis",
+    "meswin.system14.190": "Esfera de Síntesis",
     "options.page.expanded": "Expanded",
     "options.page.expanded.help": "\"Expanded\"\nLos cambios de\nChronicle-Expanded.",
     "options.expanded.stronger_enemies.label": "Enemigos más fuertes",
@@ -46,5 +50,8 @@
     "expanded.bandit_slingshot.acquired.20": "{icon-orb}\"{insert1}{value1}\" adquirido.",
     "expanded.bandit_slingshot.acquired.30": "{icon-jar}\"{insert1}\" adquirido.",
     "expanded.bandit_slingshot.stolen": "El proyectil de [monster] ahora es tuyo",
-    "expanded.wise_owl.key": "La Espada Búho percibe {insert1} cerca..."
+    "expanded.wise_owl.key": "La Espada Búho percibe {insert1} cerca...",
+    "expanded.star_breaker.shooting_star": "¡El Rompestrellas te envía una estrella fugaz!",
+    "expanded.empty_sphere.slot_one": "Una Esfera de Síntesis\nvacía solo va en la\nprimera placa.",
+    "expanded.empty_sphere.break_confirm": "{alert}Sellar 60% habilidad\ndel arma en esfera.\n(Usa la esfera vacía.)\n ¿Cambio de estado?"
 }

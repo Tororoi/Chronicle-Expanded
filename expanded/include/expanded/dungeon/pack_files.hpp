@@ -16,6 +16,9 @@ const std::vector<unsigned char> *CachedPackFile(const std::string &path);
 // of the VRAM above texture block block; says what was refused for what when they do not.
 bool PackTexturesFit(unsigned int *pack, int block, const char *what);
 
+// The same for one image file of a pack (its .img, as GetPackFile reads it).
+bool ImageTexturesFit(unsigned int *image, int block, const char *what);
+
 // Free texture table entries kept back for what the dungeon enters after a load (menus, item models).
 inline constexpr int kTextureReserve = 48;
 

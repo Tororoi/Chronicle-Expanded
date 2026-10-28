@@ -131,7 +131,7 @@ TEST_F(FairyFortune, AnyOtherCatchShowsTheGamesOwnMessage) {
 }
 
 TEST_F(FairyFortune, TheTalkWindowShowsTheMarkedCatch) {
-    expanded::SetTalkMessage(expanded::kCatchMessage, expanded::FairyFortuneCatchText);
+    expanded::MenuTextReset(); // keeps Fairy Fortune's own provider
     GameTextFile file;
     ASSERT_EQ(file.Set(expanded::kCatchMessage, kCatch), 0);
     ASSERT_EQ(file.Set(281, "Dran lives in the deepest part of\nthe {highlight}Divine Beast Cave{/color}."), 0);
