@@ -387,6 +387,8 @@ Blessing Gun → Skunk ★
 
 ## Fishing
 
+- The Matataki waterfall has the Niler in place of the Gummy, and East Harbor the Gobbler in place of the Piccoly. [#272](https://github.com/Tororoi/Chronicle-Expanded/pull/272)
+
 ### From Chronicle
 
 - Fish sizes taper smoothly into each species' maximum instead of piling up at it. [Chronicle#141](https://github.com/TheMoonPeople/Chronicle/pull/141)
