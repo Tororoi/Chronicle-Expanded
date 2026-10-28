@@ -64,6 +64,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/core/save.hpp"
 #include "expanded/debug/stage.hpp"
+#include "expanded/town/fish_records.hpp"
 #endif
 
 namespace dc::app {
@@ -271,6 +272,7 @@ void StartNewGame() {
     ResetSaveKeepingConfig(g_save_data);
 #ifdef CHRONICLE_EXPANDED
     expanded::SaveClear();
+    expanded::FishRecordsChanged(g_save_data);
 #endif
     GameOptionsApply(ConfigGet().options);
     for (int i = 0; i < 6; ++i) {
