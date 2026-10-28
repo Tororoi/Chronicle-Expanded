@@ -138,6 +138,18 @@ bool PlayOwnSound(const OwnSound &sound, bool ducked, int cut) {
     return true;
 }
 
+void StopOwnSound(const OwnSound &sound) {
+    auto found = own_banks.find({sound.path, sound.bank});
+    if (found == own_banks.end() || found->second.bank == nullptr || sound.cuts != nullptr) {
+        return;
+    }
+    // The key-on's program and bank, then the key-on again at velocity 0.
+    audio::Mixer &mixer = audio::DefaultMixer();
+    mixer.ShortMessage(kOwnSoundPort, static_cast<std::uint32_t>(((sound.program & 0x7F) << 8) | 0xC0));
+    mixer.ShortMessage(kOwnSoundPort, static_cast<std::uint32_t>(0xB0 | (found->second.select << 16)));
+    Send({0xFD, 0x10, 0, static_cast<std::uint8_t>(sound.note), 0, 0, 0});
+}
+
 float OwnSoundDuck() {
     if (duck.length == 0) {
         return 1.0f;

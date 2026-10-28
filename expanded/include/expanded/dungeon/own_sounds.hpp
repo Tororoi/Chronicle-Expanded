@@ -41,6 +41,8 @@ bool LoadOwnSound(const OwnSound &sound);
 // Plays a loaded sound at its volume, centred, ducking the game's other sounds under it with duck (of a sound with
 // cuts, the cut at that index, or one at random); false when its bank is not loaded.
 bool PlayOwnSound(const OwnSound &sound, bool duck, int cut = -1);
+// Lets go a loaded sound's note (one of a single note, no cuts), as CSound::SE_Stop lets go an effect: for a held one.
+void StopOwnSound(const OwnSound &sound);
 // How far the game's other sounds are ducked now: 1 when they are not.
 float OwnSoundDuck();
 

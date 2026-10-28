@@ -18,11 +18,12 @@ constexpr int   kParticles = 24;
 constexpr float kGameSpacing = 2.0f;
 constexpr float kGameHitRadius = 4.0f;
 
-// Osmond's flame gun held along +z from the origin with weapon_no in hand, as BattleActionPlay_Ozumond_F holds it: Init
-// once, then Set and the firebar's step every frame. Its hits are planted in a collision table of the test's own.
+// Osmond's flame gun held along +z from the origin with weapon_no in hand (carrying sphere's SynthSphere when given), as
+// BattleActionPlay_Ozumond_F holds it: Init once, then Set and the firebar's step every frame. Its hits are planted in a
+// collision table of the test's own.
 class Flame {
 public:
-    explicit Flame(int weapon_no) : wielding_(weapon_no) {
+    explicit Flame(int weapon_no, int sphere = 0) : wielding_(weapon_no, sphere) {
         floor_.status().cur_chara = CHARA_OSMOND;
         NowColData = hits_.get();
         float aim[4] = {0.0f, 0.0f, 1.0f, 1.0f};
@@ -178,8 +179,20 @@ TEST(LongerFlame, WeaponAbilitiesOffKeepsTheGamesFlame) {
     EXPECT_FLOAT_EQ(expanded::FlamePuffSize(kGameHitRadius), kGameHitRadius);
 }
 
-TEST(LongerFlame, SuperSteveCarryingItsSphereHasNoFlameToChange) {
-    expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_SKUNK);
-    EXPECT_FLOAT_EQ(expanded::FlameSpacing(kGameSpacing), kGameSpacing);
-    EXPECT_FLOAT_EQ(expanded::FlamePuffSize(kGameHitRadius), kGameHitRadius);
+// Super Steve carrying its sphere throws the Skunk's flame (xiao/flame_gun.hpp), the Blessing Gun's sphere the game's.
+TEST(LongerFlame, SuperSteveCarryingItsSphereThrowsTheLongerFlame) {
+    {
+        expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_SKUNK);
+        EXPECT_FLOAT_EQ(expanded::FlameSpacing(kGameSpacing), 4.0f);
+        EXPECT_FLOAT_EQ(expanded::FlamePuffSize(kGameHitRadius), 8.0f);
+    }
+    {
+        expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_BLESSING_GUN);
+        EXPECT_FLOAT_EQ(expanded::FlameSpacing(kGameSpacing), kGameSpacing);
+        EXPECT_FLOAT_EQ(expanded::FlamePuffSize(kGameHitRadius), kGameHitRadius);
+    }
+    Flame flame(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_SKUNK);
+    flame.Hold();
+    EXPECT_NEAR(flame.Distance(kParticles - 1), 92.0f, 1e-3f);
+    EXPECT_EQ(flame.Planted(8.0f), kParticles);
 }

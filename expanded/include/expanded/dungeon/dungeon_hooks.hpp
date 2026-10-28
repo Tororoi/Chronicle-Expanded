@@ -207,6 +207,10 @@ void PlayerMotionStepping(CCharacter &chara, int chara_no);
 // The player's hits about to be checked (BtCheckDamageProc).
 void PlayerHitsChecking();
 
+// Xiao's slingshot action about to play a frame (BattleActionPlay_Jinn, before it reads the motion time), aimed whether
+// in first person: the spheres that change her draw, hold and shot.
+void XiaoShotPlaying(CCharacter &chara, int aimed);
+
 // The WHP a shot of Xiao's costs, wear an ordinary one's (BattleActionPlay_Jinn), as the weapons' effects change it.
 float XiaoShotWear(float wear);
 

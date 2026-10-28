@@ -6,11 +6,11 @@
 namespace expanded {
 
 float FlameSpacing(float spacing) {
-    return WeaponWielded(ITEM_WEAPON_SKUNK) ? spacing * kLongerFlame : spacing;
+    return WeaponActive(ITEM_WEAPON_SKUNK) ? spacing * kLongerFlame : spacing;
 }
 
 float FlamePuffSize(float size) {
-    return WeaponWielded(ITEM_WEAPON_SKUNK) ? size * kFlamePuffScale : size;
+    return WeaponActive(ITEM_WEAPON_SKUNK) ? size * kFlamePuffScale : size;
 }
 
 } // namespace expanded

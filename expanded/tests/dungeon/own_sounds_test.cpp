@@ -8,6 +8,7 @@
 #include "audio/mixer.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
+#include "expanded/weapons/xiao/flame_gun.hpp"
 #include "test_support.hpp"
 
 namespace {
@@ -41,6 +42,23 @@ TEST(OwnSounds, ASoundPlaysAtItsVolume) {
     Peak(3.0f); // played out
     ASSERT_TRUE(expanded::PlayOwnSound(expanded::kSpiritBeastSitSound, false));
     EXPECT_NEAR(Peak(0.5f) / loud, 60.0f / 127.0f, 0.01f);
+}
+
+// DC_TEST_DATA: Osmond's flame roar, a held sound, sounds until it is let go, then falls silent.
+TEST(OwnSounds, AHeldSoundSoundsUntilLetGo) {
+    const char *data = std::getenv("DC_TEST_DATA");
+    if (data == nullptr) {
+        GTEST_SKIP() << "DC_TEST_DATA is not set";
+    }
+    expanded::test::DataRootScope root(data);
+    ASSERT_TRUE(expanded::LoadOwnSound(expanded::kFlameRoar));
+    ASSERT_TRUE(expanded::PlayOwnSound(expanded::kFlameRoar, false));
+    for (int second = 0; second < 4; second++) {
+        EXPECT_GT(Peak(1.0f), 0.1f) << second; // a loop: it holds
+    }
+    expanded::StopOwnSound(expanded::kFlameRoar);
+    Peak(0.5f); // its release
+    EXPECT_EQ(Peak(0.5f), 0.0f);
 }
 
 } // namespace
