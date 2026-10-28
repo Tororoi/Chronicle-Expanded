@@ -8,4 +8,8 @@ inline constexpr float kFloorDepth = 200.0f;
 
 bool FloorUnder(float x, float z, float from, float *ground);
 
+// Tests replace the search: it answers for FloorUnder (null puts the map's back).
+using FloorSearch = bool (*)(float x, float z, float from, float *ground);
+void SetFloorSearch(FloorSearch search);
+
 } // namespace expanded

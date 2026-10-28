@@ -128,8 +128,8 @@ bool PelletHurts(const CSHOT &shots, int slot);
 // Whether the lock-on target's name plate is left off (setTargetCursor): something hangs over the target.
 bool TargetNameHidden();
 
-// Whether a monster refuses a hit it would take (CheckDmg): one the hit's source has landed on it already, or one meant
-// for another.
+// Whether a monster refuses a hit it would take (CheckDmg): one the hit's source has landed on it already, one meant
+// for another, or one of a wielder frozen by Cold Storage.
 bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
 
 // Whether a hit of Xiao's makes the monster flinch (CheckDmg; retail's never do): a blow of one of her weapons' own.
