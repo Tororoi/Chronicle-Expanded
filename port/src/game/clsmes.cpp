@@ -2441,7 +2441,7 @@ bool LetterFuchi(const ClsMes &mes, const CRect_i_ &screen, const CRect_i_ &texe
 // and double for a lit row.
 void GlyphTint(int clut, int dark, int wide, int &r, int &g, int &b, int &alpha) {
     alpha = 0x80;
-    switch (FontColorTbl[clut]) {
+    switch (std::cmp_less(clut, std::size(FontColorTbl)) ? FontColorTbl[clut] : 0) {
         case FONT_COLOR_WHITE:
             r = g = b = 0x5F;
             break;
@@ -2798,6 +2798,11 @@ void ClsMes::DrawGaijiFont(CTexture *texture, int index, const CRect_i_ &texel, 
         if (DrawPadGlyph(code, screen, std::min(this->edge_alpha, 0x80))) {
             return;
         }
+#ifdef CHRONICLE_EXPANDED
+        if (expanded::MessagePicture(*this, code, screen, std::min(this->edge_alpha, 0x80))) {
+            return;
+        }
+#endif
         set2DSprite_Core(Vif1Packet, texture, screen, texel, 0x80, 0x80, 0x80,
                          std::min(this->edge_alpha, 0x80));
         return;
