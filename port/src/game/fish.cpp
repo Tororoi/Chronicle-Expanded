@@ -330,7 +330,12 @@ void CFish::Step() {
         CBoxVu0 box;
         box.max[0] = position[0] + 10.0f;
         box.max[1] = position[1] + 10.0f;
+#ifdef CHRONICLE_EXPANDED
+        // As far ahead as behind, so a thin +Z wall is gathered before the fish crosses it.
+        box.max[2] = position[2] + 10.0f;
+#else
         box.max[2] = position[2];
+#endif
         box.min[0] = position[0] - 10.0f;
         box.min[1] = position[1];
         box.min[2] = position[2] - 10.0f;

@@ -393,6 +393,8 @@ Blessing Gun → Skunk ★
 - The Matataki waterfall has the Niler in place of the Gummy, and East Harbor the Gobbler in place of the Piccoly. [#272](https://github.com/Tororoi/Chronicle-Expanded/pull/272)
 - The fishing prize exchange offers the Flamingo for 1000 FP in place of the Matador. [#273](https://github.com/Tororoi/Chronicle-Expanded/pull/273)
 - At Matataki Waterfall and East Harbor every fish turns toward you every 10 seconds, keeping them within reach. [#275](https://github.com/Tororoi/Chronicle-Expanded/pull/275)
+- Queens is a fishing spot: a sign on the canal's north bank opens the fishing menu, and the canal is fished from the bank with the game's own quit and bait menus and catch message. Its fish are Bobos, six at a time, and its bridges, pipes and walls keep them in the canal. [#278](https://github.com/Tororoi/Chronicle-Expanded/pull/278)
+- Fish no longer slip through a thin wall they swim into heading south. [#278](https://github.com/Tororoi/Chronicle-Expanded/pull/278)
 
 ### From Chronicle
 

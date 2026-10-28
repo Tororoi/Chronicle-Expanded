@@ -1,6 +1,11 @@
 #pragma once
 
+#include <span>
+
+#include "expanded/data/town_scene.hpp"
+
 namespace dc::game {
+class CCPoly;
 struct FishInfo;
 } // namespace dc::game
 
@@ -35,5 +40,22 @@ float BaitNoticeRadius(int item_no, float radius);
 // The kind of a fish FishingLoadFish puts in spot, the game's drawn kind: the Matataki waterfall's Gummy is a Niler and
 // East Harbor's Piccoly a Gobbler.
 int PoolFish(int spot, int kind);
+
+// FishingLoadFish at Expanded's spots (expanded/data/fishing_spots.hpp): the kind of a fish from the slot's roll, kind
+// elsewhere; the fish count, count elsewhere; and the fishing line's segment length (distp), retail's elsewhere.
+int   SpotFish(int spot, int roll, int kind);
+int   SpotFishCount(int spot, int count);
+float SpotLineSegment(int spot);
+
+// How deep under the water FishingInitFish puts the fish of the town's spot; depth elsewhere.
+float SpotFishDepth(float depth);
+
+// The town's fishing spot's collision added after the count polys _LOAD_FISHING_DATA gathered, as far as capacity: the
+// new count. AddCollision adds triangles so, each a poly like the first gathered.
+int AddSpotCollision(dc::game::CCPoly *polys, int count, int capacity);
+int AddCollision(dc::game::CCPoly *polys, int count, int capacity, std::span<const scene::Triangle> triangles);
+
+// The fishing sign's picture, entered with the fixed textures of a town with a spot.
+void EnterFishingSign();
 
 } // namespace expanded

@@ -21,6 +21,7 @@
 #include "platform/paths.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/core/disc_files.hpp"
 #include "expanded/core/menu_text.hpp"
 #endif
 
@@ -205,8 +206,13 @@ int LoadFile2(char *path, void *buffer, int *out_size, int /*mode*/) {
     if (out_size) {
         *out_size = 0;
     }
-    int size = 0;
-    if (!DataReadLoadFile(path, buffer, &size)) {
+    int              size = 0;
+    std::string_view source = path;
+#ifdef CHRONICLE_EXPANDED
+    const std::string rebuilt = expanded::DiscFile(path);
+    source = rebuilt;
+#endif
+    if (!DataReadLoadFile(source, buffer, &size)) {
         return 0;
     }
     Localized(path, buffer, &size);
