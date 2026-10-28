@@ -101,7 +101,7 @@ frame numbers count the main loop, as `--input`, `--record` and `--from` do.
 | `life` | `chara`, `from`, `to`, the member's life as it changes |
 | `whp` | `chara`, `weapon`, `from`, `to`, its weapon HP as it changes |
 | `sound` | `program`, `note`, an Expanded sound played |
-| `confuse` | `step`: `confused`, `rolled` (a hit carrying Confuse gave it its 20 seconds), `target` (`target` the monster it goes after, -1 the player), `senses` (its confusion over), each with its `monster`; `hit` (`by`, `monster`, `amount`, `life` left), a confused monster's hit on another |
+| `confuse` | `step`: `confused`, `target` (`target` the monster it goes after, -1 the player), `senses` (its confusion over), each with its `monster`; `hit` (`by`, `monster`, `amount`, `life` left), a confused monster's hit on another |
 | `babel` | `step`: Babel's Spear's `summoned` (`target`, `x`, `z`), `struck`, `spike` or `hand` (`monster`, `damage` before defense), `risen`, `gone` |
 
 A feature can add its own with `expanded::LogEvent` (`expanded/debug/event_log.hpp`).

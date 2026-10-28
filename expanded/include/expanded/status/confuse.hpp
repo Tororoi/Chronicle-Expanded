@@ -35,12 +35,12 @@ void ConfuseFloorReset(bool drop_stars);
 // Start of a monster's damage check: tracks its unit and who it goes after.
 void ConfuseStep(CMonstorUnit &unit, int slot);
 
-// A landed hit: confuses the monster 5% of the time when the hit carries Confuse.
+// A landed hit: confuses a monster not yet confused 5% of the time when the hit carries Confuse.
 void ConfuseRoll(CMonstorUnit &unit, int slot);
 
-// A weapon's effect confusing a living monster for steps (a confusion that would last longer keeps its end), and one
-// monster's confusion ended now, the others' left as they are.
-void ConfuseMonster(CMonstorUnit &unit, int slot, int steps);
+// A weapon's effect confusing a living monster for steps: true when it did. A monster already confused keeps its own end
+// (false): no confusion resets or extends another's. And one monster's confusion ended now, the others' left as they are.
+bool ConfuseMonster(CMonstorUnit &unit, int slot, int steps);
 void ConfuseEnd(int slot);
 
 // Whether a monster of unit is confused.
@@ -54,6 +54,10 @@ void ConfuseEndAll();
 // over at once), a provoked one for its provoker; a monster it goes for is marked where an attacker goes for its body
 // (MonsterAimPoint).
 bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position);
+
+// The monster a monster's script goes after through confusion (a confused one's target, a provoked one's provoker), or
+// -1 (the player, or none).
+int ConfuseTargetMonster(const CMonstorUnit &unit, int slot);
 
 // The player's position as the current monster's script sees it.
 void ConfuseScriptPlayerPosition(float *position);

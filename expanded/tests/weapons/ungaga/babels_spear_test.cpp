@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <numbers>
@@ -17,6 +18,7 @@
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/status/confuse.hpp"
+#include "expanded/weapons/abilities.hpp"
 #include "expanded/weapons/kick_back.hpp"
 #include "expanded/weapons/solid_column.hpp"
 #include "expanded/weapons/ungaga/babels_spear.hpp"
@@ -690,4 +692,30 @@ TEST_F(CurseOfBabelBySuperSteve, EveryMonsterIsConfusedByTheStatueToo) {
     Raise();
     EXPECT_TRUE(Confused(0));
     EXPECT_TRUE(Confused(1));
+}
+
+// Nothing lengthens the spear's confusion: hits carrying Babel's own Confuse (the spikes') roll on confused monsters to no
+// effect, and as the spear goes every monster it confused comes to its senses.
+TEST_F(CurseOfBabel, AsItGoesEveryMonsterItConfusedComesToItsSenses) {
+    Stand(0, 0.0f, 40.0f, 60.0f);
+    Stand(1, 30.0f, 40.0f);
+    Stand(2, -30.0f, 40.0f);
+    LockOn(0);
+    Raise();
+    ASSERT_TRUE(Confused(1));
+    std::srand(1);
+    for (int frame = 0; frame < expanded::kBabelLifeFrames - 1; frame++) {
+        for (int monster : {1, 2}) {
+            floor_.unit().effect[monster].hit_attributes |= expanded::kAbilityConfuse;
+            expanded::ConfuseRoll(floor_.unit(), monster);
+        }
+        Steps(1);
+    }
+    EXPECT_TRUE(expanded::CurseOfBabelUp());
+    EXPECT_TRUE(Confused(1));
+    Steps(1);
+    EXPECT_FALSE(expanded::CurseOfBabelUp());
+    for (int monster : {0, 1, 2}) {
+        EXPECT_FALSE(Confused(monster)) << monster;
+    }
 }

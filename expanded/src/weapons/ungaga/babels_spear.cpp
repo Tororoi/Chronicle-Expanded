@@ -58,6 +58,7 @@ struct Curse {
     float            rise_gain = 0.0f;  // and what that gains each frame
     bool             risen = false, struck = false;
     float            alpha = 1.0f;
+    bool             confused[kFloorMonsters] = {}; // the monsters it confused
 };
 
 Curse curse;
@@ -146,10 +147,10 @@ bool Confusable(int monster) {
     return live != nullptr && MonsterLiving(*live) && live->state == 2 && live->revealed != 0 && live->kind != MONSTER_KIND_NO_LOCK_ON;
 }
 
-// Confused for frames, until the copy has gone.
+// Confused for frames, until the copy has gone; one already confused keeps its own confusion.
 void Confuse(int monster, int frames) {
-    if (Confusable(monster)) {
-        ConfuseMonster(*NowMonstorUnit, monster, frames);
+    if (Confusable(monster) && ConfuseMonster(*NowMonstorUnit, monster, frames)) {
+        curse.confused[monster] = true;
     }
 }
 
@@ -172,6 +173,12 @@ void TakeDown() {
     BeamStop();
     SolidColumnDisarm(&curse);
     CopyDown();
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
+        if (curse.confused[monster]) {
+            ConfuseEnd(monster); // its confusion goes with it
+            curse.confused[monster] = false;
+        }
+    }
     ConfuseStarsFade(1.0f);
     curse.weapon_tint = 0.0f;
     curse.up = false;

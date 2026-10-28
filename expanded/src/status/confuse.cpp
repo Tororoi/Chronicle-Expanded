@@ -26,8 +26,8 @@ using namespace confuse;
 constexpr int   kConfuseSteps = 20 * kStepsPerSecond;
 constexpr float kConfuseChance = 5.0f;
 
-// A monster's confusion, in the event log: confused, its 20 seconds rolled by a hit carrying Confuse, its target (another
-// monster's slot, -1 the player) or its senses back.
+// A monster's confusion, in the event log: confused, its target (another monster's slot, -1 the player) or its senses
+// back.
 void LogConfusion(const char *step, int slot, int target = -2) {
     LogEvent("confuse", target == -2 ? std::format("\"step\":\"{}\",\"monster\":{}", step, slot)
                                      : std::format("\"step\":\"{}\",\"monster\":{},\"target\":{}", step, slot, target));
@@ -126,30 +126,32 @@ void ConfuseRoll(CMonstorUnit &unit, int slot) {
     if (monster.kind == MONSTER_KIND_NO_LOCK_ON || monster.hp <= 0) {
         return;
     }
+    Confusion &state = State();
+    if (state.until[slot] != 0) {
+        return; // already confused: its own end stands
+    }
     if (!(100.0f * GameFraction() < kConfuseChance)) {
         return;
     }
-    Confusion &state = State();
-    if (state.until[slot] == 0) {
-        state.target[slot] = -2;
-        std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
-        LogConfusion("confused", slot);
-    }
-    LogConfusion("rolled", slot);
+    state.target[slot] = -2;
+    std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
+    LogConfusion("confused", slot);
     state.until[slot] = state.tick + kConfuseSteps;
 }
 
-void ConfuseMonster(CMonstorUnit &unit, int slot, int steps) {
+bool ConfuseMonster(CMonstorUnit &unit, int slot, int steps) {
     if (slot < 0 || slot >= kFloorMonsters || steps <= 0 || AllyUnit(unit) || unit.monster[slot].hp <= 0) {
-        return;
+        return false;
     }
     Confusion &state = Adopt(unit);
-    if (state.until[slot] == 0) {
-        state.target[slot] = -2;
-        std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
-        LogConfusion("confused", slot);
+    if (state.until[slot] != 0) {
+        return false; // already confused: its own end stands
     }
-    state.until[slot] = std::max(state.until[slot], state.tick + steps);
+    state.target[slot] = -2;
+    std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
+    LogConfusion("confused", slot);
+    state.until[slot] = state.tick + steps;
+    return true;
 }
 
 bool MonsterConfused(const CMonstorUnit &unit, int slot) {
@@ -213,6 +215,17 @@ bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {
     }
     MonsterAimPoint(unit, provoker, self[0], self[2], position);
     return true;
+}
+
+int ConfuseTargetMonster(const CMonstorUnit &unit, int slot) {
+    if (slot < 0 || slot >= kFloorMonsters || State().unit != &unit) {
+        return -1;
+    }
+    if (Confused(unit, slot)) {
+        int target = State().target[slot];
+        return target >= 0 && InPlay(unit, target) ? target : -1;
+    }
+    return Provoker(unit, slot);
 }
 
 void ConfuseScriptPlayerPosition(float *position) {

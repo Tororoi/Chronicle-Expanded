@@ -31,8 +31,9 @@ namespace expanded {
 //     the body's largest sphere (at least kBabelStrikeRadius wide), thrown away from the copy at half the Baselard's throw
 //     (kBabelSpikeKick), wearing no weapon HP.
 //   - Every monster on the floor in play but the bosses is confused (status/confuse.hpp) from the summon until the copy
-//     has gone, those that come into play while it stands too; the confused take on kBabelConfusedTint, added to their
-//     ambient.
+//     has gone, those that come into play while it stands too: as it goes, all of them come to their senses (nothing
+//     lengthens a confusion; one already confused before it keeps its own). The confused take on kBabelConfusedTint,
+//     added to their ambient.
 //   - The Dark Genie's small beam in cyan (babels_spear/beam.hpp), at its form's scale, marks the copy's spot: its rise as
 //     the copy rises (the copy out by the beam's frame 13), looped while it stands, and its vanish once kBabelStandFrames
 //     are up. From the vanish's frame 60 the copy fades out with it over kBabelFadeFrames and is gone as the vanish ends,

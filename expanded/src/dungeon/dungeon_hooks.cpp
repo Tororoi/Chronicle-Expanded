@@ -416,6 +416,10 @@ bool HitWearsWeapon(const COLLISION_HIT &hit) {
     return !DesertBloomPrick(hit) && !CurseOfBabelCatch(hit) && !UngagaBlastHit(hit) && !BigRockHit(hit);
 }
 
+bool MonsterPathBlockedBy(const CMonstorUnit &unit, int monster, int other) {
+    return ConfuseTargetMonster(unit, monster) != other;
+}
+
 void MonsterMoveChecked(CMonstorUnit &unit, int monster) {
     pocklekul::PockleMoveChecked(unit, monster);
     if (!AllyUnit(unit)) {

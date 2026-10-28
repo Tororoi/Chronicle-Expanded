@@ -1,7 +1,12 @@
 #include <gtest/gtest.h>
 
+#include <cstdlib>
+
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/status/confuse.hpp"
+#include "expanded/status/confuse_state.hpp"
+#include "expanded/weapons/abilities.hpp"
 #include "monstorunit.hpp"
 #include "test_support.hpp"
 
@@ -97,4 +102,54 @@ TEST_F(ConfuseTargets, ALargeTargetIsMarkedWhereItsBodyIsReached) {
 TEST_F(ConfuseTargets, AnUnconfusedMonsterFindsThePlayer) {
     float at[4];
     EXPECT_FALSE(Target(2, at));
+}
+
+// The monster a confused one goes after is no obstacle to it: its path tests and moves pass that monster's body (every
+// other monster's still blocks, and its own is never among them).
+TEST_F(ConfuseTargets, ItsTargetsBodyIsNotInItsWay) {
+    float at[4];
+    ASSERT_TRUE(Target(0, at)); // monster 1
+    EXPECT_EQ(expanded::ConfuseTargetMonster(floor_.unit(), 0), 1);
+    EXPECT_FALSE(expanded::MonsterPathBlockedBy(floor_.unit(), 0, 1));
+    EXPECT_TRUE(expanded::MonsterPathBlockedBy(floor_.unit(), 0, 2));
+    // Going after the player, every monster blocks.
+    floor_.unit().monster[1].hp = 0;
+    floor_.unit().monster[2].hp = 0;
+    floor_.unit().monster[3].hp = 0;
+    EXPECT_FALSE(Target(0, at));
+    EXPECT_EQ(expanded::ConfuseTargetMonster(floor_.unit(), 0), -1);
+    EXPECT_TRUE(expanded::MonsterPathBlockedBy(floor_.unit(), 0, 1));
+    // An unconfused monster is blocked by them all.
+    EXPECT_TRUE(expanded::MonsterPathBlockedBy(floor_.unit(), 2, 0));
+}
+
+TEST_F(ConfuseTargets, AProvokedMonsterWalksUpToItsProvoker) {
+    expanded::confuse::State().hit_by[2][0] = 0; // monster 0, confused, hit monster 2
+    EXPECT_EQ(expanded::ConfuseTargetMonster(floor_.unit(), 2), 0);
+    EXPECT_FALSE(expanded::MonsterPathBlockedBy(floor_.unit(), 2, 0));
+    EXPECT_TRUE(expanded::MonsterPathBlockedBy(floor_.unit(), 2, 1));
+}
+
+// No confusion resets or extends one already running: not another weapon's, not a hit carrying Confuse.
+TEST_F(ConfuseTargets, AConfusionRunningIsNeverExtended) {
+    expanded::confuse::Confusion &state = expanded::confuse::State();
+    int                           until = state.until[0];
+    EXPECT_FALSE(expanded::ConfuseMonster(floor_.unit(), 0, 100000));
+    floor_.unit().effect[0].hit_attributes |= expanded::kAbilityConfuse;
+    std::srand(1);
+    for (int i = 0; i < 500; i++) { // its 5% comes up many times over
+        expanded::ConfuseRoll(floor_.unit(), 0);
+    }
+    EXPECT_EQ(state.until[0], until);
+    // A monster not confused is confused by the roll, once.
+    floor_.unit().effect[1].hit_attributes |= expanded::kAbilityConfuse;
+    for (int i = 0; i < 500 && state.until[1] == 0; i++) {
+        expanded::ConfuseRoll(floor_.unit(), 1);
+    }
+    int rolled = state.until[1];
+    EXPECT_GT(rolled, 0);
+    for (int i = 0; i < 500; i++) {
+        expanded::ConfuseRoll(floor_.unit(), 1);
+    }
+    EXPECT_EQ(state.until[1], rolled);
 }
