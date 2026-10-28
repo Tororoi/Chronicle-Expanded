@@ -1,5 +1,6 @@
 #include "expanded/weapons/goro/frozen_tuna/ice_prisons.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <format>
 
@@ -7,6 +8,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
+#include "expanded/dungeon/floor_height.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/ice_shots.hpp"
 #include "expanded/enemies/monster_queries.hpp"
@@ -61,18 +63,32 @@ const MOTION_INFO &Clip(int key) {
 
 void Log(const Prison &prison, bool member, const char *stage) {
     int kind = member || NowMonstorUnit == nullptr ? -1 : ModelKind(NowMonstorUnit->monster[prison.body].base_model);
-    LogEvent("prison", std::format("\"body\":\"{}\",\"slot\":{},\"kind\":{},\"scale\":{:.2f},\"stage\":\"{}\"", member ? "member" : "monster",
-                                   prison.body, kind, prison.scale, stage));
+    LogEvent("prison", std::format("\"body\":\"{}\",\"slot\":{},\"kind\":{},\"horizontal\":{:.2f},\"vertical\":{:.2f},\"base\":[{:.1f},{:.1f},{:.1f}],"
+                                   "\"stage\":\"{}\"",
+                                   member ? "member" : "monster", prison.body, kind, prison.horizontal, prison.vertical, prison.base[0],
+                                   prison.base[1], prison.base[2], stage));
 }
 
-bool Encase(Prison &prison, int body, float scale, bool member) {
+bool Encase(Prison &prison, int body, bool member, PrisonSize size, const float *root, float yaw) {
     if (Model() == nullptr) {
         return false;
     }
     if (prison.stage == PrisonStage::kForming || prison.stage == PrisonStage::kFormed) {
         return true;
     }
-    prison = {.stage = PrisonStage::kForming, .time = static_cast<float>(Clip(kIcePrisonForm).start), .scale = scale, .body = body};
+    float ground = root[1];
+    if (!FloorUnder(root[0], root[2], root[1] + kPrisonFloorAbove, &ground)) {
+        ground = root[1];
+    }
+    prison = {
+        .stage = PrisonStage::kForming,
+        .time = static_cast<float>(Clip(kIcePrisonForm).start),
+        .base = {root[0], ground, root[2]},
+        .yaw = yaw,
+        .horizontal = size.horizontal,
+        .vertical = size.vertical + std::max(0.0f, root[1] - ground) / kPrisonHeight,
+        .body = body
+    };
     Log(prison, member, "form");
     return true;
 }
@@ -128,28 +144,9 @@ bool MemberFrozen(int chara) {
     return Playing(chara) && (UserStatus->ailments[chara] & AILMENT_FREEZE) != 0;
 }
 
-// Where a body's prison stands: its root, and its yaw. False with no body: a member out of play has none in sight.
-bool Place(const Prison &prison, bool member, float *at, float *yaw) {
-    if (member) {
-        if (!Playing(prison.body)) {
-            return false;
-        }
-        PlayerFeet(at);
-        *yaw = PlayerYaw();
-        return true;
-    }
-    if (NowMonstorUnit == nullptr) {
-        return false;
-    }
-    CCharacter &body = NowMonstorUnit->chara[prison.body][0];
-    body.GetPosition(at);
-    *yaw = body.GetRotation()->y;
-    return true;
-}
-
 void Draw(const Prison &prison, bool member) {
-    float at[4], yaw = 0.0f;
-    if (prison.stage == PrisonStage::kNone || !Place(prison, member, at, &yaw)) {
+    // A member out of play has no body in sight.
+    if (prison.stage == PrisonStage::kNone || (member && !Playing(prison.body))) {
         return;
     }
     // Posed at this prison's time and held there, with no cross-fade from the clip the last one was posed in.
@@ -160,9 +157,9 @@ void Draw(const Prison &prison, bool member) {
     state.blending = 0;
     state.time = prison.time;
     model.SetMotion(key, 1);
-    model.SetPosition(at[0], at[1], at[2]);
-    model.SetRotation(0.0f, yaw, 0.0f);
-    model.SetScale(prison.scale, prison.scale, prison.scale);
+    model.SetPosition(prison.base[0], prison.base[1], prison.base[2]);
+    model.SetRotation(0.0f, prison.yaw, 0.0f);
+    model.SetScale(prison.horizontal, prison.vertical, prison.horizontal);
     model.Step();
     DrawFloorCharacter(model);
 }
@@ -173,12 +170,20 @@ bool EncaseMonster(int monster) {
     if (monster < 0 || monster >= kFloorMonsters || NowMonstorUnit == nullptr) {
         return false;
     }
+    CCharacter &body = NowMonstorUnit->chara[monster][0];
+    float       root[4];
+    body.GetPosition(root);
     int kind = ModelKind(NowMonstorUnit->monster[monster].base_model);
-    return Encase(prisons.monsters[monster], monster, PrisonScale(static_cast<Monster>(kind)), false);
+    return Encase(prisons.monsters[monster], monster, false, PrisonScale(static_cast<Monster>(kind)), root, body.GetRotation()->y);
 }
 
 bool EncaseMember(int chara) {
-    return Playing(chara) && Encase(prisons.member, chara, PrisonScale(static_cast<Character>(chara)), true);
+    if (!Playing(chara)) {
+        return false;
+    }
+    float feet[4];
+    PlayerFeet(feet);
+    return Encase(prisons.member, chara, true, PrisonScale(static_cast<Character>(chara)), feet, PlayerYaw());
 }
 
 const Prison &MonsterPrison(int monster) {

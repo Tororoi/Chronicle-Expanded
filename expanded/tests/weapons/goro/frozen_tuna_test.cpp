@@ -5,9 +5,11 @@
 
 #include "character.hpp"
 #include "collisiondata.hpp"
+#include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
+#include "expanded/dungeon/floor_height.hpp"
 #include "expanded/enemies/ice_shots.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
 #include "expanded/weapons/goro/frozen_tuna/ice_prisons.hpp"
@@ -24,7 +26,9 @@ namespace {
 using expanded::Monster;
 using expanded::frozen_tuna::MemberPrison;
 using expanded::frozen_tuna::MonsterPrison;
+using expanded::frozen_tuna::Prison;
 using expanded::frozen_tuna::PrisonScale;
+using expanded::frozen_tuna::PrisonSize;
 using expanded::frozen_tuna::PrisonStage;
 using expanded::test::StepsUnpaused;
 using expanded::test::TestFloor;
@@ -47,13 +51,29 @@ bool FakePrison(CCharacter &chara, CDataAlloc2<1> &, const char *path, const cha
     return true;
 }
 
+// The floor under every point, at g_floor; none with g_no_floor.
+float g_floor = 0.0f;
+bool  g_no_floor = false;
+
+bool FakeFloor(float, float, float, float *ground) {
+    *ground = g_floor;
+    return !g_no_floor;
+}
+
+// A prison's size as the table gives it, stretched up by stretch.
+void ExpectSize(const Prison &prison, PrisonSize size, float stretch = 0.0f) {
+    EXPECT_FLOAT_EQ(prison.horizontal, size.horizontal);
+    EXPECT_FLOAT_EQ(prison.vertical, size.vertical + stretch);
+}
+
 // Steps from the prison's start to formed, and from the shatter's start to gone.
 constexpr int kFormSteps = 80;
 constexpr int kShatterSteps = 28;
 
-// Goro (or Xiao) out with weapon_no (carrying sphere when given) at 50 of 60 WHP, with 100 of 200 life; a Golem as
-// monster 0 and a Skeleton Soldier as monster 1, both in play, with 500 life. The Golem's kind goes in model slot 1: kinds
-// stay set up after a test, and a monster on slot 0 of a test that sets up none would be taken for a Golem.
+// Goro (or Xiao) out with weapon_no (carrying sphere when given) at 50 of 60 WHP, with 100 of 200 life, at the origin
+// on a floor at 0; a Golem as monster 0 and a Skeleton Soldier as monster 1, both in play on the floor, with 500 life.
+// The Golem's kind goes in model slot 1: kinds stay set up after a test, and a monster on slot 0 of a test that sets up
+// none would be taken for a Golem.
 class ColdStorage : public ::testing::Test {
 protected:
     explicit ColdStorage(int chara = CHARA_GORO, int weapon_no = ITEM_WEAPON_FROZEN_TUNA, int sphere = 0)
@@ -61,6 +81,11 @@ protected:
 
     void SetUp() override {
         g_loaded.clear();
+        g_floor = 0.0f;
+        g_no_floor = false;
+        expanded::SetFloorSearch(FakeFloor);
+        sceVu0CopyVector(saved_player_, CharaMain.pos);
+        CharaMain.pos[0] = CharaMain.pos[1] = CharaMain.pos[2] = 0.0f;
         expanded::FloorCharactersClear();
         expanded::SetFloorCharacterLoader(FakePrison);
         expanded::ColdStorageVisitBegins();
@@ -77,6 +102,8 @@ protected:
         expanded::ColdStorageVisitBegins();
         expanded::SetFloorCharacterLoader(nullptr);
         expanded::FloorCharactersClear();
+        expanded::SetFloorSearch(nullptr);
+        sceVu0CopyVector(CharaMain.pos, saved_player_);
     }
 
     // chara out with weapon as its equipped record, at 50 of 60 WHP and 100 of 200 life.
@@ -93,9 +120,10 @@ protected:
         status.life_step[chara] = 0;
     }
 
-    // A monster of model_slot's kind in play in slot monster, with 500 life.
+    // A monster of model_slot's kind in play in slot monster, with 500 life, on the floor 20 apart and 40 ahead.
     void Place(int monster, int model_slot) {
         floor_.Spawn(monster, model_slot);
+        floor_.unit().chara[monster][0].SetPosition(20.0f * static_cast<float>(monster), 0.0f, 40.0f);
         Live(monster).state = 2;
         Live(monster).revealed = -1;
         Live(monster).hp = Live(monster).max_hp = 500;
@@ -160,6 +188,7 @@ protected:
     Wielding      wielding_;
     StepsUnpaused stepping_;
     int           chara_;
+    float         saved_player_[4] = {};
 };
 
 class ColdStorageBySuperSteve : public ColdStorage {
@@ -418,14 +447,55 @@ TEST_F(ColdStorage, EachFrozenBodyStandsInAPrisonOfItsSize) {
     EXPECT_EQ(g_loaded[0], expanded::kIcePrisonFile);
     EXPECT_EQ(MonsterPrison(0).stage, PrisonStage::kForming);
     EXPECT_FLOAT_EQ(MonsterPrison(0).time, 10.0f);
-    EXPECT_FLOAT_EQ(MonsterPrison(0).scale, PrisonScale(Monster::GOLEM));
+    ExpectSize(MonsterPrison(0), PrisonScale(Monster::GOLEM));
     EXPECT_EQ(MonsterPrison(1).stage, PrisonStage::kForming);
-    EXPECT_FLOAT_EQ(MonsterPrison(1).scale, PrisonScale(Monster::SKELETON_SOLDIER));
-    EXPECT_GT(PrisonScale(Monster::GOLEM), PrisonScale(Monster::SKELETON_SOLDIER));
+    ExpectSize(MonsterPrison(1), PrisonScale(Monster::SKELETON_SOLDIER));
+    EXPECT_FLOAT_EQ(MonsterPrison(1).base[0], 20.0f);
+    EXPECT_FLOAT_EQ(MonsterPrison(1).base[1], 0.0f);
+    EXPECT_FLOAT_EQ(MonsterPrison(1).base[2], 40.0f);
     EXPECT_EQ(MemberPrison().stage, PrisonStage::kForming);
     EXPECT_EQ(MemberPrison().body, CHARA_GORO);
-    EXPECT_FLOAT_EQ(MemberPrison().scale, PrisonScale(CHARA_GORO));
+    ExpectSize(MemberPrison(), PrisonScale(CHARA_GORO));
     EXPECT_EQ(MonsterPrison(2).stage, PrisonStage::kNone);
+}
+
+TEST_F(ColdStorage, AFlyersPrisonStandsOnTheFloorUnderItStretchedUpByItsHeight) {
+    floor_.unit().chara[1][0].SetPosition(20.0f, 28.0f, 40.0f);
+    ASSERT_TRUE(HitUntilStopped());
+    EXPECT_FLOAT_EQ(MonsterPrison(1).base[0], 20.0f);
+    EXPECT_FLOAT_EQ(MonsterPrison(1).base[1], 0.0f);
+    EXPECT_FLOAT_EQ(MonsterPrison(1).base[2], 40.0f);
+    ExpectSize(MonsterPrison(1), PrisonScale(Monster::SKELETON_SOLDIER), 28.0f / expanded::frozen_tuna::kPrisonHeight);
+    ExpectSize(MonsterPrison(0), PrisonScale(Monster::GOLEM));
+}
+
+TEST_F(ColdStorage, GoroFrozenInAJumpStandsOnTheFloorToo) {
+    g_floor = 10.0f;
+    CharaMain.pos[1] = 17.0f;
+    ASSERT_TRUE(HitUntilStopped());
+    EXPECT_FLOAT_EQ(MemberPrison().base[1], 10.0f);
+    ExpectSize(MemberPrison(), PrisonScale(CHARA_GORO), 7.0f / expanded::frozen_tuna::kPrisonHeight);
+}
+
+TEST_F(ColdStorage, WithNoFloorUnderItAPrisonStandsAtTheRoot) {
+    g_no_floor = true;
+    floor_.unit().chara[1][0].SetPosition(20.0f, 28.0f, 40.0f);
+    ASSERT_TRUE(HitUntilStopped());
+    EXPECT_FLOAT_EQ(MonsterPrison(1).base[1], 28.0f);
+    ExpectSize(MonsterPrison(1), PrisonScale(Monster::SKELETON_SOLDIER));
+}
+
+TEST_F(ColdStorage, APrisonsPlaceIsTakenAsTheFreezeStarts) {
+    floor_.unit().chara[1][0].SetPosition(20.0f, 28.0f, 40.0f);
+    ASSERT_TRUE(HitUntilStopped());
+    float vertical = MonsterPrison(1).vertical;
+    floor_.unit().chara[1][0].SetPosition(90.0f, 0.0f, 90.0f);
+    g_floor = 50.0f;
+    Step(kFormSteps);
+    EXPECT_EQ(MonsterPrison(1).stage, PrisonStage::kFormed);
+    EXPECT_FLOAT_EQ(MonsterPrison(1).base[0], 20.0f);
+    EXPECT_FLOAT_EQ(MonsterPrison(1).base[1], 0.0f);
+    EXPECT_FLOAT_EQ(MonsterPrison(1).vertical, vertical);
 }
 
 TEST_F(ColdStorage, APrisonFormsHoldsWhileFrozenAndShattersAsTheFreezeEnds) {
@@ -529,18 +599,19 @@ TEST_F(ColdStorageBySuperSteve, XiaosHitsStopTheFloorAndFreezeHerInAPrison) {
     EXPECT_EQ(Status().ailment_frames[CHARA_XIAO], expanded::kColdStorageWielderFrames);
     EXPECT_EQ(MemberPrison().stage, PrisonStage::kForming);
     EXPECT_EQ(MemberPrison().body, CHARA_XIAO);
-    EXPECT_FLOAT_EQ(MemberPrison().scale, PrisonScale(CHARA_XIAO));
+    ExpectSize(MemberPrison(), PrisonScale(CHARA_XIAO));
 }
 
-TEST(PrisonScales, BiggerKindsTakeBiggerPrisonsAndTheMembersOne) {
+TEST(PrisonScales, EveryKindHasASizeAndTheMembersAreOne) {
     for (Character member : {CHARA_TOAN, CHARA_XIAO, CHARA_GORO, CHARA_RUBY, CHARA_UNGAGA, CHARA_OSMOND}) {
-        EXPECT_FLOAT_EQ(PrisonScale(member), 1.0f);
+        EXPECT_FLOAT_EQ(PrisonScale(member).horizontal, 1.0f);
+        EXPECT_FLOAT_EQ(PrisonScale(member).vertical, 1.0f);
     }
-    EXPECT_GT(PrisonScale(Monster::GOLEM), 1.5f);
-    EXPECT_LT(PrisonScale(Monster::CAVE_BAT), 1.0f);
-    EXPECT_GT(PrisonScale(Monster::DRAN), PrisonScale(Monster::GOLEM));
     for (int kind = 0; kind <= expanded::No(Monster::ATLA_GEMRON); kind++) {
-        EXPECT_GT(PrisonScale(static_cast<Monster>(kind)), 0.0f) << kind;
+        EXPECT_GT(PrisonScale(static_cast<Monster>(kind)).horizontal, 0.0f) << kind;
+        EXPECT_GT(PrisonScale(static_cast<Monster>(kind)).vertical, 0.0f) << kind;
     }
-    EXPECT_FLOAT_EQ(PrisonScale(static_cast<Monster>(-1)), 1.0f);
+    EXPECT_GT(PrisonScale(Monster::DRAN).horizontal, PrisonScale(Monster::SKELETON_SOLDIER).horizontal);
+    EXPECT_FLOAT_EQ(PrisonScale(static_cast<Monster>(-1)).horizontal, 1.0f);
+    EXPECT_FLOAT_EQ(PrisonScale(static_cast<Monster>(-1)).vertical, 1.0f);
 }

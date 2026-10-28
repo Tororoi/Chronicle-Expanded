@@ -15,9 +15,17 @@ namespace {
 constexpr float kFloorReach = 16.0f;
 constexpr int   kFloorPolys = 8192;
 
+FloorSearch &Search() {
+    static FloorSearch search = nullptr;
+    return search;
+}
+
 } // namespace
 
 bool FloorUnder(float x, float z, float from, float *ground) {
+    if (Search() != nullptr) {
+        return Search()(x, z, from, ground);
+    }
     if (NowDngMap == nullptr) {
         return false;
     }
@@ -30,6 +38,10 @@ bool FloorUnder(float x, float z, float from, float *ground) {
     }
     *ground = hit[1];
     return true;
+}
+
+void SetFloorSearch(FloorSearch search) {
+    Search() = search;
 }
 
 } // namespace expanded
