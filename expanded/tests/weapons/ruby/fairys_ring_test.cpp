@@ -31,7 +31,7 @@ constexpr int kIconOrb = -0x2ED;
 // Norune's catch message (e01talk, English), and as a catch Fairy Fortune paid shows it.
 constexpr std::string_view kCatch =
     "{insert1} ({value1}cm)\ncaught!!{page}Fishing Points +{value2}\nTotal Points   {value3}\nRecord {insert1} {value1}cm";
-constexpr std::string_view kFortuneCatch = "{insert1} ({value1}cm)\ncaught!!{page}Fishing Points +{highlight}{value2}{/color} "
+constexpr std::string_view kFortuneCatch = "{insert1} ({value1}cm)\ncaught!!{page}Fishing Points {highlight}+{value2}{/color} "
                                            "{icon-sword}\nTotal Points   {value3}\nRecord {insert1} {value1}cm";
 
 // A fish on the line (AngleFish) 15 long, between its kind's 10 and 20, so the game pays 150 of its 100 to 200 FP.
@@ -108,7 +108,8 @@ TEST_F(FairyFortune, ADoubledCatchShowsItsPointsRedWithTheRing) {
     save_.status().chara_weapons[CHARA_RUBY][2].item_no = ITEM_WEAPON_FAIRY_S_RING;
     Paid(0);
     EXPECT_EQ(expanded::FairyFortuneCatchText(kCatch), kFortuneCatch);
-    // A text without the points is left as it is.
+    // Points with no sign before them are red alone; a text without the points is left as it is.
+    EXPECT_EQ(expanded::FairyFortuneCatchText("Punti {value2}!"), "Punti {highlight}{value2}{/color} {icon-sword}!");
     EXPECT_EQ(expanded::FairyFortuneCatchText("caught!!"), std::nullopt);
 }
 

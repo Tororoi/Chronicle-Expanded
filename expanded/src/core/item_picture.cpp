@@ -159,17 +159,18 @@ bool DrawItemPicture(int item_no, const CRect_i_ &screen, int alpha) {
     if (picture == nullptr) {
         return false;
     }
-    // The cell's edge texels left out, as the menus draw an icon.
+    // The whole cell: pictures reach its edge texels, and a cell cut out alone has no neighbour to bleed in.
     const auto                 x0 = static_cast<float>(screen.x);
     const auto                 y0 = static_cast<float>(screen.y);
     const auto                 x1 = static_cast<float>(screen.x + screen.width);
     const auto                 y1 = static_cast<float>(screen.y + screen.height);
     const auto                 a = static_cast<u_char>(alpha);
+    constexpr float            kEdge = kCell;
     std::vector<gfx::Vertex2D> quad = {
-        draw2d::Vertex(x0, y0, 0.0f, 1.0f, 1.0f, 0x80, 0x80, 0x80, a),
-        draw2d::Vertex(x1, y0, 0.0f, kCell - 1.0f, 1.0f, 0x80, 0x80, 0x80, a),
-        draw2d::Vertex(x1, y1, 0.0f, kCell - 1.0f, kCell - 1.0f, 0x80, 0x80, 0x80, a),
-        draw2d::Vertex(x0, y1, 0.0f, 1.0f, kCell - 1.0f, 0x80, 0x80, 0x80, a),
+        draw2d::Vertex(x0, y0, 0.0f, 0.0f, 0.0f, 0x80, 0x80, 0x80, a),
+        draw2d::Vertex(x1, y0, 0.0f, kEdge, 0.0f, 0x80, 0x80, 0x80, a),
+        draw2d::Vertex(x1, y1, 0.0f, kEdge, kEdge, 0x80, 0x80, 0x80, a),
+        draw2d::Vertex(x0, y1, 0.0f, 0.0f, kEdge, 0x80, 0x80, 0x80, a),
     };
     draw2d::DrawTextured(gfx::Primitive::Quads, quad, picture->tex0, kLinear, draw2d::SpriteState());
     draw2d::RestoreTestZbuf();

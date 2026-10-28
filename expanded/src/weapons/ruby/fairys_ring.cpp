@@ -38,8 +38,13 @@ std::optional<std::string> FairyFortuneCatchText(std::string_view own) {
     if (!g_fortune_catch || at == std::string_view::npos) {
         return std::nullopt;
     }
-    std::string text(own);
-    text.replace(at, kPoints.size(), "{highlight}{value2}{/color} {icon-sword}");
+    // The red takes the points' sign with them.
+    const std::size_t from = at > 0 && own[at - 1] == '+' ? at - 1 : at;
+    std::string       text(own.substr(0, from));
+    text += "{highlight}";
+    text += own.substr(from, at + kPoints.size() - from);
+    text += "{/color} {icon-sword}";
+    text += own.substr(at + kPoints.size());
     return text;
 }
 

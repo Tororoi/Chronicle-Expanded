@@ -27,8 +27,8 @@ inline constexpr int kCatchMessage = 2000;
 // Hook: FishingGetAngleFishSize: the FP a catch of fish_kind pays, points the game's.
 int FairyFortunePoints(int fish_kind, int points);
 
-// The catch message from its own text: when Fairy Fortune paid the last catch, the points red and the ring's picture
-// ({icon-sword}, drawn as the ring) after them; otherwise std::nullopt.
+// The catch message from its own text: when Fairy Fortune paid the last catch, the points red with their "+", and the
+// ring's picture ({icon-sword}, drawn as the ring) after them; otherwise std::nullopt.
 std::optional<std::string> FairyFortuneCatchText(std::string_view own);
 
 // The item window mes draws in place of icon code: the Fairy's Ring for the catch message's {icon-sword} when Fairy
