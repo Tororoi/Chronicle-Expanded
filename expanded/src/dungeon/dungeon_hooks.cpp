@@ -32,6 +32,7 @@
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/curse.hpp"
+#include "expanded/weapons/goro/frozen_tuna.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
@@ -123,6 +124,7 @@ void DungeonFloorLoaded(CMonstorUnit &unit) {
 
 void DungeonStatusReady() {
     StageStatusReady();
+    ColdStorageVisitBegins();
 }
 
 void DungeonFrameBegins() {
@@ -145,6 +147,7 @@ void DungeonNpcsDrawn() {
 
 void DungeonEffectsDrawn() {
     ShotEffectsDraw();
+    ColdStorageDraw();
     ConfuseStarsDraw();
     SolarGlowDraw();
     BigBangShotDraw();
@@ -187,6 +190,7 @@ void DungeonMonstersCleared(bool drop_stars) {
     ZeusChargeReset();
     ZeusShotReset();
     OwnSoundsReset();
+    ColdStorageCleared();
 }
 
 void DungeonMonstersTick() {
@@ -215,6 +219,7 @@ void DungeonMonstersTick() {
     DesertBloomStep();
     BigRockStep();
     AirStrikeStep();
+    ColdStorageStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
     }
@@ -370,7 +375,7 @@ bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HI
     if (AllyUnit(unit)) {
         return pocklekul::PockleRefuses(hit);
     }
-    return pocklekul::PockleHitMeantElsewhere(monster, hit) || DragonShotRefused(monster, hit);
+    return pocklekul::PockleHitMeantElsewhere(monster, hit) || DragonShotRefused(monster, hit) || ColdStorageHitRefused(hit);
 }
 
 void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit) {
@@ -396,6 +401,7 @@ void MonsterDamaged(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, i
     EventLogDamaged(unit, monster, amount);
     CactusMonsterDamaged(unit, monster, hit, amount);
     SnailMonsterDamaged(unit, monster, hit, amount);
+    ColdStorageMonsterDamaged(unit, monster, hit, amount);
     pocklekul::PockleMonsterDamaged(monster, hit, amount);
 }
 

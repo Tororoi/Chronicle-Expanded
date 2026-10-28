@@ -19,6 +19,11 @@ BT_SHOT_EFFECT IceArrowShot();
 // The prison's description (no hit; phase 1 formed, 2 shattering), each user entering its own copy.
 BT_SHOT_EFFECT IcePrisonShot();
 
+// The prison's two clips (its KEYs): forming, then shattering at kIcePrisonShatterSpeed frames a step.
+inline constexpr int   kIcePrisonForm = 0;
+inline constexpr int   kIcePrisonShatter = 1;
+inline constexpr float kIcePrisonShatterSpeed = 0.5f;
+
 // The player's chest, which the arrow is aimed and steered at, and feet, where the prison forms.
 void PlayerChest(float *chest);
 void PlayerFeet(float *feet);
@@ -40,8 +45,9 @@ void SteerIceArrow(CSHOT_EFFECT &effect, int slot);
 // Holds a formed prison (phase 1) on its last frame; true while it stands formed.
 bool HoldIcePrison(CSHOT_EFFECT &effect, int slot);
 
-// The freeze's sounds, as a prison forms, and a prison's shatter: its sound and phase, at half pace.
+// The freeze's sounds, as a prison forms, and a prison's shatter: its sound and phase, at kIcePrisonShatterSpeed.
 void PlayIceFreeze();
+void PlayIceShatter();
 void ShatterIcePrison(CSHOT_EFFECT &effect, int slot);
 
 } // namespace expanded

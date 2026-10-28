@@ -18,7 +18,6 @@ constexpr float kArrowSpeed = 1.2f;
 constexpr float kArrowTurn = 0.12f;
 constexpr float kArrowCone = 0.5f;
 constexpr float kPlayerChest = 10.1f;
-constexpr float kShatterSpeed = 0.5f;
 constexpr int   kFreezeSounds[] = {1772, 1777};
 constexpr int   kShatterSound = 1776;
 
@@ -32,7 +31,7 @@ BT_SHOT_EFFECT IceArrowShot() {
 
 BT_SHOT_EFFECT IcePrisonShot() {
     // clang-format off
-    return {"info", 1, 0, {}, {-100.0f, -100.0f, -100.0f, -100.0f}, 1800, 0, 0, 2, 1, {0, 0, 1, 1}, 0, {}, 0.0f, 0, {-1, -1, -1, -1}};
+    return {"info", 1, 0, {}, {-100.0f, -100.0f, -100.0f, -100.0f}, 1800, 0, 0, 2, 1, {kIcePrisonForm, kIcePrisonForm, kIcePrisonShatter, kIcePrisonShatter}, 0, {}, 0.0f, 0, {-1, -1, -1, -1}};
     // clang-format on
 }
 
@@ -108,10 +107,14 @@ void PlayIceFreeze() {
     }
 }
 
-void ShatterIcePrison(CSHOT_EFFECT &effect, int slot) {
+void PlayIceShatter() {
     SndSePlay(kShatterSound, -1, 0);
+}
+
+void ShatterIcePrison(CSHOT_EFFECT &effect, int slot) {
+    PlayIceShatter();
     EnterShotPhase(effect, slot, 2);
-    effect.chara[slot].SetMotionSpeed(kShatterSpeed);
+    effect.chara[slot].SetMotionSpeed(kIcePrisonShatterSpeed);
 }
 
 } // namespace expanded
