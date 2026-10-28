@@ -387,6 +387,9 @@ Blessing Gun → Skunk ★
 
 ## Fishing
 
+- Queens is a fishing spot: a sign on the canal's north bank opens the fishing menu, and the canal is fished from the bank with the game's own quit and bait menus and catch message. Its fish are Bobos, six at a time, and its bridges, pipes and walls keep them in the canal. [#278](https://github.com/Tororoi/Chronicle-Expanded/pull/278)
+- Fish no longer swim through a thin wall in one of the four directions. [#278](https://github.com/Tororoi/Chronicle-Expanded/pull/278)
+
 ### From Chronicle
 
 - Fish sizes taper smoothly into each species' maximum instead of piling up at it. [Chronicle#141](https://github.com/TheMoonPeople/Chronicle/pull/141)
