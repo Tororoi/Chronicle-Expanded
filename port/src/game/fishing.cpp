@@ -303,6 +303,9 @@ void FishingLoadFish(int spot, CDataAlloc2<1> *alloc, int slot) {
             kind = fish_type[spot][i % 5];
         }
 
+#ifdef CHRONICLE_EXPANDED
+        kind = expanded::FishKind(kind, rare_interval);
+#endif
         LoadFish(&Fish[i], kind, slot, alloc, loaded);
         loaded = true;
     }

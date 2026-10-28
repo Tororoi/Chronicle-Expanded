@@ -14,6 +14,10 @@
 #include "gameutil.hpp"
 #include "mathutil.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town/fishing.hpp"
+#endif
+
 namespace dc::game {
 
 namespace {
@@ -428,6 +432,9 @@ void CFish::SetScale() {
     size = std::min(size, info.max_size);
 
     size = SmoothFishSize(size, info.min_size, info.max_size);
+#ifdef CHRONICLE_EXPANDED
+    size = expanded::FishSize(size, info);
+#endif
 
     angle_model_scale = size / info.model_size;
     model_scale = size / 25.0f;
