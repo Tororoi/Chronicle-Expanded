@@ -189,7 +189,9 @@ constexpr float kTrailFrames = kStarTrailGap / kStarFallSpeed * static_cast<floa
 // The sparkle and its trail, sitting on its path: at rest the trail runs on into the head, which then shines.
 void DrawStar(const Star &star) {
     const float gap = kStarTrailGap / kStarFallSpeed;
-    const float shine = 1.0f + kStarShineDepth * std::sin(2.0f * std::numbers::pi_v<float> * star.shine / kStarShineFrames);
+    const float dip = (1.0f - std::cos(2.0f * std::numbers::pi_v<float> * star.shine / kStarShineFrames)) / 2.0f;
+    const float shine = 1.0f - kStarShineDepth * dip;
+    const float bright = 1.0f - kStarShineFade * dip;
     for (int k = kStarTrail; k >= 0; k--) {
         float frames = star.frames - gap * static_cast<float>(k);
         if (frames < 0.0f) {
@@ -200,7 +202,7 @@ void DrawStar(const Star &star) {
         star.path.At(frames, at);
         float half = kStarHeadSize / 2.0f * fade * shine;
         at[1] += half / kSparkleWidth;
-        DrawEventSparkle(at, half, half / kSparkleWidth, static_cast<int>(128.0f * fade));
+        DrawEventSparkle(at, half, half / kSparkleWidth, static_cast<int>(128.0f * fade * bright));
     }
 }
 

@@ -44,9 +44,11 @@ inline constexpr float kStarBounceShorter = 0.5f;
 
 // How it looks: the sparkle kStarHeadSize across with kStarTrail fading copies behind it, each where it was kStarTrailGap
 // back along its fall, each sitting on its path; at rest the trail runs on into the head where the bounce left it, and once
-// it has, the head shines: its size swells and eases by kStarShineDepth of itself once every kStarShineFrames.
+// it has, the head shines once every kStarShineFrames: from its settled size, its largest, it shrinks by kStarShineDepth of
+// itself while fading by kStarShineFade of its brightness, then grows back to full size and brightness.
 inline constexpr float kStarHeadSize = 12.0f;
 inline constexpr float kStarShineDepth = 0.15f;
+inline constexpr float kStarShineFade = 0.3f;
 inline constexpr float kStarShineFrames = 60.0f;
 inline constexpr int   kStarTrail = 8;
 inline constexpr float kStarTrailGap = 2.0f;
