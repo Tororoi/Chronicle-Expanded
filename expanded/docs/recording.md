@@ -104,6 +104,7 @@ frame numbers count the main loop, as `--input`, `--record` and `--from` do.
 | `confuse` | `step`: `confused`, `target` (`target` the monster it goes after, -1 the player), `senses` (its confusion over), each with its `monster`; `hit` (`by`, `monster`, `amount`, `life` left), a confused monster's hit on another |
 | `flame_gun` | `step`: Super Steve's flame `lit`, `out` (let go), `empty` (the gauge run out) and the run-out gauge `refilled`, each with the action `gauge` |
 | `babel` | `step`: Babel's Spear's `summoned` (`target`, `x`, `z`), `struck`, `spike` or `hand` (`monster`, `damage` before defense), `risen`, `gone` |
+| `tide` | `step`: `level` (`level`, the Queens canal's water as it shows, on entering Queens and when it changes), `evict` (a player caught down in the canal by the rising tide, sent to East Harbor's dock) |
 
 A feature can add its own with `expanded::LogEvent` (`expanded/debug/event_log.hpp`).
 

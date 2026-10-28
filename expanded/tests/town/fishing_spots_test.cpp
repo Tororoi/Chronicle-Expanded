@@ -57,6 +57,7 @@ TEST(FishingSpots, TheGamesSpotsKeepTheirFishAndLine) {
         EXPECT_EQ(expanded::SpotLineSegment(spot), retail) << spot;
     }
     Town norune(0);
+    EXPECT_EQ(expanded::FishingSpotLoad(0, 20.0f), 20.0f);
     EXPECT_EQ(expanded::SpotFishDepth(12.0f), 12.0f);
 }
 
@@ -67,6 +68,7 @@ TEST(FishingSpots, QueensLineReachesTheCanalAndItsFishTheHook) {
     EXPECT_GT(queens->line, 1.0f); // the bank stands high over the water: the cast pays out
     EXPECT_NE(queens->canal, nullptr);
     Town town(kQueens);
+    expanded::FishingSpotLoad(kQueensSpot, queens->water);
     EXPECT_EQ(expanded::SpotFishDepth(12.0f), queens->fish_depth);
 }
 
@@ -143,5 +145,6 @@ TEST(FishingSpots, YellowDropsCastPaysOutAndItsFishSwimShallow) {
     EXPECT_EQ(yellow_drops->camera_height, 30.0f);
     EXPECT_EQ(yellow_drops->canal, nullptr);
     Town town(23);
+    expanded::FishingSpotLoad(yellow_drops->area, yellow_drops->water);
     EXPECT_EQ(expanded::SpotFishDepth(12.0f), 8.0f);
 }

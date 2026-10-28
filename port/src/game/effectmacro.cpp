@@ -22,6 +22,10 @@
 #include "render/screen.hpp"
 #include "texture.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town/queens_canal.hpp"
+#endif
+
 namespace dc::game {
 
 using namespace dc::render;
@@ -133,6 +137,9 @@ void EffectWaterSpray(CEffectGroup *group, float *position, float *extent, int p
     effect.texel = CRect_i_(0, 0, 0x40, 0x40);
     effect.width = 10.0f;
     effect.height = 10.0f;
+#ifdef CHRONICLE_EXPANDED
+    expanded::SprayLean(effect.velocity);
+#endif
     group->EnterEffect(&effect);
 }
 
