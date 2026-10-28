@@ -9,6 +9,8 @@
 #include "collision.hpp"
 #include "data/data_read.hpp"
 #include "expanded/data/fishing_spots.hpp"
+#include "expanded/town/fish_steering.hpp"
+#include "expanded/weapons/toan/mardan.hpp"
 #include "expanded/weapons/ungaga/scorpion.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "main.hpp"
@@ -42,8 +44,34 @@ const std::vector<scene::Triangle> &SpotTriangles(const FishingSpot &spot) {
 
 } // namespace
 
+int FishKind(int kind, int rare_interval) {
+    return MardanFishKind(kind, rare_interval);
+}
+
+float FishSize(float size, const FishInfo &info) {
+    return AriseFishSize(size, info);
+}
+
+void FishSpotLoaded(int spot) {
+    FishSteeringLoaded(spot);
+}
+
+void FishStep() {
+    FishSteeringStep();
+}
+
 float BaitNoticeRadius(int item_no, float radius) {
     return VenomLureRadius(item_no, BaitFlamboyanceRadius(radius));
+}
+
+int PoolFish(int spot, int kind) {
+    if (spot == kMatatakiWaterfall && kind == kGummy) {
+        return kNiler;
+    }
+    if (spot == kEastHarbor && kind == kPiccoly) {
+        return kGobbler;
+    }
+    return kind;
 }
 
 int SpotFish(int spot, int roll, int kind) {

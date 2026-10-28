@@ -25,6 +25,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/core/save.hpp"
+#include "expanded/town/fish_records.hpp"
 #endif
 
 namespace dc::game {
@@ -479,6 +480,7 @@ int CMemoryCardAccess::LoadFromMc(int file_no) {
     QuestHostLoad(SaveSlotDirectory(file_no));
 #ifdef CHRONICLE_EXPANDED
     expanded::SaveRead(SaveSlotDirectory(file_no));
+    expanded::FishRecordsChanged(*SaveData);
 #endif
 
     // The save screen keeps starting at the last numbered save.

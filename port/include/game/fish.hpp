@@ -234,4 +234,11 @@ float FishSizeLift(float range);
  */
 float SmoothFishSize(float size, float base_size, float max_size);
 
+#ifdef CHRONICLE_EXPANDED
+/**
+ * Returns one fish kind's fixed attributes, or nullptr for a kind out of range.
+ */
+const FishInfo *GetFishInfo(int fish_kind);
+#endif
+
 } // namespace dc::game
