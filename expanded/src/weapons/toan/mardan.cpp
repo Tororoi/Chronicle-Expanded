@@ -76,4 +76,12 @@ float AriseFishSize(float size, const FishInfo &info) {
     return grown;
 }
 
+int MardanSteerFrames(int sword, int fish_kind, float affinity) {
+    bool steered = fish_kind == kUmadakara || std::ranges::contains(kGarayans, fish_kind);
+    if (sword < ITEM_WEAPON_MARDAN_EINS || sword > ITEM_WEAPON_ARISE_MARDAN || !steered || affinity <= 0.0f) {
+        return 0;
+    }
+    return static_cast<int>(std::ceil(static_cast<float>(kMardanSteerFrames[sword - ITEM_WEAPON_MARDAN_EINS]) / affinity));
+}
+
 } // namespace expanded

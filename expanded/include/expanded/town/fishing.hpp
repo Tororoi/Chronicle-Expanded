@@ -15,6 +15,10 @@ int FishKind(int kind, int rare_interval);
 // A fish's size as CFish::SetScale makes it: size, the game's roll for a kind of info, as the weapons change it.
 float FishSize(float size, const FishInfo &info);
 
+// FishingLoadFish having loaded a spot's fish (spot, the script's fish set), and FishingStepFish about to step them.
+void FishSpotLoaded(int spot);
+void FishStep();
+
 // The distance from which fish notice the bait on the hook (FishingStepFish): radius, the game's for bait item_no, as
 // the weapons' passives change it.
 float BaitNoticeRadius(int item_no, float radius);
