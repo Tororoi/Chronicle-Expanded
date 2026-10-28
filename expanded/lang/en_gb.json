@@ -1,6 +1,10 @@
 {
     "meswin.system.69": "Confuse",
     "meswin.system14.69": "Confuse",
+    "meswin.system.100": "no weapon",
+    "meswin.system14.100": "no weapon",
+    "meswin.system.190": "Synth Sphere",
+    "meswin.system14.190": "Synth Sphere",
     "dun.message.ww_mes.dunmsd00.3320": "Bomb Gemron",
     "dun.message.ww_mes.dunmsd00.3321": "Crystal Gemron",
     "dun.message.ww_mes.dunmsd00.3322": "Atla Gemron",
@@ -19,5 +23,8 @@
     "expanded.bandit_slingshot.acquired.20": "{icon-orb}\"{insert1}{value1}\" acquired.",
     "expanded.bandit_slingshot.acquired.30": "{icon-jar}\"{insert1}\" acquired.",
     "expanded.bandit_slingshot.stolen": "[monster]'s projectile is now yours",
-    "expanded.wise_owl.key": "Wise Owl senses the {insert1} nearby..."
+    "expanded.wise_owl.key": "Wise Owl senses the {insert1} nearby...",
+    "expanded.star_breaker.shooting_star": "The Star Breaker sent you a shooting star!",
+    "expanded.empty_sphere.slot_one": "An empty Synth Sphere\nonly fits the\nfirst slot.",
+    "expanded.empty_sphere.break_confirm": "{alert}Seal 60% weapon\nability to sphere.\n(Uses empty sphere.)\n Do status break?"
 }

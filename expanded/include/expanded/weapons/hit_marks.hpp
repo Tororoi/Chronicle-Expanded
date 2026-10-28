@@ -12,4 +12,8 @@ inline constexpr int kDragonShotMark = 0x10000000;   // Dragon's Y's dragon ball
 inline constexpr int kChargingBullMark = 0x20000000; // Matador's charged pellet
 inline constexpr int kBlastMark = 0x40000000;        // a blast (blast.hpp)
 
+// The bit a hit is marked with once it has landed and the Star Breaker has rolled for it (star_breaker.hpp), so it rolls
+// once however many spheres or monsters it meets; CCollisionData::Set clears it with the rest for the record's next hit.
+inline constexpr int kStarRolledMark = static_cast<int>(0x80000000u);
+
 } // namespace expanded

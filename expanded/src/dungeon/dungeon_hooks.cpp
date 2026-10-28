@@ -38,6 +38,8 @@
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/kick_back.hpp"
 #include "expanded/weapons/osmond/snail.hpp"
+#include "expanded/weapons/osmond/star_breaker.hpp"
+#include "expanded/weapons/osmond/star_breaker/shooting_stars.hpp"
 #include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/ruby/pocklekul.hpp"
 #include "expanded/weapons/ruby/pocklekul/fights.hpp"
@@ -102,6 +104,7 @@ void DungeonShotsStep(CMonstorUnit &unit) {
     GuardianReflectorStep();
     MirageStep();
     PocklekulShotsStep();
+    ShootingStarsStep();
 }
 
 void DungeonFloorUnloaded() {
@@ -126,6 +129,7 @@ void DungeonFloorLoaded(CMonstorUnit &unit) {
 void DungeonStatusReady() {
     StageStatusReady();
     ColdStorageVisitBegins();
+    ShootingStarsVisitBegins();
 }
 
 void DungeonFrameBegins() {
@@ -164,6 +168,7 @@ void DungeonRasterDrawn() {
 
 void DungeonShotsDrawn() {
     BombGemronEffectsDraw();
+    ShootingStarsDraw();
 }
 
 bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
@@ -374,6 +379,10 @@ bool TargetNameHidden() {
     return JudgementHanging() || JudgementFalling() || BigBangShotHanging();
 }
 
+bool RandomItemHidden(const CRandomItem &items, int slot) {
+    return StarDropHidden(items, slot);
+}
+
 bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit) {
     if (AllyUnit(unit)) {
         return pocklekul::PockleRefuses(hit);
@@ -381,13 +390,21 @@ bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HI
     return pocklekul::PockleHitMeantElsewhere(monster, hit) || DragonShotRefused(monster, hit) || ColdStorageHitRefused(hit);
 }
 
-void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit) {
+void MonsterHitTaken(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {
     if (AllyUnit(unit)) {
         return;
     }
     SpiritBeastHitTaken(hit);
     MirageHitTaken(monster);
     BigRockHitTaken(unit, monster, hit);
+    StarBreakerHitLanded(unit, monster, hit, false);
+}
+
+void MonsterHitBlocked(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {
+    if (AllyUnit(unit)) {
+        return;
+    }
+    StarBreakerHitLanded(unit, monster, hit, true);
 }
 
 void MonsterPoisoned(const MONSTOR &target) {

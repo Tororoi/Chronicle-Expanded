@@ -98,6 +98,7 @@
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
 #include "expanded/weapons/xiao/dragons_y.hpp"
+#include "expanded/weapons/xiao/moves_while_firing.hpp"
 #endif
 
 namespace dc::game {
@@ -1092,6 +1093,12 @@ void DunMoveChara() {
                                                             ok = 1;
                                                         }
 
+#ifdef CHRONICLE_EXPANDED
+                                                        if (expanded::FiringLeavesMove()) {
+                                                            ok = 1;
+                                                        }
+
+#endif
                                                         if (ok == 0 || BtActStatus.can_act == 0) {
                                                             velo__2[2] = 0.0f;
                                                             velo__2[1] = 0.0f;
