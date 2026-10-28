@@ -50,8 +50,11 @@ struct FishingSpot {
 inline constexpr int   kFishingSignLabel = 400;
 inline constexpr float kFishingSignRadius = 10.0f;
 
-// Fish kinds (fish_info's index).
+// Fish kinds: fish_info's index.
+namespace fish {
 inline constexpr int kBobo = 0, kMardanGarayan = 5, kBaronGarayan = 17;
+} // namespace fish
+
 // The fish at a spot of Expanded's.
 inline constexpr int kSpotFishCount = 6;
 

@@ -44,7 +44,7 @@ std::vector<Triangle> WallAt(double z) {
 
 TEST(FishingSpots, QueensFishAreBobos) {
     for (int roll : {0, 1, 2, 3, 49, 50, 12345}) {
-        EXPECT_EQ(expanded::SpotFish(kQueensSpot, roll, -1), expanded::kBobo) << roll;
+        EXPECT_EQ(expanded::SpotFish(kQueensSpot, roll, -1), expanded::fish::kBobo) << roll;
     }
     EXPECT_EQ(expanded::SpotFishCount(kQueensSpot, 5), expanded::kSpotFishCount);
 }

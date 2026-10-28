@@ -52,7 +52,7 @@ int SpotFish(int spot, int roll, int kind) {
         return kind;
     }
     if (fishing->rare_one_in > 0 && roll % fishing->rare_one_in == 0) {
-        return std::rand() % 5 == 0 ? kBaronGarayan : kMardanGarayan;
+        return std::rand() % 5 == 0 ? fish::kBaronGarayan : fish::kMardanGarayan;
     }
     return fishing->fish[static_cast<std::size_t>(roll) % fishing->fish.size()];
 }

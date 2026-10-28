@@ -265,7 +265,7 @@ TEST(FishingSpot, QueensIsFishedFromTheCanalsNorthBank) {
     EXPECT_EQ(spot.area, 6);
     EXPECT_EQ(expanded::FishingSpotOfArea(6), &spot);
     EXPECT_EQ(expanded::FishingSpotOfArea(2), nullptr); // the game's own spots stay the game's
-    EXPECT_EQ(spot.fish, std::vector<int>{expanded::kBobo});
+    EXPECT_EQ(spot.fish, std::vector<int>{expanded::fish::kBobo});
     EXPECT_EQ(spot.rare_one_in, 0);
     // The trigger in front of the sign is where the player stands to fish, over the canal's water.
     EXPECT_EQ(spot.sign[0] + spot.trigger[0], spot.stance[0]);

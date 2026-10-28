@@ -132,7 +132,7 @@ const FishingSpot kSpots[] = {
      .facing = 0.0f,
      .line = 1.35f,
      .fish_depth = 13.0f,
-     .fish = {kBobo},
+     .fish = {fish::kBobo},
      .rare_one_in = 0,
      .collision = QueensCollision},
 };
