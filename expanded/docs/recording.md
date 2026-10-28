@@ -80,7 +80,7 @@ mode off. Every key is optional; `roster` to `keep_alive` act only in a dungeon,
 | `big_room` | `yes`: walk the member to the middle of the nearest big room first |
 | `circle` | 0-9: the floor's first magic circle set to this kind (`ps2/include/dungeonmap.hpp`) and moved 40 in front of the member, as the monsters are set out, for the member to walk onto |
 | `keep_alive` | `yes`: the party's life kept full |
-| `town` | start in this map: `norune`, `matataki`, `queens`, `muska_lacka`, `yellow_drops`, `brownboo` (14), `east_harbor` (19), or its MapNo: 0-4 the towns (`gedit/e01`-`e05`), 11-52 the other maps (`s01`-`s42`) |
+| `town` | start in this map: `norune`, `matataki`, `queens`, `muska_lacka`, `yellow_drops` (4, the georama; the pond's west bank is the dome, 23), `brownboo` (14), `east_harbor` (19), or its MapNo: 0-4 the towns (`gedit/e01`-`e05`), 11-52 the other maps (`s01`-`s42`) |
 | `fishing_spot` | stand at the town's fishing sign of this number (0 its first), ready to read it |
 | `bait` | this bait (item number) given when the bag lacks it, and put on the hook as fishing starts |
 | `time` | the time of day the save starts at: `morning`, `day` (or `afternoon`), `evening` (or `dusk`), `night`, or the game's clock, 0 to 12 |
