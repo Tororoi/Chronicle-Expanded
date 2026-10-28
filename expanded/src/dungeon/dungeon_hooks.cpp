@@ -60,6 +60,7 @@
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
+#include "expanded/weapons/ungaga/babels_spear.hpp"
 #include "expanded/weapons/ungaga/cactus.hpp"
 #include "expanded/weapons/ungaga/cactus/absorb.hpp"
 #include "expanded/weapons/ungaga/charge_shot.hpp"
@@ -137,6 +138,7 @@ void DungeonMonstersDrawn() {
     AllyDraw();
     DesertBloomDraw();
     BigRockDraw();
+    CurseOfBabelDraw();
 }
 
 void DungeonNpcsDrawn() {
@@ -214,6 +216,7 @@ void DungeonMonstersTick() {
     GuardianGraceStep();
     DesertBloomStep();
     BigRockStep();
+    CurseOfBabelStep();
     AirStrikeStep();
     if (NowMonstorUnit != nullptr) {
         WiseOwlStep(*NowMonstorUnit);
@@ -410,7 +413,11 @@ std::optional<MonsterDamageResult> MonsterFriendlyHit(CMonstorUnit &unit, int sp
 }
 
 bool HitWearsWeapon(const COLLISION_HIT &hit) {
-    return !DesertBloomPrick(hit) && !UngagaBlastHit(hit) && !BigRockHit(hit);
+    return !DesertBloomPrick(hit) && !CurseOfBabelCatch(hit) && !UngagaBlastHit(hit) && !BigRockHit(hit);
+}
+
+bool MonsterPathBlockedBy(const CMonstorUnit &unit, int monster, int other) {
+    return ConfuseTargetMonster(unit, monster) != other;
 }
 
 void MonsterMoveChecked(CMonstorUnit &unit, int monster) {

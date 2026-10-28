@@ -36,4 +36,17 @@ inline constexpr float kBodyFallback = 10.0f;
 float MonsterBodyEdge(const CMonstorUnit &unit, int monster, float x, float z);
 float MonsterBodyCentre(const CMonstorUnit &unit, int monster, float *centre);
 
+// Where a monster at (x, z) goes for another's body: the posed sphere whose edge is nearest (x, z) across the ground, at its
+// centre, or kAimDepth inside it toward (x, z) when it is larger than that (a large monster's root lies deeper in its body
+// than an attacker, blocked by that body, ever comes), at the monster's root height; its root with no sphere posed. Into
+// point (x, y, z, 1).
+inline constexpr float kAimDepth = 8.0f;
+void                   MonsterAimPoint(const CMonstorUnit &unit, int monster, float x, float z, float *point);
+
+// The same body, its underside: the lowest of its posed spheres' bottoms (its root's height with none); and how near a
+// point (x, y, z) is to it, the least distance to a posed sphere's surface (below 0 inside one; the largest float with
+// none).
+float MonsterBodyUnderside(const CMonstorUnit &unit, int monster);
+float MonsterBodyDistance(const CMonstorUnit &unit, int monster, const float *point);
+
 } // namespace expanded

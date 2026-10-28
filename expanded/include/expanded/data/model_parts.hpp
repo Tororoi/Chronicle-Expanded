@@ -104,13 +104,13 @@ struct ImgBank {
 };
 
 // 8-bit TIM2 pictures. The picture header is kPicture into the file; from it, the picture's size @kTotalSize, the CLUT's
-// @kClutSize, the image's @kImageSize, the header's own @kHeaderSize (kHeader in a vanilla 8-bit picture), its type
-// @kType (kType8, or kType32 for 32-bit colour), width @kWidth and height @kHeight, then the GS register words to the
-// header's end.
+// @kClutSize, the image's @kImageSize, the header's own @kHeaderSize (kHeader in a vanilla 8-bit picture), the CLUT's
+// colours @kColours, its type @kType (kType8, or kType32 for 32-bit colour), width @kWidth and height @kHeight, then the
+// GS register words to the header's end.
 namespace tim8 {
 
 inline constexpr int         kPicture = 0x10;
-inline constexpr std::size_t kTotalSize = 0x00, kClutSize = 0x04, kImageSize = 0x08, kHeaderSize = 0x0C, kType = 0x13, kWidth = 0x14,
+inline constexpr std::size_t kTotalSize = 0x00, kClutSize = 0x04, kImageSize = 0x08, kHeaderSize = 0x0C, kColours = 0x0E, kType = 0x13, kWidth = 0x14,
                              kHeight = 0x16, kGsWords = 0x18, kHeader = 0x30;
 inline constexpr unsigned char kType8 = 5, kType32 = 3;
 

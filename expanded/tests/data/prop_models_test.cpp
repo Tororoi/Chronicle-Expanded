@@ -71,3 +71,32 @@ TEST(PropModels, TheShadowDiscIsAFlatUnitDiscCastAsAShadow) {
     ASSERT_EQ(bank.entries.size(), 1u);
     EXPECT_EQ(tim8::Read(bank.entries[0].second, false).width, kShadowDiscStandIn);
 }
+
+TEST(PropModels, BabelsBeamIsTheGeniesBeamInCyanAndFainter) {
+    DATA_OR_SKIP(data);
+    Bytes   source = ReadDataFile(fs::path(data) / kBabelBeamSource);
+    ChrPack genie = ChrPack::Parse(source);
+    ChrPack pack = ChrPack::Parse(BuildBabelBeam(source));
+    // Its cfg under the name its shot effect asks for, the genie's own; its model and motion the genie's.
+    EXPECT_EQ(pack.Require(std::string(kBabelBeamName) + ".cfg").Payload(), genie.Require("info.cfg").Payload());
+    EXPECT_EQ(pack.Require("c17_beem_s.mds").Payload(), genie.Require("c17_beem_s.mds").Payload());
+    EXPECT_EQ(pack.Require("c17_beem_s.mot").Payload(), genie.Require("c17_beem_s.mot").Payload());
+    // Each picture's pixels as they were; each palette entry's red and green exchanged, its alpha 0.3 of its own.
+    ImgBank before = ImgBank::Parse(genie.Require("c17_beem_s.img").Payload());
+    ImgBank after = ImgBank::Parse(pack.Require("c17_beem_s.img").Payload());
+    ASSERT_EQ(after.entries.size(), before.entries.size());
+    ASSERT_FALSE(after.entries.empty());
+    bool swizzled = before.magic[2] == '2';
+    for (std::size_t i = 0; i < before.entries.size(); i++) {
+        tim8::Picture was = tim8::Read(before.entries[i].second, swizzled);
+        tim8::Picture now = tim8::Read(after.entries[i].second, swizzled);
+        EXPECT_EQ(now.pixels, was.pixels) << before.entries[i].first;
+        ASSERT_EQ(now.clut.size(), was.clut.size());
+        for (std::size_t c = 0; c + 4 <= was.clut.size(); c += 4) {
+            EXPECT_EQ(now.clut[c], was.clut[c + 1]);
+            EXPECT_EQ(now.clut[c + 1], was.clut[c]);
+            EXPECT_EQ(now.clut[c + 2], was.clut[c + 2]);
+            EXPECT_EQ(now.clut[c + 3], static_cast<int>(std::nearbyint(was.clut[c + 3] * 0.3f)));
+        }
+    }
+}

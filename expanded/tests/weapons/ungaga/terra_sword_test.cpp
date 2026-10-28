@@ -759,12 +759,12 @@ TEST_F(BigRockBySuperSteveWithTheHalberd, NothingCharges) {
     EXPECT_EQ(expanded::BigRockState(), BigRockPhase::kIdle);
 }
 
-// A weapon's confusion keeps the later end; ending one monster's leaves the others'.
+// A weapon's confusion never resets or extends one already running; ending one monster's leaves the others'.
 TEST_F(BigRock, ConfusionByAWeaponsEffect) {
     Stand(1, 30.0f, 0.0f);
-    expanded::ConfuseMonster(floor_.unit(), 0, 100);
-    expanded::ConfuseMonster(floor_.unit(), 0, 10);
-    expanded::ConfuseMonster(floor_.unit(), 1, 100);
+    EXPECT_TRUE(expanded::ConfuseMonster(floor_.unit(), 0, 100));
+    EXPECT_FALSE(expanded::ConfuseMonster(floor_.unit(), 0, 1000));
+    EXPECT_TRUE(expanded::ConfuseMonster(floor_.unit(), 1, 100));
     for (int step = 0; step < 50; step++) {
         expanded::ConfuseTick();
     }

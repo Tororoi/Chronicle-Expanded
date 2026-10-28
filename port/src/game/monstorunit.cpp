@@ -2142,7 +2142,11 @@ void CMonstorUnit::Step(int pause) {
                 box.min[2] = position[2] - 30.0f;
 
                 for (int j = 0; j < 16; j++) {
+#ifdef CHRONICLE_EXPANDED
+                    if (j != current_monster && monster[j].state == 2 && expanded::MonsterPathBlockedBy(*this, current_monster, j)) {
+#else
                     if (j != current_monster && monster[j].state == 2) {
+#endif
                         chara[j][0].GetPosition(other_position);
                         collision->SetPosition(other_position);
                         float scale = 2.0f * (0.1f * monster[j].collision_radius);
