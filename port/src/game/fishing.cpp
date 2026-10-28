@@ -305,10 +305,15 @@ void FishingLoadFish(int spot, CDataAlloc2<1> *alloc, int slot) {
 
 #ifdef CHRONICLE_EXPANDED
         kind = expanded::PoolFish(spot, kind);
+        kind = expanded::FishKind(kind, rare_interval);
 #endif
         LoadFish(&Fish[i], kind, slot, alloc, loaded);
         loaded = true;
     }
+
+#ifdef CHRONICLE_EXPANDED
+    expanded::FishSpotLoaded(spot);
+#endif
 }
 
 CFish::CFish() {
@@ -585,6 +590,10 @@ void FishingStepFish() {
     if (Fish == nullptr) {
         return;
     }
+
+#ifdef CHRONICLE_EXPANDED
+    expanded::FishStep();
+#endif
 
     if (AngleFish != nullptr) {
         AngleFish->Step();
