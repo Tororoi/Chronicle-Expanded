@@ -162,6 +162,11 @@ void FishingLoadFish(int spot, CDataAlloc2<1> *alloc, int slot) {
         FishNum = 4;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    FishNum = expanded::SpotFishCount(spot, FishNum);
+    distp = expanded::SpotLineSegment(spot);
+#endif
+
     if (DebugMode) {
         FishNum = 5;
     }
@@ -289,10 +294,17 @@ void FishingLoadFish(int spot, CDataAlloc2<1> *alloc, int slot) {
 
                 break;
             default:
+#ifdef CHRONICLE_EXPANDED
+                kind = expanded::SpotFish(spot, rand_value, kind);
+#endif
                 break;
         }
 
+#ifdef CHRONICLE_EXPANDED
+        if (DebugMode && spot < 5) {
+#else
         if (DebugMode) {
+#endif
             static constexpr std::array<std::array<int, 8>, 5> fish_type = {
                 {{1, 2, 6, 7, 1, 2, 6, 7},
                  {1, 4, 9, 10, 1, 4, 9, 10},
@@ -395,6 +407,10 @@ void FishingSetCPoly(CCPoly *polys, int count) {
     }
 
     cpoly_num = count;
+#ifdef CHRONICLE_EXPANDED
+    // FishingLoad's buffer is 0x1800 quadwords.
+    cpoly_num = expanded::AddSpotCollision(cpoly, cpoly_num, 0x1800 * 16 / static_cast<int>(sizeof(CCPoly)));
+#endif
 }
 
 void FishingSetRect(CBoxVu0 bounds) {
@@ -454,6 +470,9 @@ void FishingInitFish(CBoxVu0 bounds) {
     for (int i = 0; i < FishNum; i++) {
         position[0] = 0.5f * (bounds.max[0] + bounds.min[0]);
         position[1] = WaterLevel - 12.0f;
+#ifdef CHRONICLE_EXPANDED
+        position[1] = WaterLevel - expanded::SpotFishDepth(12.0f);
+#endif
         position[2] = 0.5f * (bounds.max[2] + bounds.min[2]);
         Fish[i].SetPosition(position);
         Fish[i].SetCPoly(cpoly, cpoly_num);

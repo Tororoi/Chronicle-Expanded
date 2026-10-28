@@ -15,6 +15,9 @@
 
 namespace expanded {
 
+// Where a disc file a build rebuilds goes (its path after this): the game reads it in place of the disc's.
+inline constexpr std::string_view kRebuiltDiscFolder = "expanded/disc/";
+
 // Reads a disc file by its path in the data directory.
 using DiscReader = std::function<Bytes(std::string_view path)>;
 

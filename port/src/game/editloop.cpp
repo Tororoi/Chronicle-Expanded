@@ -91,6 +91,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/town/ally.hpp"
+#include "expanded/town/fishing.hpp"
 #endif
 
 namespace dc::game {
@@ -4544,6 +4545,9 @@ int LoadTexture() {
     wait_now_loading_vsync();
     TexManager.EnterIMGFile(reinterpret_cast<u_char *>(GetPackFile(read_buffer, "cursor.img", nullptr)), -1, 0, 0);
     TexManager.EnterIMGFile(reinterpret_cast<u_char *>(GetPackFile(read_buffer, "e01t02.img", nullptr)), -1, 0, 0);
+#ifdef CHRONICLE_EXPANDED
+    expanded::EnterFishingSign();
+#endif
 
     LOADTEXTURE_INFO2 system_blocks[] = {
         {"#water_buff#640#" HALF_BUFFER_HEIGHT_STR "#4",  0x15, 0},
