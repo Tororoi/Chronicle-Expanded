@@ -43,7 +43,7 @@ inline constexpr float kStarGravity = 8.0f * kItemHopHeight / (kItemHopFrames * 
 inline constexpr float kStarBounceShorter = 0.5f;
 
 // How it looks: the sparkle kStarHeadSize across with kStarTrail fading copies behind it, each where it was kStarTrailGap
-// back along its fall; at rest, the same sparkle without its trail, where the bounce left it.
+// back along its fall, each sitting on its path; at rest the trail runs on into the head where the bounce left it.
 inline constexpr float kStarHeadSize = 12.0f;
 inline constexpr int   kStarTrail = 8;
 inline constexpr float kStarTrailGap = 2.0f;

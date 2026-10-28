@@ -182,7 +182,11 @@ bool Gone(Star &star) {
     return true;
 }
 
-void DrawFalling(const Star &star) {
+// The frames between the head and the last of its trail.
+constexpr float kTrailFrames = kStarTrailGap / kStarFallSpeed * static_cast<float>(kStarTrail);
+
+// The sparkle and its trail, sitting on its path: at rest the trail runs on into the head.
+void DrawStar(const Star &star) {
     const float gap = kStarTrailGap / kStarFallSpeed;
     for (int k = kStarTrail; k >= 0; k--) {
         float frames = star.frames - gap * static_cast<float>(k);
@@ -193,13 +197,9 @@ void DrawFalling(const Star &star) {
         float at[3];
         star.path.At(frames, at);
         float half = kStarHeadSize / 2.0f * fade;
+        at[1] += half / kSparkleWidth;
         DrawEventSparkle(at, half, half / kSparkleWidth, static_cast<int>(128.0f * fade));
     }
-}
-
-void DrawLying(const Star &star) {
-    float half = kStarHeadSize / 2.0f;
-    DrawEventSparkle(star.path.rest, half, half / kSparkleWidth, 128);
 }
 
 } // namespace
@@ -347,6 +347,7 @@ void ShootingStarsStep() {
                 Fall(star);
                 break;
             case Phase::kLying:
+                star.frames = std::min(star.frames + 1.0f, star.path.FallFrames() + star.path.BounceFrames() + kTrailFrames);
                 break;
         }
     }
@@ -355,10 +356,8 @@ void ShootingStarsStep() {
 
 void ShootingStarsDraw() {
     for (const Star &star : stars) {
-        if (star.phase == Phase::kFalling) {
-            DrawFalling(star);
-        } else if (star.phase == Phase::kLying && star.items == RandomItem) {
-            DrawLying(star);
+        if (star.phase == Phase::kFalling || (star.phase == Phase::kLying && star.items == RandomItem)) {
+            DrawStar(star);
         }
     }
 }
