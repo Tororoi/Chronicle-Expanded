@@ -84,6 +84,7 @@ Each section lists this repository's own changes first, then those that come fro
 
 ## Fixes
 
+- Monsters walk up to you again where nothing stands in their way: since the last upstream update the first triangle of every collision model the game loaded was pulled out of place, which on dungeon floors stood an invisible wall across the floor, and a monster whose straight way to you crossed one waited or backed off behind it. [#257](https://github.com/Tororoi/Chronicle-Expanded/pull/257)
 - When two of Expanded's models are out on one dungeon floor (the Cactus's cactus and its shadow, Angel Gear's shield and the spirit cat), the one brought out first keeps its own picture instead of drawing with the other's. [#260](https://github.com/Tororoi/Chronicle-Expanded/pull/260)
 - With Heaven's Cloud's SynthSphere on Super Steve, an ordinary pellet no longer bursts like a charged one when a charged pellet was still flying as you left the last floor. [#240](https://github.com/Tororoi/Chronicle-Expanded/pull/240)
 - A monster confused by Babel's Spear can't be blocked by a blinded monster's guard, and a shot it fires that bursts on another monster bursts with its full blast damage and size, as it does on you. [#239](https://github.com/Tororoi/Chronicle-Expanded/pull/239)
