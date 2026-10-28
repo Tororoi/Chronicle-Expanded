@@ -6,6 +6,7 @@
 #include <numbers>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "expanded/data/chr_pack.hpp"
@@ -23,6 +24,7 @@ constexpr const char *kTreesGround = "grid__a7f";
 constexpr const char *kRockModel = "iwa.mds";
 constexpr const char *kRockBank = "iwa.img";
 constexpr const char *kRockPicture = "d02b10";
+constexpr const char *kBeamCfg = "info.cfg";
 
 constexpr std::size_t kMdsOneNode = mds::kTable + mds::kRecord; // the header and one frame; the mesh follows
 
@@ -189,11 +191,48 @@ Bytes BuildShadowDisc(std::span<const unsigned char> rock) {
                            ChrRecord::Make("disc.mds", disc), ChrRecord::Make("disc_shadow.mds", disc), ChrRecord::Make("disc.img", bank.Build())});
 }
 
+namespace {
+
+// Every 8-bit picture's palette in a bank (256 entries of red, green, blue and alpha): red and green exchanged, each alpha
+// alpha of its own, rounded half to even. The pictures' pixels are left as they are.
+Bytes RecolourBank(std::span<const unsigned char> img, float alpha) {
+    ImgBank bank = ImgBank::Parse(img);
+    for (auto &[name, block] : bank.entries) {
+        if (block.size() <= 0x40 || block[0] != 'T' || block[1] != 'I' || block[2] != 'M' || block[3] != '2') {
+            continue;
+        }
+        std::size_t clut = tim8::kPicture + Get16(block, tim8::kPicture + tim8::kHeaderSize) + Get32(block, tim8::kPicture + tim8::kImageSize);
+        if (Get16(block, tim8::kPicture + tim8::kColours) != 256 || Get32(block, tim8::kPicture + tim8::kClutSize) < 1024 ||
+            clut + 1024 > block.size()) {
+            continue;
+        }
+        for (std::size_t entry = clut; entry < clut + 1024; entry += 4) {
+            std::swap(block[entry], block[entry + 1]);
+            block[entry + 3] = static_cast<unsigned char>(std::nearbyint(static_cast<double>(static_cast<float>(block[entry + 3]) * alpha)));
+        }
+    }
+    return bank.Build();
+}
+
+} // namespace
+
+Bytes BuildBabelBeam(std::span<const unsigned char> beam) {
+    ChrPack pack = ChrPack::Parse(beam);
+    for (ChrRecord &record : pack.records) {
+        if (EndsFolded(record.name, ".img")) {
+            record.ReplacePayload(RecolourBank(record.Payload(), kBabelBeamAlpha));
+        }
+    }
+    pack.records.push_back(ChrRecord::Make(std::string(kBabelBeamName) + ".cfg", pack.Require(kBeamCfg).Payload()));
+    return pack.Rebuild();
+}
+
 std::vector<DataBuild> PropModelBuilds() {
     using Files = const std::vector<Bytes> &;
     return {
         DataBuild::FromSources("Queens' trees", kQueensTreesFile, {kQueensSceneFile, kQueensImagesFile}, [](Files s) { return BuildQueensTrees(s[0], s[1]); }),
         DataBuild::FromSources("shadow disc", kShadowDiscFile, {kShadowDiscSource}, [](Files s) { return BuildShadowDisc(s[0]); }),
+        DataBuild::FromSources("Babel's beam", kBabelBeamFile, {kBabelBeamSource}, [](Files s) { return BuildBabelBeam(s[0]); }),
     };
 }
 

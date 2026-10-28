@@ -152,6 +152,12 @@ std::optional<MonsterDamageResult> MonsterFriendlyHit(CMonstorUnit &unit, int sp
 // effects that wear nothing.
 bool HitWearsWeapon(const COLLISION_HIT &hit);
 
+// Whether another monster's collision body stands in a monster's way (CMonstorUnit::Step, gathering the polygons its
+// script's path tests and its moves meet; its own is never there): not the body of the monster its script goes after
+// (confusion's target or provoker), which it walks up to as it would to the player. Monsters still keep apart
+// (MoveChecMonster).
+bool MonsterPathBlockedBy(const CMonstorUnit &unit, int monster, int other);
+
 // A monster's step after the other monsters blocked it (CMonstorUnit::Step, after MoveChecMonster), and the player's after
 // the monsters blocked it (his move, after CMonstorUnit::MoveCheck), velocity his step: for what else stands in the way.
 void MonsterMoveChecked(CMonstorUnit &unit, int monster);

@@ -5,6 +5,7 @@
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
+#include "expanded/weapons/ungaga/babels_spear.hpp"
 #include "expanded/weapons/ungaga/hercules_wrath.hpp"
 #include "expanded/weapons/ungaga/terra_sword.hpp"
 #include "expanded/weapons/xiao/angel_gear.hpp"
@@ -31,6 +32,7 @@ void CharacterLight(const CCharacter &character, float *ambient) {
     GuardianReflectorLight(character, ambient);
     AirStrikeLight(character, ambient);
     BigRockLight(character, ambient);
+    CurseOfBabelLight(character, ambient);
 }
 
 } // namespace expanded

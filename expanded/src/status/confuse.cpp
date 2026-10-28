@@ -3,14 +3,18 @@
 #include <libvu0.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
+#include <cstring>
+#include <format>
 
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/debug/event_log.hpp"
 #include "expanded/enemies/ally_unit.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/confuse_state.hpp"
 #include "expanded/status/poison.hpp"
-#include "mathutil.hpp"
 #include "monstorunit.hpp"
 
 namespace expanded {
@@ -22,11 +26,19 @@ using namespace confuse;
 constexpr int   kConfuseSteps = 20 * kStepsPerSecond;
 constexpr float kConfuseChance = 5.0f;
 
+// A monster's confusion, in the event log: confused, its target (another monster's slot, -1 the player) or its senses
+// back.
+void LogConfusion(const char *step, int slot, int target = -2) {
+    LogEvent("confuse", target == -2 ? std::format("\"step\":\"{}\",\"monster\":{}", step, slot)
+                                     : std::format("\"step\":\"{}\",\"monster\":{},\"target\":{}", step, slot, target));
+}
+
 void LogTarget(int slot, int target) {
     if (State().target[slot] == target) {
         return;
     }
     State().target[slot] = target;
+    LogConfusion("target", slot, target);
     if (target >= 0) {
         std::fprintf(stderr, "confuse: monster %d goes after monster %d\n", slot, target);
     } else {
@@ -70,6 +82,7 @@ void ConfuseTick() {
         if (state.tick >= state.until[slot]) {
             state.Forget(slot);
             std::fprintf(stderr, "confuse: monster %d comes to its senses\n", slot);
+            LogConfusion("senses", slot);
         }
     }
 }
@@ -113,27 +126,49 @@ void ConfuseRoll(CMonstorUnit &unit, int slot) {
     if (monster.kind == MONSTER_KIND_NO_LOCK_ON || monster.hp <= 0) {
         return;
     }
+    Confusion &state = State();
+    if (state.until[slot] != 0) {
+        return; // already confused: its own end stands
+    }
     if (!(100.0f * GameFraction() < kConfuseChance)) {
         return;
     }
-    Confusion &state = State();
-    if (state.until[slot] == 0) {
-        state.target[slot] = -2;
-        std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
-    }
+    state.target[slot] = -2;
+    std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
+    LogConfusion("confused", slot);
     state.until[slot] = state.tick + kConfuseSteps;
 }
 
-void ConfuseMonster(CMonstorUnit &unit, int slot, int steps) {
+bool ConfuseMonster(CMonstorUnit &unit, int slot, int steps) {
     if (slot < 0 || slot >= kFloorMonsters || steps <= 0 || AllyUnit(unit) || unit.monster[slot].hp <= 0) {
-        return;
+        return false;
     }
     Confusion &state = Adopt(unit);
-    if (state.until[slot] == 0) {
-        state.target[slot] = -2;
-        std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
+    if (state.until[slot] != 0) {
+        return false; // already confused: its own end stands
     }
-    state.until[slot] = std::max(state.until[slot], state.tick + steps);
+    state.target[slot] = -2;
+    std::fprintf(stderr, "confuse: monster %d is confused\n", slot);
+    LogConfusion("confused", slot);
+    state.until[slot] = state.tick + steps;
+    return true;
+}
+
+bool MonsterConfused(const CMonstorUnit &unit, int slot) {
+    return State().unit == &unit && Confused(unit, slot);
+}
+
+void ConfuseEndAll() {
+    StarsOff();
+    Confusion &state = State();
+    for (int slot = 0; slot < kFloorMonsters; slot++) {
+        if (state.until[slot] != 0) {
+            std::fprintf(stderr, "confuse: monster %d comes to its senses\n", slot);
+            LogConfusion("senses", slot);
+        }
+        state.Forget(slot);
+    }
+    std::memset(state.contact, 0, sizeof(state.contact));
 }
 
 void ConfuseEnd(int slot) {
@@ -142,24 +177,26 @@ void ConfuseEnd(int slot) {
     }
     State().Forget(slot);
     std::fprintf(stderr, "confuse: monster %d comes to its senses\n", slot);
+    LogConfusion("senses", slot);
 }
 
 bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {
     if (slot < 0 || slot >= kFloorMonsters || State().unit != &unit) {
         return false;
     }
+    sceVu0FVECTOR self;
+    Position(unit, slot, self);
     if (Confused(unit, slot)) {
-        sceVu0FVECTOR self;
+        // The nearest across the ground of the other monsters in play and the player.
         sceVu0FVECTOR other;
-        Position(unit, slot, self);
-        int   best = -1;
-        float best_distance = DistVector(self, CharaMain.pos);
+        int           best = -1;
+        float         best_distance = std::hypot(CharaMain.pos[0] - self[0], CharaMain.pos[2] - self[2]);
         for (int i = 0; i < kFloorMonsters; i++) {
             if (i == slot || !InPlay(unit, i)) {
                 continue;
             }
             Position(unit, i, other);
-            float distance = DistVector(self, other);
+            float distance = std::hypot(other[0] - self[0], other[2] - self[2]);
             if (distance < best_distance) {
                 best_distance = distance;
                 best = i;
@@ -169,15 +206,26 @@ bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {
         if (best < 0) {
             return false;
         }
-        Position(unit, best, position);
+        MonsterAimPoint(unit, best, self[0], self[2], position);
         return true;
     }
     int provoker = Provoker(unit, slot);
     if (provoker < 0) {
         return false;
     }
-    Position(unit, provoker, position);
+    MonsterAimPoint(unit, provoker, self[0], self[2], position);
     return true;
+}
+
+int ConfuseTargetMonster(const CMonstorUnit &unit, int slot) {
+    if (slot < 0 || slot >= kFloorMonsters || State().unit != &unit) {
+        return -1;
+    }
+    if (Confused(unit, slot)) {
+        int target = State().target[slot];
+        return target >= 0 && InPlay(unit, target) ? target : -1;
+    }
+    return Provoker(unit, slot);
 }
 
 void ConfuseScriptPlayerPosition(float *position) {

@@ -1,5 +1,7 @@
 #include <libvu0.h>
 
+#include <algorithm>
+
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/status/confuse.hpp"
@@ -38,7 +40,8 @@ CSHOT_EFFECT &Stars() {
     return stars;
 }
 
-bool loaded = false;
+bool  loaded = false;
+float fade = 1.0f; // the stars' share of their size
 
 // Each monster's star (a slot of the stars effect, or -1) and the step it came on.
 struct On {
@@ -151,11 +154,15 @@ void ConfuseStarsDraw() {
             model.motion_type.state.time = (float) key.start;
         }
         float grown = static_cast<float>(state.tick - on.from[slot]) / kStarsGrowSteps;
-        float scale = kStarsScale * (grown < 1.0f ? (grown > 0.01f ? grown : 0.01f) : 1.0f);
+        float scale = kStarsScale * std::clamp(std::min(grown, 1.0f) * fade, 0.01f, 1.0f);
         model.SetPosition(head);
         model.SetScale(scale, scale, scale);
     }
     stars.Draw();
+}
+
+void ConfuseStarsFade(float share) {
+    fade = share;
 }
 
 } // namespace expanded

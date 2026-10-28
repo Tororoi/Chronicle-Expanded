@@ -35,7 +35,8 @@ namespace expanded {
 //   - Super Steve's: a nut (gedit/s04's e114kinomi.chr) kNutScale times its size, whistling as it falls (kNutFallSound,
 //     timed to end as it lands), which comes down on the monster's head (its kind's height over its root, the nut's
 //     radius over that) and bonks it that frame (kNutBonkSound): kNutBonkShare times the attack, the monster shoved
-//     from Xiao as a swing shoves (kNutKick) and confused for as long as the nut stays (status/confuse.hpp). The nut
+//     from Xiao as a swing shoves (kNutKick) and confused for as long as the nut stays (status/confuse.hpp; one already
+//     confused keeps its own confusion, which the nut neither lengthens nor ends). The nut
 //     hops off at kNutHopUp, drifting kNutHopSide square to Xiao's line to the monster (to a side picked at the drop)
 //     and falling at kNutHopGravity, to the floor where it comes down. The monster darkens to kNutTargetDim.
 // A drop whose monster dies or leaves as it falls comes down where it is, onto the floor: the boulder lands as it would

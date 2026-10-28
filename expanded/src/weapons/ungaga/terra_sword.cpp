@@ -335,8 +335,9 @@ void Bonk() {
     }
     NutBonk(Unit(), monster);
     PlayOwnSound(kNutBonkSound, true);
-    ConfuseMonster(Unit(), monster, kNutConfusionSteps);
-    d.bonked = monster;
+    if (ConfuseMonster(Unit(), monster, kNutConfusionSteps)) {
+        d.bonked = monster; // its confusion goes with the nut; one already confused keeps its own
+    }
     LogEvent("big_rock", std::format("\"step\":\"bonk\",\"monster\":{}", monster));
 }
 

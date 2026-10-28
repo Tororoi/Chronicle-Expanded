@@ -1,7 +1,7 @@
 #pragma once
 
-// The models of the props Expanded's weapons raise on a floor, built from the disc at extraction. Includes no game
-// header, so dcdata can build with it.
+// The models of the props Expanded's weapons raise on a floor, and the effects that mark them, built from the disc at
+// extraction. Includes no game header, so dcdata can build with it.
 
 #include <span>
 #include <vector>
@@ -31,13 +31,25 @@ inline constexpr const char *kShadowDiscSource = "gedit/s96/chara/iwa.chr";
 inline constexpr int         kShadowDiscSegments = 16;
 inline constexpr int         kShadowDiscStandIn = 8;
 
+// Babel's Spear's beam: the Dark Genie's small beam (the pack of its companion c17_beem_s, KEYs 10-28 its rise, 28-48 its
+// loop and 48-70 its vanish), every 8-bit picture's palette recoloured, red and green exchanged (its pink cyan, its purple
+// blue) and each entry's alpha kBabelBeamAlpha of its own (rounded half to even), and its cfg (info.cfg) under the name a
+// shot effect asks for, kBabelBeamName.cfg.
+inline constexpr const char *kBabelBeamFile = "expanded/effect/babel_beam.chr";
+inline constexpr const char *kBabelBeamName = "babel_beam";
+inline constexpr const char *kBabelBeamSource = "dun/monstor/c17_beem_s.chr";
+inline constexpr float       kBabelBeamAlpha = 0.3f;
+
 // The trees' pack, from the scene and the image pack of gedit/e03.
 Bytes BuildQueensTrees(std::span<const unsigned char> scene, std::span<const unsigned char> images);
 
 // The disc's pack, from the rock's pack.
 Bytes BuildShadowDisc(std::span<const unsigned char> rock);
 
-// Both props' models.
+// The beam's pack, from the genie's beam's.
+Bytes BuildBabelBeam(std::span<const unsigned char> beam);
+
+// The props' models and the beam.
 std::vector<DataBuild> PropModelBuilds();
 
 } // namespace expanded
