@@ -1665,7 +1665,11 @@ void EdMoveChara() {
     int left_clear = 1;
     int right_clear = 1;
 
+#ifdef CHRONICLE_EXPANDED
+    if (viewMode == 0 && interior == 0 && EdDebugMoveFlag < 2 && !expanded::FishingCameraInCanal()) {
+#else
     if (viewMode == 0 && interior == 0 && EdDebugMoveFlag < 2) {
+#endif
         sceVu0FVECTOR last_hit;
         sceVu0FVECTOR eye_pos;
         sceVu0FVECTOR hit;
@@ -2489,6 +2493,9 @@ void EdMoveChara() {
             sceVu0ScaleVector(centre, centre, 0.5f);
 #endif
             camera->SetFollow(centre[0], centre[1], centre[2]);
+#ifdef CHRONICLE_EXPANDED
+            expanded::KeepFishingCameraInCanal(*camera);
+#endif
         }
 
         st_cnt++;

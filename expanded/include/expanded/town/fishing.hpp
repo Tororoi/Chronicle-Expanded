@@ -46,8 +46,12 @@ bool FloatSettled();
 // deck, a pipe), which the float does not lift onto.
 bool FloorOverFloat(float floor);
 
-// The fishing camera's height at the town's spot; height elsewhere.
+// The fishing camera at the town's spot: its height, height elsewhere; whether it watches the float in a canal, the
+// game's camera walls left out (the canal's banks have none, and the game would back the eye out along it); and there
+// its eye kept inside the canal's walls, turned along them.
 float FishingCameraHeight(float height);
+bool  FishingCameraInCanal();
+void  KeepFishingCameraInCanal(dc::game::CCameraFollow &camera);
 
 // After EdMoveChara's fishing step (state chara_fishing): the camera's distance and the angle it turns to as they were
 // before a catch's close-up, put back once it ends.

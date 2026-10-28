@@ -5,6 +5,7 @@
 
 #include "camerafollow.hpp"
 #include "ebattle.hpp"
+#include "edit.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/town/fishing.hpp"
 #include "fishing.hpp"
@@ -286,6 +287,40 @@ TEST(FishingCamera, HeightBySpot) {
         FishingSetWaterLevel(water, 0.0f);
         EXPECT_EQ(expanded::FishingCameraHeight(40.0f), height) << water;
     }
+}
+
+TEST(FishingCamera, InTheCanalTheEyeStaysInsideItsWalls) {
+    Fishing   town(kQueens);
+    const int fishing = EdMoveCharaInfo.fishing;
+    EdMoveCharaInfo.fishing = 1;
+    chara_fishing = ED_FISHING_WAIT_BITE;
+    EXPECT_TRUE(expanded::FishingCameraInCanal());
+    chara_fishing = ED_FISHING_STAND; // watching the angler, over the bank
+    EXPECT_FALSE(expanded::FishingCameraInCanal());
+
+    // Behind the float, over the north bank: turned along the wall, on the side it leant to.
+    CCameraFollow camera(70.0f, 35.0f, 3.0f, 8.0f);
+    camera.SetFollow(250.0f, 31.0f, -20.0f);
+    expanded::KeepFishingCameraInCanal(camera);
+    EXPECT_EQ(camera.GetDistance(), 70.0f);
+    EXPECT_NEAR(-20.0f + 70.0f * std::cos(camera.angle), -45.0f, 1e-3f);
+    EXPECT_GT(std::sin(camera.angle), 0.0f);
+    EXPECT_EQ(camera.next_angle, camera.angle);
+    camera.SetAngleSoon(-0.2f); // over the south bank, leaning the other way
+    expanded::KeepFishingCameraInCanal(camera);
+    EXPECT_NEAR(-20.0f + 70.0f * std::cos(camera.angle), 45.0f, 1e-3f);
+    EXPECT_LT(std::sin(camera.angle), 0.0f);
+    camera.SetAngleSoon(1.5f); // along the canal: left as it is
+    expanded::KeepFishingCameraInCanal(camera);
+    EXPECT_EQ(camera.angle, 1.5f);
+
+    Fishing yellow_drops(kYellowDrops);
+    chara_fishing = ED_FISHING_WAIT_BITE;
+    EXPECT_FALSE(expanded::FishingCameraInCanal());
+    camera.SetAngleSoon(3.0f);
+    expanded::KeepFishingCameraInCanal(camera);
+    EXPECT_EQ(camera.angle, 3.0f);
+    EdMoveCharaInfo.fishing = fishing;
 }
 
 TEST(FishingCamera, ACatchsCloseUpGivesTheCameraBack) {

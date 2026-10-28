@@ -12,6 +12,7 @@
 #include "collision.hpp"
 #include "data/data_read.hpp"
 #include "ebattle.hpp"
+#include "edit.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/weapons/ungaga/scorpion.hpp"
@@ -54,6 +55,9 @@ constexpr float kLegInset = 1.5f, kOverhead = 2.0f;
 
 // |ukiv[0]|² under this: a settled float (~0.22 a frame).
 constexpr float kSettled = 0.0498046875f;
+
+// The fishing camera's eye stays kInsideWalls inside a canal's walls.
+constexpr float kInsideWalls = 2.0f;
 
 // How far point lies ahead of the angler at at, turned yaw.
 float Ahead(const float *point, const float *at, float yaw) {
@@ -293,6 +297,28 @@ float FishingCameraHeight(float height) {
         return std::max(kLowestFishingCamera, std::min(spot->camera_height, spot->camera_top - WaterLevel));
     }
     return spot->camera_height;
+}
+
+bool FishingCameraInCanal() {
+    const int state = chara_fishing;
+    return EdMoveCharaInfo.fishing != 0 && TownCanal() != nullptr &&
+           (state == ED_FISHING_WAIT_BITE || state == ED_FISHING_BITE_CHECK || state == ED_FISHING_HOOKED || state == ED_FISHING_BATTLE || state == ED_FISHING_LANDED);
+}
+
+void KeepFishingCameraInCanal(CCameraFollow &camera) {
+    const FishingCanal *canal = TownCanal();
+    if (canal == nullptr || camera.distance <= 0.0f) {
+        return;
+    }
+    const float eye = camera.follow[2] + camera.distance * std::cos(camera.angle);
+    const float wall = canal->wall - kInsideWalls;
+    if (std::abs(eye) <= wall) {
+        return;
+    }
+    // Slid along the wall: the turn, on the same side of the float along the canal, that puts the eye on it.
+    const float across = std::clamp((std::copysign(wall, eye) - camera.follow[2]) / camera.distance, -1.0f, 1.0f);
+    const float along = std::copysign(std::sqrt(1.0f - across * across), std::sin(camera.angle));
+    camera.SetAngleSoon(std::atan2(along, across));
 }
 
 void FishingCatchCamera(CCameraFollow &camera, int state) {
