@@ -46,6 +46,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/town/ally.hpp"
 #include "expanded/town/ladder.hpp"
+#include "expanded/weapons/osmond/blessing_gun.hpp"
 #endif
 namespace dc::game {
 
@@ -2255,7 +2256,11 @@ void EdMoveChara() {
                     st_cnt = 0;
                     SndSePlay(SE_FISHING_SINK, float_pos, -1.0f, -1.0f);
 
+#ifdef CHRONICLE_EXPANDED
+                    if (rand() % 100 < 20 && !expanded::BlessedBaitKept()) {
+#else
                     if (rand() % 100 < 20) {
+#endif
                         EdFishingLostEsaMes();
                         FishingDeleteEsa();
                     }
@@ -2282,7 +2287,11 @@ void EdMoveChara() {
                     chara_fishing = ED_FISHING_WAIT_BITE;
                     wait_cnt = 0;
 
+#ifdef CHRONICLE_EXPANDED
+                    if (rand() % 100 < 30 && !expanded::BlessedBaitKept()) {
+#else
                     if (rand() % 100 < 30) {
+#endif
                         EdFishingLostEsaMes();
                         FishingDeleteEsa();
                     }
