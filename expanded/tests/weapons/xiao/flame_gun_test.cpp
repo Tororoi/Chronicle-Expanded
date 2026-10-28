@@ -36,6 +36,10 @@ constexpr int   kParticles = 24;
 constexpr int   kDrawn = 18; // alive after the step: Set's opacity 180 - 8i, less the step's 4, above 32
 constexpr int   kAttack = 40;
 constexpr int   kHitInterval = 30;
+constexpr int   kSpeed = 60;         // the gauge refills max(1, 60 / 30) = 2 a frame before the member's rate
+constexpr float kOwnRefill = 3.0f;   // Xiao's: 2 x 1.5
+constexpr float kSpentRefill = 1.0f; // Osmond's once his gauge ran out: 2 x 0.5
+constexpr int   kFlameFrames = 200;  // a full gauge at 0.5 a frame
 constexpr float kMuzzle[3] = {0.0f, 8.0f, 3.0f};
 
 struct alignas(64) PadDmaBuffer {
@@ -55,9 +59,10 @@ void ShotButton(bool down) {
     }
 }
 
-// Xiao out with Super Steve (attack kAttack, endurance 0, fire its best element; 100 WHP left on her equipped record)
-// carrying sphere's SynthSphere, at the origin facing +z, her slingshot's muzzle at kMuzzle, X held; the flame's picture
-// in as a texture entry of the test's own; the flame's hits planted in a collision table of its own.
+// Xiao out with Super Steve (attack kAttack, endurance 0, speed kSpeed, fire its best element; 100 WHP left on her
+// equipped record) carrying sphere's SynthSphere, at the origin facing +z, her slingshot's muzzle at kMuzzle, X held, her
+// action gauge full; the flame's picture in as a texture entry of the test's own; the flame's hits planted in a collision
+// table of its own.
 class FlameGun : public ::testing::Test {
 protected:
     explicit FlameGun(int sphere = ITEM_WEAPON_SKUNK, int weapon_no = ITEM_WEAPON_SUPER_STEVE) : wielding_(weapon_no, sphere) {}
@@ -69,6 +74,7 @@ protected:
         saved_ok_ = PadInput_OK;
         PadInput_OK = PAD_CROSS;
         BtActStatus = {};
+        BtActStatus.action_gauge = expanded::kFullGauge;
         CUserStatus &status = floor_.status();
         status.cur_chara = CHARA_XIAO;
         WEAPON_HAVE &weapon = wielding_.weapon();
@@ -76,6 +82,7 @@ protected:
         weapon.endurance = 0;
         weapon.best_elem = WEAPON_ELEMENT_FIRE;
         weapon.flags = 0x20;
+        weapon.speed = kSpeed;
         status.equipped_weapon_slot[CHARA_XIAO] = 0;
         status.chara_weapons[CHARA_XIAO][0] = weapon;
         status.chara_weapons[CHARA_XIAO][0].durability = 100;
@@ -148,6 +155,32 @@ protected:
             expanded::DungeonFrameBegins();
             expanded::XiaoShotPlaying(CharaMain, 0);
             OzumondFire.Step();
+        }
+    }
+
+    // motionDrive's refill of Xiao's gauge, the features' gain hook in it.
+    static void Refill() {
+        if (static_cast<int>(BtActStatus.action_gauge) >= 100) {
+            return;
+        }
+        float gain = std::max(static_cast<float>(NowWeaponHave->speed) / 30.0f, 1.0f) * expanded::kXiaoGaugeRate;
+        BtActStatus.action_gauge += expanded::ActionGaugeGain(gain);
+        if (static_cast<int>(BtActStatus.action_gauge) >= 100) {
+            BtActStatus.action_gauge = expanded::kFullGauge;
+            BtActStatus.gauge_exhausted = 0;
+        }
+    }
+
+    // Frames as the game plays them with X held in her hold: her action while it is on (BattleActionPlay_Jinn, the hook in
+    // it), the flame's step, the gauge's refill.
+    void HoldFrames(int frames) {
+        for (int i = 0; i < frames; i++) {
+            expanded::DungeonFrameBegins();
+            if (BtActStatus.action_on == 1) {
+                BattleActionPlay_Jinn(&CharaMain, 0);
+            }
+            OzumondFire.Step();
+            Refill();
         }
     }
 
@@ -398,4 +431,132 @@ TEST_F(FlameGun, NoFlameWithTheWeaponAbilitiesOff) {
     Frames(60);
     EXPECT_EQ(Burning(), 0);
     EXPECT_FLOAT_EQ(Whp(), 100.0f);
+}
+
+// The flame burns her gauge as his burns his: 0.5 a frame from the frame it lights, nothing refilling it.
+TEST_F(FlameGun, BurnsHerGaugeAsHisFlameBurnsHis) {
+    HoldFrames(expanded::kFlameIgnition - 1);
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, expanded::kFullGauge);
+    HoldFrames(1);
+    ASSERT_TRUE(expanded::FlameGunLit());
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, expanded::kFullGauge - expanded::kFlameGaugeDrain);
+    HoldFrames(99);
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, 50.0f);
+    EXPECT_FLOAT_EQ(expanded::ActionGaugeGain(kOwnRefill), 0.0f);
+}
+
+// Its 200th frame runs the gauge out: the game ends her action there (no pellet), and the flame fed that frame is left to
+// die out; the gauge then refills at his spent rate.
+TEST_F(FlameGun, RunOutTheShotEnds) {
+    HoldFrames(expanded::kFlameIgnition - 1 + kFlameFrames - 1);
+    EXPECT_TRUE(expanded::FlameGunLit());
+    EXPECT_EQ(BtActStatus.action_on, 1);
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, expanded::kFlameGaugeDrain);
+    HoldFrames(1);
+    EXPECT_FALSE(expanded::FlameGunLit());
+    EXPECT_EQ(BtActStatus.action_on, 0);
+    EXPECT_EQ(BtActStatus.motion_no, 0);
+    EXPECT_EQ(BtActStatus.gauge_exhausted, 1);
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, kSpentRefill); // empty, then the frame's refill
+    EXPECT_EQ(Burning(), kDrawn);                            // fed that frame, not put out
+    HoldFrames(40);
+    EXPECT_EQ(Burning(), 0);
+}
+
+// Run out, letting go fires nothing, and another press starts no shot until the gauge is full.
+TEST_F(FlameGun, RunOutNoPelletAndNoShotUntilFull) {
+    HoldFrames(expanded::kFlameIgnition - 1 + kFlameFrames);
+    ASSERT_EQ(BtActStatus.action_on, 0);
+    ShotButton(false);
+    HoldFrames(1);
+    EXPECT_EQ(BtActStatus.action_on, 0);
+    ShotButton(true);
+    BattleActionOn_Jinn();
+    EXPECT_EQ(BtActStatus.action_on, 0);
+}
+
+// Run out, the gauge refills at his spent rate (his speed / 30 x 0.5 in place of her x 1.5), then as ever.
+TEST_F(FlameGun, RunOutItRefillsAtHisRate) {
+    HoldFrames(expanded::kFlameIgnition - 1 + kFlameFrames);
+    ASSERT_EQ(BtActStatus.gauge_exhausted, 1);
+    EXPECT_FLOAT_EQ(expanded::ActionGaugeGain(kOwnRefill), kSpentRefill);
+    HoldFrames(98); // 99 of the 100 frames
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, 99.0f);
+    EXPECT_EQ(BtActStatus.gauge_exhausted, 1);
+    HoldFrames(1);
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, expanded::kFullGauge);
+    EXPECT_EQ(BtActStatus.gauge_exhausted, 0);
+    EXPECT_FLOAT_EQ(expanded::ActionGaugeGain(kOwnRefill), kOwnRefill);
+    BattleActionOn_Jinn();
+    EXPECT_EQ(BtActStatus.action_on, 1);
+}
+
+// Let go before it runs out, the gauge refills at her own rate from where the flame left it.
+TEST_F(FlameGun, LetGoEarlyItRefillsAtHerRate) {
+    HoldFrames(expanded::kFlameIgnition + 99);
+    ASSERT_FLOAT_EQ(BtActStatus.action_gauge, 50.0f);
+    ShotButton(false);
+    Frames(1); // the release: put out
+    EXPECT_FALSE(expanded::FlameGunLit());
+    EXPECT_FLOAT_EQ(expanded::ActionGaugeGain(kOwnRefill), kOwnRefill);
+    Refill();
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, 50.0f + kOwnRefill);
+}
+
+// The draw and a hold let go before the flame lights touch nothing: the shot's spend and refill are the game's.
+TEST_F(FlameGun, AQuickShotLeavesTheGaugeAlone) {
+    BtActStatus.action_gauge = 0.0f; // spent as the shot started
+    Act(kXiaoDraw);
+    for (int i = 0; i < 10; i++) { // the hook alone: the game's draw reads the motion's keys
+        Frames(1);
+        Refill();
+    }
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, 10.0f * kOwnRefill);
+    Act(kXiaoHold);
+    HoldFrames(expanded::kFlameIgnition - 1);
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, (10.0f + expanded::kFlameIgnition - 1) * kOwnRefill);
+    EXPECT_FALSE(expanded::FlameGunLit());
+    EXPECT_EQ(BtActStatus.gauge_exhausted, 0);
+}
+
+// Something else ending her shot mid-flame (a hit) leaves the gauge's refill hers.
+TEST_F(FlameGun, AShotCutShortRefillsAsEver) {
+    HoldFrames(20);
+    ASSERT_TRUE(expanded::FlameGunLit());
+    BtActStatus.action_on = 0;
+    HoldFrames(1);
+    EXPECT_FALSE(expanded::FlameGunLit());
+    EXPECT_FLOAT_EQ(expanded::ActionGaugeGain(kOwnRefill), kOwnRefill);
+}
+
+// Osmond's refill is his own.
+TEST_F(FlameGun, OsmondsGaugeIsHis) {
+    BtActStatus.gauge_exhausted = 1;
+    floor_.status().cur_chara = CHARA_OSMOND;
+    EXPECT_FLOAT_EQ(expanded::ActionGaugeGain(1.25f), 1.25f);
+}
+
+// Another Osmond sphere, none, or Weapon Abilities off: her hold burns nothing and the gauge refills as ever.
+TEST_F(JackalSphere, TheGaugeIsUntouched) {
+    BtActStatus.action_gauge = 0.0f;
+    HoldFrames(300);
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, expanded::kFullGauge);
+    EXPECT_EQ(BtActStatus.action_on, 1);
+    EXPECT_EQ(BtActStatus.gauge_exhausted, 0);
+}
+
+TEST_F(NoSphere, TheGaugeIsUntouched) {
+    BtActStatus.action_gauge = 0.0f;
+    HoldFrames(10);
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, 10.0f * kOwnRefill);
+    HoldFrames(290);
+    EXPECT_EQ(BtActStatus.action_on, 1);
+}
+
+TEST_F(FlameGun, TheGaugeIsUntouchedWithTheWeaponAbilitiesOff) {
+    expanded::test::OptionScope options;
+    ASSERT_TRUE(options.Set(expanded::kWeaponAbilities, false));
+    HoldFrames(300);
+    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, expanded::kFullGauge);
+    EXPECT_EQ(BtActStatus.action_on, 1);
 }

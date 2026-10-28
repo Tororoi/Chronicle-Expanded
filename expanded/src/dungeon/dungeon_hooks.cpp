@@ -486,7 +486,7 @@ void ShotPlayerPoint(float *point) {
 }
 
 float ActionGaugeGain(float gain) {
-    return GuardianReflectorGaugeGain(gain);
+    return FlameGunGaugeGain(GuardianReflectorGaugeGain(gain));
 }
 
 int HealCounter(int counter) {
@@ -512,9 +512,9 @@ void PlayerHitsChecking() {
     GuardianReflectorSpend();
 }
 
-void XiaoShotPlaying(CCharacter &chara, int aimed) {
+bool XiaoShotPlaying(CCharacter &chara, int aimed) {
     QuickDrawShot(chara, aimed);
-    FlameGunShot(aimed);
+    return FlameGunShot(aimed);
 }
 
 float XiaoShotWear(float wear) {

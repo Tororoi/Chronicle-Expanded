@@ -17,6 +17,11 @@ inline constexpr int kXiaoDraw = 11, kXiaoHold = 12, kXiaoShot = 13;
 // Ungaga (UngagaKey_On): the three combo swings.
 inline constexpr int kUngagaFirstSwing = 0x25, kUngagaLastSwing = 0x27;
 
+// The action gauge (BtActStatus.action_gauge) full, and the rate motionDrive refills Xiao's at (the weapon's speed / 30,
+// at least 1, times kXiaoGaugeRate a frame).
+inline constexpr float kFullGauge = 100.0f;
+inline constexpr float kXiaoGaugeRate = 1.5f;
+
 // The moves MoveChara plays every member by: the run and the walk (keyCtrl), and locked on, the stance and its strafes.
 inline constexpr int kMoveRun = 1, kMoveWalk = 2;
 inline constexpr int kLockOnStance = 0x12, kStrafeRight = 0x13, kStrafeLeft = 0x14, kStrafeForward = 0x15, kStrafeBack = 0x16;
