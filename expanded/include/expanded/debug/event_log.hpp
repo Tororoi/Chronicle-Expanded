@@ -19,8 +19,10 @@ struct OwnSound;
 // left, and the hit's owner and attack: the member and which of their attacks, as CCollisionData::SetUserID names
 // them) from a weapon's hit, kill (monster, kind, by: the member its kill is, whose weapon takes its ABS when they are
 // out), life (chara, from, to) and whp (chara, weapon, from, to) as the
-// member out's life and weapon HP change, sound (program, note) as an own sound plays, and a stage's progress (stage:
-// out, walked, placed, circle), the frames an input script can be timed from. Features can add their own.
+// member out's life and weapon HP change, sound (program, note) as an own sound plays, fishing (step: start, ready,
+// cast, float, reeled, bite, let_go, hooked, escaped, missed, fight, landed, caught, bait, bait_lost, quit) as a town's
+// fishing goes, and a stage's progress (stage: out, walked, placed, circle, town, at_sign, bait), the frames an input
+// script can be timed from. Features can add their own.
 
 // Opens the log, truncating it (null or empty path: none). False, with why, when it cannot be opened.
 bool SetEventLog(const char *path, std::string *why = nullptr);
@@ -36,5 +38,9 @@ void EventLogDamaged(const CMonstorUnit &unit, int monster, const COLLISION_HIT 
 void EventLogKilled(const CMonstorUnit &unit, int monster);
 void EventLogSound(const OwnSound &sound);
 void EventLogStep();
+
+// Hooks: a town step of the player (the fishing read for changes), and a fish caught, as its points are added.
+void EventLogFishingStep();
+void EventLogCaught(int kind, int size, int points);
 
 } // namespace expanded

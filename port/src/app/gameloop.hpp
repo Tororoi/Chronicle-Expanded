@@ -80,6 +80,12 @@ void ResetSaveKeepingConfig(game::CSaveData &save);
 bool GameSetJump(const char *spec);
 
 /**
+ * Test hook: starts in town map (a MapNo below 200) with the game a save loaded before the jump brought, as the
+ * title's Continue goes on there, skipping the warm-up, with debug mode off (a stage's town).
+ */
+void GameSetTownJump(int map);
+
+/**
  * Test hook: cuts the loading screen's holds and fades to a few ticks.
  */
 void GameSetFastLoad(bool fast);

@@ -70,6 +70,7 @@
 #include "visualvu1.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/debug/stage.hpp"
 #include "expanded/town/ally.hpp"
 #include "expanded/town/fishing.hpp"
 #endif
@@ -3774,6 +3775,11 @@ int _GOTO_CHANGE_ESA(RS_STACKDATA *stack, int argument_count) {
     if (stack->type != RS_PTR) {
         return 0;
     }
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::StagePickBait(stack->p)) {
+        return 1;
+    }
+#endif
 
     p_use_item = stack->s;
     int items[32] = {ITEM_EVY, ITEM_MIMI, ITEM_PRICKLY, ITEM_THROBBING_CHERRY, ITEM_GOOEY_PEACH, ITEM_BOMB_NUTS, ITEM_POISONOUS_APPLE, ITEM_MELLOW_BANANA, ITEM_CARROT, ITEM_POTATO_CAKE, ITEM_MINON, ITEM_BATTAN, ITEM_PETITE_FISH, -1};

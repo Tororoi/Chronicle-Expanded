@@ -1,19 +1,32 @@
 #include "expanded/debug/stage.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <numbers>
 #include <optional>
 #include <sstream>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 #include "btactstatus.hpp"
 #include "btitem.hpp"
+#include "camerafollow.hpp"
 #include "character.hpp"
+#include "dngstatusdata.hpp"
 #include "dun/gameloop.hpp"
 #include "dungeonmap.hpp"
+#include "ebattle.hpp"
+#include "edit.hpp"
+#include "editground.hpp"
+#include "editloop.hpp"
+#include "editloop3.hpp"
 #include "expanded/core/party.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/debug/enemy_roster.hpp"
@@ -21,12 +34,17 @@
 #include "expanded/dungeon/floor_grid.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "fishing.hpp"
 #include "framevu1.hpp"
 #include "itemdata.hpp"
+#include "mainselect.hpp"
+#include "mathutil.hpp"
 #include "memcard.hpp"
 #include "memorycardaccess.hpp"
 #include "menu_inventory.hpp"
 #include "monstorunit.hpp"
+#include "runscript.hpp"
+#include "savedata.hpp"
 #include "userstatus.hpp"
 
 namespace dc::game {
@@ -46,6 +64,26 @@ constexpr float kAway = 2000.0f; // where monsters not set out are sent
 // How far in front of the member the stage's magic circle is set out.
 constexpr float kCircleAhead = 40.0f;
 
+// The sub maps (gedit/s01-s42) by MapNo, and two that are fished.
+constexpr int kFirstSubMap = 11;
+constexpr int kLastSubMap = 52;
+constexpr int kMapBrownboo = 14;
+constexpr int kMapEastHarbor = 19;
+
+// The game's clock runs 0-12, two hours a unit from 10:00; EdGetTime's periods are morning 8.5-11.5, day 11.5-2.5,
+// evening 2.5-5.5 and night 5.5-8.5. A period by name starts half a unit in.
+constexpr float kClockEnd = 12.0f;
+constexpr float kMorning = 9.0f;
+constexpr float kDay = 0.0f;
+constexpr float kEvening = 3.0f;
+constexpr float kNight = 6.0f;
+
+// A fishing sign: its program pushes _LOAD_FISHING_DATA's number (an int constant, as the disc codes one).
+constexpr int kConstInt = 1;
+constexpr int kLoadFishingData = 998;
+// The event the square button asks for while fishing: the bait change.
+constexpr int kBaitEvent = 0x86;
+
 std::optional<Stage> active;
 
 // The stage's progress through a run.
@@ -56,7 +94,12 @@ struct Run {
     bool  walking = false;
     float to[2] = {};
     bool  placed = false;
-    bool  circled = false; // the magic circle set out
+    bool  circled = false;     // the magic circle set out
+    bool  arrived = false;     // the stage's town in play
+    bool  at_sign = false;     // the player stood at the fishing sign (or none asked for)
+    bool  bait_asked = false;  // the bait change asked for
+    bool  bait_picked = false; // and the stage's bait picked in it
+    bool  baited = false;      // and on the hook
 };
 
 Run run;
@@ -115,6 +158,75 @@ bool Within(std::string_view text, int &out, int low, int high) {
     return Number(text, out) && out >= low && out <= high;
 }
 
+// A map by name or MapNo; the names are the towns' and two fishing maps'.
+bool Town(std::string_view text, int &out) {
+    constexpr std::pair<std::string_view, int> kNames[] = {
+        {"norune",       TOWN_NORUNE      },
+        {"matataki",     TOWN_MATATAKI    },
+        {"queens",       TOWN_QUEENS      },
+        {"muska_lacka",  TOWN_MUSKA_LACKA },
+        {"yellow_drops", TOWN_YELLOW_DROPS},
+        {"brownboo",     kMapBrownboo     },
+        {"east_harbor",  kMapEastHarbor   },
+    };
+    for (const auto &[name, map_no] : kNames) {
+        if (text == name) {
+            out = map_no;
+            return true;
+        }
+    }
+    return Within(text, out, TOWN_NORUNE, TOWN_COUNT - 1) || Within(text, out, kFirstSubMap, kLastSubMap);
+}
+
+// A time of day by its period (EdGetTime's), or the game's clock.
+bool Time(std::string_view text, float &out) {
+    constexpr std::pair<std::string_view, float> kPeriods[] = {
+        {"morning",   kMorning},
+        {"day",       kDay    },
+        {"afternoon", kDay    },
+        {"evening",   kEvening},
+        {"dusk",      kEvening},
+        {"night",     kNight  },
+    };
+    for (const auto &[name, time] : kPeriods) {
+        if (text == name) {
+            out = time;
+            return true;
+        }
+    }
+    return Number(text, out) && out >= 0.0f && out < kClockEnd;
+}
+
+// A bait the picker offers.
+bool Bait(std::string_view text, int &out) {
+    constexpr int kBaits[] = {ITEM_EVY, ITEM_MIMI, ITEM_PRICKLY, ITEM_THROBBING_CHERRY, ITEM_GOOEY_PEACH,
+                              ITEM_BOMB_NUTS, ITEM_POISONOUS_APPLE, ITEM_MELLOW_BANANA, ITEM_CARROT, ITEM_POTATO_CAKE,
+                              ITEM_MINON, ITEM_BATTAN, ITEM_PETITE_FISH};
+    return Number(text, out) && std::ranges::contains(kBaits, out);
+}
+
+// Item and weapon numbers, comma-separated, as --give takes them.
+bool Items(std::string_view text, std::string &out) {
+    for (std::string_view rest = text; true;) {
+        size_t comma = rest.find(',');
+        int    item = 0;
+        if (!Number(Trim(rest.substr(0, comma)), item) || item < 1 || item >= ITEM_WEAPON_END) {
+            return false;
+        }
+        if (comma == std::string_view::npos) {
+            break;
+        }
+        rest.remove_prefix(comma + 1);
+    }
+    out.clear();
+    for (char c : text) {
+        if (c != ' ' && c != '\t') {
+            out += c;
+        }
+    }
+    return true;
+}
+
 // A stage file's key, and how its value is read into a stage; false for a bad value.
 struct Key {
     std::string_view name;
@@ -122,24 +234,29 @@ struct Key {
 };
 
 constexpr Key kKeys[] = {
-    {"roster",      [](std::string_view v, Stage &s) { return Text(v, s.roster); }                          },
-    {"slot",        [](std::string_view v, Stage &s) { return Count(v, s.slot) && s.slot >= 1; }            },
-    {"dungeon",     [](std::string_view v, Stage &s) { return Within(v, s.dungeon, 0, 6); }                 },
-    {"floor",       [](std::string_view v, Stage &s) { return Count(v, s.floor); }                          },
-    {"character",   [](std::string_view v, Stage &s) { return Character(v, s.character); }                  },
-    {"weapon",      [](std::string_view v, Stage &s) { return Count(v, s.weapon); }                         },
-    {"attack",      [](std::string_view v, Stage &s) { return Count(v, s.attack); }                         },
-    {"sphere",      [](std::string_view v, Stage &s) { return Count(v, s.sphere); }                         },
-    {"seed",        [](std::string_view v, Stage &s) { return Number(v, s.seed) && s.seed >= 0; }           },
-    {"place",       [](std::string_view v, Stage &s) { return Count(v, s.place); }                          },
-    {"distance",    [](std::string_view v, Stage &s) { return Number(v, s.distance) && s.distance >= 0.0f; }},
-    {"spread",      [](std::string_view v, Stage &s) { return Number(v, s.spread); }                        },
-    {"angle",       [](std::string_view v, Stage &s) { return Number(v, s.angle); }                         },
-    {"place_kind",  [](std::string_view v, Stage &s) { return Count(v, s.place_kind); }                     },
-    {"place_after", [](std::string_view v, Stage &s) { return Count(v, s.place_after); }                    },
-    {"big_room",    [](std::string_view v, Stage &s) { return Flag(v, s.big_room); }                        },
-    {"keep_alive",  [](std::string_view v, Stage &s) { return Flag(v, s.keep_alive); }                      },
-    {"circle",      [](std::string_view v, Stage &s) { return Within(v, s.circle, 0, 9); }                  },
+    {"roster",       [](std::string_view v, Stage &s) { return Text(v, s.roster); }                          },
+    {"slot",         [](std::string_view v, Stage &s) { return Count(v, s.slot) && s.slot >= 1; }            },
+    {"dungeon",      [](std::string_view v, Stage &s) { return Within(v, s.dungeon, 0, 6); }                 },
+    {"floor",        [](std::string_view v, Stage &s) { return Count(v, s.floor); }                          },
+    {"character",    [](std::string_view v, Stage &s) { return Character(v, s.character); }                  },
+    {"weapon",       [](std::string_view v, Stage &s) { return Count(v, s.weapon); }                         },
+    {"attack",       [](std::string_view v, Stage &s) { return Count(v, s.attack); }                         },
+    {"sphere",       [](std::string_view v, Stage &s) { return Count(v, s.sphere); }                         },
+    {"seed",         [](std::string_view v, Stage &s) { return Number(v, s.seed) && s.seed >= 0; }           },
+    {"place",        [](std::string_view v, Stage &s) { return Count(v, s.place); }                          },
+    {"distance",     [](std::string_view v, Stage &s) { return Number(v, s.distance) && s.distance >= 0.0f; }},
+    {"spread",       [](std::string_view v, Stage &s) { return Number(v, s.spread); }                        },
+    {"angle",        [](std::string_view v, Stage &s) { return Number(v, s.angle); }                         },
+    {"place_kind",   [](std::string_view v, Stage &s) { return Count(v, s.place_kind); }                     },
+    {"place_after",  [](std::string_view v, Stage &s) { return Count(v, s.place_after); }                    },
+    {"big_room",     [](std::string_view v, Stage &s) { return Flag(v, s.big_room); }                        },
+    {"keep_alive",   [](std::string_view v, Stage &s) { return Flag(v, s.keep_alive); }                      },
+    {"circle",       [](std::string_view v, Stage &s) { return Within(v, s.circle, 0, 9); }                  },
+    {"town",         [](std::string_view v, Stage &s) { return Town(v, s.town); }                            },
+    {"fishing_spot", [](std::string_view v, Stage &s) { return Count(v, s.fishing_spot); }                   },
+    {"bait",         [](std::string_view v, Stage &s) { return Bait(v, s.bait); }                            },
+    {"time",         [](std::string_view v, Stage &s) { return Time(v, s.time); }                            },
+    {"give",         [](std::string_view v, Stage &s) { return Items(v, s.give); }                           },
 };
 
 // One key's value into stage; false for an unknown key or a bad value.
@@ -246,6 +363,91 @@ bool InPlay() {
            BtActStatus.action_on == 0;
 }
 
+// The town's event program for label: whether it reaches _LOAD_FISHING_DATA, as a fishing sign's does.
+bool LoadsFishing(int label) {
+    const CRunScript &script = EdEventScript;
+    if (script.prog == nullptr) {
+        return false;
+    }
+    const char                      *base = reinterpret_cast<const char *>(script.prog);
+    const auto                      *entry = reinterpret_cast<const RS_PROGDATA *>(base + script.prog->prog);
+    std::vector<const char *>        pending;
+    std::unordered_set<const char *> seen;
+    for (int i = 0; i < script.prog->prog_num; i++) {
+        if (entry[i].no == label) {
+            pending.push_back(base + entry[i].func);
+        }
+    }
+    // A function runs from its address to the first word that is no opcode.
+    constexpr int kMostInstructions = 20000;
+    while (!pending.empty()) {
+        const char *record = pending.back();
+        pending.pop_back();
+        if (!seen.insert(record).second) {
+            continue;
+        }
+        int address = 0;
+        std::memcpy(&address, record, sizeof(address));
+        if (address < 0) {
+            continue;
+        }
+        const auto *pc = reinterpret_cast<const vmcode_t *>(script.code + address);
+        for (int n = 0; n < kMostInstructions && pc->op >= RS_OP_LOAD && pc->op <= RS_OP_COS; n++, pc++) {
+            if (pc->op == RS_OP_CALL) {
+                pending.push_back(script.code + pc->arg2);
+            } else if (pc->op == RS_OP_PUSH_CONST && pc->arg1 == kConstInt && pc->arg2 == kLoadFishingData) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Where the town's spot-th fishing sign is, in its event points' order: the event point the player triggers it from.
+bool FishingSign(int spot, float *position) {
+    const ED_MOVE_CHARA_INFO &info = EdMoveCharaInfo;
+    for (int i = 0, found = 0; i < info.point_count; i++) {
+        ED_EVENT_POINT &point = info.points[i];
+        if (point.enabled == 0 || point.event_type != ED_EVENT_POINT_EVENT || !LoadsFishing(point.side) || found++ < spot) {
+            continue;
+        }
+        sceVu0FVECTOR rotation;
+        sceVu0CopyVector(position, point.position);
+        CMapObject *object = point.parts_no >= 0 ? pEditGround->GetPartsObject(point.parts_no) : point.map_object;
+        if (object != nullptr) {
+            GetPosRot(object, position, rotation);
+        }
+        return true;
+    }
+    return false;
+}
+
+// The player stood on the sign's event point, facing the way they came from the town's entrance, the camera behind.
+bool StandAtSign(int spot) {
+    sceVu0FVECTOR sign;
+    if (!FishingSign(spot, sign)) {
+        return false;
+    }
+    sceVu0FVECTOR position = {sign[0], sign[1], sign[2], 1.0f};
+    sceVu0FVECTOR rotation = {0.0f, std::atan2(sign[0] - Chara->pos[0], sign[2] - Chara->pos[2]), 0.0f, 0.0f};
+    Chara->SetPosition(position);
+    Chara->SetRotation(rotation);
+    MainCamera.FollowOn();
+    MainCamera.SetAngleSoon(AngleLimit(rotation[1] + std::numbers::pi_v<float>));
+    MainCamera.SetFollow(position[0], position[1] + Chara->body_height - 3.0f, position[2]);
+    EdInitCameraParam(&MainCamera);
+    MainCamera.Step(-1);
+    return true;
+}
+
+// The bait put in the bag when it lacks one.
+void GiveBait(int bait) {
+    CDngStatusData &status = *SaveData->GetDngStatus();
+    if (status.SearchItemIndexNo(bait) < 0) {
+        status.GetItem(bait, 0);
+    }
+}
+
 } // namespace
 
 bool ParseStage(std::string_view text, Stage &stage, std::string *why) {
@@ -278,6 +480,20 @@ bool ParseStage(std::string_view text, Stage &stage, std::string *why) {
             }
             return false;
         }
+    }
+    const char *mixed = nullptr;
+    if (parsed.town >= 0 && parsed.dungeon >= 0) {
+        mixed = "a dungeon and a town";
+    } else if (parsed.town < 0 && parsed.fishing_spot >= 0) {
+        mixed = "a fishing_spot with no town";
+    } else if (parsed.town < 0 && parsed.bait >= 0) {
+        mixed = "a bait with no town";
+    }
+    if (mixed != nullptr) {
+        if (why != nullptr) {
+            *why = mixed;
+        }
+        return false;
     }
     stage = parsed;
     return true;
@@ -320,11 +536,17 @@ const Stage *ActiveStage() {
 }
 
 bool StageLoadSave() {
-    if (!active || active->dungeon < 0) {
+    if (!active || (active->dungeon < 0 && active->town < 0)) {
         return true;
     }
     McAccess.InitForMC();
-    return McAccess.LoadFromMc(active->slot - 1) == 1;
+    if (McAccess.LoadFromMc(active->slot - 1) != 1) {
+        return false;
+    }
+    if (active->time >= 0.0f) {
+        SaveData->SetNowTime(active->time);
+    }
+    return true;
 }
 
 int StageEntranceFloor(int otherwise) {
@@ -405,6 +627,60 @@ void StageStep() {
         run.circled = true;
         LogEvent("stage", "\"step\":\"circle\"");
     }
+}
+
+void StageTownStep() {
+    if (!active || active->town < 0 || MapNo != active->town || Chara == nullptr) {
+        return;
+    }
+    if (!run.arrived) {
+        run.arrived = true;
+        run.at_sign = active->fishing_spot < 0;
+        if (active->bait >= 0) {
+            GiveBait(active->bait);
+        }
+        LogEvent("stage", "\"step\":\"town\"");
+    }
+    if (!run.at_sign) {
+        run.at_sign = true;
+        if (StandAtSign(active->fishing_spot)) {
+            LogEvent("stage", "\"step\":\"at_sign\"");
+        } else {
+            std::fprintf(stderr, "stage: map %d has no fishing sign %d\n", MapNo, active->fishing_spot);
+        }
+    }
+    ED_MOVE_CHARA_INFO &info = EdMoveCharaInfo;
+    bool                standing = info.fishing != 0 && chara_fishing == ED_FISHING_STAND && info.event_no < 0 && info.system_event_no < 0;
+    if (active->bait >= 0 && !run.bait_asked && standing) {
+        // As the square button asks for it.
+        info.event_no = kBaitEvent;
+        info.acted = true;
+        Chara->SetMotion(0, 0);
+        run.bait_asked = true;
+    }
+    if (run.bait_asked && !run.baited && FishingGetEsaItemNo() == active->bait) {
+        run.baited = true;
+        LogEvent("stage", std::format("\"step\":\"bait\",\"item\":{}", active->bait));
+    }
+}
+
+bool StagePickBait(RS_STACKDATA *choice) {
+    if (!active || !run.bait_asked || run.bait_picked) {
+        return false;
+    }
+    run.bait_picked = true;
+    // As the picker takes it: out of its bag slot.
+    ITEM_PACK &pack = SaveData->GetDngStatus()->item_pack;
+    for (int i = 0; i < pack.num; i++) {
+        if (pack.item[i] == active->bait) {
+            pack.item[i] = 0;
+            choice->i = active->bait;
+            ListBaitForScript(choice, active->bait);
+            return true;
+        }
+    }
+    std::fprintf(stderr, "stage: the bag has no bait %d\n", active->bait);
+    return false;
 }
 
 void StageReset() {
