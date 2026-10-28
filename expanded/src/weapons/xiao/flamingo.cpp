@@ -22,7 +22,7 @@ float LockOnDistanceRate(float rate) {
     return LockOnDistanceActive() ? rate * kLockOnDistance : rate;
 }
 
-float BaitNoticeRadius(float radius) {
+float BaitFlamboyanceRadius(float radius) {
     return radius + kBaitFlamboyance * static_cast<float>(std::min(WeaponsOwned(ITEM_WEAPON_FLAMINGO), kBaitFlamboyanceMost));
 }
 
