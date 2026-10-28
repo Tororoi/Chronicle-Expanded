@@ -8,11 +8,11 @@ struct COLLISION_HIT;
 namespace expanded {
 
 // Frozen Tuna "Cold Storage", with the Frozen Tuna in Goro's hand, or Super Steve carrying its SynthSphere in Xiao's:
-//   - Each WHP the weapon loses banks kColdStorageHealPerWhp life into a pool. Once the wielder takes damage, the pool
-//     drains into his life, a point every kColdStorageDrainFrames frames the monsters step, while his life is above 0
-//     and under its maximum (paused there, the pool kept). Damage taken with nothing banked starts no drain. A repair
-//     (the WHP rising), the weapon leaving the hand of the member in play and a new dungeon visit empty the pool. Goro's
-//     weapon and Super Steve's sphere each have a pool of their own.
+//   - Each WHP the weapon loses banks kColdStorageHealPerWhp life into a pool. While anything is banked, the pool
+//     drains into the wielder's life, a point every kColdStorageDrainFrames frames the monsters step, while his life is
+//     above 0 and under its maximum (paused there, the pool kept). A repair (the WHP rising), the weapon leaving the hand
+//     of the member in play and a new dungeon visit empty the pool. Goro's weapon and Super Steve's sphere each have a
+//     pool of their own.
 //   - Each hit of the wielder's that takes life off a monster has a kColdStorageChance chance to stop every monster in
 //     play on the floor (stepping near the player and out of any chest) but the ice ones (Blizzard, Sam and Ice Gemron)
 //     for kColdStorageMonsterFrames, as the game's freeze does (no poison, goo or anger beside it), and to freeze the

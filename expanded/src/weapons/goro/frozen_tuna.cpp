@@ -27,17 +27,14 @@ namespace {
 // The kinds the stop passes by.
 constexpr Monster kIceKinds[] = {Monster::BLIZZARD, Monster::SAM, Monster::GEMRON_ICE};
 
-// A wielder's pool, watching the weapon record and the member it was seeded on: the WHP and life last seen, the life
-// banked, the part of a point drained toward the next, whether damage set it draining, and the frames toward the next
-// drain.
+// A wielder's pool, watching the weapon record and the member it was seeded on: the WHP last seen, the life banked, the
+// part of a point drained toward the next, and the frames toward the next drain.
 struct Pool {
     const WEAPON_HAVE *weapon = nullptr;
     int                chara = -1;
     float              whp = 0.0f;
-    int                life = 0;
     float              banked = 0.0f;
     float              drained = 0.0f;
-    bool               draining = false;
     int                frames = 0;
 };
 
@@ -59,7 +56,6 @@ void Empty(Pool &pool) {
         Log(pool, "reset");
     }
     pool.drained = 0.0f;
-    pool.draining = false;
     pool.frames = 0;
 }
 
@@ -74,7 +70,7 @@ void StepPool(Pool &pool, bool active) {
     int life = Life(*UserStatus, chara);
     if (pool.weapon != weapon || pool.chara != chara) {
         Empty(pool);
-        pool = {.weapon = weapon, .chara = chara, .whp = weapon->durability_f, .life = life};
+        pool = {.weapon = weapon, .chara = chara, .whp = weapon->durability_f};
         return;
     }
     if (weapon->durability_f < pool.whp) {
@@ -84,10 +80,7 @@ void StepPool(Pool &pool, bool active) {
         Empty(pool);
     }
     pool.whp = weapon->durability_f;
-    if (life < pool.life && pool.banked > 0.0f) {
-        pool.draining = true;
-    }
-    if (pool.draining && life > 0 && life < UserStatus->max_hp[chara] && MonstersStepping() && ++pool.frames >= kColdStorageDrainFrames) {
+    if (pool.banked > 0.0f && life > 0 && life < UserStatus->max_hp[chara] && MonstersStepping() && ++pool.frames >= kColdStorageDrainFrames) {
         pool.frames = 0;
         float take = std::min(1.0f, pool.banked);
         pool.banked -= take;
@@ -95,16 +88,13 @@ void StepPool(Pool &pool, bool active) {
         if (pool.drained >= 1.0f) {
             pool.drained -= 1.0f;
             UserStatus->AddNowLife(chara, 1, 255.0f);
-            life = Life(*UserStatus, chara);
             Log(pool, "heal");
         }
     }
     if (pool.banked <= 0.0f) {
         pool.banked = 0.0f;
-        pool.draining = false;
         pool.frames = 0;
     }
-    pool.life = life;
 }
 
 bool IceKind(const CMonstorUnit &unit, int monster) {

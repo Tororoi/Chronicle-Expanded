@@ -215,41 +215,29 @@ TEST_F(ColdStorage, EachWhpLostBanksALife) {
     EXPECT_EQ(Life(), 100);
 }
 
-TEST_F(ColdStorage, DamageDrainsThePoolALifeEveryThirtyFrames) {
+TEST_F(ColdStorage, ThePoolHealsALifeEveryThirtyFramesAsSoonAsAnythingIsBanked) {
     Step();
     Weapon().durability_f -= 4.0f;
-    Step();
-    Hurt(10);
     Step(expanded::kColdStorageDrainFrames - 1);
-    EXPECT_EQ(Life(), 90);
+    EXPECT_EQ(Life(), 100);
     Step();
-    EXPECT_EQ(Life(), 91);
+    EXPECT_EQ(Life(), 101);
     EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 3.0f);
     Step(expanded::kColdStorageDrainFrames * 3);
-    EXPECT_EQ(Life(), 94);
+    EXPECT_EQ(Life(), 104);
     EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 0.0f);
     Step(expanded::kColdStorageDrainFrames * 3);
-    EXPECT_EQ(Life(), 94);
+    EXPECT_EQ(Life(), 104);
 }
 
-TEST_F(ColdStorage, NothingDrainsBeforeDamage) {
-    Step();
-    Weapon().durability_f -= 5.0f;
-    Step(expanded::kColdStorageDrainFrames * 4);
-    EXPECT_EQ(Life(), 100);
-    EXPECT_FLOAT_EQ(expanded::ColdStorageBanked(false), 5.0f);
-}
-
-TEST_F(ColdStorage, DamageWithNothingBankedStartsNoDrain) {
+TEST_F(ColdStorage, NothingHealsWithNothingBanked) {
     Step();
     Hurt(10);
-    Step();
-    Weapon().durability_f -= 5.0f;
     Step(expanded::kColdStorageDrainFrames * 4);
     EXPECT_EQ(Life(), 90);
-    Hurt(1);
+    Weapon().durability_f -= 1.0f;
     Step(expanded::kColdStorageDrainFrames);
-    EXPECT_EQ(Life(), 90);
+    EXPECT_EQ(Life(), 91);
 }
 
 TEST_F(ColdStorage, TheDrainPausesAtFullLifeAndKeepsThePool) {
