@@ -1,5 +1,6 @@
 #include "expanded/dungeon/ground_shadow.hpp"
 
+#include <algorithm>
 #include <cstdio>
 
 #include "character.hpp"
@@ -60,6 +61,14 @@ void GroundShadowHide(const void *owner) {
 
 bool GroundShadowShown() {
     return shadow.shown;
+}
+
+void GroundShadowAt(float *at) {
+    std::copy(shadow.at, shadow.at + 3, at);
+}
+
+float GroundShadowRadius() {
+    return shadow.radius;
 }
 
 void GroundShadowDraw() {
