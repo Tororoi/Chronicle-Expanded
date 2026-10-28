@@ -1,12 +1,15 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <bit>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <numbers>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -14,11 +17,13 @@
 
 #include "expanded/data/bytes.hpp"
 #include "expanded/data/data_build.hpp"
+#include "expanded/data/fishing_collision.hpp"
 #include "expanded/data/fishing_scripts.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/data/mes.hpp"
 #include "expanded/data/stb.hpp"
 #include "expanded/data/town_scene.hpp"
+#include "expanded/data/yellow_drops_bank.hpp"
 #include "test_support.hpp"
 
 using expanded::Bytes;
@@ -397,4 +402,88 @@ TEST(FishingSpot, QueensIsBuiltFromTheDisc) {
     std::vector<scene::Triangle> collision = expanded::ReadFishingCollision(Read(scratch / expanded::FishingCollisionPath(Queens())));
     EXPECT_EQ(collision.size(), 713u);
     EXPECT_EQ(Get32(Read(scratch / expanded::kFishingSignPictures), 4), 1u); // the sign's one picture
+}
+
+TEST(TownScene, AReplacedPartIsAppendedAndItsEntryMoved) {
+    Bytes scene_file(0x48, 0);
+    Set32(scene_file, 4, 1);
+    scene_file[0x10] = 'a';
+    Set32(scene_file, 0x20, 0x40); // part a at 0x40, 8 bytes
+    Set32(scene_file, 0x24, 8);
+    const Bytes part = {1, 2, 3};
+    Bytes       out = scene::ReplaceSub(scene_file, "a", part);
+    ASSERT_EQ(out.size(), 0x50u + 3u);
+    EXPECT_EQ(Get32(out, 0x20), 0x50u); // after the old bytes, 16-aligned
+    EXPECT_EQ(Get32(out, 0x24), 3u);
+    EXPECT_EQ(out[0x52], 3);
+    EXPECT_THROW(scene::ReplaceSub(scene_file, "b", part), std::runtime_error);
+}
+
+TEST(FishingSpot, YellowDropsIsFishedFromItsWestBank) {
+    const expanded::FishingSpot *spot = expanded::FishingSpotOfMap(23);
+    ASSERT_NE(spot, nullptr);
+    EXPECT_EQ(spot->code, "s13");
+    EXPECT_EQ(expanded::FishingSpotOfArea(7), spot);
+    EXPECT_EQ(spot->rare_one_in, 0);
+    EXPECT_EQ(spot->water, expanded::kYellowDropsWater + 1.0f); // a little over the raised water, as the game's spots
+    // The trigger is the sign's foot; the player stands just west of it, over the water, inside the rectangle.
+    EXPECT_EQ(spot->trigger, (std::array<float, 3>{0, 0, 0}));
+    EXPECT_LT(std::abs(spot->stance[0] - static_cast<float>(spot->sign[0])), expanded::kFishingSignRadius);
+    EXPECT_GT(spot->stance[1], spot->water);
+    EXPECT_TRUE(spot->x1 < spot->stance[0] && spot->stance[0] < spot->x2 && spot->z1 < spot->stance[2] && spot->stance[2] < spot->z2);
+}
+
+TEST(FishingSpot, YellowDropsWaterRisesToTheBanksNotch) {
+    const std::string cfg = "WATER_SURFACE\r\n\t\t\t-320, 0, -320,\r\n\t\t\t320, 0, 320,\r\n";
+    std::string       raised = expanded::ToText(expanded::YellowDropsWater(expanded::ToBytes(cfg)));
+    EXPECT_EQ(raised, "WATER_SURFACE\r\n\t\t\t-320, 4.25, -320,\r\n\t\t\t320, 4.25, 320,\r\n");
+    EXPECT_THROW(expanded::YellowDropsWater(expanded::ToBytes("WATER_SURFACE\r\n")), std::runtime_error);
+}
+
+TEST(FishingSpot, YellowDropsBankWallsFollowTheBulge) {
+    std::vector<scene::Triangle> walls = expanded::YellowDropsBankWalls();
+    std::vector<scene::Triangle> pillars = expanded::YellowDropsPillarBases();
+    ASSERT_EQ(walls.size(), 18u + pillars.size());               // nine stretches of bank, two triangles each
+    EXPECT_EQ(walls[0][0], (scene::Vec3{-485.0, 16.0, -197.0})); // from the shore's corner, where the section starts
+    EXPECT_EQ(walls[0][2][1], -24.0);                            // down to under the fish
+    // The station at z 102 moves west by a sine over the section (z -145 to 274), 70 at its middle.
+    EXPECT_EQ(walls[10][0][2], 102.0);
+    EXPECT_NEAR(walls[10][0][0], -413.0 - 70.0 * std::sin(std::numbers::pi * 247.0 / 419.0), 1e-9);
+    EXPECT_EQ(walls[18][0], pillars[0][0]);
+}
+
+TEST(FishingSpot, YellowDropsIsBuiltFromTheDisc) {
+    const char *data = std::getenv("DC_TEST_DATA");
+    if (data == nullptr) {
+        GTEST_SKIP() << "DC_TEST_DATA is not set";
+    }
+    expanded::test::ScratchDir folder("fishing_spot");
+    const fs::path            &scratch = folder.path();
+    ASSERT_EQ(BuildSpots(data, scratch), 0);
+    const fs::path rebuilt = scratch / expanded::kRebuiltDiscFolder / "gedit/s13";
+
+    Bytes                       disc = Read(fs::path(data) / "gedit/s13/scene.scn");
+    Bytes                       scene_file = Read(rebuilt / "scene.scn");
+    std::vector<scene::SubFile> files = scene::SubFiles(scene_file);
+    auto                        part = [&](std::string_view name) { return *std::ranges::find(files, name, &scene::SubFile::name); };
+    // The sign, then the bank's part after it, larger, the disc's left where it was.
+    ASSERT_EQ(files.back().name, "kanban");
+    EXPECT_GT(part("s1301").offset, files.back().offset);
+    EXPECT_EQ(part("s1301").size, 346176u);
+    EXPECT_EQ(part("s1301").offset + part("s1301").size, scene_file.size());
+    EXPECT_EQ(GetF32(scene_file, part("s1302").offset + 0x244), expanded::kYellowDropsWater); // the water sheet
+    // The camera walls gained the pillars' hulls.
+    std::string bank = expanded::ToText(std::span<const unsigned char>(scene_file).subspan(part("s1301").offset, part("s1301").size));
+    EXPECT_NE(bank.find("pcam_xs"), std::string::npos);
+    EXPECT_NE(bank.find("pcam_xn"), std::string::npos);
+    EXPECT_EQ(scene::SubFiles(disc).size() + 1, files.size());
+
+    std::string cfg = expanded::ToText(Read(rebuilt / "mapinfo.cfg"));
+    EXPECT_NE(cfg.find("\t\t\t-320, 4.25, -320,"), std::string::npos);
+    EXPECT_NE(cfg.find("\t\t-465,\t30,\t40,\t//position\r\n\t\t0,\t90,\t0\t//rotation"), std::string::npos);
+
+    const expanded::FishingSpot *spot = expanded::FishingSpotOfMap(23);
+    ASSERT_NE(spot, nullptr);
+    EXPECT_EQ(expanded::ReadFishingCollision(Read(scratch / expanded::FishingCollisionPath(*spot))).size(),
+              expanded::YellowDropsBankWalls().size());
 }

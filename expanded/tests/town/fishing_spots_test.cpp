@@ -122,3 +122,20 @@ TEST(FishingSpots, AFishSwimmingPlusZMeetsAThinWall) {
         EXPECT_LT(at[2] * direction, 3.0f) << direction;
     }
 }
+
+TEST(FishingSpots, YellowDropsFishAreTartonsNonkiesNegiesAndBons) {
+    using namespace expanded::fish;
+    constexpr int kYellowDropsSpot = 7;
+    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 0, -1), kTarton); // no Garayans here
+    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 1, -1), kNonky);
+    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 2, -1), kNegie);
+    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 3, -1), kBon);
+    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 50, -1), kNegie);
+    EXPECT_EQ(expanded::SpotFishCount(kYellowDropsSpot, 2), expanded::kSpotFishCount);
+}
+
+TEST(FishingSpots, YellowDropsFishesWithTheGamesLineAndDepth) {
+    EXPECT_EQ(expanded::SpotLineSegment(7), distp);
+    Town yellow_drops(23);
+    EXPECT_EQ(expanded::SpotFishDepth(12.0f), 12.0f);
+}
