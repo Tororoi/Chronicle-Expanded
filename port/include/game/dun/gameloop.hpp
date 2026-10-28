@@ -129,6 +129,7 @@ class CMenuItemStep;
 class CMonstorUnit;
 class CRandomItem;
 class CSHOT_EFFECT_PACK;
+class CSHOT_FIREBAR;
 class CStealItem;
 class CUserStatus;
 struct MAP_TRAP_CIRCLE;
@@ -267,6 +268,11 @@ extern CHitValue *NowHitValue;
  * Stores the machine-gun hit flashes used by dungeon projectile effects.
  */
 extern "C" CHIT_MACHINGUN_EFFECT OzumondShotEffect;
+
+/**
+ * The flame that Osmond's flamethrower action shoots.
+ */
+extern CSHOT_FIREBAR OzumondFire;
 
 /**
  * Projectile effects the dungeon has running.

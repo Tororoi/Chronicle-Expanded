@@ -59,6 +59,7 @@
 #include "expanded/weapons/toan/maneater.hpp"
 #include "expanded/weapons/toan/seventh_heaven.hpp"
 #include "expanded/weapons/toan/shamshir.hpp"
+#include "expanded/weapons/toan/small_sword.hpp"
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
@@ -84,6 +85,7 @@
 #include "expanded/weapons/xiao/double_impact.hpp"
 #include "expanded/weapons/xiao/dragons_y.hpp"
 #include "expanded/weapons/xiao/firing_legs.hpp"
+#include "expanded/weapons/xiao/flame_gun.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
@@ -135,6 +137,7 @@ void DungeonStatusReady() {
 
 void DungeonFrameBegins() {
     StageFrame();
+    FlameGunFrame();
 }
 
 void DungeonShadowsDrawn(const float *player) {
@@ -419,7 +422,7 @@ void MonsterDamaged(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, i
     if (AllyUnit(unit)) {
         return;
     }
-    EventLogDamaged(unit, monster, amount);
+    EventLogDamaged(unit, monster, hit, amount);
     CactusMonsterDamaged(unit, monster, hit, amount);
     SnailMonsterDamaged(unit, monster, hit, amount);
     ColdStorageMonsterDamaged(unit, monster, hit, amount);
@@ -507,6 +510,11 @@ void HealTicked() {
 
 void PlayerHitsChecking() {
     GuardianReflectorSpend();
+}
+
+void XiaoShotPlaying(CCharacter &chara, int aimed) {
+    QuickDrawShot(chara, aimed);
+    FlameGunShot(aimed);
 }
 
 float XiaoShotWear(float wear) {

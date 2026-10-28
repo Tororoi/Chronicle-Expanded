@@ -15,6 +15,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/weapons/osmond/skunk.hpp"
+#include "expanded/weapons/xiao/flame_gun.hpp"
 #endif
 
 namespace dc::game {
@@ -117,7 +118,11 @@ void CSHOT_FIREBAR::Step() {
 #else
             NowColData->Set(position[particle], damage[particle], 2, 4.0f, 1.0f, 2, 2, 0, 0);
 #endif
+#ifdef CHRONICLE_EXPANDED
+            NowColData->SetUserID(expanded::FlameOwner(5), 6);
+#else
             NowColData->SetUserID(5, 6);
+#endif
             NowColData->hit[NowColData->now_hit].weapon_flags = NowWeaponHave->flags;
             NowColData->hit[NowColData->now_hit].vs_monster = NowWeaponHave->vs_monster;
             NowColData->hit[NowColData->now_hit].flags = GetWeaponElementAttr(NowWeaponHave->best_elem);

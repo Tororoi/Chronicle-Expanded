@@ -4,6 +4,7 @@
 #include <format>
 
 #include "app/gameloop.hpp"
+#include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/party.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
@@ -70,17 +71,18 @@ void EventLogFloorLoaded() {
     }
 }
 
-void EventLogDamaged(const CMonstorUnit &unit, int monster, int amount) {
+void EventLogDamaged(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount) {
     if (file != nullptr) {
         const MONSTOR &target = unit.monster[monster];
-        LogEvent("damage", std::format("\"monster\":{},\"kind\":{},\"amount\":{},\"life\":{}", monster,
-                                       ModelKind(target.base_model), amount, target.hp));
+        LogEvent("damage", std::format("\"monster\":{},\"kind\":{},\"amount\":{},\"life\":{},\"owner\":{},\"attack\":{}", monster,
+                                       ModelKind(target.base_model), amount, target.hp, hit.owner, hit.attack_no));
     }
 }
 
 void EventLogKilled(const CMonstorUnit &unit, int monster) {
     if (file != nullptr) {
-        LogEvent("kill", std::format("\"monster\":{},\"kind\":{}", monster, ModelKind(unit.monster[monster].base_model)));
+        const MONSTOR &target = unit.monster[monster];
+        LogEvent("kill", std::format("\"monster\":{},\"kind\":{},\"by\":{}", monster, ModelKind(target.base_model), target.last_attacker));
     }
 }
 

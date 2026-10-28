@@ -19,7 +19,7 @@ bool QuickDrawSphere();
 // trail and hit.
 void QuickDrawSwing(CCharacter &chara);
 
-// Hook: BattleActionPlay_Jinn, before it reads the motion time: a draw or hold let go jumps to the shot.
+// Hook: BattleActionPlay_Jinn, before it reads the motion time (XiaoShotPlaying): a draw or hold let go jumps to the shot.
 void QuickDrawShot(CCharacter &chara, int aimed);
 
 // Hook: motionDrive's action gauge refill: the speed it refills at.

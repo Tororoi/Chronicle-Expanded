@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "app/gameloop.hpp"
+#include "collisiondata.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
 #include "itemdata.hpp"
@@ -74,17 +75,23 @@ TEST(EventLog, AFileThatCannotBeOpenedIsRefused) {
     EXPECT_FALSE(expanded::EventLogOn());
 }
 
+// Damage names the monster and the hit's owner and attack; a kill, the member it is credited to.
 TEST(EventLog, DamageAndKillsNameTheMonster) {
     expanded::test::TestFloor floor;
     LogScope                  log;
     floor.unit().monster[3].hp = 14;
-    expanded::EventLogDamaged(floor.unit(), 3, 136);
+    floor.unit().monster[3].last_attacker = CHARA_XIAO;
+    COLLISION_HIT hit = {};
+    hit.owner = CHARA_XIAO;
+    hit.attack_no = 6;
+    expanded::EventLogDamaged(floor.unit(), 3, hit, 136);
     expanded::EventLogKilled(floor.unit(), 3);
     std::vector<std::string> lines = log.Lines();
     ASSERT_EQ(lines.size(), 2u);
     EXPECT_NE(lines[0].find(",\"event\":\"damage\",\"monster\":3,\"kind\":"), std::string::npos);
-    EXPECT_NE(lines[0].find(",\"amount\":136,\"life\":14}"), std::string::npos);
+    EXPECT_NE(lines[0].find(",\"amount\":136,\"life\":14,\"owner\":1,\"attack\":6}"), std::string::npos);
     EXPECT_NE(lines[1].find(",\"event\":\"kill\",\"monster\":3,\"kind\":"), std::string::npos);
+    EXPECT_NE(lines[1].find(",\"by\":1}"), std::string::npos);
 }
 
 TEST(EventLog, AnOwnSoundIsItsProgramAndNote) {
