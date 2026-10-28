@@ -8,6 +8,7 @@
 #include "clsmes.hpp"
 #include "editloop.hpp"
 #include "expanded/core/menu_text.hpp"
+#include "expanded/town/fish_kinds.hpp"
 #include "expanded/weapons/ruby/fairys_ring.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "fish.hpp"
@@ -75,18 +76,18 @@ TEST_F(FairyFortune, WithoutTheRingEveryFishPaysItsOwn) {
 TEST_F(FairyFortune, OwnedEveryFishButTheGarayansPaysTwice) {
     save_.status().chara_weapons[CHARA_RUBY][2].item_no = ITEM_WEAPON_FAIRY_S_RING;
     for (int kind = 0; kind < kFishKinds; kind++) {
-        bool garayan = kind == expanded::kMardanGarayan || kind == expanded::kBaronGarayan;
+        bool garayan = kind == expanded::fish::kMardanGarayan || kind == expanded::fish::kBaronGarayan;
         EXPECT_EQ(Paid(kind), garayan ? 150 : 150 * expanded::kFairyFortune) << kind;
     }
-    EXPECT_EQ(Paid(expanded::kMardanGarayan), 150);
-    EXPECT_EQ(Paid(expanded::kBaronGarayan), 150);
+    EXPECT_EQ(Paid(expanded::fish::kMardanGarayan), 150);
+    EXPECT_EQ(Paid(expanded::fish::kBaronGarayan), 150);
 }
 
 TEST_F(FairyFortune, TheGarayansAreMardanAndBaron) {
     // GetFishMsgNo's system messages: 45 "Mardan Garayan", 37 "Baron Garayan".
-    EXPECT_EQ(GetFishMsgNo(expanded::kMardanGarayan), 45);
-    EXPECT_EQ(GetFishMsgNo(expanded::kBaronGarayan), 37);
-    EXPECT_EQ(expanded::kGarayans.size(), 2u);
+    EXPECT_EQ(GetFishMsgNo(expanded::fish::kMardanGarayan), 45);
+    EXPECT_EQ(GetFishMsgNo(expanded::fish::kBaronGarayan), 37);
+    EXPECT_EQ(expanded::fish::kGarayans.size(), 2u);
 }
 
 TEST_F(FairyFortune, ARingInStorageOrAnotherBagCounts) {
@@ -118,10 +119,10 @@ TEST_F(FairyFortune, AnyOtherCatchShowsTheGamesOwnMessage) {
     EXPECT_EQ(expanded::FairyFortuneCatchText(kCatch), std::nullopt);
 
     save_.status().chara_weapons[CHARA_RUBY][2].item_no = ITEM_WEAPON_FAIRY_S_RING;
-    Paid(expanded::kMardanGarayan);
+    Paid(expanded::fish::kMardanGarayan);
     EXPECT_EQ(expanded::FairyFortuneCatchText(kCatch), std::nullopt);
     Paid(0);
-    Paid(expanded::kBaronGarayan);
+    Paid(expanded::fish::kBaronGarayan);
     EXPECT_EQ(expanded::FairyFortuneCatchText(kCatch), std::nullopt);
 
     OptionScope options;
@@ -143,7 +144,7 @@ TEST_F(FairyFortune, TheTalkWindowShowsTheMarkedCatch) {
     Paid(0);
     EXPECT_EQ(text(EditMes1, expanded::kCatchMessage), kFortuneCatch);
     EXPECT_EQ(text(EditMes1, 281), "Dran lives in the deepest part of\nthe {highlight}Divine Beast Cave{/color}.");
-    Paid(expanded::kBaronGarayan);
+    Paid(expanded::fish::kBaronGarayan);
     EXPECT_EQ(text(EditMes1, expanded::kCatchMessage), kCatch);
 
     // Another bank with the same message keeps its own.
@@ -173,7 +174,7 @@ TEST_F(FairyFortune, TheRingTakesTheCatchMessagesWeaponIcon) {
     EXPECT_EQ(expanded::FairyFortunePicture(EditMes1, kIconSword), 0);
 
     EditMes1.mes_made = expanded::kCatchMessage;
-    Paid(expanded::kMardanGarayan);
+    Paid(expanded::fish::kMardanGarayan);
     EXPECT_EQ(expanded::FairyFortunePicture(EditMes1, kIconSword), 0);
     EditMes1.mes_made = made;
 }

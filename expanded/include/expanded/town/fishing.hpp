@@ -16,14 +16,9 @@ struct FloorDropZone;
 
 // The game's fishing hooks, each calling the features that act there in turn.
 
-// FishingLoadFish's spots, and the fish kinds (fish_info's index) Expanded names.
+// FishingLoadFish's spots Expanded names.
 inline constexpr int kMatatakiWaterfall = 2;
 inline constexpr int kEastHarbor = 3;
-inline constexpr int kGobbler = 1;
-inline constexpr int kGummy = 6;
-inline constexpr int kNiler = 7;
-inline constexpr int kUmadakara = 9;
-inline constexpr int kPiccoly = 11;
 
 // The kind of fish FishingLoadFish loads in a spot's slot: kind, the game's roll (-1 for none), as the weapons change it;
 // rare_interval is the slot's one-in-n chance of a Garayan for the time of day.

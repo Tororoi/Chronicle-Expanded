@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "expanded/debug/event_log.hpp"
+#include "expanded/town/fish_kinds.hpp"
 #include "expanded/weapons/ruby/fairys_ring.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "fish.hpp"
@@ -52,7 +53,7 @@ int RecordMagic(int fish_kind, int record_cm) {
     if (largest <= 0 || record_cm < largest) {
         return 0;
     }
-    const int most = std::ranges::contains(kGarayans, fish_kind) ? kGarayanRecordMagic : kRecordMagic;
+    const int most = std::ranges::contains(fish::kGarayans, fish_kind) ? kGarayanRecordMagic : kRecordMagic;
     if (record_cm >= 2 * largest) {
         return most;
     }

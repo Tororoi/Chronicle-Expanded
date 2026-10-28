@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "expanded/town/fish_kinds.hpp"
 #include "expanded/town/fish_records.hpp"
 #include "expanded/weapons/ruby/fairys_ring.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -69,7 +70,7 @@ TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestOneAtItAndTheMostAtTwice)
             continue;
         }
         const int  largest = Largest(kind);
-        const bool garayan = kind == expanded::kMardanGarayan || kind == expanded::kBaronGarayan;
+        const bool garayan = kind == expanded::fish::kMardanGarayan || kind == expanded::fish::kBaronGarayan;
         const int  most = garayan ? expanded::kGarayanRecordMagic : expanded::kRecordMagic;
         EXPECT_EQ(expanded::RecordMagic(kind, largest - 1), 0) << kind;
         EXPECT_EQ(expanded::RecordMagic(kind, largest), 1) << kind;
@@ -90,9 +91,9 @@ TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestOneAtItAndTheMostAtTwice)
 
 TEST_F(FishRecords, TheCurveRisesSteeplyNearTwice) {
     // Baron Garayan, 300 cm at most in the game: 12 at 580 cm, as the mod's curve was fit.
-    EXPECT_EQ(Largest(expanded::kBaronGarayan), 300);
-    EXPECT_EQ(expanded::RecordMagic(expanded::kBaronGarayan, 580), 12);
-    EXPECT_EQ(expanded::RecordMagic(expanded::kBaronGarayan, 450), 2);
+    EXPECT_EQ(Largest(expanded::fish::kBaronGarayan), 300);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 580), 12);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 450), 2);
     // Bobo, 200 cm: 43 at 400.
     EXPECT_EQ(expanded::RecordMagic(0, 399), 25);
     EXPECT_EQ(expanded::RecordMagic(0, 300), 1);
@@ -123,11 +124,11 @@ TEST_F(FishRecords, TheListKeepsEachKindsBestLargestFirst) {
     SaveData->SetFishingRank(0, 210.0f);
     SaveData->SetFishingRank(0, 180.0f); // smaller than the record: gone
     SaveData->SetFishingRank(1, 170.0f);
-    SaveData->SetFishingRank(expanded::kBaronGarayan, 120.0f);
+    SaveData->SetFishingRank(expanded::fish::kBaronGarayan, 120.0f);
     EXPECT_EQ(Listed(), (std::vector<std::pair<int, int>>{
-                            {0,                       210},
-                            {1,                       170},
-                            {expanded::kBaronGarayan, 120}
+                            {0,                             210},
+                            {1,                             170},
+                            {expanded::fish::kBaronGarayan, 120}
     }));
     // Bobo's 210 cm is past its 200 and Gobbler's 170 past its 160: 1 each; the Baron Garayan's 120 is short of 300.
     EXPECT_EQ(Arise().magic_max, kAriseOwnMagic + 2);
@@ -188,7 +189,7 @@ TEST_F(FishRecords, AListAlreadyKeptIsLeftAsItIs) {
     std::span<SV_FISH_DATA, 64> records = Records();
     records[0] = {.fish_id = 3, .rank = 240.0f, .unk_8 = 1.0f, .unk_C = 2.0f};
     records[1] = {.fish_id = 0, .rank = 190.0f, .unk_8 = 3.0f, .unk_C = 4.0f};
-    records[2] = {.fish_id = expanded::kMardanGarayan, .rank = 92.0f};
+    records[2] = {.fish_id = expanded::fish::kMardanGarayan, .rank = 92.0f};
     for (int i = 3; i < 64; i++) {
         records[i] = {.fish_id = i % 2 == 0 ? 0 : -1};
     }

@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "expanded/core/random.hpp"
+#include "expanded/town/fish_kinds.hpp"
 #include "expanded/town/fishing.hpp"
 #include "expanded/weapons/ruby/fairys_ring.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -43,9 +44,9 @@ protected:
         int baron = 0;
         for (int i = 0; i < rolls; i++) {
             int kind = expanded::FishKind(14, rare_interval);
-            mardan += kind == expanded::kMardanGarayan ? 1 : 0;
-            baron += kind == expanded::kBaronGarayan ? 1 : 0;
-            EXPECT_TRUE(kind == 14 || kind == expanded::kMardanGarayan || kind == expanded::kBaronGarayan) << kind;
+            mardan += kind == expanded::fish::kMardanGarayan ? 1 : 0;
+            baron += kind == expanded::fish::kBaronGarayan ? 1 : 0;
+            EXPECT_TRUE(kind == 14 || kind == expanded::fish::kMardanGarayan || kind == expanded::fish::kBaronGarayan) << kind;
         }
         return {mardan, baron};
     }
@@ -122,12 +123,12 @@ TEST_F(Mardan, TheSecondRollLeavesGarayansAndEmptySlots) {
     Own(ITEM_WEAPON_ARISE_MARDAN);
     expanded::SeedModRandom(5);
     for (int i = 0; i < 500; i++) {
-        EXPECT_EQ(expanded::FishKind(expanded::kMardanGarayan, 1), expanded::kMardanGarayan);
-        EXPECT_EQ(expanded::FishKind(expanded::kBaronGarayan, 1), expanded::kBaronGarayan);
+        EXPECT_EQ(expanded::FishKind(expanded::fish::kMardanGarayan, 1), expanded::fish::kMardanGarayan);
+        EXPECT_EQ(expanded::FishKind(expanded::fish::kBaronGarayan, 1), expanded::fish::kBaronGarayan);
         EXPECT_EQ(expanded::FishKind(-1, 1), -1);
     }
     // Every slot a Garayan when the chance is one in one.
-    EXPECT_TRUE(std::ranges::contains(expanded::kGarayans, expanded::FishKind(3, 1)));
+    EXPECT_TRUE(std::ranges::contains(expanded::fish::kGarayans, expanded::FishKind(3, 1)));
 }
 
 TEST_F(Mardan, AGarayanFromTheRollIsSizedAsTheGameSizesIt) {

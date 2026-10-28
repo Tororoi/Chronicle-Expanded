@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -15,11 +14,6 @@ namespace expanded {
 // kFairyFortune times the fishing points (FP) it would, but the Garayans, which pay their own. The catch's message shows
 // the points paid in red, with the ring's picture after them.
 inline constexpr int kFairyFortune = 2;
-
-// The Garayans, by fish kind (fish_info's index; GetFishMsgNo names them).
-inline constexpr int                kMardanGarayan = 5;
-inline constexpr int                kBaronGarayan = 17;
-inline constexpr std::array<int, 2> kGarayans = {kMardanGarayan, kBaronGarayan};
 
 // The catch's message, a town talk message: the fish, its size, the points paid ({value2}) and the total.
 inline constexpr int kCatchMessage = 2000;
