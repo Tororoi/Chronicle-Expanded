@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "collision.hpp"
+#include "expanded/data/fishing_collision.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/town/fishing.hpp"
 #include "fish.hpp"
@@ -16,7 +17,7 @@ namespace {
 
 using expanded::scene::Triangle;
 
-constexpr int kQueens = 2, kQueensSpot = 6;
+constexpr int kBrownboo = 14, kBrownbooSpot = 5, kQueens = 2, kQueensSpot = 6;
 
 // MapNo for a test, put back after.
 class Town {
@@ -41,6 +42,33 @@ std::vector<Triangle> WallAt(double z) {
 }
 
 } // namespace
+
+TEST(FishingSpots, BrownbooFishArePiccolysNegiesAndGummiesAndOneInFiftyAGarayan) {
+    using namespace expanded::fish;
+    EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 1, -1), kPiccoly);
+    EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 2, -1), kNegie);
+    EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 3, -1), kGummy);
+    EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 5, -1), kPiccoly);
+    for (int roll : {0, 50, 12350}) {
+        int kind = expanded::SpotFish(kBrownbooSpot, roll, -1);
+        EXPECT_TRUE(kind == kMardanGarayan || kind == kBaronGarayan) << roll;
+    }
+    EXPECT_EQ(expanded::SpotFishCount(kBrownbooSpot, 3), expanded::kSpotFishCount);
+}
+
+TEST(FishingSpots, BrownbooFishesWithTheGamesLineAndDepth) {
+    EXPECT_EQ(expanded::SpotLineSegment(kBrownbooSpot), distp);
+    Town brownboo(kBrownboo);
+    EXPECT_EQ(expanded::SpotFishDepth(12.0f), 12.0f);
+}
+
+// Every face of the pond's rocks is a whole poly in the fishing collision.
+TEST(FishingSpots, BrownboosRocksAreWholePolys) {
+    std::vector<Triangle> rocks = expanded::BrownbooRocks();
+    std::vector<CCPoly>   polys(1228);
+    EXPECT_EQ(expanded::AddCollision(polys.data(), 1, 1228, rocks), 1 + static_cast<int>(rocks.size()));
+    EXPECT_EQ(rocks.size(), 202u);
+}
 
 TEST(FishingSpots, QueensFishAreBobos) {
     for (int roll : {0, 1, 2, 3, 49, 50, 12345}) {

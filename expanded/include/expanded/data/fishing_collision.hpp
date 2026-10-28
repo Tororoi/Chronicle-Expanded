@@ -9,6 +9,9 @@
 
 namespace expanded {
 
+// Brownboo: the pond's three rocks, simplified, every face a slope (the line's float and hook rest on them).
+std::vector<scene::Triangle> BrownbooRocks();
+
 // Queens: the canal's containment walls along both banks.
 std::vector<scene::Triangle> QueensCanalWalls();
 

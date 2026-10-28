@@ -47,6 +47,9 @@ Bytes BoxCollision(std::string_view name, const std::array<float, 6> &box);
 // An event function: a script point always on, at position in the part, firing label within radius.
 Bytes ScriptEvent(const std::array<float, 3> &position, float radius, int label);
 
+// The scene with the stand point of villager (PEOPLE2's order) in part moved to position, in the part's frame.
+Bytes MoveStandPoint(std::span<const unsigned char> scene, std::string_view part, int villager, const std::array<float, 3> &position);
+
 // The scene with a part appended under name: header's copy, its events, its model (at the part's origin when
 // at_origin) and its collision (none when empty).
 Bytes AppendPart(std::span<const unsigned char> scene, std::string_view name, std::span<const unsigned char> header,

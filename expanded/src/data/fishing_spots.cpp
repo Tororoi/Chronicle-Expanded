@@ -37,6 +37,16 @@ std::vector<Triangle> FramesTriangles(const std::vector<scene::PlacedMesh> &plac
     return triangles;
 }
 
+// Brownboo: the pond's rocks.
+std::vector<Triangle> BrownbooCollision(std::span<const unsigned char>, std::span<const unsigned char>) {
+    return BrownbooRocks();
+}
+
+// Brownboo: villager 8, who stands where the sign's trigger is, stands back along the boardwalk.
+Bytes BrownbooScene(std::span<const unsigned char> scene) {
+    return scene::MoveStandPoint(scene, "s04g01", 8, {255.0f, 10.57f, -55.0f});
+}
+
 // Queens: the canal's bridges (obj40, obj44) and pipes (obj9), and its containment walls.
 std::vector<Triangle> QueensCollision(std::span<const unsigned char> scene, std::span<const unsigned char> cfg) {
     std::vector<scene::PlacedMesh> placed = scene::PlacedMeshes(scene, cfg);
@@ -49,6 +59,31 @@ std::vector<Triangle> QueensCollision(std::span<const unsigned char> scene, std:
 }
 
 const FishingSpot kSpots[] = {
+    // Brownboo's pond from the boardwalk by the sign, 10 over the water: fished facing north across it.
+    {.code = "s04",
+     .map_no = 14,
+     .area = 5,
+     .anchor = "s04a01",
+     .sign = {212, 9, -61},
+     .sign_yaw = 0,
+     .sign_collision = false,
+     .atari = "",
+     .trigger = {0.0f, 3.0f, 8.0f},
+     .x1 = -250.0f,
+     .z1 = -240.0f,
+     .x2 = 250.0f,
+     .z2 = 240.0f,
+     .water = 0.0f,
+     .ground = -15.0f,
+     .stance = {212.0f, 10.0f, -53.0f},
+     .facing = 3.14159f,
+     .line = 1.0f,
+     .fish_depth = 12.0f,
+     .fish = {fish::kPiccoly, fish::kPiccoly, fish::kNegie, fish::kGummy},
+     .rare_one_in = 50,
+     .collision = BrownbooCollision,
+     .edit_scene = BrownbooScene,
+     .edit_cfg = nullptr},
     // Queens' canal from its north bank, 39 over the water: fished from the stance by the sign, facing south across it.
     {.code = "e03",
      .map_no = 2,
