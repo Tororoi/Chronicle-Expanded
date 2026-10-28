@@ -6,6 +6,7 @@
 #include <format>
 #include <set>
 
+#include "expanded/data/fishing_collision.hpp"
 #include "expanded/data/fishing_scripts.hpp"
 #include "expanded/data/mes.hpp"
 
@@ -14,67 +15,6 @@ namespace expanded {
 namespace {
 
 using scene::Triangle;
-
-// The canal's containment walls along both banks, as the mod authored them: three corners a row.
-const double kQueensCanalWalls[][9] = {
-    {-100, 0,  -50,  -200, 70, -50,  -200, 50, -50},
-    {-100, 0,  -50,  -100, 70, -50,  -200, 70, -50},
-    {-200, 50, -50,  -200, 0,  -50,  -100, 0,  -50},
-    {-200, 50, -50,  -200, 70, -50,  -200, 70, 50 },
-    {-200, 50, -50,  -200, 70, 50,   -200, 50, 50 },
-    {-600, 50, -50,  -600, 0,  -50,  -200, 0,  -50},
-    {-600, 50, -50,  -200, 0,  -50,  -200, 50, -50},
-    {-200, 50, 50,   -200, 0,  50,   -600, 0,  50 },
-    {-200, 50, 50,   -600, 0,  50,   -600, 50, 50 },
-    {-200, 50, 50,   -100, 70, 50,   -100, 0,  50 },
-    {-100, 0,  50,   -200, 0,  50,   -200, 50, 50 },
-    {-200, 50, 50,   -200, 70, 50,   -100, 70, 50 },
-    {-100, 70, 50,   0,    0,  50,   -100, 0,  50 },
-    {-100, 70, 50,   0,    70, 50,   0,    0,  50 },
-    {0,    70, -50,  -100, 70, -50,  -100, 0,  -50},
-    {0,    70, -50,  -100, 0,  -50,  0,    0,  -50},
-    {100,  70, -50,  0,    70, -50,  0,    0,  -50},
-    {100,  70, -50,  0,    0,  -50,  100,  0,  -50},
-    {200,  70, -50,  100,  70, -50,  100,  0,  -50},
-    {200,  70, -50,  100,  0,  -50,  200,  0,  -50},
-    {300,  70, -50,  200,  70, -50,  200,  0,  -50},
-    {300,  70, -50,  200,  0,  -50,  300,  0,  -50},
-    {400,  70, -50,  300,  70, -50,  300,  0,  -50},
-    {400,  70, -50,  300,  0,  -50,  400,  0,  -50},
-    {500,  70, -50,  400,  70, -50,  400,  0,  -50},
-    {500,  70, -50,  400,  0,  -50,  500,  0,  -50},
-    {500,  0,  -50,  600,  70, -50,  500,  70, -50},
-    {500,  0,  -50,  600,  0,  -50,  600,  70, -50},
-    {700,  70, -50,  600,  0,  -50,  700,  0,  -50},
-    {700,  70, -50,  600,  70, -50,  600,  0,  -50},
-    {800,  70, -50,  700,  0,  -50,  800,  0,  -50},
-    {800,  70, -50,  700,  70, -50,  700,  0,  -50},
-    {900,  70, -50,  800,  70, -50,  800,  0,  -50},
-    {900,  70, -50,  800,  0,  -50,  900,  0,  -50},
-    {0,    70, 50,   100,  0,  50,   0,    0,  50 },
-    {0,    70, 50,   100,  70, 50,   100,  0,  50 },
-    {100,  70, 50,   200,  0,  50,   100,  0,  50 },
-    {100,  70, 50,   200,  70, 50,   200,  0,  50 },
-    {200,  70, 50,   300,  0,  50,   200,  0,  50 },
-    {200,  70, 50,   300,  70, 50,   300,  0,  50 },
-    {300,  70, 50,   400,  0,  50,   300,  0,  50 },
-    {300,  70, 50,   400,  70, 50,   400,  0,  50 },
-    {500,  0,  50,   400,  0,  50,   400,  70, 50 },
-    {500,  0,  50,   400,  70, 50,   500,  70, 50 },
-    {500,  70, 50,   600,  0,  50,   500,  0,  50 },
-    {500,  70, 50,   600,  70, 50,   600,  0,  50 },
-    {600,  70, 50,   700,  0,  50,   600,  0,  50 },
-    {600,  70, 50,   700,  70, 50,   700,  0,  50 },
-    {700,  70, 50,   800,  0,  50,   700,  0,  50 },
-    {700,  70, 50,   800,  70, 50,   800,  0,  50 },
-    {800,  70, 50,   900,  70, 50,   900,  0,  50 },
-    {800,  70, 50,   900,  0,  50,   800,  0,  50 },
-    {1000, 98, -100, 900,  70, -100, 900,  70, -50},
-    {1000, 98, -100, 900,  70, -50,  1000, 98, -50},
-    {1000, 98, 100,  1000, 98, 50,   900,  70, 50 },
-    {900,  70, 50,   1000, 98, 200,  1000, 98, 100},
-    {900,  70, 50,   900,  70, 200,  1000, 98, 200},
-};
 
 // The model frames objN of the placed meshes, every triangle.
 std::vector<Triangle> FramesTriangles(const std::vector<scene::PlacedMesh> &placed, const std::set<int> &numbers) {
@@ -103,11 +43,8 @@ std::vector<Triangle> QueensCollision(std::span<const unsigned char> scene, std:
     std::vector<Triangle>          triangles = FramesTriangles(placed, {40, 44});
     std::vector<Triangle>          pipes = FramesTriangles(placed, {9});
     triangles.insert(triangles.end(), pipes.begin(), pipes.end());
-    for (const auto &wall : kQueensCanalWalls) {
-        triangles.push_back({
-            {{wall[0], wall[1], wall[2]}, {wall[3], wall[4], wall[5]}, {wall[6], wall[7], wall[8]}}
-        });
-    }
+    std::vector<Triangle> walls = QueensCanalWalls();
+    triangles.insert(triangles.end(), walls.begin(), walls.end());
     return triangles;
 }
 
@@ -134,7 +71,9 @@ const FishingSpot kSpots[] = {
      .fish_depth = 13.0f,
      .fish = {fish::kBobo},
      .rare_one_in = 0,
-     .collision = QueensCollision},
+     .collision = QueensCollision,
+     .edit_scene = nullptr,
+     .edit_cfg = nullptr},
 };
 
 // The languages a town's messages come in: _1 to _6.
@@ -181,7 +120,13 @@ Bytes BuildScene(const FishingSpot &spot, Files s) {
     Bytes header = scene::PartHeader(s[2], kPartTemplate);
     Bytes events = scene::ScriptEvent(spot.trigger, kFishingSignRadius, kFishingSignLabel);
     Bytes collision = spot.sign_collision ? scene::BoxCollision(kSignCollisionFrame, kSignBox) : Bytes{};
-    return scene::AppendPart(s[0], kSignPart, header, sign, events, collision);
+    Bytes town = spot.edit_scene != nullptr ? spot.edit_scene(s[0]) : s[0];
+    return scene::AppendPart(town, kSignPart, header, sign, events, collision);
+}
+
+Bytes BuildMapinfo(const FishingSpot &spot, Files s) {
+    Bytes town = spot.edit_cfg != nullptr ? spot.edit_cfg(s[0]) : s[0];
+    return scene::PlaceGround(town, kSignPart, spot.anchor, spot.atari, spot.sign, spot.sign_yaw);
 }
 
 } // namespace
@@ -244,9 +189,8 @@ std::vector<DataBuild> FishingSpotBuilds() {
         std::string scene = folder + "scene.scn", cfg = folder + "mapinfo.cfg", script = folder + "event.stb";
         builds.push_back(DataBuild::FromSources(std::format("{} scene", spot.code), Rebuilt(scene), {scene, kSignScene, kPartTemplateScene},
                                                 [&spot](Files s) { return BuildScene(spot, s); }));
-        builds.push_back(DataBuild::FromSources(std::format("{} mapinfo", spot.code), Rebuilt(cfg), {cfg}, [&spot](Files s) {
-            return scene::PlaceGround(s[0], kSignPart, spot.anchor, spot.atari, spot.sign, spot.sign_yaw);
-        }));
+        builds.push_back(DataBuild::FromSources(std::format("{} mapinfo", spot.code), Rebuilt(cfg), {cfg},
+                                                [&spot](Files s) { return BuildMapinfo(spot, s); }));
         builds.push_back(DataBuild::FromSources(std::format("{} event script", spot.code), Rebuilt(script), {script},
                                                 [&spot](Files s) { return AddFishingScripts(s[0], spot); }));
         for (int language = 1; language <= kLanguages; language++) {

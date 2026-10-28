@@ -45,14 +45,19 @@ struct FishingSpot {
     int              rare_one_in;
     // The fishing collision added to what the spot's rectangle gathers.
     std::vector<scene::Triangle> (*collision)(std::span<const unsigned char> scene, std::span<const unsigned char> cfg);
+    // The town's own scene and mapinfo as the spot changes them, before the sign joins them; null for as they are.
+    Bytes (*edit_scene)(std::span<const unsigned char> scene);
+    Bytes (*edit_cfg)(std::span<const unsigned char> cfg);
 };
 
 inline constexpr int   kFishingSignLabel = 400;
 inline constexpr float kFishingSignRadius = 10.0f;
 
-// Fish kinds: fish_info's index.
+// Fish kinds: fish_info's index (8 is none).
 namespace fish {
-inline constexpr int kBobo = 0, kMardanGarayan = 5, kBaronGarayan = 17;
+inline constexpr int kBobo = 0, kGobbler = 1, kNonky = 2, kKaiji = 3, kBakuBaku = 4, kMardanGarayan = 5, kGummy = 6, kNiler = 7;
+inline constexpr int kUmadakara = 9, kTarton = 10, kPiccoly = 11, kBon = 12, kHamahama = 13, kNegie = 14, kDen = 15, kHeela = 16;
+inline constexpr int kBaronGarayan = 17;
 } // namespace fish
 
 // The fish at a spot of Expanded's.
