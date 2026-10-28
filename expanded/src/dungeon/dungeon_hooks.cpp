@@ -83,6 +83,7 @@
 #include "expanded/weapons/xiao/divine_beast_title.hpp"
 #include "expanded/weapons/xiao/double_impact.hpp"
 #include "expanded/weapons/xiao/dragons_y.hpp"
+#include "expanded/weapons/xiao/firing_legs.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
@@ -497,6 +498,7 @@ void PlayerMotionStepping(CCharacter &chara, int chara_no) {
     SwiftStrikesMotion(chara, chara_no);
     QuickComboMotion(chara, chara_no);
     LockOnSpeedMotion(chara, chara_no);
+    FiringLegsStep(chara, chara_no);
 }
 
 void HealTicked() {
