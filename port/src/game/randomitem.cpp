@@ -17,6 +17,10 @@
 #include "snd.hpp"
 #include "texture.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/dungeon_hooks.hpp"
+#endif
+
 namespace dc::game {
 
 void CRandomItem::Draw() {
@@ -24,6 +28,12 @@ void CRandomItem::Draw() {
         if (id[i] == -1 || distance[i] > 200.0f) {
             continue;
         }
+
+#ifdef CHRONICLE_EXPANDED
+        if (expanded::RandomItemHidden(*this, i)) {
+            continue;
+        }
+#endif
 
         sceVu0FVECTOR draw_position;
         int           texel_x = 0;

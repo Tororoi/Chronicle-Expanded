@@ -9,6 +9,7 @@ namespace dc::game {
 enum class MonsterDamageResult : int;
 class CCharacter;
 class CMonstorUnit;
+class CRandomItem;
 class CSHOT;
 class CSHOT_EFFECT;
 struct COLLISION_HIT;
@@ -124,6 +125,10 @@ void ShotEffectHitSet(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit);
 void PelletStepping(CSHOT &shots, int slot);
 // Whether a pellet ending lands its own hit: not one whose hit is a bolt or a bomb's blast.
 bool PelletHurts(const CSHOT &shots, int slot);
+
+// Whether a drop lying on the floor is left undrawn (CRandomItem::Draw): one marked otherwise, as a shooting star's
+// sparkle marks its drop. It is still a drop: taken, refused and marked on the map as any.
+bool RandomItemHidden(const CRandomItem &items, int slot);
 
 // Whether the lock-on target's name plate is left off (setTargetCursor): something hangs over the target.
 bool TargetNameHidden();

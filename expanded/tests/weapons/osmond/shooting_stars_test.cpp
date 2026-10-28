@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <numbers>
 #include <vector>
@@ -10,6 +11,7 @@
 #include "dngstatusdata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/event_sparkle.hpp"
 #include "expanded/dungeon/floor_height.hpp"
 #include "expanded/dungeon/navigation.hpp"
@@ -55,6 +57,21 @@ bool BehindWall(float x, float z) {
 }
 
 bool g_walls = true;
+
+// Floor the player cannot walk to: the ledge, the pit or the tile without a part.
+bool Unwalkable(float x, float z) {
+    return g_walls && (InLedge(x, z) || InPit(x, z) || InHole(x, z));
+}
+
+// Whether a bounce from a to b crosses the wall.
+bool CrossesWall(const float *a, const float *b) {
+    if (!g_walls || (a[2] - 444.0f) * (b[2] - 444.0f) > 0.0f || a[2] == b[2]) {
+        return false;
+    }
+    float t = (444.0f - a[2]) / (b[2] - a[2]);
+    float x = a[0] + (b[0] - a[0]) * t;
+    return x >= 420.0f && x <= 470.0f;
+}
 
 bool FakeFloor(float x, float z, float from, float *ground) {
     if (g_walls && InPit(x, z)) {
@@ -237,16 +254,29 @@ TEST_F(ShootingStars, TheBoxFollowsHisFacing) {
     }
 }
 
-// Sent stars land on walkable floor in the box, drawn again where a draw falls short.
-TEST_F(ShootingStars, StarsLandOnlyOnWalkableFloor) {
+// Sent stars touch down on walkable floor in the box, drawn again where a draw falls short, and come to rest on walkable
+// floor the player can walk to.
+TEST_F(ShootingStars, StarsRestOnlyOnWalkableFloor) {
     for (int star = 0; star < 30; star++) {
-        ASSERT_TRUE(Land());
+        expanded::SendShootingStar();
+        expanded::ShootingStarsStep();
+        expanded::StarPath path;
+        float              frames = 0.0f;
+        ASSERT_TRUE(expanded::FallingStar(0, &path, &frames));
+        const float *touch = path.touch;
+        EXPECT_GE(touch[2] - kPlayer[2], 15.0f - 1e-3f);
+        EXPECT_LE(touch[2] - kPlayer[2], 150.0f + 1e-3f);
+        EXPECT_LE(std::fabs(touch[0] - kPlayer[0]), 50.0f + 1e-3f);
+        EXPECT_FALSE(Unwalkable(touch[0], touch[2]) || BehindWall(touch[0], touch[2])) << touch[0] << ", " << touch[2];
+        for (int i = 0; i < 200 && expanded::StarsLying() == 0; i++) {
+            expanded::ShootingStarsStep();
+        }
+        ASSERT_EQ(expanded::StarsLying(), 1);
         int   slot = Slot();
         float x = items_.position[slot][0], z = items_.position[slot][2];
-        EXPECT_GE(z - kPlayer[2], 15.0f - 1e-3f);
-        EXPECT_LE(z - kPlayer[2], 150.0f + 1e-3f);
-        EXPECT_LE(std::fabs(x - kPlayer[0]), 50.0f + 1e-3f);
-        EXPECT_FALSE(InLedge(x, z) || InPit(x, z) || InHole(x, z) || BehindWall(x, z)) << x << ", " << z;
+        EXPECT_FLOAT_EQ(x, path.rest[0]);
+        EXPECT_FLOAT_EQ(z, path.rest[2]);
+        EXPECT_FALSE(Unwalkable(x, z) || CrossesWall(touch, path.rest)) << x << ", " << z;
         items_.id[slot] = -1;
         expanded::ShootingStarsStep();
         ASSERT_EQ(expanded::StarsLying(), 0);
@@ -271,56 +301,150 @@ TEST_F(ShootingStars, AStarWaitsForASpot) {
     EXPECT_EQ(expanded::StarsFalling(), 1);
 }
 
-// It comes down a straight line at 60 degrees to the floor, across the way he faces, and lands on its spot.
-TEST_F(ShootingStars, TheFallIsSixtyDegrees) {
+// It comes down a straight line at 60 degrees to the floor, across the way he faces, kStarFallSpeed a frame. It leaves
+// the floor with two thirds of its speed along it and a third of its speed down, turned up, onward the way it fell, and
+// comes down once more under the drop hop's gravity, where it rests: a drop of the floor's from then on, and not before.
+TEST_F(ShootingStars, ItFallsAtSixtyDegreesAndBouncesOnwardOnce) {
     g_walls = false;
     expanded::SendShootingStar();
     expanded::ShootingStarsStep();
-    float at[3], direction[3];
-    ASSERT_TRUE(expanded::FallingStar(0, at, direction));
-    float flat = std::hypot(direction[0], direction[2]);
-    EXPECT_NEAR(std::atan2(-direction[1], flat), std::numbers::pi_v<float> / 3.0f, 1e-5f);
-    EXPECT_NEAR(direction[2], 0.0f, 1e-5f); // across +z
-    EXPECT_NEAR(at[1], expanded::kStarFallHeight, 1e-3f);
-    float start[3] = {at[0], at[1], at[2]};
-    int   steps = 0;
-    while (expanded::FallingStar(0, at, direction)) {
-        // On the line from its start, kStarFallSpeed a step.
-        float along = (start[1] - at[1]) / -direction[1];
-        for (int c = 0; c < 3; c++) {
-            EXPECT_NEAR(at[c], start[c] + direction[c] * along, 1e-3f);
-        }
-        EXPECT_NEAR(along, std::min(expanded::kStarFallSpeed * static_cast<float>(steps), expanded::kStarFallHeight / std::sin(expanded::kStarFallAngle)),
-                    1e-2f);
-        expanded::ShootingStarsStep();
-        steps++;
-        ASSERT_LT(steps, 100);
+    expanded::StarPath path;
+    float              frames = 0.0f;
+    ASSERT_TRUE(expanded::FallingStar(0, &path, &frames));
+    EXPECT_FLOAT_EQ(path.bounce, 1.0f);
+    float drop[3];
+    for (int c = 0; c < 3; c++) {
+        drop[c] = path.touch[c] - path.start[c];
     }
-    EXPECT_EQ(expanded::StarsLying(), 1);
+    EXPECT_NEAR(std::atan2(-drop[1], std::hypot(drop[0], drop[2])), std::numbers::pi_v<float> / 3.0f, 1e-5f);
+    EXPECT_NEAR(drop[2], 0.0f, 1e-3f);             // across +z
+    EXPECT_EQ(drop[0] > 0.0f ? 1 : -1, path.side); // toward his side
+    EXPECT_NEAR(path.start[1], expanded::kStarFallHeight, 1e-3f);
+
+    // The way it goes, a frame at a time, until it is a drop.
+    std::vector<std::array<float, 3>> way;
+    for (int i = 0; i < 200 && expanded::FallingStar(0, &path, &frames); i++) {
+        std::array<float, 3> at;
+        path.At(frames, at.data());
+        way.push_back(at);
+        EXPECT_EQ(expanded::StarsLying(), 0);
+        for (int slot = 0; slot < 32; slot++) {
+            EXPECT_EQ(items_.id[slot], -1); // no pickup in the air
+        }
+        expanded::ShootingStarsStep();
+    }
+    ASSERT_EQ(expanded::StarsLying(), 1);
+    const float fall = path.FallFrames(), bounce = path.BounceFrames();
+    ASSERT_EQ(static_cast<int>(way.size()), static_cast<int>(std::ceil(fall + bounce)));
+
+    const float across = expanded::kStarFallSpeed * std::cos(expanded::kStarFallAngle);
+    const float down = expanded::kStarFallSpeed * std::sin(expanded::kStarFallAngle);
+    for (std::size_t i = 1; i < way.size(); i++) {
+        float t = static_cast<float>(i);
+        float dx = way[i][0] - way[i - 1][0], dy = way[i][1] - way[i - 1][1];
+        EXPECT_NEAR(way[i][2], path.touch[2], 1e-3f);
+        EXPECT_GT(dx * static_cast<float>(path.side), 0.0f) << i; // always onward
+        if (t <= fall) {
+            EXPECT_NEAR(std::fabs(dx), across, 1e-3f) << i;
+            EXPECT_NEAR(dy, -down, 1e-3f) << i;
+        } else if (t - 1.0f >= fall) {
+            EXPECT_NEAR(std::fabs(dx), across * 2.0f / 3.0f, 1e-3f) << i;
+        }
+    }
+    // Off the floor a third of its speed down, turned up; then gravity the drop hop's.
+    float u = 1.0f;
+    float up = down / 3.0f * u - 0.5f * expanded::kStarGravity * u * u;
+    float at[3];
+    path.At(fall + u, at);
+    EXPECT_NEAR(at[1] - path.touch[1], up, 1e-3f);
+    EXPECT_NEAR(expanded::kStarGravity, 8.0f * 8.0f / 900.0f, 1e-6f);
+
+    // One bounce: after it touches, it rises to one peak about as high as a drop's hop and comes down to rest.
+    int   peaks = 0;
+    float highest = 0.0f;
+    for (std::size_t i = static_cast<std::size_t>(std::ceil(fall)) + 1; i + 1 < way.size(); i++) {
+        peaks += way[i][1] > way[i - 1][1] && way[i][1] >= way[i + 1][1] ? 1 : 0;
+        highest = std::max(highest, way[i][1]);
+    }
+    EXPECT_EQ(peaks, 1);
+    EXPECT_GT(highest, 6.0f);
+    EXPECT_LT(highest, 8.0f);
+    // It rests one full bounce on, the way it was going.
+    EXPECT_NEAR((path.rest[0] - path.touch[0]) * static_cast<float>(path.side), expanded::StarBounceLength(), 1e-3f);
+    EXPECT_NEAR(expanded::StarBounceLength(), across * 2.0f / 3.0f * bounce, 1e-3f);
     int slot = Slot();
-    EXPECT_NEAR(items_.position[slot][0], start[0] + direction[0] * (start[1] / -direction[1]), 1e-2f);
+    EXPECT_FLOAT_EQ(items_.position[slot][0], path.rest[0]);
     EXPECT_NEAR(items_.position[slot][1], 1.75f, 1e-5f); // CRandomItem::Set's lift
 }
 
-// On landing it hops once, the game's drop hop (CRandomItem::Draw lifts it 8 sin(phase)), and then rests.
-TEST_F(ShootingStars, ItBouncesOnceAndRests) {
+// Resting, it is a drop that has finished its hop: the game settles it on its next step and it never hops.
+TEST_F(ShootingStars, ItRestsWithoutTheDropsHop) {
     ASSERT_TRUE(Land());
     int slot = Slot();
     Stand(kPlayer[0] + 300.0f, kPlayer[2], 0.0f); // out of reach
     std::vector<float> lift;
-    for (int i = 0; i < 400; i++) {
+    for (int i = 0; i < 100; i++) {
         lift.push_back(8.0f * std::sin(items_.phase[slot]));
         Frame();
     }
-    int peaks = 0;
-    for (std::size_t i = 1; i + 1 < lift.size(); i++) {
-        peaks += lift[i] > lift[i - 1] && lift[i] >= lift[i + 1] ? 1 : 0;
-    }
-    EXPECT_EQ(peaks, 1);
-    EXPECT_GT(*std::max_element(lift.begin(), lift.end()), 7.9f);
     EXPECT_EQ(items_.state[slot], RandomItemState::WAITING);
-    EXPECT_TRUE(std::all_of(lift.begin() + 40, lift.end(), [](float h) { return h == 0.0f; }));
+    EXPECT_TRUE(std::all_of(lift.begin(), lift.end(), [](float h) { return std::fabs(h) < 1e-5f; }));
     EXPECT_EQ(expanded::StarsLying(), 1);
+}
+
+// Where the full bounce would carry it off walkable floor or through a wall (a corridor across its way), it comes from the
+// other side or bounces shorter, and always rests inside.
+TEST_F(ShootingStars, ABounceThatWouldLeaveTheFloorIsShortened) {
+    g_walls = false;
+    g_polys.clear();
+    Quad({-80.0f, 0.0f, -80.0f}, {-80.0f, 0.0f, 3120.0f}, {3120.0f, 0.0f, 3120.0f}, {3120.0f, 0.0f, -80.0f}, {0.0f, 1.0f, 0.0f});
+    for (float x : {378.0f, 422.0f}) {
+        Quad({x, 0.0f, 300.0f}, {x, 100.0f, 300.0f}, {x, 100.0f, 500.0f}, {x, 0.0f, 500.0f}, {1.0f, 0.0f, 0.0f});
+        Quad({x, 0.0f, 500.0f}, {x, 100.0f, 500.0f}, {x, 100.0f, 300.0f}, {x, 0.0f, 300.0f}, {-1.0f, 0.0f, 0.0f});
+    }
+    expanded::SetNavigationFloor(&kFloor);
+    int shortened = 0, paths = 0;
+    for (int a = 0; a <= 20; a++) {
+        for (int s = 0; s <= 20; s++) {
+            for (int side : {-1, 1}) {
+                expanded::StarPath path;
+                if (!expanded::ShootingStarPath(kPlayer, 0.0f, a / 20.0f, s / 20.0f, side, &path)) {
+                    continue;
+                }
+                paths++;
+                EXPECT_GT(path.touch[0], 378.0f);
+                EXPECT_LT(path.touch[0], 422.0f);
+                EXPECT_GT(path.rest[0], 378.0f) << path.touch[0] << " bounce " << path.bounce;
+                EXPECT_LT(path.rest[0], 422.0f) << path.touch[0] << " bounce " << path.bounce;
+                EXPECT_NEAR(std::fabs(path.rest[0] - path.touch[0]), expanded::StarBounceLength() * path.bounce, 1e-3f);
+                shortened += path.bounce < 1.0f ? 1 : 0;
+            }
+        }
+    }
+    EXPECT_GT(paths, 0);
+    EXPECT_GT(shortened, 0);
+}
+
+// Lying, its bag is not drawn; it is still the floor's drop, and another drop is drawn as ever.
+TEST_F(ShootingStars, OnlyItsSparkleShows) {
+    ASSERT_TRUE(Land());
+    int   slot = Slot();
+    float elsewhere[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    items_.Set(elsewhere, 1, -1, ITEM_ATTACH_FIRE);
+    int other = slot == 0 ? 1 : 0;
+    EXPECT_TRUE(expanded::RandomItemHidden(items_, slot));
+    EXPECT_FALSE(expanded::RandomItemHidden(items_, other));
+    EXPECT_EQ(items_.id[slot], 1);
+    EXPECT_EQ(items_.amount[slot], -1);
+    EXPECT_EQ(items_.item_no[slot], ITEM_ATTACH_SYNTHESIS_SPHERE);
+    CRandomItem back = {};
+    EXPECT_FALSE(expanded::RandomItemHidden(back, slot));
+    // Taken, its place is a drop's like any other.
+    CharaMain.SetPosition(items_.position[slot][0], 0.0f, items_.position[slot][2]);
+    Frame();
+    Frame();
+    EXPECT_EQ(expanded::StarsLying(), 0);
+    EXPECT_FALSE(expanded::RandomItemHidden(items_, slot));
 }
 
 // Walked over, it is taken as any drop is and gives an empty SynthSphere: no weapon's, nothing in it.

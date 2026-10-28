@@ -379,6 +379,10 @@ bool TargetNameHidden() {
     return JudgementHanging() || JudgementFalling() || BigBangShotHanging();
 }
 
+bool RandomItemHidden(const CRandomItem &items, int slot) {
+    return StarDropHidden(items, slot);
+}
+
 bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit) {
     if (AllyUnit(unit)) {
         return pocklekul::PockleRefuses(hit);

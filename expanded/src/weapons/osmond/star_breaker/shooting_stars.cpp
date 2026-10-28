@@ -20,7 +20,6 @@
 #include "expanded/weapons/player_state.hpp"
 #include "itemdata.hpp"
 #include "localize/localize.hpp"
-#include "mathutil.hpp"
 #include "randomitem.hpp"
 #include "sysmes.hpp"
 
@@ -30,15 +29,15 @@ namespace {
 
 enum class Phase {
     kWaiting, // for a spot
-    kFalling,
+    kFalling, // falling or bouncing
     kLying,
 };
 
 struct Star {
     Phase        phase = Phase::kWaiting;
-    float        spot[3] = {};
-    float        at[3] = {};
-    float        direction[3] = {};
+    StarPath     path;
+    float        frames = 0.0f; // since it started down
+    bool         bounced = false;
     CRandomItem *items = nullptr; // its drop, lying
     int          slot = -1;
     float        item_at[3] = {};
@@ -61,6 +60,11 @@ void OnFloor() {
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(OnFloor), true);
 
+// Its speed along the floor and down as it falls, and up as it leaves the floor.
+const float kFallAcross = kStarFallSpeed * std::cos(kStarFallAngle);
+const float kFallDown = kStarFallSpeed * std::sin(kStarFallAngle);
+const float kBounceRise = kStarBounceUp * kFallDown;
+
 float Unit() {
     return std::uniform_real_distribution<float>(0.0f, 1.0f)(ModRandom());
 }
@@ -69,28 +73,38 @@ void Copy(float *to, const float *from) {
     std::copy_n(from, 3, to);
 }
 
-// The way down: across the player's view from his left or right, at kStarFallAngle to the floor.
-void Begin(Star &star, const float *player, float yaw, int draws) {
-    int   side = ModRoll(2) == 0 ? -1 : 1;
-    float across[2] = {static_cast<float>(side) * std::cos(yaw), static_cast<float>(side) * -std::sin(yaw)};
-    float run = kStarFallHeight / std::tan(kStarFallAngle);
-    float length = std::hypot(run, kStarFallHeight);
-    star.direction[0] = across[0] * run / length;
-    star.direction[1] = -kStarFallHeight / length;
-    star.direction[2] = across[1] * run / length;
-    for (int c = 0; c < 3; c++) {
-        star.at[c] = star.spot[c] - star.direction[c] * length;
+// Floor the player can walk to at rest, a bounce of share from touch toward side: floor under it near his ground, and
+// every cell from touch to it walkable.
+bool BounceRests(const float *player, float yaw, const float *touch, int side, float share, float *rest) {
+    float along = static_cast<float>(side) * StarBounceLength() * share;
+    rest[0] = touch[0] + std::cos(yaw) * along;
+    rest[2] = touch[2] - std::sin(yaw) * along;
+    rest[1] = touch[1];
+    if (share == 0.0f) {
+        return true;
     }
+    float ground = 0.0f;
+    if (!FloorUnder(rest[0], rest[2], player[1] + kStarStep, &ground) || ground < player[1] - kStarStep) {
+        return false;
+    }
+    rest[1] = ground;
+    return NavigateClear(touch, rest, kStarClearance, player[1]);
+}
+
+void Begin(Star &star, const float *player, float yaw, int draws) {
     star.phase = Phase::kFalling;
+    star.frames = 0.0f;
     EventSparkleReady();
     int args[4] = {-1, -1, -1, -1};
     SetSystemMes(kShootingStarMessage, kStarMessageFrames, MES_POS_BOTTOM, 0, args, nullptr);
-    // Where it lands from the player: ahead, and to his left (+x facing +z).
-    float dx = star.spot[0] - player[0], dz = star.spot[2] - player[2];
-    LogEvent("star", std::format("\"step\":\"falling\",\"x\":{:.1f},\"ground\":{:.1f},\"z\":{:.1f},\"ahead\":{:.1f},\"left\":{:.1f},"
-                                 "\"draws\":{},\"side\":{}",
-                                 star.spot[0], star.spot[1], star.spot[2], dx * std::sin(yaw) + dz * std::cos(yaw),
-                                 dx * std::cos(yaw) - dz * std::sin(yaw), draws, side));
+    // Where it touches and rests from the player: ahead, and to his left (+x facing +z).
+    const StarPath &path = star.path;
+    auto            ahead = [&](const float *at) { return (at[0] - player[0]) * std::sin(yaw) + (at[2] - player[2]) * std::cos(yaw); };
+    auto            left = [&](const float *at) { return (at[0] - player[0]) * std::cos(yaw) - (at[2] - player[2]) * std::sin(yaw); };
+    LogEvent("star", std::format("\"step\":\"falling\",\"ahead\":{:.1f},\"left\":{:.1f},\"rest_ahead\":{:.1f},\"rest_left\":{:.1f},"
+                                 "\"x\":{:.1f},\"z\":{:.1f},\"ground\":{:.1f},\"side\":{},\"bounce\":{:.2f},\"draws\":{}",
+                                 ahead(path.touch), left(path.touch), ahead(path.rest), left(path.rest), path.rest[0], path.rest[2],
+                                 path.rest[1], path.side, path.bounce, draws));
 }
 
 void Aim(Star &star) {
@@ -102,73 +116,83 @@ void Aim(Star &star) {
     for (int draw = 1; draw <= kStarDraws; draw++) {
         float ahead = Unit();
         float sideways = Unit();
-        if (ShootingStarSpot(player, yaw, ahead, sideways, star.spot)) {
+        float spot[3];
+        if (!ShootingStarSpot(player, yaw, ahead, sideways, spot)) {
+            continue;
+        }
+        int side = ModRoll(2) == 0 ? -1 : 1;
+        if (ShootingStarPath(player, yaw, ahead, sideways, side, &star.path)) {
             Begin(star, player, yaw, draw);
             return;
         }
     }
 }
 
-// Down on the spot: the floor's drop, which hops as it appears and then waits to be taken. With every drop's place in use
-// it rests on the spot until one is free.
-void Land(Star &star) {
+// At rest: the floor's drop, set down as one that has just finished its hop, so that the game settles it (its sound) on
+// its next step and then waits for it to be taken. With every drop's place in use it stays at rest until one is free.
+void Settle(Star &star) {
     CRandomItem *items = RandomItem;
     int          slot = items != nullptr ? items->CheckID() : -1;
     if (slot < 0) {
         return;
     }
-    float place[4] = {star.spot[0], star.spot[1], star.spot[2], 1.0f};
+    float place[4] = {star.path.rest[0], star.path.rest[1], star.path.rest[2], 1.0f};
     items->Set(place, 1, -1, ITEM_ATTACH_SYNTHESIS_SPHERE);
-    // Measured now, so the hop draws: the game measures a drop only once it waits.
-    items->distance[slot] = DistVector(items->position[slot], CharaMain.pos);
+    items->phase[slot] = std::numbers::pi_v<float>;
     star.items = items;
     star.slot = slot;
     Copy(star.item_at, items->position[slot]);
     star.phase = Phase::kLying;
-    LogEvent("star", std::format("\"step\":\"landed\",\"slot\":{}", slot));
+    LogEvent("star", std::format("\"step\":\"rested\",\"slot\":{}", slot));
 }
 
 void Fall(Star &star) {
-    if (star.at[1] > star.spot[1]) {
-        for (int c = 0; c < 3; c++) {
-            star.at[c] += star.direction[c] * kStarFallSpeed;
-        }
+    star.frames += 1.0f;
+    if (!star.bounced && star.frames >= star.path.FallFrames()) {
+        star.bounced = true;
+        LogEvent("star", "\"step\":\"bounced\"");
     }
-    if (star.at[1] <= star.spot[1]) {
-        Copy(star.at, star.spot);
-        Land(star);
+    if (star.frames >= star.path.FallFrames() + star.path.BounceFrames()) {
+        Settle(star);
     }
+}
+
+// Whether a lying star's drop is still where it was set down.
+bool Holds(const Star &star) {
+    const CRandomItem &items = *star.items;
+    int                slot = star.slot;
+    return items.id[slot] != -1 && items.amount[slot] == -1 && items.item_no[slot] == ITEM_ATTACH_SYNTHESIS_SPHERE &&
+           items.position[slot][0] == star.item_at[0] && items.position[slot][1] == star.item_at[1] &&
+           items.position[slot][2] == star.item_at[2];
 }
 
 // Whether a lying star's drop is gone: taken (CheckPosition frees its place, its pickup event pending) or swept
 // with the floor.
 bool Gone(Star &star) {
-    const CRandomItem &items = *star.items;
-    int                slot = star.slot;
-    bool               there = items.id[slot] != -1 && items.amount[slot] == -1 && items.item_no[slot] == ITEM_ATTACH_SYNTHESIS_SPHERE &&
-                 items.position[slot][0] == star.item_at[0] && items.position[slot][1] == star.item_at[1] &&
-                 items.position[slot][2] == star.item_at[2];
-    if (there) {
-        bool refused = items.pickup_blocked[slot] > 0;
+    if (Holds(star)) {
+        bool refused = star.items->pickup_blocked[star.slot] > 0;
         if (refused && !star.refused) {
             LogEvent("star", "\"step\":\"refused\"");
         }
         star.refused = refused;
         return false;
     }
-    if (items.id[slot] == -1 && items.pickup_event[slot] == ITEM_ATTACH_SYNTHESIS_SPHERE) {
+    if (star.items->id[star.slot] == -1 && star.items->pickup_event[star.slot] == ITEM_ATTACH_SYNTHESIS_SPHERE) {
         LogEvent("star", "\"step\":\"picked\"");
     }
     return true;
 }
 
 void DrawFalling(const Star &star) {
+    const float gap = kStarTrailGap / kStarFallSpeed;
     for (int k = kStarTrail; k >= 0; k--) {
+        float frames = star.frames - gap * static_cast<float>(k);
+        if (frames < 0.0f) {
+            continue;
+        }
         float fade = 1.0f - static_cast<float>(k) / static_cast<float>(kStarTrail + 1);
         float at[3];
-        for (int c = 0; c < 3; c++) {
-            at[c] = star.at[c] - star.direction[c] * kStarTrailGap * static_cast<float>(k);
-        }
+        star.path.At(frames, at);
         float half = kStarHeadSize / 2.0f * fade;
         DrawEventSparkle(at, half, half / kSparkleWidth, static_cast<int>(128.0f * fade));
     }
@@ -178,12 +202,47 @@ void DrawLying(const Star &star, float scale) {
     const CRandomItem &items = *star.items;
     float              at[3];
     Copy(at, items.position[star.slot]);
-    at[1] += 8.0f * std::sin(items.phase[star.slot]) + kStarTwinkleLift; // as CRandomItem::Draw lifts the drop
+    at[1] += 8.0f * std::sin(items.phase[star.slot]) + kStarTwinkleLift; // where CRandomItem::Draw would draw the drop
+    DrawEventSparkle(at, kSparkleWidth * kStarRestSize, kStarRestSize, kStarRestBrightness);
     float half_height = scale * kStarTwinkleSize;
     DrawEventSparkle(at, kSparkleWidth * half_height, half_height, 128);
 }
 
 } // namespace
+
+float StarPath::FallFrames() const {
+    float length = std::sqrt((touch[0] - start[0]) * (touch[0] - start[0]) + (touch[1] - start[1]) * (touch[1] - start[1]) +
+                             (touch[2] - start[2]) * (touch[2] - start[2]));
+    return length / kStarFallSpeed;
+}
+
+float StarPath::BounceFrames() const {
+    return 2.0f * kBounceRise / kStarGravity;
+}
+
+void StarPath::At(float frames, float *at) const {
+    float fall = FallFrames();
+    if (frames <= fall) {
+        float t = fall > 0.0f ? frames / fall : 1.0f;
+        for (int c = 0; c < 3; c++) {
+            at[c] = start[c] + (touch[c] - start[c]) * t;
+        }
+        return;
+    }
+    float u = std::min(frames - fall, BounceFrames());
+    float t = u / BounceFrames();
+    for (int c = 0; c < 3; c++) {
+        at[c] = touch[c] + (rest[c] - touch[c]) * t;
+    }
+    at[1] += kBounceRise * u - 0.5f * kStarGravity * u * u;
+    if (u >= BounceFrames()) {
+        Copy(at, rest);
+    }
+}
+
+float StarBounceLength() {
+    return kStarBounceAcross * kFallAcross * 2.0f * kBounceRise / kStarGravity;
+}
 
 void SendShootingStar() {
     stars.emplace_back();
@@ -206,6 +265,44 @@ bool ShootingStarSpot(const float *player, float yaw, float ahead, float sideway
     return true;
 }
 
+bool ShootingStarPath(const float *player, float yaw, float ahead, float sideways, int side, StarPath *path) {
+    float touch[3];
+    if (!ShootingStarSpot(player, yaw, ahead, sideways, touch)) {
+        return false;
+    }
+
+    // The whole bounce from either side, then half of it, then none.
+    struct Try {
+        int   side;
+        float share;
+    };
+
+    const Try tries[] = {
+        {side,  1.0f              },
+        {-side, 1.0f              },
+        {side,  kStarBounceShorter},
+        {-side, kStarBounceShorter},
+        {side,  0.0f              },
+    };
+    for (const Try &attempt : tries) {
+        float rest[3];
+        if (!BounceRests(player, yaw, touch, attempt.side, attempt.share, rest)) {
+            continue;
+        }
+        Copy(path->touch, touch);
+        Copy(path->rest, rest);
+        path->side = attempt.side;
+        path->bounce = attempt.share;
+        float length = kStarFallHeight / std::sin(kStarFallAngle);
+        float run = length * std::cos(kStarFallAngle) * static_cast<float>(attempt.side);
+        path->start[0] = touch[0] - std::cos(yaw) * run;
+        path->start[1] = touch[1] + kStarFallHeight;
+        path->start[2] = touch[2] + std::sin(yaw) * run;
+        return true;
+    }
+    return false;
+}
+
 int StarsWaiting() {
     return static_cast<int>(std::ranges::count_if(stars, [](const Star &star) { return star.phase == Phase::kWaiting; }));
 }
@@ -218,11 +315,11 @@ int StarsLying() {
     return static_cast<int>(std::ranges::count_if(stars, [](const Star &star) { return star.phase == Phase::kLying; }));
 }
 
-bool FallingStar(int star, float *at, float *direction) {
+bool FallingStar(int star, StarPath *path, float *frames) {
     for (const Star &falling : stars) {
         if (falling.phase == Phase::kFalling && star-- == 0) {
-            Copy(at, falling.at);
-            Copy(direction, falling.direction);
+            *path = falling.path;
+            *frames = falling.frames;
             return true;
         }
     }
@@ -238,6 +335,12 @@ bool LyingStar(int star, const CRandomItem **items, int *slot) {
         }
     }
     return false;
+}
+
+bool StarDropHidden(const CRandomItem &items, int slot) {
+    return std::ranges::any_of(stars, [&](const Star &star) {
+        return star.phase == Phase::kLying && star.items == &items && star.slot == slot && Holds(star);
+    });
 }
 
 void ShootingStarsStep() {
