@@ -16,6 +16,7 @@ namespace {
 
 constexpr int   kParticles = 24;
 constexpr float kGameSpacing = 2.0f;
+constexpr float kGameHitRadius = 4.0f;
 
 // Osmond's flame gun held along +z from the origin with weapon_no in hand, as BattleActionPlay_Ozumond_F holds it: Init
 // once, then Set and the firebar's step every frame. Its hits are planted in a collision table of the test's own.
@@ -45,11 +46,19 @@ public:
     // How far the particle lies from the muzzle.
     float Distance(int particle) const { return std::hypot(bar_->position[particle][0], bar_->position[particle][1], bar_->position[particle][2]); }
 
-    // How many flame hits are planted, and how far the farthest lies.
-    int Planted() const {
+    // The size the particle's puff is drawn at (CSHOT_FIREBAR::Draw), and the size kept for it.
+    float DrawnSize(int particle) const { return expanded::FlamePuffSize(bar_->size[particle]); }
+
+    float KeptSize(int particle) const { return bar_->size[particle]; }
+
+    // How many flame hits are planted, every one of radius, and how far the farthest lies.
+    int Planted(float radius) const {
         int count = 0;
         for (int i = 0; i < 96; i++) {
-            count += hits_->active[i] != 0 && hits_->hit[i].owner == CHARA_OSMOND ? 1 : 0;
+            if (hits_->active[i] != 0) {
+                EXPECT_FLOAT_EQ(hits_->hit[i].radius, radius) << i;
+                count++;
+            }
         }
         return count;
     }
@@ -96,31 +105,58 @@ TEST(LongerFlame, TheSkunksFlameReachesTwiceAsFar) {
     EXPECT_NEAR(flame.Distance(kParticles - 1), 92.0f, 1e-3f);
 }
 
-TEST(LongerFlame, TheBlessingGunKeepsTheGamesReach) {
+TEST(LongerFlame, TheBlessingGunKeepsTheGamesFlame) {
     {
         expanded::test::Wielding gun(ITEM_WEAPON_BLESSING_GUN);
         EXPECT_FLOAT_EQ(expanded::FlameSpacing(kGameSpacing), kGameSpacing);
+        EXPECT_FLOAT_EQ(expanded::FlamePuffSize(kGameHitRadius), kGameHitRadius);
     }
     Flame flame(ITEM_WEAPON_BLESSING_GUN);
     flame.Hold();
     EXPECT_NEAR(flame.Distance(kParticles - 1), 46.0f, 1e-3f);
 }
 
-TEST(LongerFlame, EveryParticleHitsAllTheWayOut) {
+TEST(LongerFlame, TheSkunksPuffsAreTwiceTheSize) {
+    expanded::test::Wielding skunk(ITEM_WEAPON_SKUNK);
+    EXPECT_FLOAT_EQ(expanded::FlamePuffSize(kGameHitRadius), 8.0f);
+    EXPECT_FLOAT_EQ(expanded::FlamePuffSize(3.3f), 6.6f);
+}
+
+TEST(LongerFlame, TheSkunkDrawsEachPuffTwiceTheSizeTheGameKeeps) {
     Flame skunk(ITEM_WEAPON_SKUNK);
     skunk.Hold();
-    EXPECT_EQ(skunk.Planted(), kParticles);
-    EXPECT_NEAR(skunk.HitReach(), 92.0f, 1e-3f);
-    // Radius-4 hits 4 apart leave no gap anywhere along the flame.
-    for (float distance = 0.0f; distance <= 96.0f; distance += 1.0f) {
-        EXPECT_TRUE(skunk.Reaches(distance, 0.0f)) << distance;
+    for (int particle = 0; particle < kParticles; particle++) {
+        // Set's 3 + 0.3 a particle and up to 3 at random, grown 0.06 by the step after it.
+        float kept = skunk.KeptSize(particle);
+        EXPECT_GE(kept, 3.06f + 0.3f * static_cast<float>(particle)) << particle;
+        EXPECT_LT(kept, 6.06f + 0.3f * static_cast<float>(particle)) << particle;
+        EXPECT_FLOAT_EQ(skunk.DrawnSize(particle), 2.0f * kept) << particle;
     }
-    EXPECT_FALSE(skunk.Reaches(97.0f, 0.0f));
 
     Flame gun(ITEM_WEAPON_BLESSING_GUN);
     gun.Hold();
-    EXPECT_EQ(gun.Planted(), kParticles);
+    for (int particle = 0; particle < kParticles; particle++) {
+        EXPECT_FLOAT_EQ(gun.DrawnSize(particle), gun.KeptSize(particle)) << particle;
+    }
+}
+
+TEST(LongerFlame, EveryParticleHitsAllTheWayOut) {
+    Flame skunk(ITEM_WEAPON_SKUNK);
+    skunk.Hold();
+    EXPECT_EQ(skunk.Planted(8.0f), kParticles);
+    EXPECT_NEAR(skunk.HitReach(), 92.0f, 1e-3f);
+    // Radius-8 hits 4 apart leave no gap anywhere along the flame.
+    for (float distance = 0.0f; distance <= 100.0f; distance += 1.0f) {
+        EXPECT_TRUE(skunk.Reaches(distance, 0.0f)) << distance;
+    }
+    EXPECT_FALSE(skunk.Reaches(101.0f, 0.0f));
+
+    Flame gun(ITEM_WEAPON_BLESSING_GUN);
+    gun.Hold();
+    EXPECT_EQ(gun.Planted(kGameHitRadius), kParticles);
     EXPECT_NEAR(gun.HitReach(), 46.0f, 1e-3f);
+    EXPECT_TRUE(gun.Reaches(50.0f, 0.0f));
+    EXPECT_FALSE(gun.Reaches(51.0f, 0.0f));
 }
 
 TEST(LongerFlame, AMonsterEightyFiveAwayIsInTheSkunksReachAlone) {
@@ -134,14 +170,16 @@ TEST(LongerFlame, AMonsterEightyFiveAwayIsInTheSkunksReachAlone) {
     EXPECT_TRUE(gun.Reaches(50.0f, 5.0f));
 }
 
-TEST(LongerFlame, WeaponAbilitiesOffKeepsTheGamesSpacing) {
+TEST(LongerFlame, WeaponAbilitiesOffKeepsTheGamesFlame) {
     expanded::test::Wielding    skunk(ITEM_WEAPON_SKUNK);
     expanded::test::OptionScope options;
     ASSERT_TRUE(options.Set(expanded::kWeaponAbilities, false));
     EXPECT_FLOAT_EQ(expanded::FlameSpacing(kGameSpacing), kGameSpacing);
+    EXPECT_FLOAT_EQ(expanded::FlamePuffSize(kGameHitRadius), kGameHitRadius);
 }
 
-TEST(LongerFlame, SuperSteveCarryingItsSphereHasNoFlameToLengthen) {
+TEST(LongerFlame, SuperSteveCarryingItsSphereHasNoFlameToChange) {
     expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_SKUNK);
     EXPECT_FLOAT_EQ(expanded::FlameSpacing(kGameSpacing), kGameSpacing);
+    EXPECT_FLOAT_EQ(expanded::FlamePuffSize(kGameHitRadius), kGameHitRadius);
 }

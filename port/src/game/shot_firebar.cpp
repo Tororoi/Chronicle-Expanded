@@ -112,7 +112,11 @@ void CSHOT_FIREBAR::Step() {
         size[particle] += 0.06f;
 
         if (hit_timer == 0) {
+#ifdef CHRONICLE_EXPANDED
+            NowColData->Set(position[particle], damage[particle], 2, expanded::FlamePuffSize(4.0f), 1.0f, 2, 2, 0, 0);
+#else
             NowColData->Set(position[particle], damage[particle], 2, 4.0f, 1.0f, 2, 2, 0, 0);
+#endif
             NowColData->SetUserID(5, 6);
             NowColData->hit[NowColData->now_hit].weapon_flags = NowWeaponHave->flags;
             NowColData->hit[NowColData->now_hit].vs_monster = NowWeaponHave->vs_monster;
@@ -166,7 +170,11 @@ void CSHOT_FIREBAR::Draw() {
                 break;
         }
 
+#ifdef CHRONICLE_EXPANDED
+        set3DCellModel(position[particle], "c05w_h", expanded::FlamePuffSize(size[particle]), column << 7, row << 7, 0x80, 0x80, static_cast<u8>(static_cast<int>(opacity[particle])));
+#else
         set3DCellModel(position[particle], "c05w_h", size[particle], column << 7, row << 7, 0x80, 0x80, static_cast<u8>(static_cast<int>(opacity[particle])));
+#endif
     }
 }
 
