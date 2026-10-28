@@ -88,7 +88,7 @@ frame numbers count the main loop, as `--input`, `--record` and `--from` do.
 `--event-log FILE` (or `DC_EVENT_LOG`) writes one JSON object a line, the frame and the event first:
 
 ```
-{"frame":1194,"event":"damage","monster":0,"kind":44,"amount":136,"life":14}
+{"frame":1194,"event":"damage","monster":0,"kind":44,"amount":136,"life":14,"owner":1,"attack":0}
 ```
 
 | Event | Fields |
@@ -96,8 +96,8 @@ frame numbers count the main loop, as `--input`, `--record` and `--from` do.
 | `floor` | `dungeon`, `floor` as a floor's monsters load |
 | `character` | `chara`, the member out, as it changes |
 | `stage` | `step`: `out`, `walked`, `placed`, `circle` |
-| `damage` | `monster`, `kind`, `amount`, `life` left, for a weapon's hit |
-| `kill` | `monster`, `kind` |
+| `damage` | `monster`, `kind`, `amount`, `life` left, for a weapon's hit, and the hit's `owner` (the member) and `attack` (which of theirs) |
+| `kill` | `monster`, `kind`, `by` (the member the kill is credited to; the ABS goes to their weapon when they are out) |
 | `life` | `chara`, `from`, `to`, the member's life as it changes |
 | `whp` | `chara`, `weapon`, `from`, `to`, its weapon HP as it changes |
 | `sound` | `program`, `note`, an Expanded sound played |

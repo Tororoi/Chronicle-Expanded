@@ -419,7 +419,7 @@ void MonsterDamaged(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, i
     if (AllyUnit(unit)) {
         return;
     }
-    EventLogDamaged(unit, monster, amount);
+    EventLogDamaged(unit, monster, hit, amount);
     CactusMonsterDamaged(unit, monster, hit, amount);
     SnailMonsterDamaged(unit, monster, hit, amount);
     ColdStorageMonsterDamaged(unit, monster, hit, amount);
