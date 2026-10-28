@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
