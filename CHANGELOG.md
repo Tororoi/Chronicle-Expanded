@@ -387,6 +387,7 @@ Blessing Gun → Skunk ★
 
 ## Fishing
 
+- Brownboo is a fishing spot: a sign at the south end of the boardwalk opens the fishing menu, and the pond holds Piccolys, Negies and Gummies, now and then a Garayan. Its three rocks are solid to the line and the fish, and the villager who stood where the sign is stands further along the boardwalk. [#279](https://github.com/Tororoi/Chronicle-Expanded/pull/279)
 - Queens is a fishing spot: a sign on the canal's north bank opens the fishing menu, and the canal is fished from the bank with the game's own quit and bait menus and catch message. Its fish are Bobos, six at a time, and its bridges, pipes and walls keep them in the canal. [#278](https://github.com/Tororoi/Chronicle-Expanded/pull/278)
 - Fish no longer slip through a thin wall they swim into heading south. [#278](https://github.com/Tororoi/Chronicle-Expanded/pull/278)
 
