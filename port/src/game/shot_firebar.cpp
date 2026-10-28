@@ -13,6 +13,10 @@
 #include "texture.hpp"
 #include "weaponelement.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/osmond/skunk.hpp"
+#endif
+
 namespace dc::game {
 
 namespace {
@@ -28,7 +32,11 @@ int CSHOT_FIREBAR::Init(float *origin, float *direction, int collision_damage, i
 
     direction[3] = 1.0f;
     sceVu0Normalize(direction, direction);
+#ifdef CHRONICLE_EXPANDED
+    sceVu0ScaleVectorXYZ(step, direction, expanded::FlameSpacing(2.0f));
+#else
     sceVu0ScaleVectorXYZ(step, direction, 2.0f);
+#endif
 
     for (int particle = 0; particle < kStreamParticles; particle++) {
         const int slot = particle + start_index;
@@ -55,7 +63,11 @@ int CSHOT_FIREBAR::Set(float *origin, float *direction, int collision_damage, in
 
     direction[3] = 1.0f;
     sceVu0Normalize(direction, direction);
+#ifdef CHRONICLE_EXPANDED
+    sceVu0ScaleVectorXYZ(step, direction, expanded::FlameSpacing(2.0f));
+#else
     sceVu0ScaleVectorXYZ(step, direction, 2.0f);
+#endif
 
     // Each particle travels from where it is to its place along the new stream, the farther
     // ones over more steps.
