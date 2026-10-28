@@ -348,7 +348,7 @@ TEST_F(ShootingStars, ItFallsAtSixtyDegreesAndBouncesOnwardOnce) {
             EXPECT_NEAR(std::fabs(dx), across, 1e-3f) << i;
             EXPECT_NEAR(dy, -down, 1e-3f) << i;
         } else if (t - 1.0f >= fall) {
-            EXPECT_NEAR(std::fabs(dx), across * 2.0f / 3.0f, 1e-3f) << i;
+            EXPECT_NEAR(std::fabs(dx), across * expanded::kStarBounceAcross, 1e-3f) << i;
         }
     }
     // Off the floor a third of its speed down, turned up; then gravity the drop hop's.
@@ -371,7 +371,7 @@ TEST_F(ShootingStars, ItFallsAtSixtyDegreesAndBouncesOnwardOnce) {
     EXPECT_LT(highest, 8.0f);
     // It rests one full bounce on, the way it was going.
     EXPECT_NEAR((path.rest[0] - path.touch[0]) * static_cast<float>(path.side), expanded::StarBounceLength(), 1e-3f);
-    EXPECT_NEAR(expanded::StarBounceLength(), across * 2.0f / 3.0f * bounce, 1e-3f);
+    EXPECT_NEAR(expanded::StarBounceLength(), across * expanded::kStarBounceAcross * bounce, 1e-3f);
     int slot = Slot();
     EXPECT_FLOAT_EQ(items_.position[slot][0], path.rest[0]);
     EXPECT_NEAR(items_.position[slot][1], 1.75f, 1e-5f); // CRandomItem::Set's lift

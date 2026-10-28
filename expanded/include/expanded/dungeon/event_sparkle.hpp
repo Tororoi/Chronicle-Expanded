@@ -14,7 +14,7 @@ inline constexpr int         kSparkleCell = 32;
 bool EventSparkleReady();
 
 // Tests replace the read of the picture's image file (null puts the disc's back): it gives the file, or null.
-using SparkleImageRead = unsigned int *(*)();
+using SparkleImageRead = unsigned int *(*) ();
 void SetSparkleImageRead(SparkleImageRead read);
 
 // Draws the sparkle centred at at, half_width and half_height as the game's 3D sprites take them (C3DSprite: the height
@@ -24,14 +24,5 @@ void DrawEventSparkle(const float *at, float half_width, float half_height, int 
 
 // A round glint's half_width over its half_height (the town's: 2 x scale by scale).
 inline constexpr float kSparkleWidth = 2.0f;
-
-// The town's twinkle, as EdEventPointDraw times its glints: Step, once a frame, gives the glint's scale, rising 0.3 a frame
-// to a little over 1, then nothing for 10 to 29 frames.
-struct Twinkle {
-    float scale = 0.0f;
-    int   wait = 0;
-
-    float Step();
-};
 
 } // namespace expanded

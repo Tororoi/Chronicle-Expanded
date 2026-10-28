@@ -35,7 +35,7 @@ inline constexpr float kStarFallSpeed = 3.5f;
 // turned up, and comes down again under the gravity of the game's drop hop (CRandomItem: 8 high over 30 frames, as a
 // parabola), where it rests. Where that would leave walkable floor or meet a wall, it falls from the other side, and
 // failing that it carries kStarBounceShorter of the way, then none (straight up and down).
-inline constexpr float kStarBounceAcross = 2.0f / 3.0f;
+inline constexpr float kStarBounceAcross = 1.0f / 3.0f;
 inline constexpr float kStarBounceUp = 1.0f / 3.0f;
 inline constexpr float kItemHopHeight = 8.0f;
 inline constexpr float kItemHopFrames = 30.0f;
@@ -43,15 +43,10 @@ inline constexpr float kStarGravity = 8.0f * kItemHopHeight / (kItemHopFrames * 
 inline constexpr float kStarBounceShorter = 0.5f;
 
 // How it looks: the sparkle kStarHeadSize across with kStarTrail fading copies behind it, each where it was kStarTrailGap
-// back along its fall; at rest, a steady glint kStarRestSize high under the town's twinkle kStarTwinkleSize times as large,
-// kStarTwinkleLift over the drop's middle.
+// back along its fall; at rest, the same sparkle without its trail, where the bounce left it.
 inline constexpr float kStarHeadSize = 12.0f;
 inline constexpr int   kStarTrail = 8;
 inline constexpr float kStarTrailGap = 2.0f;
-inline constexpr float kStarRestSize = 1.25f;
-inline constexpr int   kStarRestBrightness = 96;
-inline constexpr float kStarTwinkleSize = 3.0f;
-inline constexpr float kStarTwinkleLift = 2.0f;
 
 // The line shown as a star comes down.
 inline constexpr int kStarMessageFrames = 240;

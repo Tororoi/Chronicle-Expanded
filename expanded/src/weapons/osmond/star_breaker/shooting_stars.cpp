@@ -45,7 +45,6 @@ struct Star {
 };
 
 std::vector<Star> stars;
-Twinkle           twinkle;
 
 std::optional<std::string> StarLine() {
     return LocalizeText("expanded.star_breaker.shooting_star", "The Star Breaker sent you a shooting star!");
@@ -198,14 +197,9 @@ void DrawFalling(const Star &star) {
     }
 }
 
-void DrawLying(const Star &star, float scale) {
-    const CRandomItem &items = *star.items;
-    float              at[3];
-    Copy(at, items.position[star.slot]);
-    at[1] += 8.0f * std::sin(items.phase[star.slot]) + kStarTwinkleLift; // where CRandomItem::Draw would draw the drop
-    DrawEventSparkle(at, kSparkleWidth * kStarRestSize, kStarRestSize, kStarRestBrightness);
-    float half_height = scale * kStarTwinkleSize;
-    DrawEventSparkle(at, kSparkleWidth * half_height, half_height, 128);
+void DrawLying(const Star &star) {
+    float half = kStarHeadSize / 2.0f;
+    DrawEventSparkle(star.path.rest, half, half / kSparkleWidth, 128);
 }
 
 } // namespace
@@ -360,19 +354,17 @@ void ShootingStarsStep() {
 }
 
 void ShootingStarsDraw() {
-    float scale = twinkle.Step();
     for (const Star &star : stars) {
         if (star.phase == Phase::kFalling) {
             DrawFalling(star);
         } else if (star.phase == Phase::kLying && star.items == RandomItem) {
-            DrawLying(star, scale);
+            DrawLying(star);
         }
     }
 }
 
 void ShootingStarsVisitBegins() {
     stars.clear();
-    twinkle = {};
 }
 
 } // namespace expanded

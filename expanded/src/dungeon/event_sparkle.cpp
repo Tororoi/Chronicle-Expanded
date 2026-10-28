@@ -6,7 +6,6 @@
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
 #include "effect.hpp"
-#include "expanded/core/random.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/dungeon/pack_files.hpp"
 #include "expanded/enemies/enemy_events.hpp"
@@ -87,19 +86,6 @@ void DrawEventSparkle(const float *at, float half_width, float half_height, int 
 void SetSparkleImageRead(SparkleImageRead read) {
     ImageRead() = read;
     failed = false;
-}
-
-float Twinkle::Step() {
-    if (scale > 1.0f) {
-        scale = 0.0f;
-        wait = ModRoll(20) + 10;
-    }
-    if (wait < 0) {
-        scale += 0.3f;
-        wait = 0;
-    }
-    wait--;
-    return scale;
 }
 
 } // namespace expanded
