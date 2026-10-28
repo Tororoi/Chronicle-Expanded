@@ -50,6 +50,9 @@ Bytes TriangleCollision(std::string_view name, const std::vector<Triangle> &tria
 // An event function: a script point always on, at position in the part, firing label within radius.
 Bytes ScriptEvent(const std::array<float, 3> &position, float radius, int label);
 
+// The scene with the stand point of villager (PEOPLE2's order) in part moved to position, in the part's frame.
+Bytes MoveStandPoint(std::span<const unsigned char> scene, std::string_view part, int villager, const std::array<float, 3> &position);
+
 // The scene with a part appended under name: header's copy, its events, its model (at the part's origin when
 // at_origin), its collision and the camera's (none when empty); with ripple, the model is also its ripple model, which
 // a WATER part draws over the water's surface.
@@ -61,6 +64,9 @@ Bytes AppendPart(std::span<const unsigned char> scene, std::string_view name, st
 // mapinfo's order) after anchor's last GROUND block (or block of anchor_kind), collision its atari model.
 Bytes PlaceGround(std::span<const unsigned char> cfg, std::string_view part, std::string_view anchor, std::string_view collision,
                   const std::array<int, 3> &position, int yaw, std::string_view kind = "GROUND", std::string_view anchor_kind = "GROUND");
+
+// Where the mapinfo's GROUND and WATER lines place the parts whose names start with prefix, in its order.
+std::vector<Vec3> PlacedAt(std::span<const unsigned char> cfg, std::string_view prefix);
 
 // A model frame's mesh as the mapinfo places it: its world vertices and its triangles' vertex indices.
 struct PlacedMesh {

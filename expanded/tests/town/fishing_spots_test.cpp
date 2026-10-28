@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "collision.hpp"
+#include "expanded/data/fishing_collision.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/town/fishing.hpp"
 #include "fish.hpp"
@@ -16,7 +17,7 @@ namespace {
 
 using expanded::scene::Triangle;
 
-constexpr int kQueens = 2, kQueensSpot = 6;
+constexpr int kBrownboo = 14, kBrownbooSpot = 5, kQueens = 2, kQueensSpot = 6;
 
 // MapNo for a test, put back after.
 class Town {
@@ -41,6 +42,67 @@ std::vector<Triangle> WallAt(double z) {
 }
 
 } // namespace
+
+TEST(FishingSpots, BrownbooFishArePiccolysNegiesAndGummiesAndOneInFiftyAGarayan) {
+    using namespace expanded::fish;
+    EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 1, -1), kPiccoly);
+    EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 2, -1), kNegie);
+    EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 3, -1), kGummy);
+    EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 5, -1), kPiccoly);
+    for (int roll : {0, 50, 12350}) {
+        int kind = expanded::SpotFish(kBrownbooSpot, roll, -1);
+        EXPECT_TRUE(kind == kMardanGarayan || kind == kBaronGarayan) << roll;
+    }
+    EXPECT_EQ(expanded::SpotFishCount(kBrownbooSpot, 3), expanded::kSpotFishCount);
+}
+
+TEST(FishingSpots, BrownbooFishesWithTheGamesLineAndDepth) {
+    EXPECT_EQ(expanded::SpotLineSegment(kBrownbooSpot), distp);
+    Town brownboo(kBrownboo);
+    EXPECT_EQ(expanded::SpotFishDepth(12.0f), 12.0f);
+}
+
+// Every face of the pond's rocks is a whole poly in the fishing collision.
+TEST(FishingSpots, BrownboosRocksAreWholePolys) {
+    std::vector<Triangle> rocks = expanded::BrownbooRocks();
+    std::vector<CCPoly>   polys(1228);
+    EXPECT_EQ(expanded::AddCollision(polys.data(), 1, 1228, rocks), 1 + static_cast<int>(rocks.size()));
+    EXPECT_EQ(rocks.size(), 202u);
+}
+
+// A floor over a ladder's top is dropped from what fishing gathers; one low, one away and one dipping below the zone's
+// height stay, in their order.
+TEST(FishingSpots, BrownboosLadderTopsAreDroppedFromWhatIsGathered) {
+    auto floor = [](float x, float z, float y0, float y1, float y2) {
+        CCPoly      poly{};
+        const float corners[3][3] = {
+            {x - 2, y0, z - 2},
+            {x + 2, y1, z - 2},
+            {x,     y2, z + 2}
+        };
+        for (int v = 0; v < 3; v++) {
+            for (int k = 0; k < 3; k++) {
+                poly.vertex[v][k] = corners[v][k];
+            }
+        }
+        return poly;
+    };
+    std::array<CCPoly, 5> polys = {
+        floor(10, 10, 50, 50, 50), // the ladder's top: dropped
+        floor(10, 10, 10, 10, 10), // the boardwalk at its foot
+        floor(70, 10, 50, 50, 50), // high, but away from the ladder
+        floor(12, 12, 20, 50, 50), // a stair dipping under the zone's height
+        floor(-20, 0, 26, 26, 26), // high and within reach: dropped
+    };
+    const expanded::FloorDropZone zones[] = {
+        {0.0f, 0.0f, 45.0f, 25.0f}
+    };
+    ASSERT_EQ(expanded::DropPolys(polys.data(), 5, zones), 3);
+    EXPECT_EQ(polys[0].vertex[0][1], 10.0f);
+    EXPECT_EQ(polys[1].vertex[2][0], 70.0f);
+    EXPECT_EQ(polys[2].vertex[0][1], 20.0f);
+    EXPECT_EQ(expanded::DropPolys(polys.data(), 3, {}), 3);
+}
 
 TEST(FishingSpots, QueensFishAreBobos) {
     for (int roll : {0, 1, 2, 3, 49, 50, 12345}) {

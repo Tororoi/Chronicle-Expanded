@@ -39,6 +39,16 @@ std::vector<Triangle> FramesTriangles(const std::vector<scene::PlacedMesh> &plac
     return triangles;
 }
 
+// Brownboo: the pond's rocks.
+std::vector<Triangle> BrownbooCollision(std::span<const unsigned char>, std::span<const unsigned char>) {
+    return BrownbooRocks();
+}
+
+// Brownboo: villager 8, who stands where the sign's trigger is, stands back along the boardwalk.
+Bytes BrownbooScene(std::span<const unsigned char> scene, std::span<const unsigned char>) {
+    return scene::MoveStandPoint(scene, "s04g01", 8, {255.0f, 10.57f, -55.0f});
+}
+
 // Queens: the canal's bridges (obj40, obj44) and pipes (obj9), and its containment walls.
 std::vector<Triangle> QueensCollision(std::span<const unsigned char> scene, std::span<const unsigned char> cfg) {
     std::vector<scene::PlacedMesh> placed = scene::PlacedMeshes(scene, cfg);
@@ -73,6 +83,38 @@ constexpr FishingCanal kQueensCasting = {
 };
 
 const FishingSpot kSpots[] = {
+    // Brownboo's pond from the boardwalk by the sign, 10 over the water: fished facing north across it, the fish 6
+    // under. The landings at the tops of its ladders (s04r*), high over the pond, are left out of what it gathers, so
+    // no float rests there.
+    {.code = "s04",
+     .map_no = 14,
+     .area = 5,
+     .anchor = "s04a01",
+     .sign = {212, 9, -61},
+     .sign_yaw = 0,
+     .sign_collision = false,
+     .atari = "",
+     .trigger = {0.0f, 3.0f, 8.0f},
+     .x1 = -250.0f,
+     .z1 = -240.0f,
+     .x2 = 250.0f,
+     .z2 = 240.0f,
+     .water = 0.0f,
+     .ground = -15.0f,
+     .stance = {212.0f, 10.0f, -53.0f},
+     .facing = 3.14159f,
+     .line = 1.0f,
+     .fish_depth = 6.0f,
+     .fish = {fish::kPiccoly, fish::kPiccoly, fish::kNegie, fish::kGummy},
+     .rare_one_in = 50,
+     .collision = BrownbooCollision,
+     .edit_scene = BrownbooScene,
+     .edit_cfg = nullptr,
+     .camera_height = 40.0f,
+     .camera_top = 0.0f,
+     .canal = nullptr,
+     .additions = nullptr,
+     .floor_drop = {.parts = "s04r", .radius = 45.0f, .min_y = 25.0f}},
     // Queens' canal from its north bank, 39 over the afternoon's water (the tide sets it): fished from the stance by the
     // sign, facing south across it, a cast paying the line out to twice retail's, the fish at retail's depth (at low tide
     // the canal floor's); the camera's eye stays 4 under the walls' tops (70).
@@ -164,7 +206,7 @@ const FishingSpot kSpots[] = {
      .edit_cfg = YellowDropsWater,
      .camera_height = 30.0f,
      .camera_top = 0.0f,
-     .canal = nullptr        },
+     .canal = nullptr},
 };
 
 // The languages a town's messages come in: _1 to _6.
@@ -248,6 +290,17 @@ Bytes BuildMapinfo(const Town &town, Files s) {
     return out;
 }
 
+// The spot's floor drop round each part the mapinfo places.
+std::vector<FloorDropZone> FloorDropZones(const FishingSpot &spot, std::span<const unsigned char> cfg) {
+    std::vector<FloorDropZone> zones;
+    if (!spot.floor_drop.parts.empty()) {
+        for (const scene::Vec3 &at : scene::PlacedAt(cfg, spot.floor_drop.parts)) {
+            zones.push_back({static_cast<float>(at[0]), static_cast<float>(at[2]), spot.floor_drop.radius, spot.floor_drop.min_y});
+        }
+    }
+    return zones;
+}
+
 } // namespace
 
 std::span<const FishingSpot> FishingSpots() {
@@ -278,15 +331,23 @@ std::string FishingCollisionPath(const FishingSpot &spot) {
     return std::format("expanded/fishing/{}.col", spot.code);
 }
 
-Bytes FishingCollisionFile(int map_no, const std::vector<Triangle> &triangles) {
+Bytes FishingCollisionFile(int map_no, const std::vector<Triangle> &triangles, const std::vector<FloorDropZone> &zones) {
     Bytes out = ToBytes("DCFC");
-    Append32(out, 1);
+    Append32(out, zones.empty() ? 1 : 2);
     Append32(out, static_cast<std::uint32_t>(map_no));
     Append32(out, static_cast<std::uint32_t>(triangles.size()));
     for (const Triangle &triangle : triangles) {
         for (const scene::Vec3 &point : triangle) {
             for (double value : point) {
                 Append32(out, std::bit_cast<std::uint32_t>(static_cast<float>(value)));
+            }
+        }
+    }
+    if (!zones.empty()) {
+        Append32(out, static_cast<std::uint32_t>(zones.size()));
+        for (const FloorDropZone &zone : zones) {
+            for (float value : {zone.x, zone.z, zone.radius, zone.min_y}) {
+                Append32(out, std::bit_cast<std::uint32_t>(value));
             }
         }
     }
@@ -308,6 +369,21 @@ std::vector<Triangle> ReadFishingCollision(std::span<const unsigned char> file) 
         }
     }
     return triangles;
+}
+
+std::vector<FloorDropZone> ReadFloorDropZones(std::span<const unsigned char> file) {
+    std::size_t at = 16 + ReadFishingCollision(file).size() * 36;
+    if (Get32(file, 4) < 2) {
+        return {};
+    }
+    std::size_t                count = Get32(file, at);
+    std::vector<FloorDropZone> zones(count);
+    Slice(file, at + 4, count * 16, "a fishing collision file's floor drop zones");
+    for (std::size_t i = 0; i < count; i++) {
+        std::size_t z = at + 4 + i * 16;
+        zones[i] = {GetF32(file, z), GetF32(file, z + 4), GetF32(file, z + 8), GetF32(file, z + 12)};
+    }
+    return zones;
 }
 
 std::vector<DataBuild> FishingSpotBuilds() {
@@ -343,7 +419,7 @@ std::vector<DataBuild> FishingSpotBuilds() {
         }
         if (spot.collision != nullptr) {
             builds.push_back(DataBuild::FromSources(std::format("{} fishing collision", spot.code), FishingCollisionPath(spot), {scene, cfg},
-                                                    [&spot](Files s) { return FishingCollisionFile(spot.map_no, spot.collision(s[0], s[1])); }));
+                                                    [&spot](Files s) { return FishingCollisionFile(spot.map_no, spot.collision(s[0], s[1]), FloorDropZones(spot, s[1])); }));
         }
     }
     return builds;
