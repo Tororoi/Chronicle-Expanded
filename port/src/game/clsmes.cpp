@@ -2798,6 +2798,11 @@ void ClsMes::DrawGaijiFont(CTexture *texture, int index, const CRect_i_ &texel, 
         if (DrawPadGlyph(code, screen, std::min(this->edge_alpha, 0x80))) {
             return;
         }
+#ifdef CHRONICLE_EXPANDED
+        if (expanded::MessagePicture(*this, code, screen, std::min(this->edge_alpha, 0x80))) {
+            return;
+        }
+#endif
         set2DSprite_Core(Vif1Packet, texture, screen, texel, 0x80, 0x80, 0x80,
                          std::min(this->edge_alpha, 0x80));
         return;

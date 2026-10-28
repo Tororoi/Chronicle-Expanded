@@ -5,10 +5,12 @@
 #include <fstream>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "clsmes.hpp"
 #include "data_fixture.hpp"
+#include "editloop.hpp"
 #include "expanded/core/menu_text.hpp"
 #include "itemdata.hpp"
 #include "localize/localize.hpp"
@@ -63,6 +65,10 @@ std::optional<std::string> SevenHint() {
 
 std::optional<std::string> DaggerLines(int item_no) {
     return "Item " + std::to_string(item_no) + ".\nA test override.";
+}
+
+std::optional<std::string> Exclaimed(std::string_view own) {
+    return std::string(own) + "!";
 }
 
 std::optional<std::string> SphereLine() {
@@ -129,6 +135,23 @@ TEST(ExpandedMenuText, ASystemMessageIsTheItemLinesBanksOnly) {
     EXPECT_EQ(Text(bank, 1000), "{icon-orb}\"{insert1}\" SynthSphere acquired.");
     EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.");
     SystemMessageWindow().buff = own;
+}
+
+TEST(ExpandedMenuText, ATalkMessageIsTheTalkWindowsBankOnly) {
+    Reset            reset;
+    std::vector<s16> bank = Bank();
+    expanded::SetTalkMessage(kStatusBreakHint, Exclaimed);
+    expanded::SetTalkMessage(1000, Exclaimed);
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.");
+    short *own = EditMes1.buff;
+    EditMes1.buff = bank.data();
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.!");
+    EXPECT_EQ(Text(bank, DescriptionOf(ITEM_WEAPON_DAGGER)), "\"Dagger{value}\"\nFairly easy to use.\ndefault weapon.");
+    // A message the bank does not have stays missing.
+    EXPECT_EQ(Text(bank, 1000), "<none>");
+    expanded::SetTalkMessage(kStatusBreakHint, nullptr);
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.");
+    EditMes1.buff = own;
 }
 
 TEST(ExpandedMenuText, LanguageFilesGiveADescription) {

@@ -4,6 +4,11 @@
 #include <string>
 #include <string_view>
 
+namespace dc::game {
+class ClsMes;
+class CRect_i_;
+} // namespace dc::game
+
 namespace expanded {
 
 // Expanded text in place of the disc's in the menus' message banks (allmenu.mes, and the shop's itemshop.bin).
@@ -27,6 +32,23 @@ void SetMenuMessage(int message_id, MenuTextProvider provider);
 // Registers or, with nullptr, removes the provider of a system message's whole text (the item-got line's bank,
 // SystemMessage's), for a message the bank does not have.
 void SetSystemMessage(int message_id, MenuTextProvider provider);
+
+// The text of a town talk message (in the bank of the town's talk window, EditMes1) made from the bank's own text, in
+// the same form, or std::nullopt for the bank's own. Asked each time the window lays the message out.
+using TalkTextProvider = std::optional<std::string> (*)(std::string_view own);
+
+// Registers or, with nullptr, removes the provider of a town talk message.
+void SetTalkMessage(int message_id, TalkTextProvider provider);
+
+// The item whose picture window mes draws in place of icon code ({icon-sword}...), or 0 for the icon.
+using MessagePictureProvider = int (*)(const ClsMes &mes, int code);
+
+// Registers a provider of the item pictures message windows draw in place of their icons.
+void AddMessagePicture(MessagePictureProvider provider);
+
+// Hook: ClsMes::DrawGaijiFont: draws in place of icon code, over screen, the picture of the item a provider gives for
+// it; true when drawn.
+bool MessagePicture(const ClsMes &mes, int code, const CRect_i_ &screen, int alpha);
 
 // The system messages Expanded adds, one id each past the bank's own.
 inline constexpr int kAtlaSphereMessage = 1000;   // dungeon/atla_drops: a sphere found in an atla
