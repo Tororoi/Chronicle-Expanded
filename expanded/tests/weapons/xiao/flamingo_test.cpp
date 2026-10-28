@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "expanded/dungeon/dungeon_hooks.hpp"
+#include "expanded/town/fishing.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "itemdata.hpp"
 #include "stockitem.hpp"
@@ -35,14 +36,14 @@ TEST(Flamingo, SuperSteveCarryingAHolyBladeReachesAsFar) {
 
 TEST(Flamingo, EachOneOwnedWidensEveryBaitsNoticeUpToThree) {
     expanded::test::TestSave save;
-    EXPECT_FLOAT_EQ(expanded::BaitNoticeRadius(25.0f), 25.0f);
+    EXPECT_FLOAT_EQ(expanded::BaitNoticeRadius(ITEM_MIMI, 25.0f), 25.0f);
 
     save.status().chara_weapons[CHARA_XIAO][2].item_no = ITEM_WEAPON_FLAMINGO;
-    EXPECT_FLOAT_EQ(expanded::BaitNoticeRadius(25.0f), 35.0f);
+    EXPECT_FLOAT_EQ(expanded::BaitNoticeRadius(ITEM_MIMI, 25.0f), 35.0f);
     save.stock().weapons[0].item_no = ITEM_WEAPON_FLAMINGO;
-    EXPECT_FLOAT_EQ(expanded::BaitNoticeRadius(50.0f), 70.0f);
+    EXPECT_FLOAT_EQ(expanded::BaitNoticeRadius(ITEM_EVY, 50.0f), 70.0f);
 
     save.stock().weapons[1].item_no = ITEM_WEAPON_FLAMINGO;
     save.stock().weapons[2].item_no = ITEM_WEAPON_FLAMINGO;
-    EXPECT_FLOAT_EQ(expanded::BaitNoticeRadius(25.0f), 55.0f);
+    EXPECT_FLOAT_EQ(expanded::BaitNoticeRadius(ITEM_MIMI, 25.0f), 55.0f);
 }
