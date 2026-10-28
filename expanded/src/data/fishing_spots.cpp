@@ -9,6 +9,7 @@
 #include "expanded/data/fishing_collision.hpp"
 #include "expanded/data/fishing_scripts.hpp"
 #include "expanded/data/mes.hpp"
+#include "expanded/data/yellow_drops_bank.hpp"
 
 namespace expanded {
 
@@ -48,6 +49,11 @@ std::vector<Triangle> QueensCollision(std::span<const unsigned char> scene, std:
     return triangles;
 }
 
+// Yellow Drops: the walls along the bulged west bank and the pillars' bases.
+std::vector<Triangle> YellowDropsCollision(std::span<const unsigned char>, std::span<const unsigned char>) {
+    return YellowDropsBankWalls();
+}
+
 const FishingSpot kSpots[] = {
     // Queens' canal from its north bank, 39 over the water: fished from the stance by the sign, facing south across it.
     {.code = "e03",
@@ -73,7 +79,32 @@ const FishingSpot kSpots[] = {
      .rare_one_in = 0,
      .collision = QueensCollision,
      .edit_scene = nullptr,
-     .edit_cfg = nullptr},
+     .edit_cfg = nullptr         },
+    // Yellow Drops from its west bank, bulged out into the water, 25 over the raised water: fished facing west.
+    {.code = "s13",
+     .map_no = 23,
+     .area = 7,
+     .anchor = "s1301",
+     .sign = {-465, 30, 40},
+     .sign_yaw = 90,
+     .sign_collision = true,
+     .atari = "",
+     .trigger = {0.0f, 0.0f, 0.0f},
+     .x1 = -692.0f,
+     .z1 = -156.0f,
+     .x2 = -378.0f,
+     .z2 = 270.0f,
+     .water = kYellowDropsWater + 1.0f,
+     .ground = -15.0f,
+     .stance = {-468.0f, 30.0f, 40.0f},
+     .facing = -1.5708f,
+     .line = 1.0f,
+     .fish_depth = 12.0f,
+     .fish = {fish::kTarton, fish::kNonky, fish::kNegie, fish::kBon},
+     .rare_one_in = 0,
+     .collision = YellowDropsCollision,
+     .edit_scene = YellowDropsWestBank,
+     .edit_cfg = YellowDropsWater},
 };
 
 // The languages a town's messages come in: _1 to _6.
