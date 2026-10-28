@@ -2441,7 +2441,7 @@ bool LetterFuchi(const ClsMes &mes, const CRect_i_ &screen, const CRect_i_ &texe
 // and double for a lit row.
 void GlyphTint(int clut, int dark, int wide, int &r, int &g, int &b, int &alpha) {
     alpha = 0x80;
-    switch (FontColorTbl[clut]) {
+    switch (std::cmp_less(clut, std::size(FontColorTbl)) ? FontColorTbl[clut] : 0) {
         case FONT_COLOR_WHITE:
             r = g = b = 0x5F;
             break;
