@@ -7,7 +7,7 @@
 
 #include "expanded/core/random.hpp"
 #include "expanded/debug/event_log.hpp"
-#include "expanded/town/fishing.hpp"
+#include "expanded/town/fish_kinds.hpp"
 #include "expanded/weapons/ownership.hpp"
 #include "expanded/weapons/ruby/fairys_ring.hpp"
 #include "fish.hpp"
@@ -48,14 +48,14 @@ int MardanSword() {
 }
 
 int MardanFishKind(int kind, int rare_interval) {
-    if (kind < 0 || std::ranges::contains(kGarayans, kind) || rare_interval <= 0) {
+    if (kind < 0 || std::ranges::contains(fish::kGarayans, kind) || rare_interval <= 0) {
         return kind;
     }
     int sword = MardanSword();
     if ((sword != ITEM_WEAPON_MARDAN_TWEI && sword != ITEM_WEAPON_ARISE_MARDAN) || ModRoll(rare_interval) != 0) {
         return kind;
     }
-    int garayan = ModRoll(kBaronOdds) == 0 ? kBaronGarayan : kMardanGarayan;
+    int garayan = ModRoll(kBaronOdds) == 0 ? fish::kBaronGarayan : fish::kMardanGarayan;
     LogEvent("mardan_garayan", std::format("\"kind\":{},\"garayan\":{}", kind, garayan));
     return garayan;
 }
@@ -78,7 +78,7 @@ float AriseFishSize(float size, const FishInfo &info) {
 }
 
 int MardanSteerFrames(int sword, int fish_kind, float affinity) {
-    bool steered = fish_kind == kUmadakara || std::ranges::contains(kGarayans, fish_kind);
+    bool steered = fish_kind == fish::kUmadakara || std::ranges::contains(fish::kGarayans, fish_kind);
     if (sword < ITEM_WEAPON_MARDAN_EINS || sword > ITEM_WEAPON_ARISE_MARDAN || !steered || affinity <= 0.0f) {
         return 0;
     }

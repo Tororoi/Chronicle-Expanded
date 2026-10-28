@@ -14,6 +14,7 @@
 #include "expanded/data/data_build.hpp"
 #include "expanded/data/stb.hpp"
 #include "expanded/data/town_scene.hpp"
+#include "expanded/town/fish_kinds.hpp"
 
 namespace expanded {
 
@@ -106,13 +107,6 @@ struct FloorDropZone {
 // kept under a spot's camera_top goes.
 inline constexpr float kCastStart = 0.9f;
 inline constexpr float kLowestFishingCamera = 12.0f;
-
-// Fish kinds: fish_info's index (8 is none).
-namespace fish {
-inline constexpr int kBobo = 0, kGobbler = 1, kNonky = 2, kKaiji = 3, kBakuBaku = 4, kMardanGarayan = 5, kGummy = 6, kNiler = 7;
-inline constexpr int kUmadakara = 9, kTarton = 10, kPiccoly = 11, kBon = 12, kHamahama = 13, kNegie = 14, kDen = 15, kHeela = 16;
-inline constexpr int kBaronGarayan = 17;
-} // namespace fish
 
 // The fish at a spot of Expanded's.
 inline constexpr int kSpotFishCount = 6;

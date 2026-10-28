@@ -7,6 +7,7 @@
 
 #include "character.hpp"
 #include "editloop.hpp"
+#include "expanded/town/fish_kinds.hpp"
 #include "expanded/town/fish_steering.hpp"
 #include "expanded/town/fishing.hpp"
 #include "expanded/weapons/ruby/fairys_ring.hpp"
@@ -32,22 +33,20 @@ constexpr int kPoisonousApple = 6;
 constexpr int kCarrot = 8;
 constexpr int kPotatoCake = 9;
 
-constexpr int kNegie = 14;
-
 // The fish of the tests' spot, slot by slot (-1 empty), with the game's liking for each bait: Mardan Garayan for the
 // Poisonous Apple, Baron Garayan half as much for the Potato Cake, Umadakara for the Carrot, Negie for the Potato Cake
 // (and the fruits a little).
-constexpr int kKinds[kSlots] = {expanded::kMardanGarayan, expanded::kBaronGarayan, expanded::kUmadakara, kNegie, -1, kNegie};
+constexpr int kKinds[kSlots] = {expanded::fish::kMardanGarayan, expanded::fish::kBaronGarayan, expanded::fish::kUmadakara, expanded::fish::kNegie, -1, expanded::fish::kNegie};
 
 FishInfo Info(int kind) {
     FishInfo info = {.model_size = 21.0f, .min_size = 8.0f, .max_size = 16.0f, .min_fp = 15, .max_fp = 40, .food_affinity = {}};
-    if (kind == expanded::kMardanGarayan) {
+    if (kind == expanded::fish::kMardanGarayan) {
         info.food_affinity[kPoisonousApple] = 1.0f;
-    } else if (kind == expanded::kBaronGarayan) {
+    } else if (kind == expanded::fish::kBaronGarayan) {
         info.food_affinity[kPotatoCake] = 0.5f;
-    } else if (kind == expanded::kUmadakara) {
+    } else if (kind == expanded::fish::kUmadakara) {
         info.food_affinity[kCarrot] = 1.0f;
-    } else if (kind == kNegie) {
+    } else if (kind == expanded::fish::kNegie) {
         info.food_affinity[kPotatoCake] = 1.0f;
         info.food_affinity[3] = info.food_affinity[4] = info.food_affinity[5] = info.food_affinity[7] = 0.2f;
     }
@@ -259,12 +258,12 @@ TEST_F(FishSteering, WithoutWeaponAbilitiesOnlyTheSpotsTurnFish) {
 }
 
 TEST(MardanSteerFrames, TheSwordsPaceOverTheFishsLiking) {
-    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_MARDAN_EINS, expanded::kMardanGarayan, 1.0f), 240);
-    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_MARDAN_TWEI, expanded::kBaronGarayan, 0.5f), 360);
-    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_ARISE_MARDAN, expanded::kUmadakara, 1.0f), 120);
-    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_ARISE_MARDAN, expanded::kUmadakara, 0.2f), 600);
-    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_ARISE_MARDAN, kNegie, 1.0f), 0);
-    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_MARDAN_EINS, expanded::kMardanGarayan, 0.0f), 0);
-    EXPECT_EQ(expanded::MardanSteerFrames(0, expanded::kMardanGarayan, 1.0f), 0);
-    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_BASELARD, expanded::kMardanGarayan, 1.0f), 0);
+    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_MARDAN_EINS, expanded::fish::kMardanGarayan, 1.0f), 240);
+    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_MARDAN_TWEI, expanded::fish::kBaronGarayan, 0.5f), 360);
+    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_ARISE_MARDAN, expanded::fish::kUmadakara, 1.0f), 120);
+    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_ARISE_MARDAN, expanded::fish::kUmadakara, 0.2f), 600);
+    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_ARISE_MARDAN, expanded::fish::kNegie, 1.0f), 0);
+    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_MARDAN_EINS, expanded::fish::kMardanGarayan, 0.0f), 0);
+    EXPECT_EQ(expanded::MardanSteerFrames(0, expanded::fish::kMardanGarayan, 1.0f), 0);
+    EXPECT_EQ(expanded::MardanSteerFrames(ITEM_WEAPON_BASELARD, expanded::fish::kMardanGarayan, 1.0f), 0);
 }

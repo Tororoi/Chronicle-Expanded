@@ -17,6 +17,7 @@
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/data/queens_canal.hpp"
 #include "expanded/debug/event_log.hpp"
+#include "expanded/town/fish_kinds.hpp"
 #include "expanded/town/fish_steering.hpp"
 #include "expanded/town/queens_canal.hpp"
 #include "expanded/weapons/toan/mardan.hpp"
@@ -239,11 +240,11 @@ float BaitNoticeRadius(int item_no, float radius) {
 }
 
 int PoolFish(int spot, int kind) {
-    if (spot == kMatatakiWaterfall && kind == kGummy) {
-        return kNiler;
+    if (spot == kMatatakiWaterfall && kind == fish::kGummy) {
+        return fish::kNiler;
     }
-    if (spot == kEastHarbor && kind == kPiccoly) {
-        return kGobbler;
+    if (spot == kEastHarbor && kind == fish::kPiccoly) {
+        return fish::kGobbler;
     }
     return kind;
 }
