@@ -670,7 +670,11 @@ void FishLineInit(float *position) {
         sceVu0CopyVector(point[i], p);
         sceVu0CopyVector(old_p[i], p);
         sceVu0CopyVector(velo[i], zero);
+#ifdef CHRONICLE_EXPANDED
+        p[1] -= expanded::LineSegment(i + 1);
+#else
         p[1] -= distp;
+#endif
     }
 
     for (auto &hook_point : hookp) {
@@ -782,6 +786,16 @@ int FishingCheckUkiHook() {
         }
     }
 
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::FloatOutOfCanal(uki_pos)) {
+        return 1;
+    }
+
+    if (!expanded::FloatSettled()) {
+        return 0;
+    }
+#endif
+
     float water = 5.0f + FishingGetWaterLevel();
 
     if (hook_pos[1] > water) {
@@ -832,7 +846,11 @@ void FishLineStep(float *rod_position, float * /*unused*/) {
             sceVu0Normalize(normal, cpoly[hit_no].normal);
             float slope = normal[1] < 0.0f ? -normal[1] : normal[1];
 
+#ifdef CHRONICLE_EXPANDED
+            if (slope > 0.2f && !expanded::FloorOverFloat(hit[1])) {
+#else
             if (slope > 0.2f) {
+#endif
                 UkiGroundLevel = 1.0f + hit[1];
             }
         }
@@ -887,7 +905,11 @@ void FishLineStep(float *rod_position, float * /*unused*/) {
             float *current = point[i];
             sceVu0SubVector(diff, previous, current);
             float length = DistVector(diff);
+#ifdef CHRONICLE_EXPANDED
+            float stretch = length - expanded::LineSegment(i);
+#else
             float stretch = length - distp;
+#endif
             float scale = vu0::Div(rest * stretch, length);
             weight = vu0::Div(weight * stretch, length);
             sceVu0ScaleVector(move0, diff, scale);

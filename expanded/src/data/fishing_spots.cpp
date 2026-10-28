@@ -54,8 +54,26 @@ std::vector<Triangle> YellowDropsCollision(std::span<const unsigned char>, std::
     return YellowDropsBankWalls();
 }
 
+// Queens' canal: its walls at ±47, 1 inside their faces; the float hanging under 45 within 60 of the middle (from its
+// floor, not its banks); reeled in past ±49.5; and its two bridges' legs, from the canal's floor to 47, the decks over
+// 50.
+constexpr FishingCanal kQueensCasting = {
+    .wall = 47.0f,
+    .reach = 60.0f,
+    .low = 45.0f,
+    .drag = 49.5f,
+    .deck = 50.0f,
+    .legs = {{
+        {-73.07f, -22.93f, 35.0f, 50.0f, 0.0f, 47.0f},
+        {-73.07f, -22.93f, -50.0f, -36.0f, 0.0f, 47.0f},
+        {774.93f, 825.07f, 35.0f, 50.0f, 0.0f, 47.0f},
+        {774.93f, 825.07f, -50.0f, -36.0f, 0.0f, 47.0f},
+    }},
+};
+
 const FishingSpot kSpots[] = {
-    // Queens' canal from its north bank, 39 over the water: fished from the stance by the sign, facing south across it.
+    // Queens' canal from its north bank, 39 over the water: fished from the stance by the sign, facing south across it,
+    // a cast paying the line out to twice retail's; the camera's eye stays 4 under the walls' tops (70).
     {.code = "e03",
      .map_no = 2,
      .area = 6,
@@ -73,14 +91,18 @@ const FishingSpot kSpots[] = {
      .ground = 10.0f,
      .stance = {250.0f, 70.0f, -70.0f},
      .facing = 0.0f,
-     .line = 1.35f,
+     .line = 2.0f,
      .fish_depth = 13.0f,
      .fish = {fish::kBobo},
      .rare_one_in = 0,
      .collision = QueensCollision,
      .edit_scene = nullptr,
-     .edit_cfg = nullptr         },
-    // Yellow Drops from its west bank, bulged out into the water, 25 over the raised water: fished facing west.
+     .edit_cfg = nullptr,
+     .camera_height = 40.0f,
+     .camera_top = 66.0f,
+     .canal = &kQueensCasting},
+    // Yellow Drops from its west bank, bulged out into the water, 25 over the raised water: fished facing west, a cast
+    // paying the line out to twice retail's, the fish 8 under; the camera lower over the high bank.
     {.code = "s13",
      .map_no = 23,
      .area = 7,
@@ -98,13 +120,16 @@ const FishingSpot kSpots[] = {
      .ground = -15.0f,
      .stance = {-468.0f, 30.0f, 40.0f},
      .facing = -1.5708f,
-     .line = 1.0f,
-     .fish_depth = 12.0f,
+     .line = 2.0f,
+     .fish_depth = 8.0f,
      .fish = {fish::kTarton, fish::kNonky, fish::kNegie, fish::kBon},
      .rare_one_in = 0,
      .collision = YellowDropsCollision,
      .edit_scene = YellowDropsWestBank,
-     .edit_cfg = YellowDropsWater},
+     .edit_cfg = YellowDropsWater,
+     .camera_height = 30.0f,
+     .camera_top = 0.0f,
+     .canal = nullptr        },
 };
 
 // The languages a town's messages come in: _1 to _6.

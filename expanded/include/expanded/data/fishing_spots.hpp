@@ -16,6 +16,18 @@
 
 namespace expanded {
 
+// A canal fished from its banks or its floor. A cast thrown with the float hanging low in it (under low, within reach
+// of its middle) stops at its walls, z = ±wall; every cast stops at its bridges' legs; a waiting float is reeled in
+// past ±drag, inside a leg, or under the bridge whose deck (over deck) the angler stands on; and the float does not
+// lift onto a floor over it (a deck, a pipe).
+struct FishingCanal {
+    float wall, reach, low;
+    float drag;
+    float deck;
+    // The legs: x, z and y from and to. legs[0] and legs[2] give the two bridges' spans of x.
+    std::array<std::array<float, 6>, 4> legs;
+};
+
 struct FishingSpot {
     std::string_view code;   // the town's gedit folder
     int              map_no; // MapNo
@@ -32,12 +44,12 @@ struct FishingSpot {
     // _LOAD_FISHING_DATA's rectangle (the casts' bounds and the collision gathered), water and ground.
     float x1, z1, x2, z2;
     float water, ground;
-    // Where the player stands to fish, and facing; and the fishing line's length there, retail's times line (a bank
-    // high over its water needs a longer one to reach it).
+    // Where the player stands to fish, and facing; and the line from the rod to the float, retail's times line: over 1,
+    // it starts short (kCastStart) and pays out as a cast flies (a bank high over its water needs it to reach).
     std::array<float, 3> stance;
     float                facing;
     float                line;
-    // How deep under the water the fish swim (retail's 12), the line's hook at rest a little above them.
+    // How deep under the water the fish swim (retail's 12); the line under the float hangs the bait there.
     float fish_depth;
     // The fish: each drawn evenly from fish (a kind listed twice twice as likely), but one in rare_one_in a Garayan
     // (none at 0), as the game draws its own spots'.
@@ -49,7 +61,18 @@ struct FishingSpot {
     // hand); null for as they are.
     Bytes (*edit_scene)(std::span<const unsigned char> scene, std::span<const unsigned char> cfg);
     Bytes (*edit_cfg)(std::span<const unsigned char> cfg);
+    // The fishing camera's height (retail's 40); and, not 0, the highest its eye goes as it watches the float, no less
+    // than kLowestFishingCamera over it (under walls it would pass over).
+    float camera_height = 40.0f;
+    float camera_top = 0.0f;
+    // The canal the casts are thrown in; null for none.
+    const FishingCanal *canal = nullptr;
 };
+
+// A paying-out line's length from the rod to the float as a cast starts, retail's times this; and the lowest a camera
+// kept under a spot's camera_top goes.
+inline constexpr float kCastStart = 0.9f;
+inline constexpr float kLowestFishingCamera = 12.0f;
 
 inline constexpr int   kFishingSignLabel = 400;
 inline constexpr float kFishingSignRadius = 10.0f;

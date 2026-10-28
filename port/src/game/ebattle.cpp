@@ -45,6 +45,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/town/ally.hpp"
+#include "expanded/town/fishing.hpp"
 #include "expanded/town/ladder.hpp"
 #include "expanded/weapons/osmond/blessing_gun.hpp"
 #endif
@@ -1710,7 +1711,12 @@ void EdMoveChara() {
         int wall_count = 0;
 
         if (EdMoveCharaInfo.fishing != 0) {
+#ifdef CHRONICLE_EXPANDED
+            // Every part's walls, as walking: the camera watches the float, out over the water.
+            wall_count = ground->PickUpCameraPoly(walls, box, 0xFFFF);
+#else
             wall_count = ground->PickUpCameraPoly(walls, box, 1);
+#endif
         } else {
             wall_count = ground->PickUpCameraPoly(walls, box, 0xFFFF);
         }
@@ -2100,7 +2106,11 @@ void EdMoveChara() {
         EdViewModeOff();
 
         if (EdDebugMoveFlag == 0) {
+#ifdef CHRONICLE_EXPANDED
+            camera->SetHeight(expanded::FishingCameraHeight(40.0f));
+#else
             camera->SetHeight(40.0f);
+#endif
         }
 
         sceVu0FVECTOR stand;
@@ -2464,12 +2474,20 @@ void EdMoveChara() {
                 break;
         }
 
+#ifdef CHRONICLE_EXPANDED
+        expanded::FishingCatchCamera(*camera, chara_fishing);
+#endif
+
         // The camera watches the point halfway between the angler and the float.
         if (follow_line != 0) {
             sceVu0FVECTOR centre;
             FishLineGetUki(centre);
+#ifdef CHRONICLE_EXPANDED
+            // Expanded's watches the float.
+#else
             sceVu0AddVector(centre, centre, pos);
             sceVu0ScaleVector(centre, centre, 0.5f);
+#endif
             camera->SetFollow(centre[0], centre[1], centre[2]);
         }
 
@@ -2546,6 +2564,11 @@ void EdMoveChara() {
         sceVu0FVECTOR after;
         FishLineGetUki(before);
         FishLineStep(rod, rod);
+#ifdef CHRONICLE_EXPANDED
+        sceVu0FVECTOR angler;
+        chara->GetPosition(angler);
+        expanded::FishLineStepped(angler, chara->GetRotation()->y);
+#endif
         FishingStepFish();
         FishLineGetUki(after);
         // The float throws up ripples where it crosses the surface.
