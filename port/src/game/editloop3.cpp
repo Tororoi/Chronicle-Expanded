@@ -71,6 +71,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/town/ally.hpp"
+#include "expanded/town/fishing.hpp"
 #endif
 
 namespace dc::game {
@@ -8000,6 +8001,9 @@ int _LOAD_FISHING_DATA(RS_STACKDATA *stack, int argument_count) {
     bounds.max[2] = GetStackFloat(stack++);
     FishingSetRect(bounds);
     float water_near = GetStackFloat(stack++);
+#ifdef CHRONICLE_EXPANDED
+    water_near = expanded::FishingSpotLoad(fish_set, water_near);
+#endif
     FishingSetWaterLevel(water_near, GetStackFloat(stack));
 
     CCPoly polygons[1024];

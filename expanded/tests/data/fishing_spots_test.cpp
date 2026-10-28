@@ -21,6 +21,7 @@
 #include "expanded/data/fishing_scripts.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/data/mes.hpp"
+#include "expanded/data/queens_canal.hpp"
 #include "expanded/data/stb.hpp"
 #include "expanded/data/town_scene.hpp"
 #include "expanded/data/yellow_drops_bank.hpp"
@@ -147,6 +148,12 @@ const expanded::FishingSpot &Queens() {
     const expanded::FishingSpot *spot = expanded::FishingSpotOfMap(2);
     EXPECT_NE(spot, nullptr);
     return *spot;
+}
+
+// The town's event script with the fishing scripts of spot alone.
+Bytes AddScripts(std::span<const unsigned char> script, const expanded::FishingSpot &spot) {
+    const expanded::FishingSpot *spots[] = {&spot};
+    return expanded::AddFishingScripts(script, spots);
 }
 
 // The spots' builds over a copy of the disc at data, in scratch: the failed builds.
@@ -292,7 +299,7 @@ TEST(FishingSpot, QueensIsFishedFromTheCanalsNorthBank) {
 
 TEST(FishingSpot, TheEntryScriptLoadsTheSpotBehindBlack) {
     const expanded::FishingSpot &spot = Queens();
-    Bytes                        script = expanded::AddFishingScripts(SmallScript(), spot);
+    Bytes                        script = AddScripts(SmallScript(), spot);
     ASSERT_TRUE(stb::Label(script, expanded::kFishingSignLabel).has_value());
     std::vector<Call> calls = Calls(Cells(script, *stb::Label(script, expanded::kFishingSignLabel)));
 
@@ -326,7 +333,7 @@ TEST(FishingSpot, TheEntryScriptLoadsTheSpotBehindBlack) {
 }
 
 TEST(FishingSpot, TheQuitAndBaitScriptsAreTheLabelsFishingAsksFor) {
-    Bytes script = expanded::AddFishingScripts(SmallScript(), Queens());
+    Bytes script = AddScripts(SmallScript(), Queens());
     for (std::uint32_t label : {expanded::kFishingMenuLabel, expanded::kFishingQuitLabel, expanded::kFishingBaitLabel}) {
         ASSERT_TRUE(stb::Label(script, label).has_value()) << label;
     }
@@ -339,7 +346,7 @@ TEST(FishingSpot, TheQuitAndBaitScriptsAreTheLabelsFishingAsksFor) {
     std::vector<Call> bait = Calls(Cells(script, *stb::Label(script, expanded::kFishingBaitLabel)));
     EXPECT_NE(Find(bait, 25), nullptr);  // _GOTO_CHANGE_ESA
     EXPECT_NE(Find(bait, 997), nullptr); // back to fishing
-    EXPECT_THROW(expanded::AddFishingScripts(script, Queens()), std::runtime_error);
+    EXPECT_THROW(AddScripts(script, Queens()), std::runtime_error);
 }
 
 TEST(FishingSpot, ACollisionFileHoldsItsTriangles) {
@@ -364,8 +371,9 @@ TEST(FishingSpot, QueensIsBuiltFromTheDisc) {
 
     Bytes                       scene_file = Read(rebuilt / "scene.scn");
     std::vector<scene::SubFile> files = scene::SubFiles(scene_file);
-    ASSERT_EQ(files.back().name, "kanban");
-    std::size_t part = files.back().offset, definition = part + Get32(scene_file, part + 4);
+    auto                        sign = std::ranges::find(files, std::string("kanban"), &scene::SubFile::name);
+    ASSERT_NE(sign, files.end());
+    std::size_t part = sign->offset, definition = part + Get32(scene_file, part + 4);
     ASSERT_EQ(Get32(scene_file, definition + 0x74), 1u);
     std::size_t event = definition + Get32(scene_file, definition + 0x70);
     EXPECT_EQ(Get32(scene_file, event + 0x10), 0x12u);
@@ -401,7 +409,247 @@ TEST(FishingSpot, QueensIsBuiltFromTheDisc) {
     // The bridges' and pipes' triangles and the authored walls.
     std::vector<scene::Triangle> collision = expanded::ReadFishingCollision(Read(scratch / expanded::FishingCollisionPath(Queens())));
     EXPECT_EQ(collision.size(), 713u);
-    EXPECT_EQ(Get32(Read(scratch / expanded::kFishingSignPictures), 4), 1u); // the sign's one picture
+    EXPECT_EQ(Get32(Read(scratch / expanded::kFishingSignPictures), 4), 2u); // the sign's picture and the canal ladder's
+}
+
+namespace {
+
+const expanded::FishingSpot &CanalFloor() {
+    const expanded::FishingSpot *spot = expanded::FishingSpotOfArea(8);
+    EXPECT_NE(spot, nullptr);
+    return *spot;
+}
+
+scene::Vec3 Normal(const scene::Triangle &t) {
+    scene::Vec3 u, w;
+    for (int k = 0; k < 3; k++) {
+        u[k] = t[1][k] - t[0][k];
+        w[k] = t[2][k] - t[0][k];
+    }
+    return {u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]};
+}
+
+} // namespace
+
+TEST(QueensCanal, TheCanalFloorIsASecondQueensSign) {
+    const expanded::FishingSpot &floor = CanalFloor();
+    EXPECT_EQ(floor.map_no, Queens().map_no);
+    EXPECT_EQ(expanded::FishingSpotOfMap(2), &Queens()); // the town's first spot is its bank
+    EXPECT_EQ(expanded::TownFishingSpots(2), (std::vector<const expanded::FishingSpot *>{&Queens(), &floor}));
+    EXPECT_EQ(floor.part, "kanbanc");
+    EXPECT_EQ(floor.label, expanded::kCanalFloorSignLabel);
+    EXPECT_EQ(floor.water, expanded::kLowTide);
+    EXPECT_EQ(floor.fish, Queens().fish);
+    // The sign faces west (yaw -90): the trigger 6 in front of it is the stance, on the canal floor.
+    EXPECT_EQ(floor.sign[0] - floor.trigger[2], floor.stance[0]);
+    EXPECT_EQ(floor.stance[1], floor.ground);
+    EXPECT_TRUE(floor.x1 < floor.stance[0] && floor.stance[0] < floor.x2 && floor.z1 < floor.stance[2] && floor.stance[2] < floor.z2);
+    EXPECT_LT(floor.camera_height, Queens().camera_height); // under the bridge it stands by
+}
+
+TEST(QueensCanal, BothSignsScriptsAndTheLaddersMessage) {
+    std::vector<const expanded::FishingSpot *> town = expanded::TownFishingSpots(2);
+    Bytes                                      script = expanded::AddFishingScripts(SmallScript(), town, expanded::kQueensCanal.scripts);
+    for (const expanded::FishingSpot *spot : town) {
+        ASSERT_TRUE(stb::Label(script, static_cast<std::uint32_t>(spot->label)).has_value()) << spot->label;
+        std::vector<Call> calls = Calls(Cells(script, *stb::Label(script, static_cast<std::uint32_t>(spot->label))));
+        const Call       *load = Find(calls, 998);
+        ASSERT_NE(load, nullptr);
+        EXPECT_EQ(Int(load->arguments[0]), spot->area);
+        const Call *place = Find(calls, 137);
+        ASSERT_NE(place, nullptr);
+        EXPECT_EQ(Float(place->arguments[1]), spot->stance[0]);
+    }
+    ASSERT_TRUE(stb::Label(script, expanded::kLadderMessageLabel).has_value());
+    std::vector<Call> message = Calls(Cells(script, *stb::Label(script, expanded::kLadderMessageLabel)));
+    EXPECT_NE(Find(message, 10), nullptr); // the "!"
+    const Call *shown = Find(message, 192);
+    ASSERT_NE(shown, nullptr);
+    EXPECT_EQ(Int(shown->arguments[1]), expanded::kTideTooHighMessage);
+    EXPECT_LT(Find(message, 1)->index, shown->index); // after Cross
+}
+
+TEST(QueensCanal, TheDockArrivalStandsThePlayerThere) {
+    stb::Appender appender(SmallScript());
+    appender.Add(expanded::kDockArrivalEvent, expanded::ArrivalScript(expanded::kDockArrival, expanded::kDockArrivalYaw));
+    Bytes script = appender.Build();
+    ASSERT_TRUE(stb::Label(script, expanded::kDockArrivalEvent).has_value());
+    std::vector<Call> arrival = Calls(Cells(script, *stb::Label(script, expanded::kDockArrivalEvent)));
+    const Call       *place = Find(arrival, 137);
+    ASSERT_NE(place, nullptr);
+    EXPECT_EQ(Int(place->arguments[0]), -1);
+    for (std::size_t k = 0; k < 3; k++) {
+        EXPECT_EQ(Float(place->arguments[k + 1]), expanded::kDockArrival[k]);
+    }
+    EXPECT_NE(Find(arrival, 7), nullptr);   // world coordinates
+    EXPECT_NE(Find(arrival, 433), nullptr); // the camera behind
+}
+
+TEST(QueensCanal, TheLadderHasItsTwoEndsAndTheTidesPoint) {
+    Bytes events = expanded::LadderEvents();
+    ASSERT_EQ(events.size(), 3 * 0xC0u);
+    const std::uint32_t kinds[] = {0x13, 0x14, 0x12};
+    for (std::size_t i = 0; i < 3; i++) {
+        std::size_t e = i * 0xC0;
+        EXPECT_EQ(Get32(events, e + 0x10), kinds[i]) << i;
+        EXPECT_EQ(GetF32(events, e + 0x18), 0.0f) << i; // hours 0 to 24: always on
+        EXPECT_EQ(GetF32(events, e + 0x1C), 24.0f) << i;
+        EXPECT_EQ(expanded::NameAt(events, e + 0x30, 32), expanded::kLadderPart) << i;
+    }
+    for (std::size_t k = 0; k < 3; k++) {
+        EXPECT_EQ(GetF32(events, 0x40 + k * 4), expanded::kLadderBottom[k]);
+        EXPECT_EQ(GetF32(events, 0xC0 + 0x40 + k * 4), expanded::kLadderTop[k]);
+        EXPECT_EQ(GetF32(events, 0x180 + 0x40 + k * 4), expanded::kLadderTop[k]); // the message where the climb down starts
+    }
+    EXPECT_EQ(GetF32(events, 0x74), 12.0f); // rungs, as the Factory's ladder
+    EXPECT_EQ(GetF32(events, 0xC0 + 0x74), 2.0f);
+    EXPECT_EQ(GetF32(events, 0x180 + 0x70), static_cast<float>(expanded::kLadderMessageLabel));
+    EXPECT_GT(GetF32(events, 0x180 + 0x60), 0.0f);
+}
+
+TEST(QueensCanal, TheCanalFloorIsWalkableAndWalled) {
+    std::vector<scene::Triangle> collision = expanded::CanalFloorCollision();
+    double                       floor_area = 0;
+    for (const scene::Triangle &t : collision) {
+        scene::Vec3 n = Normal(t);
+        if (t[0][1] == 0 && t[1][1] == 0 && t[2][1] == 0) {
+            floor_area += std::abs(n[1]) / 2;
+            for (const scene::Vec3 &p : t) {
+                EXPECT_TRUE(-200 <= p[0] && p[0] <= 1300 && -50 <= p[2] && p[2] <= 50);
+            }
+        }
+    }
+    EXPECT_DOUBLE_EQ(floor_area, 1500.0 * 100.0);
+    // The ladder's foot stands on it, inside the walls.
+    EXPECT_TRUE(std::abs(expanded::kLadderBottom[2]) < 50 && expanded::kLadderBottom[1] == 0);
+    // A wall rises along each side to the banks.
+    for (double z : {-50.0, 50.0}) {
+        bool walled = false;
+        for (const scene::Triangle &t : collision) {
+            walled = walled || (t[0][2] == z && t[1][2] == z && t[2][2] == z && std::max({t[0][1], t[1][1], t[2][1]}) >= 70);
+        }
+        EXPECT_TRUE(walled) << z;
+    }
+}
+
+TEST(QueensCanal, TheCameraWallsFaceIntoTheCanal) {
+    for (const scene::Triangle &t : expanded::CanalCameraWalls()) {
+        scene::Vec3 n = Normal(t), centre = {(t[0][0] + t[1][0] + t[2][0]) / 3, 0, (t[0][2] + t[1][2] + t[2][2]) / 3};
+        // Toward the canal's middle line (z 0), or along it for its ends.
+        double inward = std::abs(centre[2]) > 49 ? -n[2] * centre[2] : -n[0] * (centre[0] - 550);
+        EXPECT_GT(inward, 0);
+    }
+}
+
+TEST(QueensCanal, TheCanalWaterGetsSquareCells) {
+    std::string block = "WATER_SURFACE \"\",48, 16,\r\n\t\t\t-320, 0, -70,\r\n\t\t\t320, 0, 70,\r\n\t\t\t0, 31, 0,\r\n\t\t\t0.1, 0.015, 0.0, 2.0,\r\n"
+                        "\t\t\t128, 128, 128,\r\n\t\t\t1, 0, 0\r\n\tWATER_SHAKE\t-1, -1, -0.5, 0.0";
+    std::string tuned = expanded::ToText(expanded::TuneCanalWater(expanded::ToBytes("//\r\n\t" + block + "\r\n")));
+    EXPECT_NE(tuned.find("WATER_SURFACE \"\",64, 14,"), std::string::npos);
+    EXPECT_EQ(tuned.find("48, 16"), std::string::npos);
+    EXPECT_THROW(expanded::TuneCanalWater(expanded::ToBytes("no water")), std::runtime_error);
+    EXPECT_THROW(expanded::TuneCanalWater(expanded::ToBytes(block + block)), std::runtime_error);
+}
+
+TEST(TownScene, AWaterPartGoesAfterItsWaterAnchor) {
+    std::string cfg = "\tGROUND\t\"g04\",\r\n\t\t0,\t0,\t0,\t//position\r\n\t\t0,\t0,\t0\t//rotation\r\n"
+                      "\t WATER\t\"c08\",\r\n\t\t0,\t0,\t0\t//position\r\n\t\t0,\t0,\t0\t//rotation\r\n\r\n//end\r\n";
+    std::string out = expanded::ToText(scene::PlaceGround(expanded::ToBytes(cfg), "ripple", "c08", "", {1, 2, 3}, 0, "WATER", "WATER"));
+    std::size_t ripple = out.find("\tWATER\t\"ripple\"");
+    ASSERT_NE(ripple, std::string::npos);
+    EXPECT_LT(out.find("\"c08\""), ripple);
+    EXPECT_LT(ripple, out.find("//end"));
+    EXPECT_NE(out.find("\t\t1,\t2,\t3,\t//position"), std::string::npos);
+    EXPECT_THROW(scene::PlaceGround(expanded::ToBytes(cfg), "ripple", "c09", "", {0, 0, 0}, 0, "WATER", "WATER"), std::runtime_error);
+}
+
+TEST(TownScene, APartsCameraAndRippleModels) {
+    Bytes scene_file(0x400, 0);
+    Set32(scene_file, 4, 1);
+    scene_file[0x10] = 'a';
+    Set32(scene_file, 0x20, 0x200);
+    Set32(scene_file, 0x24, 0x160);
+    Set32(scene_file, 0x200 + 4, 0xE0);
+    Bytes header(scene_file.begin() + 0x200, scene_file.begin() + 0x360);
+    Bytes model(0x80 + 0x40, 0);
+    Set32(model, 0, 0x0053444D);
+    Bytes       walls = scene::TriangleCollision("w_a", {{{{0, 0, 0}, {1, 0, 0}, {1, 1, 0}}}});
+    Bytes       camera = scene::TriangleCollision("w_c", {{{{0, 0, 0}, {1, 1, 0}, {1, 0, 0}}}});
+    Bytes       out = scene::AppendPart(scene_file, "w", header, model, {}, walls, true, camera, true);
+    std::size_t part = scene::SubFiles(out)[1].offset;
+    EXPECT_EQ(Get32(out, part + 0x7C), walls.size());
+    EXPECT_EQ(Get32(out, part + 0xC4), camera.size());
+    EXPECT_EQ(Get32(out, part + 0xC0) % 16, 0u);
+    EXPECT_EQ(Get32(out, part + 0xD8), 0x160u); // the ripple model is the model
+    EXPECT_EQ(Get32(out, part + 0xDC), model.size());
+    // A triangle's vertices of its own: three, and the face between them.
+    std::size_t mdt = 0x80;
+    EXPECT_EQ(Get32(walls, mdt + 0x0C), 3u);
+    EXPECT_EQ(Get32(walls, mdt + Get32(walls, mdt + 0x28) + 0x14), 1u);
+}
+
+// DC_TEST_DATA, an extracted data directory: Queens' canal built with its ladder, its second sign, its ripples and its
+// capped west end; East Harbor with the dock arrival; Queens' pictures with the ring ripples.
+TEST(QueensCanal, IsBuiltFromTheDisc) {
+    const char *data = std::getenv("DC_TEST_DATA");
+    if (data == nullptr) {
+        GTEST_SKIP() << "DC_TEST_DATA is not set";
+    }
+    expanded::test::ScratchDir folder("queens_canal");
+    const fs::path            &scratch = folder.path();
+    ASSERT_EQ(BuildSpots(data, scratch), 0);
+    ASSERT_EQ(expanded::RunDataBuilds(scratch, "queens canal", expanded::QueensCanalBuilds(), nullptr), 0);
+    const fs::path rebuilt = scratch / expanded::kRebuiltDiscFolder / "gedit";
+
+    Bytes                       disc_scene = Read(fs::path(data) / "gedit/e03/scene.scn");
+    Bytes                       scene_file = Read(rebuilt / "e03/scene.scn");
+    std::vector<scene::SubFile> files = scene::SubFiles(scene_file);
+    auto                        part = [&](std::string_view name) {
+        auto found = std::ranges::find(files, name, &scene::SubFile::name);
+        EXPECT_NE(found, files.end()) << name;
+        return found == files.end() ? std::size_t{0} : found->offset;
+    };
+    // The canal sign's trigger names its own label.
+    std::size_t sign = part("kanbanc"), sign_events = sign + Get32(scene_file, sign + 4);
+    EXPECT_EQ(GetF32(scene_file, sign_events + Get32(scene_file, sign_events + 0x70) + 0x70), static_cast<float>(expanded::kCanalFloorSignLabel));
+    // The ladder: its events, the canal floor's collision and the camera's walls.
+    std::size_t ladder = part(expanded::kLadderPart), ladder_events = ladder + Get32(scene_file, ladder + 4);
+    EXPECT_EQ(Get32(scene_file, ladder_events + 0x74), 3u);
+    EXPECT_GT(Get32(scene_file, ladder + 0x7C), 0u);
+    EXPECT_GT(Get32(scene_file, ladder + 0xC4), 0u);
+    // The ripples, each drawn over the water as its ripple model.
+    for (std::string_view ripple : {std::string_view(expanded::kWadingRipple), std::string_view(expanded::kRailRipples[0]),
+                                    std::string_view(expanded::kRailRipples[1])}) {
+        std::size_t at = part(ripple);
+        EXPECT_EQ(Get32(scene_file, at + 0xD8), Get32(scene_file, at + 0x48)) << ripple;
+    }
+    // The west end's cap: its ground grows by the cap's quads.
+    auto size_of = [](std::span<const unsigned char> s, std::string_view name) {
+        for (const scene::SubFile &file : scene::SubFiles(s)) {
+            if (file.name == name) {
+                return file.size;
+            }
+        }
+        return std::size_t{0};
+    };
+    EXPECT_GT(size_of(scene_file, "e03g05"), size_of(disc_scene, "e03g05"));
+
+    std::string cfg = expanded::ToText(Read(rebuilt / "e03/mapinfo.cfg"));
+    EXPECT_NE(cfg.find("GROUND\t\"kanbanc\""), std::string::npos);
+    EXPECT_NE(cfg.find("GROUND\t\"hasigo\""), std::string::npos);
+    EXPECT_LT(cfg.find("\"e03c02\""), cfg.find("WATER\t\"wripple\""));
+    EXPECT_NE(cfg.find("WATER_SURFACE \"\",64, 14,"), std::string::npos);
+
+    Bytes script = Read(rebuilt / "e03/event.stb");
+    for (int label : {expanded::kFishingSignLabel, expanded::kCanalFloorSignLabel, expanded::kLadderMessageLabel}) {
+        EXPECT_TRUE(stb::Label(script, static_cast<std::uint32_t>(label)).has_value()) << label;
+    }
+    EXPECT_TRUE(stb::Label(Read(rebuilt / "s09/event.stb"), expanded::kDockArrivalEvent).has_value());
+
+    // The ripple pictures: the same pack, its ring frames over the water's own.
+    Bytes pictures = Read(rebuilt / "e03/img.pak"), disc_pictures = Read(fs::path(data) / "gedit/e03/img.pak");
+    EXPECT_EQ(pictures.size(), disc_pictures.size());
+    EXPECT_NE(pictures, disc_pictures);
 }
 
 TEST(TownScene, AReplacedPartIsAppendedAndItsEntryMoved) {

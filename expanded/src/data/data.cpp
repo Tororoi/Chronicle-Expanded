@@ -10,6 +10,7 @@
 #include "expanded/data/gemron_models.hpp"
 #include "expanded/data/monster_scripts.hpp"
 #include "expanded/data/prop_models.hpp"
+#include "expanded/data/queens_canal.hpp"
 #include "expanded/data/script_damage.hpp"
 #include "expanded/data/spirit_cat.hpp"
 #include "expanded/data/town_model.hpp"
@@ -34,6 +35,7 @@ const DataKind kDataKinds[] = {
     {"script damage", nullptr, BuildScriptDamage}, // one file from every script in a folder
     {"prop model", PropModelBuilds},
     {"fishing spot", FishingSpotBuilds},
+    {"queens canal", QueensCanalBuilds},
 };
 
 } // namespace

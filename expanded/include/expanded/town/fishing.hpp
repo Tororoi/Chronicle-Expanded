@@ -24,14 +24,19 @@ int   SpotFish(int spot, int roll, int kind);
 int   SpotFishCount(int spot, int count);
 float SpotLineSegment(int spot);
 
-// How deep under the water FishingInitFish puts the fish of the town's spot; depth elsewhere.
+// _LOAD_FISHING_DATA at spot area: the water it sets (a Queens spot's the canal's tide level, water elsewhere). The spot
+// is the one fished until the next load.
+float FishingSpotLoad(int area, float water);
+
+// How deep under the water FishingInitFish puts the fish of the spot fished (in Queens, at low tide, the canal floor's);
+// depth elsewhere.
 float SpotFishDepth(float depth);
 
 // The length FishLineInit and FishLineStep hold the line's segment to (1 to 23, from the rod): distp to the float
-// (point 18), and under it, at the town's spot, the length that hangs the bait (3 under the hook) at the fish's depth.
+// (point 18), and under it, at the spot fished, the length that hangs the bait (3 under the hook) at the fish's depth.
 float LineSegment(int segment);
 
-// After EdMoveChara's FishLineStep, the angler at angler turned yaw: at the town's spot, a cast stopped at its canal's
+// After EdMoveChara's FishLineStep, the angler at angler turned yaw: at the spot fished, a cast stopped at its canal's
 // walls and legs as it flies, and the line paid out from the rod to the float once the rod swings back and forward,
 // the float and hook carried farther as it goes; drawn in again as the float comes back to the rod.
 void FishLineStepped(const float *angler, float yaw);
@@ -46,7 +51,7 @@ bool FloatSettled();
 // deck, a pipe), which the float does not lift onto.
 bool FloorOverFloat(float floor);
 
-// The fishing camera at the town's spot: its height, height elsewhere; whether it watches the float in a canal, the
+// The fishing camera at the spot fished: its height, height elsewhere; whether it watches the float in a canal, the
 // game's camera walls left out (the canal's banks have none, and the game would back the eye out along it); and there
 // its eye kept inside the canal's walls, turned along them.
 float FishingCameraHeight(float height);

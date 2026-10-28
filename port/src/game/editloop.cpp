@@ -92,6 +92,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/town/ally.hpp"
 #include "expanded/town/fishing.hpp"
+#include "expanded/town/queens_canal.hpp"
 #endif
 
 namespace dc::game {
@@ -2336,6 +2337,9 @@ void EditMainDraw() {
     const GameDrawTrace draw_trace;
     auto                far_marks = std::make_unique<int[]>(10);
     bool                far_drawn = false;
+#ifdef CHRONICLE_EXPANDED
+    expanded::QueensCanalStep();
+#endif
 
     if (EdDrawOffFlag == 0) {
         if (EdPauseFlag != 0 || GameMode == ED_MODE_RETURN_MENU_WALK || GameMode == ED_MODE_RETURN_MENU_GEORAMA) {
@@ -2404,6 +2408,9 @@ void EditMainDraw() {
             }
 
             const auto water_start = draw_trace.Start();
+#ifdef CHRONICLE_EXPANDED
+            expanded::DrawWadingPlayer();
+#endif
             TexManager.ReloadTexture(Vif1Packet, 0x15);
             TexAnime.TexAnime(0x15);
             pEditGround->DrawWater(0x15);
@@ -2690,6 +2697,9 @@ void EditMainDraw() {
                                 spray[0] += 20.0f;
                             }
                         }
+#ifdef CHRONICLE_EXPANDED
+                        expanded::CanalMist(&EdEffectGroup);
+#endif
                     }
                     /* fallthrough */
                 case ED_MODE_RETURN_MENU_WALK:
@@ -5504,6 +5514,12 @@ int CheckEventPoint(ED_EVENT_POINT *point, float time) {
     if (point->event_type <= ED_EVENT_POINT_NONE) {
         return 0;
     }
+
+#ifdef CHRONICLE_EXPANDED
+    if (!expanded::CanalEventPointOn(*point)) {
+        return 0;
+    }
+#endif
 
     int flag = point->completion_flag;
 

@@ -44,18 +44,23 @@ Bytes PictureBank(const std::vector<std::pair<std::string, Bytes>> &pictures);
 // A solid box, {x0, x1, y0, y1, z0, z1}, as a one-frame collision .mds whose frame is named name.
 Bytes BoxCollision(std::string_view name, const std::array<float, 6> &box);
 
+// Triangles as a one-frame collision .mds whose frame is named name, each with vertices of its own.
+Bytes TriangleCollision(std::string_view name, const std::vector<Triangle> &triangles);
+
 // An event function: a script point always on, at position in the part, firing label within radius.
 Bytes ScriptEvent(const std::array<float, 3> &position, float radius, int label);
 
 // The scene with a part appended under name: header's copy, its events, its model (at the part's origin when
-// at_origin) and its collision (none when empty).
+// at_origin), its collision and the camera's (none when empty); with ripple, the model is also its ripple model, which
+// a WATER part draws over the water's surface.
 Bytes AppendPart(std::span<const unsigned char> scene, std::string_view name, std::span<const unsigned char> header,
                  std::span<const unsigned char> model, std::span<const unsigned char> events, std::span<const unsigned char> collision,
-                 bool at_origin = true);
+                 bool at_origin = true, std::span<const unsigned char> camera = {}, bool ripple = false);
 
-// The mapinfo with part placed as a GROUND after anchor's last GROUND block, collision its atari model.
+// The mapinfo with part placed as a GROUND (or a block of another kind: a WATER part draws with the water, in the
+// mapinfo's order) after anchor's last GROUND block (or block of anchor_kind), collision its atari model.
 Bytes PlaceGround(std::span<const unsigned char> cfg, std::string_view part, std::string_view anchor, std::string_view collision,
-                  const std::array<int, 3> &position, int yaw);
+                  const std::array<int, 3> &position, int yaw, std::string_view kind = "GROUND", std::string_view anchor_kind = "GROUND");
 
 // A model frame's mesh as the mapinfo places it: its world vertices and its triangles' vertex indices.
 struct PlacedMesh {

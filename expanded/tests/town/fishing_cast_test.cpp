@@ -16,13 +16,20 @@ namespace {
 constexpr int   kNorune = 0, kQueens = 2, kYellowDrops = 23;
 constexpr float kRetail = 1.6666666f;
 
-// The globals a test sets, put back after: the town, the fishing state, the line's length, the water and ground, the
-// fishing collision.
+// The town's first spot loaded, as its sign's _LOAD_FISHING_DATA loads it (none for a town without one).
+void LoadTownSpot(int map_no) {
+    const expanded::FishingSpot *spot = expanded::FishingSpotOfMap(map_no);
+    expanded::FishingSpotLoad(spot != nullptr ? spot->area : 0, 0.0f);
+}
+
+// The globals a test sets, put back after: the town and its spot, the fishing state, the line's length, the water and
+// ground, the fishing collision.
 class Fishing {
 public:
     explicit Fishing(int map_no)
         : map_no_(MapNo), state_(chara_fishing), distp_(distp), water_(WaterLevel), ground_(GroundLevel), cpoly_(cpoly), cpoly_num_(cpoly_num) {
         MapNo = map_no;
+        LoadTownSpot(map_no);
         chara_fishing = ED_FISHING_STAND;
         cpoly = nullptr;
         cpoly_num = 0;
@@ -30,6 +37,7 @@ public:
 
     ~Fishing() {
         MapNo = map_no_;
+        LoadTownSpot(map_no_);
         chara_fishing = state_;
         distp = distp_;
         FishingSetWaterLevel(water_, ground_);

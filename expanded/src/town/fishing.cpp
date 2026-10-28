@@ -13,8 +13,11 @@
 #include "data/data_read.hpp"
 #include "ebattle.hpp"
 #include "edit.hpp"
+#include "editloop.hpp"
 #include "expanded/data/fishing_spots.hpp"
+#include "expanded/data/queens_canal.hpp"
 #include "expanded/debug/event_log.hpp"
+#include "expanded/town/queens_canal.hpp"
 #include "expanded/weapons/ungaga/scorpion.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "fishing.hpp"
@@ -173,9 +176,13 @@ void StopAtCanal(const FishingCanal &canal) {
     }
 }
 
-// The spot fished: the town's.
+// The spot _LOAD_FISHING_DATA last loaded, and the water it set; null for the game's own.
+const FishingSpot *fished = nullptr;
+float              fished_water = 0.0f;
+
+// The spot fished: the one last loaded, while in its town.
 const FishingSpot *SpotFished() {
-    return FishingSpotOfMap(MapNo);
+    return fished != nullptr && fished->map_no == MapNo ? fished : nullptr;
 }
 
 const FishingCanal *TownCanal() {
@@ -231,9 +238,18 @@ float SpotLineSegment(int spot) {
     return kRetailLineSegment * (fishing->line > 1.0f ? kCastStart : fishing->line);
 }
 
+float FishingSpotLoad(int area, float water) {
+    fished = FishingSpotOfArea(area);
+    fished_water = fished != nullptr && fished->map_no == kQueensMapNo ? CanalTideLevel(NowTime) : water;
+    return fished_water;
+}
+
 float SpotFishDepth(float depth) {
-    const FishingSpot *spot = FishingSpotOfMap(MapNo);
-    return spot != nullptr ? spot->fish_depth : depth;
+    const FishingSpot *spot = SpotFished();
+    if (spot == nullptr) {
+        return depth;
+    }
+    return spot->map_no == kQueensMapNo && fished_water <= kLowTide ? kLowTideFishDepth : spot->fish_depth;
 }
 
 float LineSegment(int segment) {
