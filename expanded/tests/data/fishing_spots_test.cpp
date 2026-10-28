@@ -234,6 +234,39 @@ TEST(TownScene, AScriptEventIsAnAlwaysOnLabelPoint) {
     EXPECT_EQ(GetF32(event, 0x70), 400.0f); // the label
 }
 
+TEST(TownScene, AMovedStandPointLeavesTheOthersWhereTheyStand) {
+    Bytes scene_file(0x400, 0);
+    Set32(scene_file, 4, 1);
+    scene_file[0x10] = 'a';
+    Set32(scene_file, 0x20, 0x100); // part a at 0x100
+    Set32(scene_file, 0x24, 0x300);
+    Set32(scene_file, 0x100 + 4, 0xE0); // its definition, its two functions after the header
+    Set32(scene_file, 0x1E0 + 0x70, 0x80);
+    Set32(scene_file, 0x1E0 + 0x74, 2);
+    for (std::size_t function : {0x260u, 0x320u}) {
+        Set32(scene_file, function + 0x10, 1); // stand points of villagers 3 and 8
+        Set32(scene_file, function + 0x20, function == 0x260u ? 3 : 8);
+        expanded::SetF32(scene_file, function + 0x40, 7.0f);
+    }
+    Bytes out = scene::MoveStandPoint(scene_file, "a", 8, {1.0f, 2.0f, 3.0f});
+    EXPECT_EQ(GetF32(out, 0x320 + 0x40), 1.0f);
+    EXPECT_EQ(GetF32(out, 0x320 + 0x48), 3.0f);
+    EXPECT_EQ(GetF32(out, 0x260 + 0x40), 7.0f);
+    EXPECT_EQ(out.size(), scene_file.size());
+    EXPECT_THROW(scene::MoveStandPoint(scene_file, "a", 5, {}), std::runtime_error);
+    EXPECT_THROW(scene::MoveStandPoint(scene_file, "b", 8, {}), std::runtime_error);
+}
+
+TEST(TownScene, PartsArePlacedWhereTheMapinfoSays) {
+    const std::string        cfg = "\tWATER\t\"s04r01\",\t\t//stairs\r\n\t\t\"\",\r\n\t\t0,\t0,\t74,\t//position\r\n\t\t0,\t0,\t0\t//rotation\r\n"
+                                   "\tGROUND\t\"s04g01\",\r\n\t\t1,\t2,\t3,\r\n\t\t0,\t0,\t0\r\n"
+                                   "\tWATER\t\"s04r02\",\r\n\t\t-56.68\t,0\t,47.566,\r\n\t\t0\t,-50\t,0\r\n";
+    std::vector<scene::Vec3> ladders = scene::PlacedAt(expanded::ToBytes(cfg), "s04r");
+    ASSERT_EQ(ladders.size(), 2u);
+    EXPECT_EQ(ladders[0], (scene::Vec3{0, 0, 74}));
+    EXPECT_EQ(ladders[1], (scene::Vec3{-56.68, 0, 47.566}));
+}
+
 TEST(TownScene, AnAppendedPartTakesTheDirectorysRoom) {
     Bytes scene_file(0x400, 0);
     Set32(scene_file, 4, 1);
@@ -349,6 +382,83 @@ TEST(FishingSpot, ACollisionFileHoldsItsTriangles) {
     EXPECT_EQ(expanded::ToText(std::span<const unsigned char>(file).first(4)), "DCFC");
     EXPECT_EQ(Get32(file, 8), 2u);
     EXPECT_EQ(expanded::ReadFishingCollision(file), triangles);
+}
+
+TEST(FishingSpot, ACollisionFileCarriesTheZonesItDrops) {
+    std::vector<scene::Triangle> triangles = {
+        {{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}}};
+    std::vector<expanded::FloorDropZone> zones = {
+        {1.5f, -2.0f, 45.0f, 25.0f},
+        {3.0f, 4.0f,  10.0f, 50.0f}
+    };
+    Bytes file = expanded::FishingCollisionFile(14, triangles, zones);
+    EXPECT_EQ(Get32(file, 4), 2u); // the version with zones
+    EXPECT_EQ(expanded::ReadFishingCollision(file), triangles);
+    std::vector<expanded::FloorDropZone> read = expanded::ReadFloorDropZones(file);
+    ASSERT_EQ(read.size(), 2u);
+    EXPECT_EQ(read[1].z, 4.0f);
+    EXPECT_EQ(read[1].min_y, 50.0f);
+    // Without zones a file stays version 1, as the other spots' are.
+    Bytes plain = expanded::FishingCollisionFile(2, triangles);
+    EXPECT_EQ(Get32(plain, 4), 1u);
+    EXPECT_TRUE(expanded::ReadFloorDropZones(plain).empty());
+}
+
+TEST(FishingSpot, BrownbooIsFishedFromTheBoardwalkByItsSign) {
+    const expanded::FishingSpot *spot = expanded::FishingSpotOfMap(14);
+    ASSERT_NE(spot, nullptr);
+    EXPECT_EQ(spot->code, "s04");
+    EXPECT_EQ(expanded::FishingSpotOfArea(5), spot);
+    EXPECT_EQ(spot->rare_one_in, 50);
+    EXPECT_EQ(spot->line, 1.0f); // the boardwalk stands low over the pond
+    // The trigger in front of the sign is where the player stands to fish.
+    EXPECT_EQ(spot->sign[0] + spot->trigger[0], spot->stance[0]);
+    EXPECT_EQ(spot->sign[2] + spot->trigger[2], spot->stance[2]); // the sign faces south (yaw 0)
+    EXPECT_GT(spot->stance[1], spot->water);
+    EXPECT_TRUE(spot->x1 < spot->stance[0] && spot->stance[0] < spot->x2 && spot->z1 < spot->stance[2] && spot->stance[2] < spot->z2);
+}
+
+TEST(FishingSpot, BrownbooIsBuiltFromTheDisc) {
+    const char *data = std::getenv("DC_TEST_DATA");
+    if (data == nullptr) {
+        GTEST_SKIP() << "DC_TEST_DATA is not set";
+    }
+    expanded::test::ScratchDir folder("fishing_spot");
+    const fs::path            &scratch = folder.path();
+    ASSERT_EQ(BuildSpots(data, scratch), 0);
+    const fs::path rebuilt = scratch / expanded::kRebuiltDiscFolder / "gedit/s04";
+
+    Bytes                       scene_file = Read(rebuilt / "scene.scn");
+    std::vector<scene::SubFile> files = scene::SubFiles(scene_file);
+    ASSERT_EQ(files.back().name, "kanban");
+    EXPECT_EQ(Get32(scene_file, files.back().offset + 0x7C), 0u); // not solid
+    // Villager 8 stands back along the boardwalk, off the sign's trigger.
+    Bytes disc = Read(fs::path(data) / "gedit/s04/scene.scn");
+    Bytes moved = scene::MoveStandPoint(disc, "s04g01", 8, {255.0f, 10.57f, -55.0f});
+    auto  boardwalk = std::ranges::find(files, "s04g01", &scene::SubFile::name);
+    ASSERT_NE(boardwalk, files.end());
+    auto part = [&](const Bytes &file) { return std::span(file).subspan(boardwalk->offset, boardwalk->size); };
+    EXPECT_TRUE(std::ranges::equal(part(scene_file), part(moved)));
+    EXPECT_FALSE(std::ranges::equal(part(disc), part(moved)));
+
+    std::string cfg = expanded::ToText(Read(rebuilt / "mapinfo.cfg"));
+    EXPECT_NE(cfg.find("\t\t212,\t9,\t-61,\t//position\r\n\t\t0,\t0,\t0\t//rotation"), std::string::npos);
+
+    // The pond's three rocks, and the high polys round its seven ladders dropped.
+    const expanded::FishingSpot *spot = expanded::FishingSpotOfMap(14);
+    ASSERT_NE(spot, nullptr);
+    Bytes collision = Read(scratch / expanded::FishingCollisionPath(*spot));
+    EXPECT_EQ(expanded::ReadFishingCollision(collision).size(), 202u);
+    std::vector<expanded::FloorDropZone> zones = expanded::ReadFloorDropZones(collision);
+    std::vector<scene::Vec3>             ladders = scene::PlacedAt(Read(fs::path(data) / "gedit/s04/mapinfo.cfg"), "s04r");
+    ASSERT_EQ(zones.size(), 7u);
+    ASSERT_EQ(ladders.size(), 7u);
+    for (std::size_t i = 0; i < zones.size(); i++) {
+        EXPECT_EQ(zones[i].x, static_cast<float>(ladders[i][0])) << i;
+        EXPECT_EQ(zones[i].z, static_cast<float>(ladders[i][2])) << i;
+        EXPECT_EQ(zones[i].radius, 45.0f);
+        EXPECT_EQ(zones[i].min_y, 25.0f);
+    }
 }
 
 // DC_TEST_DATA, an extracted data directory: Queens built with the sign, its trigger, its scripts and its text.

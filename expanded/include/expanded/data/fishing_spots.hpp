@@ -49,6 +49,20 @@ struct FishingSpot {
     // hand); null for as they are.
     Bytes (*edit_scene)(std::span<const unsigned char> scene, std::span<const unsigned char> cfg);
     Bytes (*edit_cfg)(std::span<const unsigned char> cfg);
+
+    // Polys gathered for fishing that the float must not rest on, dropped: any whose lowest corner stands at or over
+    // min_y with its middle within radius of a part the mapinfo places whose name starts with parts (Brownboo's ladder
+    // tops, over its pond); none when parts is empty.
+    struct FloorDrop {
+        std::string_view parts;
+        float            radius = 0.0f;
+        float            min_y = 0.0f;
+    } floor_drop{};
+};
+
+// Where a spot drops high polys from what it gathers: FishingSpot::floor_drop round one of its parts.
+struct FloorDropZone {
+    float x, z, radius, min_y;
 };
 
 inline constexpr int   kFishingSignLabel = 400;
@@ -73,9 +87,11 @@ const FishingSpot           *FishingSpotOfArea(int area);
 inline constexpr const char *kFishingSignPictures = "expanded/fishing/sign.img";
 std::string                  FishingCollisionPath(const FishingSpot &spot);
 
-// A fishing collision file: 'DCFC', version 1, MapNo, the triangle count, then 9 floats a triangle.
-Bytes                        FishingCollisionFile(int map_no, const std::vector<scene::Triangle> &triangles);
+// A fishing collision file: 'DCFC', version 1, MapNo, the triangle count, then 9 floats a triangle; version 2 when the
+// spot drops polys, the zones' count and 4 floats a zone (x, z, radius, min_y) after them.
+Bytes                        FishingCollisionFile(int map_no, const std::vector<scene::Triangle> &triangles, const std::vector<FloorDropZone> &zones = {});
 std::vector<scene::Triangle> ReadFishingCollision(std::span<const unsigned char> file);
+std::vector<FloorDropZone>   ReadFloorDropZones(std::span<const unsigned char> file);
 
 std::vector<DataBuild> FishingSpotBuilds();
 

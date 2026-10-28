@@ -25,7 +25,7 @@ constexpr std::size_t kUnusedModels[] = {0x4C, 0x50, 0x54, 0x78, 0x90, 0xA8, 0xC
 // A part definition's size, its functions' offset from it and their count.
 constexpr std::size_t   kDefinitionSize = 0x04, kFunctions = 0x70, kFunctionCount = 0x74;
 constexpr std::size_t   kFunction = 0xC0;
-constexpr std::uint32_t kScriptEvent = 0x12;
+constexpr std::uint32_t kStandPoint = 0x01, kScriptEvent = 0x12;
 // A texture bank's header and entries, and a TIM2 picture's header.
 constexpr std::size_t   kBankHeader = 0x10, kBankEntry = 0x30, kBankOffset = 0x20, kPicture = 0x10;
 constexpr std::uint32_t kMdsMagic = 0x0053444D, kMdtMagic = 0x0054444D;
@@ -359,6 +359,28 @@ Bytes ScriptEvent(const std::array<float, 3> &position, float radius, int label)
     return event;
 }
 
+Bytes MoveStandPoint(std::span<const unsigned char> scene, std::string_view part, int villager, const std::array<float, 3> &position) {
+    for (const SubFile &file : SubFiles(scene)) {
+        if (file.name != part) {
+            continue;
+        }
+        std::size_t definition = file.offset + Get32(scene, file.offset + kDefinition);
+        std::size_t functions = definition + Get32(scene, definition + kFunctions);
+        for (std::size_t i = 0; i < Get32(scene, definition + kFunctionCount); i++) {
+            std::size_t function = functions + i * kFunction;
+            if (Get32(scene, function + 0x10) != kStandPoint || Get32(scene, function + 0x20) != static_cast<std::uint32_t>(villager)) {
+                continue;
+            }
+            Bytes out(scene.begin(), scene.end());
+            for (std::size_t k = 0; k < 3; k++) {
+                SetF32(out, function + 0x40 + k * 4, position[k]);
+            }
+            return out;
+        }
+    }
+    Bad(std::format("{} has no stand point for villager {}", part, villager));
+}
+
 Bytes AppendPart(std::span<const unsigned char> scene, std::string_view name, std::span<const unsigned char> header,
                  std::span<const unsigned char> model, std::span<const unsigned char> events, std::span<const unsigned char> collision,
                  bool at_origin) {
@@ -470,6 +492,16 @@ Bytes PlaceGround(std::span<const unsigned char> cfg, std::string_view part, std
     }
     text.insert(insert, block);
     return ToBytes(text);
+}
+
+std::vector<Vec3> PlacedAt(std::span<const unsigned char> cfg, std::string_view prefix) {
+    std::vector<Vec3> positions;
+    for (const Placement &placement : GroundPlacements(ToText(cfg))) {
+        if (placement.name.starts_with(prefix)) {
+            positions.push_back(placement.position);
+        }
+    }
+    return positions;
 }
 
 std::vector<PlacedMesh> PlacedMeshes(std::span<const unsigned char> scene, std::span<const unsigned char> cfg) {
