@@ -35,7 +35,7 @@ inline constexpr float kStarFallSpeed = 3.5f;
 // turned up, and comes down again under the gravity of the game's drop hop (CRandomItem: 8 high over 30 frames, as a
 // parabola), where it rests. Where that would leave walkable floor or meet a wall, it falls from the other side, and
 // failing that it carries kStarBounceShorter of the way, then none (straight up and down).
-inline constexpr float kStarBounceAcross = 1.0f / 3.0f;
+inline constexpr float kStarBounceAcross = 0.5f;
 inline constexpr float kStarBounceUp = 1.0f / 3.0f;
 inline constexpr float kItemHopHeight = 8.0f;
 inline constexpr float kItemHopFrames = 30.0f;
@@ -43,8 +43,11 @@ inline constexpr float kStarGravity = 8.0f * kItemHopHeight / (kItemHopFrames * 
 inline constexpr float kStarBounceShorter = 0.5f;
 
 // How it looks: the sparkle kStarHeadSize across with kStarTrail fading copies behind it, each where it was kStarTrailGap
-// back along its fall, each sitting on its path; at rest the trail runs on into the head where the bounce left it.
+// back along its fall, each sitting on its path; at rest the trail runs on into the head where the bounce left it, and once
+// it has, the head shines: its size swells and eases by kStarShineDepth of itself once every kStarShineFrames.
 inline constexpr float kStarHeadSize = 12.0f;
+inline constexpr float kStarShineDepth = 0.15f;
+inline constexpr float kStarShineFrames = 60.0f;
 inline constexpr int   kStarTrail = 8;
 inline constexpr float kStarTrailGap = 2.0f;
 
