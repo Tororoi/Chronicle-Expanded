@@ -4514,7 +4514,10 @@ void BattleActionOn_Jinn() {
 
 void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
 #ifdef CHRONICLE_EXPANDED
-    expanded::XiaoShotPlaying(*chara, aimed);
+    if (expanded::XiaoShotPlaying(*chara, aimed)) {
+        EndAction();
+        return;
+    }
 #endif
     float now = chara->motion_type.state.time;
     int   damage = NowWeaponHave->attack;

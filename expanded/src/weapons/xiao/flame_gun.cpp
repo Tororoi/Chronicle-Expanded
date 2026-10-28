@@ -1,10 +1,13 @@
 #include "expanded/weapons/xiao/flame_gun.hpp"
 
+#include <format>
+
 #include "btactstatus.hpp"
 #include "character.hpp"
 #include "dataalloc.hpp"
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/debug/event_log.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/dungeon/pack_files.hpp"
 #include "expanded/enemies/enemy_events.hpp"
@@ -108,11 +111,22 @@ bool Muzzle(int aimed, float *muzzle, float *aim) {
     return aim[0] != 0.0f || aim[1] != 0.0f || aim[2] != 0.0f;
 }
 
+// The flame's progress in the event log, the gauge with it.
+void LogFlame(const char *step) {
+    LogEvent("flame_gun", std::format("\"step\":\"{}\",\"gauge\":{:.2f}", step, BtActStatus.action_gauge));
+}
+
 void PutOut() {
     if (hold.lit) {
         OzumondFire.Rset();
+        LogFlame("out");
     }
     hold = {};
+}
+
+// Whether her shot is in its hold.
+bool Holding() {
+    return Playing(CHARA_XIAO) && BtActStatus.action_on == 1 && BtActStatus.action_no == kXiaoHold;
 }
 
 void Feed() {
@@ -137,26 +151,34 @@ int FlameGunHeld() {
     return hold.held;
 }
 
-void FlameGunShot(int aimed) {
+bool FlameGunShot(int aimed) {
     if (BtActStatus.action_no != kXiaoHold || GamePad.On(PadInput_OK) == 0 || !Playing(CHARA_XIAO) || !FlameGunSphere()) {
         PutOut();
-        return;
+        return false;
     }
     hold.held++;
     sceVu0FVECTOR muzzle;
     sceVu0FVECTOR aim;
     if (hold.held < kFlameIgnition || !Muzzle(aimed, muzzle, aim)) {
-        return;
+        return false;
     }
     if (!hold.lit) {
         if (!PictureReady()) {
-            return;
+            return false;
         }
         OzumondFire.Init(muzzle, aim, 0, 0);
         hold.lit = true;
         hers = true;
         BtActStatus.frames_since_attack = 0;
         SwordDmgCheck1(kIgnitionWear, 0);
+        LogFlame("lit");
+    }
+
+    // His gauge burns down under the flame, and the action ends as it runs out.
+    BtActStatus.action_gauge -= kFlameGaugeDrain;
+    bool spent = BtActStatus.action_gauge <= 0.0f;
+    if (spent) {
+        BtActStatus.gauge_exhausted = 1;
     }
 
     // Osmond's flame's damage: the weapon's attack, twice it while the weapon is poisoned.
@@ -172,11 +194,38 @@ void FlameGunShot(int aimed) {
         BtActStatus.frames_since_attack = 0;
         SwordDmgCheck1(kBurnWear, 0);
     }
+
+    // Run out, the flame fed this frame is left to die out.
+    if (spent) {
+        LogFlame("empty");
+        hold = {};
+    }
+    return spent;
+}
+
+float FlameGunGaugeGain(float gain) {
+    if (!Playing(CHARA_XIAO)) {
+        return gain;
+    }
+    if (hold.lit) {
+        return 0.0f;
+    }
+    if (BtActStatus.gauge_exhausted == 0) {
+        return gain;
+    }
+    gain = gain / kXiaoGaugeRate * kSpentGaugeRate;
+    if (BtActStatus.action_gauge + gain >= kFullGauge) {
+        LogFlame("refilled");
+    }
+    return gain;
 }
 
 void FlameGunFrame() {
     if (roar.on && ++roar.unfed >= kRoarLinger) {
         LetRoarGo();
+    }
+    if (hold.lit && !Holding()) {
+        hold = {};
     }
 }
 

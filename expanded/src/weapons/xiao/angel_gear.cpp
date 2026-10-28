@@ -25,8 +25,6 @@ namespace {
 
 using namespace angel_gear;
 
-constexpr float kFullGauge = 100.0f;
-constexpr float kXiaoGaugeRate = 1.5f; // the refill's own rate for Xiao
 constexpr float kOutOfReach = 1.0e6f;
 
 struct Reflector {

@@ -102,6 +102,7 @@ frame numbers count the main loop, as `--input`, `--record` and `--from` do.
 | `whp` | `chara`, `weapon`, `from`, `to`, its weapon HP as it changes |
 | `sound` | `program`, `note`, an Expanded sound played |
 | `confuse` | `step`: `confused`, `target` (`target` the monster it goes after, -1 the player), `senses` (its confusion over), each with its `monster`; `hit` (`by`, `monster`, `amount`, `life` left), a confused monster's hit on another |
+| `flame_gun` | `step`: Super Steve's flame `lit`, `out` (let go), `empty` (the gauge run out) and the run-out gauge `refilled`, each with the action `gauge` |
 | `babel` | `step`: Babel's Spear's `summoned` (`target`, `x`, `z`), `struck`, `spike` or `hand` (`monster`, `damage` before defense), `risen`, `gone` |
 
 A feature can add its own with `expanded::LogEvent` (`expanded/debug/event_log.hpp`).

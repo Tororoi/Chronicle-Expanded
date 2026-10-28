@@ -17,6 +17,15 @@ inline constexpr float kIgnitionWear = 1.5f;
 inline constexpr float kBurnWear = 2.2f;
 inline constexpr int   kBurnWearInterval = 30;
 
+// The flame burns her action gauge as his burns his: kFlameGaugeDrain a frame from the frame it lights (a full gauge in
+// 200 frames), the gauge not refilling while it burns. Her shot spent the gauge as it started, as every shot of hers
+// does, so the flame burns what has refilled since. Let go before the gauge is out, it refills at her own rate. Run
+// out, the shot ends as his flame's does (the game ends her action, so no pellet), the flame fed that frame left to
+// die out, and the gauge refills at his rate once his has run out, kSpentGaugeRate in place of her kXiaoGaugeRate,
+// before she can shoot again.
+inline constexpr float kFlameGaugeDrain = 0.5f;
+inline constexpr float kSpentGaugeRate = 0.5f;
+
 // Osmond's flame picture (c05w_h.img of his pack), which the game enters only with him out; entered into
 // kFloorCharacterBlock when no copy of it is in.
 inline constexpr const char *kOsmondPack = "dun/mainchara/c18a.chr";
@@ -35,10 +44,15 @@ bool FlameGunSphere();
 bool FlameGunLit();
 int  FlameGunHeld();
 
-// Hook: BattleActionPlay_Jinn, each frame of her shot (XiaoShotPlaying), aimed whether in first person.
-void FlameGunShot(int aimed);
+// Hook: BattleActionPlay_Jinn, each frame of her shot (XiaoShotPlaying), aimed whether in first person: true when the
+// flame ran her gauge out and her shot ends.
+bool FlameGunShot(int aimed);
 
-// Hook: the top of a dungeon frame, menus too (DungeonFrameBegins): the roar let go once the flame is no longer fed.
+// Hook: motionDrive's refill of the action gauge (ActionGaugeGain), gain the game's for Xiao.
+float FlameGunGaugeGain(float gain);
+
+// Hook: the top of a dungeon frame, menus too (DungeonFrameBegins): the roar let go once the flame is no longer fed, and
+// a flame whose shot something else ended (a hit, a change of member) left to die out.
 void FlameGunFrame();
 
 // Hook: CSHOT_FIREBAR::Step, the member a puff's hit is: Xiao while she is out, else owner (the game's, Osmond).
