@@ -144,6 +144,17 @@ const expanded::FishingSpot &Queens() {
     return *spot;
 }
 
+// The spots' builds over a copy of the disc at data, in scratch: the failed builds.
+int BuildSpots(const fs::path &data, const fs::path &scratch) {
+    std::error_code error;
+    for (const fs::directory_entry &entry : fs::directory_iterator(data)) {
+        if (entry.path().filename() != "expanded") {
+            fs::create_symlink(fs::absolute(entry.path()), scratch / entry.path().filename(), error);
+        }
+    }
+    return expanded::RunDataBuilds(scratch, "fishing spot", expanded::FishingSpotBuilds(), nullptr);
+}
+
 } // namespace
 
 TEST(ScriptWriter, LaysItsHeaderJumpsAndStrings) {
@@ -343,13 +354,7 @@ TEST(FishingSpot, QueensIsBuiltFromTheDisc) {
     }
     expanded::test::ScratchDir folder("fishing_spot");
     const fs::path            &scratch = folder.path();
-    std::error_code            error;
-    for (const fs::directory_entry &entry : fs::directory_iterator(data)) {
-        if (entry.path().filename() != "expanded") {
-            fs::create_symlink(fs::absolute(entry.path()), scratch / entry.path().filename(), error);
-        }
-    }
-    ASSERT_EQ(expanded::RunDataBuilds(scratch, "fishing spot", expanded::FishingSpotBuilds(), nullptr), 0);
+    ASSERT_EQ(BuildSpots(data, scratch), 0);
     const fs::path rebuilt = scratch / expanded::kRebuiltDiscFolder / "gedit/e03";
 
     Bytes                       scene_file = Read(rebuilt / "scene.scn");
