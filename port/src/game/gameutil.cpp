@@ -43,6 +43,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/core/motion_keys.hpp"
+#include "expanded/core/motion_layer.hpp"
 #endif
 
 namespace dc::game {
@@ -544,6 +545,9 @@ void SetMotionEX(CFrame *frame, tagMOTION_TYPE *motion, MOTION_INFO *info, MOTIO
     Mot_List *list = nullptr;
     Mot_List *list2 = nullptr;
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::MotionPosing(motion, state);
+#endif
     if (state->playing_no != state->motion_no || state->blending != 0) {
         if (state->blending == 0) {
             state->blend = 0.0f;
@@ -565,6 +569,9 @@ void SetMotionEX(CFrame *frame, tagMOTION_TYPE *motion, MOTION_INFO *info, MOTIO
             list = MotionProc(frame, state, list);
         }
 
+#ifdef CHRONICLE_EXPANDED
+        expanded::MotionPosed(frame, motion);
+#endif
         if (state->look_at != 0) {
             if (state->look_target != nullptr) {
                 LookAt(state->look_frame, state->look_target, state->look_constraint);
@@ -589,6 +596,9 @@ void SetMotionEX(CFrame *frame, tagMOTION_TYPE *motion, MOTION_INFO *info, MOTIO
         list2 = MotionProc(frame, state, list2);
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::MotionPosed(frame, motion);
+#endif
     if (state->look_at != 0) {
         if (state->look_target != nullptr) {
             LookAt(state->look_frame, state->look_target, state->look_constraint);
