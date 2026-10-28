@@ -13,6 +13,9 @@ inline constexpr float kGroundShadowLift = 0.3f;
 void GroundShadowShow(float x, float ground, float z, float radius, const void *owner);
 void GroundShadowHide(const void *owner);
 bool GroundShadowShown();
+// Where it is cast (x, its frame's height, z) and its radius.
+void  GroundShadowAt(float *at);
+float GroundShadowRadius();
 
 // Hook: the units' shadow pass (Draw_MainUnitShadow).
 void GroundShadowDraw();

@@ -38,8 +38,10 @@ void ConfuseStep(CMonstorUnit &unit, int slot);
 // A landed hit: confuses the monster 5% of the time when the hit carries Confuse.
 void ConfuseRoll(CMonstorUnit &unit, int slot);
 
-// A weapon's effect confusing a living monster for steps (a confusion that would last longer keeps its end).
+// A weapon's effect confusing a living monster for steps (a confusion that would last longer keeps its end), and one
+// monster's confusion ended now, the others' left as they are.
 void ConfuseMonster(CMonstorUnit &unit, int slot, int steps);
+void ConfuseEnd(int slot);
 
 // Whether a monster of unit is confused.
 bool MonsterConfused(const CMonstorUnit &unit, int slot);

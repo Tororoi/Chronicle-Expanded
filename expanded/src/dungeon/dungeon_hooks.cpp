@@ -71,6 +71,7 @@
 #include "expanded/weapons/ungaga/mirage.hpp"
 #include "expanded/weapons/ungaga/partisan.hpp"
 #include "expanded/weapons/ungaga/scorpion.hpp"
+#include "expanded/weapons/ungaga/terra_sword.hpp"
 #include "expanded/weapons/xiao/angel_gear.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_ring.hpp"
 #include "expanded/weapons/xiao/angel_gear/shot_reflect.hpp"
@@ -136,6 +137,7 @@ void DungeonShadowsDrawn(const float *player) {
 void DungeonMonstersDrawn() {
     AllyDraw();
     DesertBloomDraw();
+    BigRockDraw();
     CurseOfBabelDraw();
 }
 
@@ -213,6 +215,7 @@ void DungeonMonstersTick() {
     TornadoChargeStep();
     GuardianGraceStep();
     DesertBloomStep();
+    BigRockStep();
     CurseOfBabelStep();
     AirStrikeStep();
     if (NowMonstorUnit != nullptr) {
@@ -379,6 +382,7 @@ void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT 
     }
     SpiritBeastHitTaken(hit);
     MirageHitTaken(monster);
+    BigRockHitTaken(unit, monster, hit);
 }
 
 void MonsterPoisoned(const MONSTOR &target) {
@@ -409,7 +413,7 @@ std::optional<MonsterDamageResult> MonsterFriendlyHit(CMonstorUnit &unit, int sp
 }
 
 bool HitWearsWeapon(const COLLISION_HIT &hit) {
-    return !DesertBloomPrick(hit) && !CurseOfBabelCatch(hit) && !UngagaBlastHit(hit);
+    return !DesertBloomPrick(hit) && !CurseOfBabelCatch(hit) && !UngagaBlastHit(hit) && !BigRockHit(hit);
 }
 
 void MonsterMoveChecked(CMonstorUnit &unit, int monster) {
@@ -525,7 +529,7 @@ bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, int window, const
     if (AllyUnit(unit)) {
         return true;
     }
-    return MonsterCanGuard(monster) && !BlastHit(hit) && !ChargingBullHit(hit) && !SpiritBeastHit(hit) && !GuardCrushActive() &&
+    return MonsterCanGuard(monster) && !BlastHit(hit) && !ChargingBullHit(hit) && !SpiritBeastHit(hit) && !BigRockHit(hit) && !GuardCrushActive() &&
            !NoFoolsGoldOpens(unit, monster, window);
 }
 

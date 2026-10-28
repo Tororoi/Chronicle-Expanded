@@ -169,6 +169,15 @@ void ConfuseEndAll() {
     std::memset(state.contact, 0, sizeof(state.contact));
 }
 
+void ConfuseEnd(int slot) {
+    if (slot < 0 || slot >= kFloorMonsters || State().until[slot] == 0) {
+        return;
+    }
+    State().Forget(slot);
+    std::fprintf(stderr, "confuse: monster %d comes to its senses\n", slot);
+    LogConfusion("senses", slot);
+}
+
 bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {
     if (slot < 0 || slot >= kFloorMonsters || State().unit != &unit) {
         return false;
