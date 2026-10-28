@@ -13,6 +13,10 @@
 #include "texture.hpp"
 #include "weaponelement.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/osmond/skunk.hpp"
+#endif
+
 namespace dc::game {
 
 namespace {
@@ -28,7 +32,11 @@ int CSHOT_FIREBAR::Init(float *origin, float *direction, int collision_damage, i
 
     direction[3] = 1.0f;
     sceVu0Normalize(direction, direction);
+#ifdef CHRONICLE_EXPANDED
+    sceVu0ScaleVectorXYZ(step, direction, expanded::FlameSpacing(2.0f));
+#else
     sceVu0ScaleVectorXYZ(step, direction, 2.0f);
+#endif
 
     for (int particle = 0; particle < kStreamParticles; particle++) {
         const int slot = particle + start_index;
@@ -55,7 +63,11 @@ int CSHOT_FIREBAR::Set(float *origin, float *direction, int collision_damage, in
 
     direction[3] = 1.0f;
     sceVu0Normalize(direction, direction);
+#ifdef CHRONICLE_EXPANDED
+    sceVu0ScaleVectorXYZ(step, direction, expanded::FlameSpacing(2.0f));
+#else
     sceVu0ScaleVectorXYZ(step, direction, 2.0f);
+#endif
 
     // Each particle travels from where it is to its place along the new stream, the farther
     // ones over more steps.
@@ -100,7 +112,11 @@ void CSHOT_FIREBAR::Step() {
         size[particle] += 0.06f;
 
         if (hit_timer == 0) {
+#ifdef CHRONICLE_EXPANDED
+            NowColData->Set(position[particle], damage[particle], 2, expanded::FlamePuffSize(4.0f), 1.0f, 2, 2, 0, 0);
+#else
             NowColData->Set(position[particle], damage[particle], 2, 4.0f, 1.0f, 2, 2, 0, 0);
+#endif
             NowColData->SetUserID(5, 6);
             NowColData->hit[NowColData->now_hit].weapon_flags = NowWeaponHave->flags;
             NowColData->hit[NowColData->now_hit].vs_monster = NowWeaponHave->vs_monster;
@@ -154,7 +170,11 @@ void CSHOT_FIREBAR::Draw() {
                 break;
         }
 
+#ifdef CHRONICLE_EXPANDED
+        set3DCellModel(position[particle], "c05w_h", expanded::FlamePuffSize(size[particle]), column << 7, row << 7, 0x80, 0x80, static_cast<u8>(static_cast<int>(opacity[particle])));
+#else
         set3DCellModel(position[particle], "c05w_h", size[particle], column << 7, row << 7, 0x80, 0x80, static_cast<u8>(static_cast<int>(opacity[particle])));
+#endif
     }
 }
 
