@@ -1,6 +1,10 @@
 {
     "meswin.system.69": "Verwirrung",
     "meswin.system14.69": "Verwirrung",
+    "meswin.system.100": "keiner Waffe",
+    "meswin.system14.100": "keiner Waffe",
+    "meswin.system.190": "Synth-Kugel",
+    "meswin.system14.190": "Synth-Kugel",
     "options.page.expanded": "Expanded",
     "options.page.expanded.help": "\"Expanded\"\nDie Änderungen von\nChronicle-Expanded.",
     "options.expanded.stronger_enemies.label": "Stärkere Gegner",
@@ -46,5 +50,8 @@
     "expanded.bandit_slingshot.acquired.20": "{icon-orb}\"{insert1}{value1}\" erhalten.",
     "expanded.bandit_slingshot.acquired.30": "{icon-jar}\"{insert1}\" erhalten.",
     "expanded.bandit_slingshot.stolen": "Das Geschoss von [monster] gehört jetzt dir",
-    "expanded.wise_owl.key": "Das Eulenschwert spürt {insert1} in der Nähe..."
+    "expanded.wise_owl.key": "Das Eulenschwert spürt {insert1} in der Nähe...",
+    "expanded.star_breaker.shooting_star": "Der Star Breaker schickt dir eine Sternschnuppe!",
+    "expanded.empty_sphere.slot_one": "Eine leere Synth-Kugel\npasst nur auf den\nersten Platz.",
+    "expanded.empty_sphere.break_confirm": "{alert}60% d. Waffen-\nstärke abspeichern.\n(Nutzt leere Kugel.)\n Status ändern OK?"
 }

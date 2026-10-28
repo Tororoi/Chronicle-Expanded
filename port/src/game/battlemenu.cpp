@@ -53,6 +53,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/items/empty_sphere.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/toan/buster_sword.hpp"
@@ -3154,7 +3155,13 @@ void WeaponMenuSelect() {
     if (WepMenu.state == WEP_STATE_WARNING) {
         s16 warnings[10] = {0xA1, 0xA2, 0xA3, 0x19B, 0x19C, 0x19D, 0xA8, 0xAA, 0xA9, 0xAB};
 #ifdef CHRONICLE_EXPANDED
-        help_no = WepMenu.warning_no == expanded::kSevenfoldWarning ? expanded::kSevenfoldRefusedMessage : warnings[WepMenu.warning_no];
+        if (WepMenu.warning_no == expanded::kSevenfoldWarning) {
+            help_no = expanded::kSevenfoldRefusedMessage;
+        } else if (WepMenu.warning_no == expanded::kEmptySphereWarning) {
+            help_no = expanded::kEmptySphereSlotMessage;
+        } else {
+            help_no = warnings[WepMenu.warning_no];
+        }
 #else
         help_no = warnings[WepMenu.warning_no];
 #endif
@@ -3176,7 +3183,12 @@ void WeaponMenuSelect() {
         CommonMenuMes2.value_signed = true;
         CommonMenuMes2.value_show = false;
 
+#ifdef CHRONICLE_EXPANDED
+        // An empty SynthSphere's weapon (0) is named too, not left the last sphere's.
+        if (name_mes >= 0) {
+#else
         if (name_mes > 0) {
+#endif
             CommonMenuMes2.mes_no[0] = name_mes + 100;
         }
 
@@ -4473,6 +4485,12 @@ void WeaponMenuAttachWepKey() {
         int          socket = data->hole[hole];
 
         if (BtlHaveItemPt->item_no == ITEM_ATTACH_SYNTHESIS_SPHERE && socket != 2) {
+#ifdef CHRONICLE_EXPANDED
+            if (expanded::EmptySphereWarns(WepMenu.board.held_attach)) {
+                WepMenu.state = WEP_STATE_WARNING;
+                WepMenu.warning_no = expanded::kEmptySphereWarning;
+            }
+#endif
             ComMenuSePlay(MENU_SOUND_REFUSE);
             return;
         }
@@ -6402,7 +6420,14 @@ int ItemMenuMainKey() {
         int made_no = CommonMenuMes2.mes_no[0];
         int made_value = CommonMenuMes2.value;
 
-        if ((name_mes > 0 && made_no != name_mes + 0x64) || (value >= 0 && made_value != value) || (chara_mes >= 0 && made_no != chara_mes + 0x32)) {
+#ifdef CHRONICLE_EXPANDED
+        // An empty SynthSphere's weapon (0) is named too, not left the last sphere's.
+        const bool named = name_mes >= 0;
+#else
+        const bool named = name_mes > 0;
+#endif
+
+        if ((named && made_no != name_mes + 0x64) || (value >= 0 && made_value != value) || (chara_mes >= 0 && made_no != chara_mes + 0x32)) {
             remake = 1;
         }
 
@@ -6411,7 +6436,7 @@ int ItemMenuMainKey() {
             CommonMenuMes2.value_show = false;
             CommonMenuMes2.value = value;
 
-            if (name_mes > 0) {
+            if (named) {
                 CommonMenuMes2.mes_no[0] = name_mes + 0x64;
             }
 

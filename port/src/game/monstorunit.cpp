@@ -1369,6 +1369,9 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
                                 HitMark[hitCnt].Set(effect[current_monster].position[i], guard_direction, HIT_MARK_GUARD, 0.8f, 0.005f, 0.02f, 1.3f, 32, monster[current_monster].ground_y);
                                 HitPointMark[hitCnt].Set(effect[current_monster].position[i]);
                                 SndSePlay(SE_HIT_BLOCKED, -1, 0);
+#ifdef CHRONICLE_EXPANDED
+                                expanded::MonsterHitBlocked(*this, current_monster, NowColData->hit[hit]);
+#endif
                                 rejected = 1;
                                 j = 3;
                             }

@@ -1,6 +1,10 @@
 {
     "meswin.system.69": "Confusion",
     "meswin.system14.69": "Confusion",
+    "meswin.system.100": "rien",
+    "meswin.system14.100": "rien",
+    "meswin.system.190": "Plan synthétique",
+    "meswin.system14.190": "Plan synthétique",
     "options.page.expanded": "Expanded",
     "options.page.expanded.help": "\"Expanded\"\nLes changements de\nChronicle-Expanded.",
     "options.expanded.stronger_enemies.label": "Ennemis renforcés",
@@ -46,5 +50,8 @@
     "expanded.bandit_slingshot.acquired.20": "{icon-orb}\"{insert1}{value1}\" en poche.",
     "expanded.bandit_slingshot.acquired.30": "{icon-jar}\"{insert1}\" en poche.",
     "expanded.bandit_slingshot.stolen": "Le projectile de [monster] est désormais à toi",
-    "expanded.wise_owl.key": "L'Épée du hibou sent {insert1} tout près..."
+    "expanded.wise_owl.key": "L'Épée du hibou sent {insert1} tout près...",
+    "expanded.star_breaker.shooting_star": "Le Pulvériseur vous envoie une étoile filante !",
+    "expanded.empty_sphere.slot_one": "Un Plan synthétique\nvide ne va que dans\nle premier espace.",
+    "expanded.empty_sphere.break_confirm": "{alert}Enfermer 60% des facultés\nde l'arme dans la sphère\n(Consomme le plan vide)\nEffectuer la mutation ?"
 }

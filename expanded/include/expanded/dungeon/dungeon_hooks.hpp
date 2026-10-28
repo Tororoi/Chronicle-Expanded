@@ -135,8 +135,10 @@ bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HI
 // Whether a hit of Xiao's makes the monster flinch (CheckDmg; retail's never do): a blow of one of her weapons' own.
 bool PlayerHitStaggers(const COLLISION_HIT &hit);
 
-// A monster took the hit that reached it, past its guard and invincibility (CheckDmg).
-void MonsterHitTaken(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit);
+// A monster took the hit that reached it, past its guard and invincibility (CheckDmg), and a monster's guard window
+// blocked one (CheckDmg, the record left in play: it may block again on another of the monster's spheres or steps).
+void MonsterHitTaken(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit);
+void MonsterHitBlocked(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit);
 
 // A hit just took amount off a monster's life (CheckDmg; its life is past it, under 0 when it took more than it had).
 void MonsterDamaged(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount);

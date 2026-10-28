@@ -1,6 +1,10 @@
 {
     "meswin.system.69": "Confusione",
     "meswin.system14.69": "Confusione",
+    "meswin.system.100": "nessuna arma",
+    "meswin.system14.100": "nessuna arma",
+    "meswin.system.190": "Sfera di Sintesi",
+    "meswin.system14.190": "Sfera di Sintesi",
     "options.page.expanded": "Expanded",
     "options.page.expanded.help": "\"Expanded\"\nLe modifiche di\nChronicle-Expanded.",
     "options.expanded.stronger_enemies.label": "Nemici più forti",
@@ -46,5 +50,8 @@
     "expanded.bandit_slingshot.acquired.20": "{icon-orb}\"{insert1}{value1}\" acquisito.",
     "expanded.bandit_slingshot.acquired.30": "{icon-jar}\"{insert1}\" acquisito.",
     "expanded.bandit_slingshot.stolen": "Il proiettile di [monster] ora è tuo",
-    "expanded.wise_owl.key": "La Spada Gufo Saggio percepisce {insert1} qui vicino..."
+    "expanded.wise_owl.key": "La Spada Gufo Saggio percepisce {insert1} qui vicino...",
+    "expanded.star_breaker.shooting_star": "Il Distruggi Stelle ti manda una stella cadente!",
+    "expanded.empty_sphere.slot_one": "Una Sfera di Sintesi\nvuota va solo nel\nprimo spazio.",
+    "expanded.empty_sphere.break_confirm": "{alert} Sigilla nella sfera \n60% delle caratt. arma.\n(Usa la sfera vuota.)\nCambia stato?"
 }
