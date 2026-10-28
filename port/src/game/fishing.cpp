@@ -29,7 +29,7 @@
 #include "vu0_ops.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/weapons/xiao/flamingo.hpp"
+#include "expanded/town/fishing.hpp"
 #endif
 
 namespace dc::game {
@@ -592,7 +592,7 @@ void FishingStepFish() {
             float radius = esa_info[esa_type].radius;
 
 #ifdef CHRONICLE_EXPANDED
-            radius = expanded::BaitNoticeRadius(radius);
+            radius = expanded::BaitNoticeRadius(esa_info[esa_type].item_no, radius);
 #endif
 
             // Debug builds let every fish notice the bait from anywhere.

@@ -17,7 +17,7 @@ float LockOnDistanceRate(float rate);
 inline constexpr float kBaitFlamboyance = 10.0f;
 inline constexpr int   kBaitFlamboyanceMost = 3;
 
-// Hook: FishingStepFish: the bait's notice radius, radius the game's.
-float BaitNoticeRadius(float radius);
+// A bait's notice radius, radius the game's, with Bait Flamboyance's units added.
+float BaitFlamboyanceRadius(float radius);
 
 } // namespace expanded

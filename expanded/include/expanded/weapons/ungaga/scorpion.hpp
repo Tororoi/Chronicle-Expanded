@@ -18,4 +18,11 @@ bool VenomActive();
 // Hook: poison took hold of a monster.
 void VenomPoisoned(const MONSTOR &target);
 
+// Scorpion "Venom Lure": while a Scorpion is owned (any bag or the storage), fish notice the Poisonous Apple on the hook
+// from kVenomLure times as far, Bait Flamboyance's units included.
+inline constexpr float kVenomLure = 2.0f;
+
+// Bait item_no's notice radius, radius as the game and Bait Flamboyance have it.
+float VenomLureRadius(int item_no, float radius);
+
 } // namespace expanded
