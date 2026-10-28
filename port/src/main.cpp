@@ -170,9 +170,10 @@ float g_switch_render_scale = 0.0f;
                  "  --roster KIND,...  debug mode: every dungeon floor lays out these MonstorTable kinds,\n"
                  "                     a trailing ! spawning one at most once (20!,60)\n"
                  "  --stage FILE       start a staged recording: the save's game on a dungeon floor with a\n"
-                 "                     party member, weapon and monsters set out (DC_STAGE); see\n"
-                 "                     expanded/docs/recording.md\n"
-                 "  --event-log FILE   write damage, kills, life, weapon HP and sounds as JSON lines (DC_EVENT_LOG)\n"
+                 "                     party member, weapon and monsters set out, or in a town at a fishing\n"
+                 "                     sign (DC_STAGE); see expanded/docs/recording.md\n"
+                 "  --event-log FILE   write damage, kills, life, weapon HP, sounds and fishing as JSON lines\n"
+                 "                     (DC_EVENT_LOG)\n"
 #endif
                  ,
                  program);
@@ -615,11 +616,21 @@ int Run(int argc, const char **argv) {
         std::fprintf(stderr, "bad --stage %s: %s\n", options.stage, why.c_str());
         std::exit(kExitUsage);
     }
-    // A stage with a dungeon starts in it, as --jump dungeon:<n> does.
-    if (const expanded::Stage *stage = expanded::ActiveStage(); stage != nullptr && stage->dungeon >= 0 &&
-                                                                (options.jump == nullptr || *options.jump == '\0')) {
+    // A stage with a dungeon starts in it, as --jump dungeon:<n> does; one with a town starts there.
+    const expanded::Stage *stage = expanded::ActiveStage();
+    bool                   jumped = options.jump != nullptr && *options.jump != '\0';
+    if (stage != nullptr && stage->dungeon >= 0 && !jumped) {
         stage_jump = std::format("dungeon:{}", stage->dungeon);
         options.jump = stage_jump.c_str();
+    }
+    if (stage != nullptr && stage->town >= 0 && !jumped) {
+        GameSetTownJump(stage->town);
+    }
+    // --give on the command line takes the place of the stage's.
+    if (stage != nullptr && !stage->give.empty() && (options.give == nullptr || *options.give == '\0') &&
+        !GameSetGive(stage->give.c_str())) {
+        std::fprintf(stderr, "bad give in --stage %s: %s\n", options.stage, stage->give.c_str());
+        std::exit(kExitUsage);
     }
     if (options.event_log == nullptr) {
         options.event_log = std::getenv("DC_EVENT_LOG");
@@ -637,7 +648,11 @@ int Run(int argc, const char **argv) {
         std::fprintf(stderr, "bad --jump: %s\n", options.jump);
         std::exit(kExitUsage);
     }
-    GameSetAutosave(!options.headless && (options.jump == nullptr || *options.jump == '\0'));
+    bool autosave = !options.headless && (options.jump == nullptr || *options.jump == '\0');
+#ifdef CHRONICLE_EXPANDED
+    autosave = autosave && expanded::ActiveStage() == nullptr;
+#endif
+    GameSetAutosave(autosave);
     const char *fast_load = std::getenv("DC_FAST_LOAD");
     GameSetFastLoad(options.fast_load || (fast_load != nullptr && *fast_load != '\0' && *fast_load != '0'));
     RequireData();

@@ -44,6 +44,7 @@
 #include "texture.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/debug/event_log.hpp"
 #include "expanded/town/ally.hpp"
 #include "expanded/town/ladder.hpp"
 #include "expanded/weapons/osmond/blessing_gun.hpp"
@@ -2403,6 +2404,9 @@ void EdMoveChara() {
 
                                 SaveData->AddFishingPoint(fish_points);
                                 SaveData->SetFishingRank(fish_kind, static_cast<float>(size));
+#ifdef CHRONICLE_EXPANDED
+                                expanded::EventLogCaught(fish_kind, size, fish_points);
+#endif
                                 fishing_mes++;
                                 EditMes1.mes_no[0] = GetFishMsgNo(fish_kind);
                                 EditMes1.values[0] = size;

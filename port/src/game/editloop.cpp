@@ -90,6 +90,8 @@
 #include "wind.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/debug/event_log.hpp"
+#include "expanded/debug/stage.hpp"
 #include "expanded/town/ally.hpp"
 #endif
 
@@ -3938,6 +3940,10 @@ void MoveChara() {
     EdMoveCharaInfo.point_count = info->event_count;
     EdMoveCharaInfo.fishing = (GameMode == ED_MODE_FISHING);
     EdMoveChara();
+#ifdef CHRONICLE_EXPANDED
+    expanded::StageTownStep();
+    expanded::EventLogFishingStep();
+#endif
 
     if (EdMoveCharaInfo.system_event_no > 0) {
         RunSystemEvent(EdMoveCharaInfo.system_event_no, &MainCamera);
