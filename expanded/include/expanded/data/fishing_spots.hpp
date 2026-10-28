@@ -45,8 +45,9 @@ struct FishingSpot {
     int              rare_one_in;
     // The fishing collision added to what the spot's rectangle gathers.
     std::vector<scene::Triangle> (*collision)(std::span<const unsigned char> scene, std::span<const unsigned char> cfg);
-    // The town's own scene and mapinfo as the spot changes them, before the sign joins them; null for as they are.
-    Bytes (*edit_scene)(std::span<const unsigned char> scene);
+    // The town's scene and mapinfo, the sign in them, as the spot changes them (the scene with the disc's mapinfo at
+    // hand); null for as they are.
+    Bytes (*edit_scene)(std::span<const unsigned char> scene, std::span<const unsigned char> cfg);
     Bytes (*edit_cfg)(std::span<const unsigned char> cfg);
 };
 

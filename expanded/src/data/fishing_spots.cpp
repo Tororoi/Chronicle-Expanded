@@ -120,13 +120,13 @@ Bytes BuildScene(const FishingSpot &spot, Files s) {
     Bytes header = scene::PartHeader(s[2], kPartTemplate);
     Bytes events = scene::ScriptEvent(spot.trigger, kFishingSignRadius, kFishingSignLabel);
     Bytes collision = spot.sign_collision ? scene::BoxCollision(kSignCollisionFrame, kSignBox) : Bytes{};
-    Bytes town = spot.edit_scene != nullptr ? spot.edit_scene(s[0]) : s[0];
-    return scene::AppendPart(town, kSignPart, header, sign, events, collision);
+    Bytes town = scene::AppendPart(s[0], kSignPart, header, sign, events, collision);
+    return spot.edit_scene != nullptr ? spot.edit_scene(town, s[3]) : town;
 }
 
 Bytes BuildMapinfo(const FishingSpot &spot, Files s) {
-    Bytes town = spot.edit_cfg != nullptr ? spot.edit_cfg(s[0]) : s[0];
-    return scene::PlaceGround(town, kSignPart, spot.anchor, spot.atari, spot.sign, spot.sign_yaw);
+    Bytes town = scene::PlaceGround(s[0], kSignPart, spot.anchor, spot.atari, spot.sign, spot.sign_yaw);
+    return spot.edit_cfg != nullptr ? spot.edit_cfg(town) : town;
 }
 
 } // namespace
@@ -187,7 +187,7 @@ std::vector<DataBuild> FishingSpotBuilds() {
     for (const FishingSpot &spot : kSpots) {
         std::string folder = std::format("gedit/{}/", spot.code);
         std::string scene = folder + "scene.scn", cfg = folder + "mapinfo.cfg", script = folder + "event.stb";
-        builds.push_back(DataBuild::FromSources(std::format("{} scene", spot.code), Rebuilt(scene), {scene, kSignScene, kPartTemplateScene},
+        builds.push_back(DataBuild::FromSources(std::format("{} scene", spot.code), Rebuilt(scene), {scene, kSignScene, kPartTemplateScene, cfg},
                                                 [&spot](Files s) { return BuildScene(spot, s); }));
         builds.push_back(DataBuild::FromSources(std::format("{} mapinfo", spot.code), Rebuilt(cfg), {cfg},
                                                 [&spot](Files s) { return BuildMapinfo(spot, s); }));
