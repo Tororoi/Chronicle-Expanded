@@ -29,7 +29,8 @@
 #include "vu0_ops.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/weapons/xiao/flamingo.hpp"
+#include "expanded/town/fishing.hpp"
+#include "expanded/weapons/ruby/fairys_ring.hpp"
 #endif
 
 namespace dc::game {
@@ -549,6 +550,9 @@ int FishingGetAngleFishSize(int *size, int *fp) {
     float length = AngleFish->size;
     *size = static_cast<int>(length * 10.0f);
     *fp = AngleFish->GetFP();
+#ifdef CHRONICLE_EXPANDED
+    *fp = expanded::FairyFortunePoints(AngleFish->fish_kind, *fp);
+#endif
     return AngleFish->fish_kind;
 }
 
@@ -592,7 +596,7 @@ void FishingStepFish() {
             float radius = esa_info[esa_type].radius;
 
 #ifdef CHRONICLE_EXPANDED
-            radius = expanded::BaitNoticeRadius(radius);
+            radius = expanded::BaitNoticeRadius(esa_info[esa_type].item_no, radius);
 #endif
 
             // Debug builds let every fish notice the bait from anywhere.

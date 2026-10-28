@@ -4,6 +4,7 @@
 
 #include "dngstatusdata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/weapons/ownership.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 #include "menu_inventory.hpp"
@@ -29,13 +30,17 @@ void VenomPoisoned(const MONSTOR &target) {
     status->ailments[chara] &= ~AILMENT_POISON;
 
     // The weapon equipped, as a kill's ABS reaches it (CMonstorUnit::Step).
-    int gain = target.exp / kVenomAbsShare;
+    int          gain = target.exp / kVenomAbsShare;
     WEAPON_HAVE *weapon = EquippedWeapon(*status, chara);
     if (gain <= 0 || weapon == nullptr || status->CheckDefaultWeapon(chara) == 0) {
         return;
     }
     int max_exp = GetWeaponMaxExp(weapon);
     weapon->experience = static_cast<s16>(std::max<int>(weapon->experience, std::min(max_exp, weapon->experience + gain)));
+}
+
+float VenomLureRadius(int item_no, float radius) {
+    return item_no == ITEM_POISONOUS_APPLE && WeaponOwned(ITEM_WEAPON_SCORPION) ? radius * kVenomLure : radius;
 }
 
 } // namespace expanded

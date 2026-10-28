@@ -8,9 +8,16 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/town/fishing.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/ungaga/halberd.hpp"
 #include "expanded/weapons/ungaga/scorpion.hpp"
+#include "expanded/weapons/xiao/flamingo.hpp"
+#include "fish.hpp"
+#include "fishing.hpp"
+#include "framevu1.hpp"
 #include "itemdata.hpp"
+#include "mainselect.hpp"
 #include "menu_inventory.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -20,6 +27,7 @@
 namespace {
 
 using expanded::Monster;
+using expanded::test::OptionScope;
 using expanded::test::TestFloor;
 using expanded::test::TestSave;
 using expanded::test::Wielding;
@@ -74,6 +82,46 @@ class VenomFromAnotherSphere : public Venom {
 protected:
     VenomFromAnotherSphere() : Venom(CHARA_XIAO, ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_HALBERT) {}
 };
+
+// A fishing spot's six fish, none of them hooked, and a bait model on the hook, out of debug mode (where every fish
+// notices the bait from anywhere); Own() puts a weapon in the storage.
+class VenomLure : public ::testing::Test {
+protected:
+    void SetUp() override {
+        Fish = fish_.get();
+        EsaFrame = &bait_;
+        AngleFish = nullptr;
+        DebugMode = 0;
+    }
+
+    void TearDown() override {
+        Fish = saved_fish_;
+        EsaFrame = saved_frame_;
+        esa_type = saved_type_;
+        AngleFish = saved_angle_;
+        DebugMode = saved_debug_;
+    }
+
+    void Own(int weapon_no) { save_.stock().weapons[0].item_no = static_cast<s16>(weapon_no); }
+
+    // The radius each fish notices bait esa (esa_info's index) from this frame (FishingStepFish).
+    float Noticed(int esa) {
+        esa_type = esa;
+        FishingStepFish();
+        return fish_[5].food_radius;
+    }
+
+    TestSave                 save_;
+    std::unique_ptr<CFish[]> fish_ = std::make_unique<CFish[]>(6);
+    CFrameVu1                bait_;
+    CFish                   *saved_fish_ = Fish;
+    CFrameVu1               *saved_frame_ = EsaFrame;
+    int                      saved_type_ = esa_type;
+    CFish                   *saved_angle_ = AngleFish;
+    s32                      saved_debug_ = DebugMode;
+};
+
+constexpr int kPoisonousApple = 6; // esa_info's index of the Poisonous Apple
 
 } // namespace
 
@@ -199,4 +247,42 @@ TEST_F(VenomBySuperSteve, TheChargedShotFliesAtTheScorpionsTier) {
     EXPECT_EQ(shots->damage[0], 60);
     EXPECT_FLOAT_EQ(expanded::XiaoShotWear(1.0f), 2.0f);
     BtActStatus = {};
+}
+
+TEST_F(VenomLure, OwnedThePoisonousAppleIsNoticedFromTwiceAsFar) {
+    ASSERT_EQ(esa_info[kPoisonousApple].item_no, ITEM_POISONOUS_APPLE);
+    EXPECT_FLOAT_EQ(Noticed(kPoisonousApple), 25.0f);
+
+    Own(ITEM_WEAPON_SCORPION);
+    EXPECT_FLOAT_EQ(Noticed(kPoisonousApple), 25.0f * expanded::kVenomLure);
+    EXPECT_EQ(fish_[0].food_kind, kPoisonousApple);
+    EXPECT_FLOAT_EQ(fish_[0].food_radius, 50.0f);
+}
+
+TEST_F(VenomLure, EveryOtherBaitAsTheGameHasIt) {
+    Own(ITEM_WEAPON_SCORPION);
+    for (int esa = 0; esa < std::ssize(esa_info); esa++) {
+        if (esa != kPoisonousApple) {
+            EXPECT_FLOAT_EQ(Noticed(esa), esa_info[esa].radius) << esa_info[esa].item_no;
+        }
+    }
+}
+
+TEST_F(VenomLure, DoublesBaitFlamboyanceWithIt) {
+    Own(ITEM_WEAPON_SCORPION);
+    save_.status().chara_weapons[CHARA_XIAO][3].item_no = ITEM_WEAPON_FLAMINGO;
+    EXPECT_FLOAT_EQ(Noticed(kPoisonousApple), (25.0f + expanded::kBaitFlamboyance) * expanded::kVenomLure);
+    EXPECT_FLOAT_EQ(expanded::BaitNoticeRadius(ITEM_EVY, 50.0f), 50.0f + expanded::kBaitFlamboyance);
+}
+
+TEST_F(VenomLure, AScorpionInAnyBagCounts) {
+    save_.status().chara_weapons[CHARA_GORO][9].item_no = ITEM_WEAPON_SCORPION;
+    EXPECT_FLOAT_EQ(Noticed(kPoisonousApple), 50.0f);
+}
+
+TEST_F(VenomLure, OffWithTheWeaponAbilities) {
+    OptionScope options;
+    Own(ITEM_WEAPON_SCORPION);
+    ASSERT_TRUE(options.Set(expanded::kWeaponAbilities, false));
+    EXPECT_FLOAT_EQ(Noticed(kPoisonousApple), 25.0f);
 }
