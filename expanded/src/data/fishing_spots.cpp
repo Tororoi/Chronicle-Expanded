@@ -43,7 +43,7 @@ std::vector<Triangle> BrownbooCollision(std::span<const unsigned char>, std::spa
 }
 
 // Brownboo: villager 8, who stands where the sign's trigger is, stands back along the boardwalk.
-Bytes BrownbooScene(std::span<const unsigned char> scene) {
+Bytes BrownbooScene(std::span<const unsigned char> scene, std::span<const unsigned char>) {
     return scene::MoveStandPoint(scene, "s04g01", 8, {255.0f, 10.57f, -55.0f});
 }
 
