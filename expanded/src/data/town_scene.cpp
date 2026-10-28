@@ -20,7 +20,8 @@ constexpr std::size_t kDirectory = 0x10, kDirectoryEntry = 0x30;
 constexpr std::size_t kPartHeader = 0x160, kDefinition = 0x04;
 // A part header's archive fields: the model's offset and size, the collision's offset and size, and the other models'
 // offsets (none of them, a part of only a model and a collision).
-constexpr std::size_t kModelOffset = 0x48, kModelSize = 0x58, kCollisionOffset = 0x78, kCollisionSize = 0x7C;
+constexpr std::size_t kModelOffset = 0x48, kModelSize = 0x58, kCollisionOffset = 0x78, kCollisionSize = 0x7C, kCameraOffset = 0xC0,
+                      kCameraSize = 0xC4, kRippleOffset = 0xD8, kRippleSize = 0xDC;
 constexpr std::size_t kUnusedModels[] = {0x4C, 0x50, 0x54, 0x78, 0x90, 0xA8, 0xC0, 0xD8};
 // A part definition's size, its functions' offset from it and their count.
 constexpr std::size_t   kDefinitionSize = 0x04, kFunctions = 0x70, kFunctionCount = 0x74;
@@ -302,14 +303,10 @@ Bytes PictureBank(const std::vector<std::pair<std::string, Bytes>> &pictures) {
     return out;
 }
 
-Bytes BoxCollision(std::string_view name, const std::array<float, 6> &box) {
-    const auto [x0, x1, y0, y1, z0, z1] = box;
-    const std::array<std::array<float, 3>, 8> vertices = {
-        {{x0, y0, z0}, {x1, y0, z0}, {x1, y0, z1}, {x0, y0, z1}, {x0, y1, z0}, {x1, y1, z0}, {x1, y1, z1}, {x0, y1, z1}}
-    };
-    const std::array<std::array<int, 3>, 12> faces = {
-        {{0, 1, 2}, {0, 2, 3}, {4, 6, 5}, {4, 7, 6}, {0, 4, 5}, {0, 5, 1}, {3, 2, 6}, {3, 6, 7}, {0, 3, 7}, {0, 7, 4}, {1, 5, 6}, {1, 6, 2}}
-    };
+namespace {
+
+// A one-frame collision .mds: an MDT of vertices and the faces between them (no colour block), under a frame named name.
+Bytes CollisionModel(std::string_view name, std::span<const std::array<float, 3>> vertices, std::span<const std::array<int, 3>> faces) {
     constexpr std::size_t kPositions = 0x40;
     std::size_t           list = kPositions + vertices.size() * 0x10;
     Bytes                 mdt(list + 0x18 + faces.size() * 0x14, 0);
@@ -344,6 +341,32 @@ Bytes BoxCollision(std::string_view name, const std::array<float, 6> &box) {
     }
     out.insert(out.end(), mdt.begin(), mdt.end());
     return out;
+}
+
+} // namespace
+
+Bytes BoxCollision(std::string_view name, const std::array<float, 6> &box) {
+    const auto [x0, x1, y0, y1, z0, z1] = box;
+    const std::array<std::array<float, 3>, 8> vertices = {
+        {{x0, y0, z0}, {x1, y0, z0}, {x1, y0, z1}, {x0, y0, z1}, {x0, y1, z0}, {x1, y1, z0}, {x1, y1, z1}, {x0, y1, z1}}
+    };
+    const std::array<std::array<int, 3>, 12> faces = {
+        {{0, 1, 2}, {0, 2, 3}, {4, 6, 5}, {4, 7, 6}, {0, 4, 5}, {0, 5, 1}, {3, 2, 6}, {3, 6, 7}, {0, 3, 7}, {0, 7, 4}, {1, 5, 6}, {1, 6, 2}}
+    };
+    return CollisionModel(name, vertices, faces);
+}
+
+Bytes TriangleCollision(std::string_view name, const std::vector<Triangle> &triangles) {
+    std::vector<std::array<float, 3>> vertices;
+    std::vector<std::array<int, 3>>   faces;
+    for (const Triangle &triangle : triangles) {
+        int first = static_cast<int>(vertices.size());
+        for (const Vec3 &point : triangle) {
+            vertices.push_back({static_cast<float>(point[0]), static_cast<float>(point[1]), static_cast<float>(point[2])});
+        }
+        faces.push_back({first, first + 1, first + 2});
+    }
+    return CollisionModel(name, vertices, faces);
 }
 
 Bytes ScriptEvent(const std::array<float, 3> &position, float radius, int label) {
@@ -383,7 +406,7 @@ Bytes MoveStandPoint(std::span<const unsigned char> scene, std::string_view part
 
 Bytes AppendPart(std::span<const unsigned char> scene, std::string_view name, std::span<const unsigned char> header,
                  std::span<const unsigned char> model, std::span<const unsigned char> events, std::span<const unsigned char> collision,
-                 bool at_origin) {
+                 bool at_origin, std::span<const unsigned char> camera, bool ripple) {
     if (header.size() != kPartHeader) {
         Bad("a part header is 0x160 bytes");
     }
@@ -401,11 +424,16 @@ Bytes AppendPart(std::span<const unsigned char> scene, std::string_view name, st
     part.insert(part.end(), events.begin(), events.end());
     std::size_t model_at = part.size();
     part.insert(part.end(), placed.begin(), placed.end());
-    std::size_t collision_at = 0;
+    std::size_t collision_at = 0, camera_at = 0;
     if (!collision.empty()) {
         PadTo16(part);
         collision_at = part.size();
         part.insert(part.end(), collision.begin(), collision.end());
+    }
+    if (!camera.empty()) {
+        PadTo16(part);
+        camera_at = part.size();
+        part.insert(part.end(), camera.begin(), camera.end());
     }
     for (std::size_t field : kUnusedModels) {
         Set32(part, field, static_cast<std::uint32_t>(part.size()));
@@ -422,6 +450,14 @@ Bytes AppendPart(std::span<const unsigned char> scene, std::string_view name, st
     if (!collision.empty()) {
         Set32(part, kCollisionOffset, static_cast<std::uint32_t>(collision_at));
         Set32(part, kCollisionSize, static_cast<std::uint32_t>(collision.size()));
+    }
+    if (!camera.empty()) {
+        Set32(part, kCameraOffset, static_cast<std::uint32_t>(camera_at));
+        Set32(part, kCameraSize, static_cast<std::uint32_t>(camera.size()));
+    }
+    if (ripple) {
+        Set32(part, kRippleOffset, static_cast<std::uint32_t>(model_at));
+        Set32(part, kRippleSize, static_cast<std::uint32_t>(placed.size()));
     }
 
     // The directory's slack, before the first sub-file, takes the entry.
@@ -444,13 +480,13 @@ Bytes AppendPart(std::span<const unsigned char> scene, std::string_view name, st
 }
 
 Bytes PlaceGround(std::span<const unsigned char> cfg, std::string_view part, std::string_view anchor, std::string_view collision,
-                  const std::array<int, 3> &position, int yaw) {
+                  const std::array<int, 3> &position, int yaw, std::string_view kind, std::string_view anchor_kind) {
     std::string text = ToText(cfg);
-    std::string block = std::format("\r\n\tGROUND\t\"{}\",\t\t//injected part\r\n"
+    std::string block = std::format("\r\n\t{}\t\"{}\",\t\t//injected part\r\n"
                                     "\t\t\"\",\t\t\t//level1\r\n\t\t\"\",\t\t\t//level2\r\n\t\t\"\",\t\t\t//level3\r\n"
                                     "\t\t\"\",\t\t\t//\r\n\t\t\"{}\",\t\t\t//atari\r\n\t\t\"\",\t\t\t//\r\n\t\t\"\",\t\t\t//?\r\n"
                                     "\t\t{},\t{},\t{},\t//position\r\n\t\t0,\t{},\t0\t//rotation\r\n",
-                                    part, collision, position[0], position[1], position[2], yaw);
+                                    kind, part, collision, position[0], position[1], position[2], yaw);
     // After the anchor's GROUND line, the first position line (a number) and the rotation line after it (a number, a
     // comma), as the mod's bake finds them.
     auto starts_number = [&](std::size_t at, bool sign) {
@@ -459,9 +495,13 @@ Bytes PlaceGround(std::span<const unsigned char> cfg, std::string_view part, std
         }
         return at < text.size() && std::isdigit(static_cast<unsigned char>(text[at]));
     };
-    std::string head = std::format("\tGROUND\t\"{}\",", anchor);
+    std::string head = std::format("{}\t\"{}\",", anchor_kind, anchor);
     std::size_t insert = std::string::npos;
     for (std::size_t from = text.find(head); from != std::string::npos; from = text.find(head, from)) {
+        if (from == 0 || (text[from - 1] != '\t' && text[from - 1] != ' ')) {
+            from++;
+            continue;
+        }
         std::size_t end = std::string::npos;
         for (std::size_t line = text.find("\r\n\t\t", from + head.size()); line != std::string::npos; line = text.find("\r\n\t\t", line + 1)) {
             std::size_t first = line + 4;
@@ -488,7 +528,7 @@ Bytes PlaceGround(std::span<const unsigned char> cfg, std::string_view part, std
         from = end;
     }
     if (insert == std::string::npos) {
-        Bad(std::format("the mapinfo has no GROUND {}", anchor));
+        Bad(std::format("the mapinfo has no {} {}", anchor_kind, anchor));
     }
     text.insert(insert, block);
     return ToBytes(text);

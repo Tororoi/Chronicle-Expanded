@@ -9,6 +9,7 @@
 #include "expanded/data/fishing_collision.hpp"
 #include "expanded/data/fishing_scripts.hpp"
 #include "expanded/data/mes.hpp"
+#include "expanded/data/queens_canal.hpp"
 #include "expanded/data/yellow_drops_bank.hpp"
 
 namespace expanded {
@@ -64,9 +65,27 @@ std::vector<Triangle> YellowDropsCollision(std::span<const unsigned char>, std::
     return YellowDropsBankWalls();
 }
 
+// Queens' canal: its walls at ±47, 1 inside their faces; the float hanging under 45 within 60 of the middle (from its
+// floor, not its banks); reeled in past ±49.5; and its two bridges' legs, from the canal's floor to 47, the decks over
+// 50.
+constexpr FishingCanal kQueensCasting = {
+    .wall = 47.0f,
+    .reach = 60.0f,
+    .low = 45.0f,
+    .drag = 49.5f,
+    .deck = 50.0f,
+    .legs = {{
+        {-73.07f, -22.93f, 35.0f, 50.0f, 0.0f, 47.0f},
+        {-73.07f, -22.93f, -50.0f, -36.0f, 0.0f, 47.0f},
+        {774.93f, 825.07f, 35.0f, 50.0f, 0.0f, 47.0f},
+        {774.93f, 825.07f, -50.0f, -36.0f, 0.0f, 47.0f},
+    }},
+};
+
 const FishingSpot kSpots[] = {
-    // Brownboo's pond from the boardwalk by the sign, 10 over the water: fished facing north across it. The landings
-    // at the tops of its ladders (s04r*), high over the pond, are left out of what it gathers, so no float rests there.
+    // Brownboo's pond from the boardwalk by the sign, 10 over the water: fished facing north across it, the fish 6
+    // under. The landings at the tops of its ladders (s04r*), high over the pond, are left out of what it gathers, so
+    // no float rests there.
     {.code = "s04",
      .map_no = 14,
      .area = 5,
@@ -85,14 +104,20 @@ const FishingSpot kSpots[] = {
      .stance = {212.0f, 10.0f, -53.0f},
      .facing = 3.14159f,
      .line = 1.0f,
-     .fish_depth = 12.0f,
+     .fish_depth = 6.0f,
      .fish = {fish::kPiccoly, fish::kPiccoly, fish::kNegie, fish::kGummy},
      .rare_one_in = 50,
      .collision = BrownbooCollision,
      .edit_scene = BrownbooScene,
      .edit_cfg = nullptr,
+     .camera_height = 40.0f,
+     .camera_top = 0.0f,
+     .canal = nullptr,
+     .additions = nullptr,
      .floor_drop = {.parts = "s04r", .radius = 45.0f, .min_y = 25.0f}},
-    // Queens' canal from its north bank, 39 over the water: fished from the stance by the sign, facing south across it.
+    // Queens' canal from its north bank, 39 over the afternoon's water (the tide sets it): fished from the stance by the
+    // sign, facing south across it, a cast paying the line out to twice retail's, the fish at retail's depth (at low tide
+    // the canal floor's); the camera's eye stays 4 under the walls' tops (70).
     {.code = "e03",
      .map_no = 2,
      .area = 6,
@@ -110,14 +135,51 @@ const FishingSpot kSpots[] = {
      .ground = 10.0f,
      .stance = {250.0f, 70.0f, -70.0f},
      .facing = 0.0f,
-     .line = 1.35f,
-     .fish_depth = 13.0f,
+     .line = 2.0f,
+     .fish_depth = 12.0f,
      .fish = {fish::kBobo},
      .rare_one_in = 0,
      .collision = QueensCollision,
      .edit_scene = nullptr,
-     .edit_cfg = nullptr         },
-    // Yellow Drops from its west bank, bulged out into the water, 25 over the raised water: fished facing west.
+     .edit_cfg = nullptr,
+     .camera_height = 40.0f,
+     .camera_top = 66.0f,
+     .canal = &kQueensCasting,
+     .additions = &kQueensCanal},
+    // Queens' canal floor at low tide, down the ladder: fished standing in the water by the sign under the east bridge,
+    // facing east along the canal, its fish let go about the sign.
+    {.code = "e03",
+     .map_no = 2,
+     .area = 8,
+     .part = "kanbanc",
+     .anchor = "e03g04",
+     .sign = {800, 0, 0},
+     .sign_yaw = -90,
+     .sign_collision = true,
+     .atari = "kanbanc_a.mds",
+     .trigger = {0.0f, 0.0f, 6.0f},
+     .label = kCanalFloorSignLabel,
+     .x1 = 600.0f,
+     .z1 = -100.0f,
+     .x2 = 1000.0f,
+     .z2 = 150.0f,
+     .water = kLowTide,
+     .ground = 0.0f,
+     .stance = {794.0f, 0.0f, 0.0f},
+     .facing = 1.5708f,
+     .line = 1.0f,
+     .fish_depth = kLowTideFishDepth,
+     .fish = {fish::kBobo},
+     .rare_one_in = 0,
+     .collision = QueensCollision,
+     .edit_scene = nullptr,
+     .edit_cfg = nullptr,
+     .camera_height = 20.0f,
+     .camera_top = 0.0f,
+     .canal = &kQueensCasting,
+     .additions = nullptr},
+    // Yellow Drops from its west bank, bulged out into the water, 25 over the raised water: fished facing west, a cast
+    // paying the line out to twice retail's, the fish 8 under; the camera lower over the high bank.
     {.code = "s13",
      .map_no = 23,
      .area = 7,
@@ -135,13 +197,16 @@ const FishingSpot kSpots[] = {
      .ground = -15.0f,
      .stance = {-468.0f, 30.0f, 40.0f},
      .facing = -1.5708f,
-     .line = 1.0f,
-     .fish_depth = 12.0f,
+     .line = 2.0f,
+     .fish_depth = 8.0f,
      .fish = {fish::kTarton, fish::kNonky, fish::kNegie, fish::kBon},
      .rare_one_in = 0,
      .collision = YellowDropsCollision,
      .edit_scene = YellowDropsWestBank,
-     .edit_cfg = YellowDropsWater},
+     .edit_cfg = YellowDropsWater,
+     .camera_height = 30.0f,
+     .camera_top = 0.0f,
+     .canal = nullptr},
 };
 
 // The languages a town's messages come in: _1 to _6.
@@ -150,8 +215,10 @@ constexpr int kLanguages = 6;
 // The sign: Muska Lacka's oasis sign as a part of its own, cloned from a Brownboo part's header, and a solid box.
 constexpr const char          *kSignScene = "gedit/e04/scene.scn", *kSignPictures = "gedit/e04/img.pak", *kSignPicture = "e01b24";
 constexpr const char          *kPartTemplateScene = "gedit/s04/scene.scn", *kPartTemplate = "s04a01";
-constexpr const char          *kSignPart = "kanban", *kSignFrame = "kanban", *kSignCollisionFrame = "kanban_a";
+constexpr const char          *kSignFrame = "kanban";
 constexpr std::array<float, 6> kSignBox = {-6.5f, 6.5f, 0.0f, 16.0f, -1.0f, 2.0f};
+// The pictures the sign bank also carries: the canal ladder's metal, from the Factory's bank.
+constexpr const char *kLadderPictures = "gedit/e05/img.pak", *kLadderPicture = "e05t06";
 // Norune's fishing messages.
 constexpr const char *kNoruneTalk = "gedit/e01/e01talk_{}.mes", *kNoruneEvents = "gedit/e01/e01_{}.mes";
 
@@ -163,7 +230,8 @@ std::string Rebuilt(std::string_view path) {
 
 Bytes BuildSignPictures(Files s) {
     return scene::PictureBank({
-        {kSignPicture, scene::CarvePicture(s[0], kSignPicture)}
+        {kSignPicture,   scene::CarvePicture(s[0], kSignPicture)  },
+        {kLadderPicture, scene::CarvePicture(s[1], kLadderPicture)}
     });
 }
 
@@ -183,18 +251,43 @@ Bytes BuildEventMessages(Files s) {
     return mes::Append(s[1], menus);
 }
 
-Bytes BuildScene(const FishingSpot &spot, Files s) {
+using Town = std::vector<const FishingSpot *>;
+
+// The scene's sources: the town's scene, the sign's, the part template's, the town's mapinfo, then the additions'.
+Bytes BuildScene(const Town &town, Files s) {
     Bytes sign = scene::CarveFrame(s[1], kSignFrame);
     Bytes header = scene::PartHeader(s[2], kPartTemplate);
-    Bytes events = scene::ScriptEvent(spot.trigger, kFishingSignRadius, kFishingSignLabel);
-    Bytes collision = spot.sign_collision ? scene::BoxCollision(kSignCollisionFrame, kSignBox) : Bytes{};
-    Bytes town = scene::AppendPart(s[0], kSignPart, header, sign, events, collision);
-    return spot.edit_scene != nullptr ? spot.edit_scene(town, s[3]) : town;
+    Bytes out = s[0];
+    for (const FishingSpot *spot : town) {
+        Bytes events = scene::ScriptEvent(spot->trigger, kFishingSignRadius, spot->label);
+        Bytes collision = spot->sign_collision ? scene::BoxCollision(std::string(spot->part) + "_a", kSignBox) : Bytes{};
+        out = scene::AppendPart(out, spot->part, header, sign, events, collision);
+    }
+    for (const FishingSpot *spot : town) {
+        if (spot->edit_scene != nullptr) {
+            out = spot->edit_scene(out, s[3]);
+        }
+    }
+    if (const TownAdditions *additions = town.front()->additions) {
+        out = additions->scene(out, std::vector<Bytes>(s.begin() + 4, s.end()));
+    }
+    return out;
 }
 
-Bytes BuildMapinfo(const FishingSpot &spot, Files s) {
-    Bytes town = scene::PlaceGround(s[0], kSignPart, spot.anchor, spot.atari, spot.sign, spot.sign_yaw);
-    return spot.edit_cfg != nullptr ? spot.edit_cfg(town) : town;
+Bytes BuildMapinfo(const Town &town, Files s) {
+    Bytes out = s[0];
+    for (const FishingSpot *spot : town) {
+        out = scene::PlaceGround(out, spot->part, spot->anchor, spot->atari, spot->sign, spot->sign_yaw);
+    }
+    for (const FishingSpot *spot : town) {
+        if (spot->edit_cfg != nullptr) {
+            out = spot->edit_cfg(out);
+        }
+    }
+    if (const TownAdditions *additions = town.front()->additions) {
+        out = additions->cfg(out);
+    }
+    return out;
 }
 
 // The spot's floor drop round each part the mapinfo places.
@@ -222,6 +315,16 @@ const FishingSpot *FishingSpotOfMap(int map_no) {
 const FishingSpot *FishingSpotOfArea(int area) {
     auto spot = std::ranges::find(kSpots, area, &FishingSpot::area);
     return spot == std::end(kSpots) ? nullptr : &*spot;
+}
+
+std::vector<const FishingSpot *> TownFishingSpots(int map_no) {
+    std::vector<const FishingSpot *> town;
+    for (const FishingSpot &spot : kSpots) {
+        if (spot.map_no == map_no) {
+            town.push_back(&spot);
+        }
+    }
+    return town;
 }
 
 std::string FishingCollisionPath(const FishingSpot &spot) {
@@ -285,16 +388,27 @@ std::vector<FloorDropZone> ReadFloorDropZones(std::span<const unsigned char> fil
 
 std::vector<DataBuild> FishingSpotBuilds() {
     std::vector<DataBuild> builds;
-    builds.push_back(DataBuild::FromSources("sign picture", kFishingSignPictures, {kSignPictures}, BuildSignPictures));
+    builds.push_back(DataBuild::FromSources("sign picture", kFishingSignPictures, {kSignPictures, kLadderPictures}, BuildSignPictures));
     for (const FishingSpot &spot : kSpots) {
-        std::string folder = std::format("gedit/{}/", spot.code);
-        std::string scene = folder + "scene.scn", cfg = folder + "mapinfo.cfg", script = folder + "event.stb";
-        builds.push_back(DataBuild::FromSources(std::format("{} scene", spot.code), Rebuilt(scene), {scene, kSignScene, kPartTemplateScene, cfg},
-                                                [&spot](Files s) { return BuildScene(spot, s); }));
+        if (FishingSpotOfMap(spot.map_no) != &spot) {
+            continue; // the town's first spot builds its files
+        }
+        Town                     town = TownFishingSpots(spot.map_no);
+        std::string              folder = std::format("gedit/{}/", spot.code);
+        std::string              scene = folder + "scene.scn", cfg = folder + "mapinfo.cfg", script = folder + "event.stb";
+        std::vector<std::string> scene_sources = {scene, kSignScene, kPartTemplateScene, cfg};
+        if (spot.additions != nullptr) {
+            scene_sources.insert(scene_sources.end(), spot.additions->sources.begin(), spot.additions->sources.end());
+        }
+        builds.push_back(DataBuild::FromSources(std::format("{} scene", spot.code), Rebuilt(scene), scene_sources,
+                                                [town](Files s) { return BuildScene(town, s); }));
         builds.push_back(DataBuild::FromSources(std::format("{} mapinfo", spot.code), Rebuilt(cfg), {cfg},
-                                                [&spot](Files s) { return BuildMapinfo(spot, s); }));
+                                                [town](Files s) { return BuildMapinfo(town, s); }));
         builds.push_back(DataBuild::FromSources(std::format("{} event script", spot.code), Rebuilt(script), {script},
-                                                [&spot](Files s) { return AddFishingScripts(s[0], spot); }));
+                                                [town](Files s) {
+                                                    const TownAdditions *additions = town.front()->additions;
+                                                    return AddFishingScripts(s[0], town, additions != nullptr ? additions->scripts : nullptr);
+                                                }));
         for (int language = 1; language <= kLanguages; language++) {
             std::string talk = std::format("{}{}talk_{}.mes", folder, spot.code, language);
             std::string events = std::format("{}{}_{}.mes", folder, spot.code, language);

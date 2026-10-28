@@ -5,6 +5,7 @@
 #include <functional>
 #include <initializer_list>
 #include <utility>
+#include <vector>
 
 namespace expanded {
 
@@ -39,6 +40,8 @@ enum : int {
     kSetMesPos = 197,
     kSetMesDrawSpeed = 198,
     kSetMesCursor = 199,
+    kResetCamera = 433,
+    kResetCameraAngle = 436,
     kFadeIn = 500,
     kFadeOut = 501,
     kCheckFade = 502,
@@ -460,18 +463,58 @@ stb::Writer FishingBaitScript() {
     return w;
 }
 
-Bytes AddFishingScripts(std::span<const unsigned char> script, const FishingSpot &spot) {
-    for (std::uint32_t id : {kFishingMenuLabel, static_cast<std::uint32_t>(kFishingSignLabel), kFishingQuitLabel, kFishingBaitLabel}) {
+stb::Writer PointMessageScript(int message) {
+    constexpr int kPad = 0, kScratchPad = 1;
+    stb::Writer   w;
+    w.UseLocals(2);
+    Command(w, kDrawExclamationMark);
+    w.PushInt(kGetPadDown);
+    w.PushAddress(kPad);
+    w.Ext(2);
+    w.PushLocal(kPad);
+    w.PushInt(kPadCross);
+    w.And();
+    int idle = w.MarkForward();
+    w.JumpFalse(idle);
+    Command(w, kSetNpcMotion, {-1, 0});
+    ShowMessage(w, message, kScratchPad);
+    w.Place(idle);
+    End(w);
+    return w;
+}
+
+stb::Writer ArrivalScript(const std::array<float, 3> &position, float yaw) {
+    stb::Writer w;
+    WorldCoordinates(w);
+    FloatCommand(w, kSetNpcPos, -1, {position[0], position[1], position[2]});
+    FloatCommand(w, kSetNpcRot, -1, {0.0f, yaw, 0.0f});
+    Command(w, kResetCamera, {1});
+    Command(w, kResetCameraAngle, {0});
+    End(w);
+    return w;
+}
+
+Bytes AddFishingScripts(std::span<const unsigned char> script, std::span<const FishingSpot *const> spots, void (*more)(stb::Appender &appender)) {
+    std::vector<std::uint32_t> labels = {kFishingMenuLabel, kFishingQuitLabel, kFishingBaitLabel};
+    for (const FishingSpot *spot : spots) {
+        labels.push_back(static_cast<std::uint32_t>(spot->label));
+    }
+    for (std::uint32_t id : labels) {
         if (stb::Label(script, id)) {
-            Bad(std::format("the {} event script has a label {} already", spot.code, id));
+            Bad(std::format("the {} event script has a label {} already", spots.front()->code, id));
         }
     }
     stb::Appender appender(script);
     std::size_t   menu = appender.Next();
     appender.Add(kFishingMenuLabel, FishingMenuScript());
-    appender.Add(kFishingSignLabel, FishingEntryScript(spot, menu));
+    for (const FishingSpot *spot : spots) {
+        appender.Add(static_cast<std::uint32_t>(spot->label), FishingEntryScript(*spot, menu));
+    }
     appender.Add(kFishingQuitLabel, FishingQuitScript(menu));
     appender.Add(kFishingBaitLabel, FishingBaitScript());
+    if (more != nullptr) {
+        more(appender);
+    }
     return appender.Build();
 }
 

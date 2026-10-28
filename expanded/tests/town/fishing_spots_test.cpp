@@ -119,15 +119,18 @@ TEST(FishingSpots, TheGamesSpotsKeepTheirFishAndLine) {
         EXPECT_EQ(expanded::SpotLineSegment(spot), retail) << spot;
     }
     Town norune(0);
+    EXPECT_EQ(expanded::FishingSpotLoad(0, 20.0f), 20.0f);
     EXPECT_EQ(expanded::SpotFishDepth(12.0f), 12.0f);
 }
 
 TEST(FishingSpots, QueensLineReachesTheCanalAndItsFishTheHook) {
     const expanded::FishingSpot *queens = expanded::FishingSpotOfMap(kQueens);
     ASSERT_NE(queens, nullptr);
-    EXPECT_FLOAT_EQ(expanded::SpotLineSegment(kQueensSpot), distp * queens->line);
-    EXPECT_GT(queens->line, 1.0f); // the bank stands high over the water
+    EXPECT_FLOAT_EQ(expanded::SpotLineSegment(kQueensSpot), distp * expanded::kCastStart);
+    EXPECT_GT(queens->line, 1.0f); // the bank stands high over the water: the cast pays out
+    EXPECT_NE(queens->canal, nullptr);
     Town town(kQueens);
+    expanded::FishingSpotLoad(kQueensSpot, queens->water);
     EXPECT_EQ(expanded::SpotFishDepth(12.0f), queens->fish_depth);
 }
 
@@ -196,8 +199,14 @@ TEST(FishingSpots, YellowDropsFishAreTartonsNonkiesNegiesAndBons) {
     EXPECT_EQ(expanded::SpotFishCount(kYellowDropsSpot, 2), expanded::kSpotFishCount);
 }
 
-TEST(FishingSpots, YellowDropsFishesWithTheGamesLineAndDepth) {
-    EXPECT_EQ(expanded::SpotLineSegment(7), distp);
-    Town yellow_drops(23);
-    EXPECT_EQ(expanded::SpotFishDepth(12.0f), 12.0f);
+TEST(FishingSpots, YellowDropsCastPaysOutAndItsFishSwimShallow) {
+    const expanded::FishingSpot *yellow_drops = expanded::FishingSpotOfMap(23);
+    ASSERT_NE(yellow_drops, nullptr);
+    EXPECT_FLOAT_EQ(expanded::SpotLineSegment(7), distp * expanded::kCastStart);
+    EXPECT_EQ(yellow_drops->line, 2.0f);
+    EXPECT_EQ(yellow_drops->camera_height, 30.0f);
+    EXPECT_EQ(yellow_drops->canal, nullptr);
+    Town town(23);
+    expanded::FishingSpotLoad(yellow_drops->area, yellow_drops->water);
+    EXPECT_EQ(expanded::SpotFishDepth(12.0f), 8.0f);
 }
