@@ -204,7 +204,7 @@ Each character's weapons in the game's order: the ability Expanded gives each (a
 | Weapon | Ability | On Super Steve | PR |
 |---|---|---|---|
 | Gold Ring | — | — |  |
-| Bandit's Ring | — | — |  |
+| Bandit's Ring | **Double Take**: a monster that has already had its item stolen, by any weapon, can be robbed of that item a second time by Ruby with the Bandit's Ring in hand, on the usual steal chance (1 hit in 10) and with room in the bag. No monster is robbed more than twice. | Double Take on Xiao's shots: the ring's SynthSphere carries its Steal ability. | [#285](https://github.com/Tororoi/Chronicle-Expanded/pull/285) |
 | Crystal Ring | **Curse**: wearing the Crystal Ring curses Ruby, again on every floor. While she is cursed the ring is held to Ice: the element picker offers Ice alone, and the weapon menu refuses any other element with "Element can't be selected due to curse". Every orb she throws (a quick shot, a part charge or a full charge) flies as the Crystal Gemron's ice arrow instead, at the orb's damage, a charged throw's arrow a quarter faster. Each arrow curves 90 degrees a second toward the monster she is locked on to, else the monster nearest it, else her nearest door crystal, so a miss comes back around. **Prism**: the arrows open door crystals of any colour. Holy water lifts the curse with no penalty, and her own orbs and free choice of element return until the next floor or until the ring leaves her hand. | — | [#254](https://github.com/Tororoi/Chronicle-Expanded/pull/254) |
 | Platinum Ring | — | — |  |
 | Goddess Ring | — | — |  |

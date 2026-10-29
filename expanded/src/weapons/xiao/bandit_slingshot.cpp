@@ -86,8 +86,7 @@ bool StealShotActive() {
     if (UserStatus == nullptr || UserStatus->cur_chara != CHARA_XIAO) {
         return false;
     }
-    int sphere = SuperSteveSphere();
-    return WeaponWielded(ITEM_WEAPON_BANDIT_SLINGSHOT) || sphere == ITEM_WEAPON_BANDIT_SLINGSHOT || sphere == ITEM_WEAPON_BANDIT_S_RING;
+    return WeaponActive(ITEM_WEAPON_BANDIT_SLINGSHOT);
 }
 
 const BT_SHOT_EFFECT *StealShotHeld() {

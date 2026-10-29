@@ -40,6 +40,7 @@
 #include "expanded/weapons/osmond/snail.hpp"
 #include "expanded/weapons/osmond/star_breaker.hpp"
 #include "expanded/weapons/osmond/star_breaker/shooting_stars.hpp"
+#include "expanded/weapons/ruby/bandits_ring.hpp"
 #include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/ruby/pocklekul.hpp"
 #include "expanded/weapons/ruby/pocklekul/fights.hpp"
@@ -394,7 +395,7 @@ bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HI
     return pocklekul::PockleHitMeantElsewhere(monster, hit) || DragonShotRefused(monster, hit) || ColdStorageHitRefused(hit);
 }
 
-void MonsterHitTaken(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {
+void MonsterHitTaken(CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {
     if (AllyUnit(unit)) {
         return;
     }
@@ -402,6 +403,7 @@ void MonsterHitTaken(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit) 
     MirageHitTaken(monster);
     BigRockHitTaken(unit, monster, hit);
     StarBreakerHitLanded(unit, monster, hit, false);
+    DoubleTakeHitTaken(unit, monster, hit);
 }
 
 void MonsterHitBlocked(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {
@@ -548,6 +550,7 @@ void MonsterItemStolen(const CMonstorUnit &unit, int monster, int item) {
         return;
     }
     StealShotTaken(unit, monster, item);
+    DoubleTakeStolen(unit, monster, item);
 }
 
 bool KillAbsTaken(WEAPON_HAVE &weapon, int abs, int max_abs) {

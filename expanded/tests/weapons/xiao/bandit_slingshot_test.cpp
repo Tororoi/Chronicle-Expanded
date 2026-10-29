@@ -99,7 +99,12 @@ protected:
 
 class StealShotBySuperSteve : public StealShot {
 protected:
-    StealShotBySuperSteve() : StealShot(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_BANDIT_S_RING) {}
+    StealShotBySuperSteve() : StealShot(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_BANDIT_SLINGSHOT) {}
+};
+
+class StealShotByTheBanditsRingsSphere : public StealShot {
+protected:
+    StealShotByTheBanditsRingsSphere() : StealShot(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_BANDIT_S_RING) {}
 };
 
 } // namespace
@@ -138,9 +143,15 @@ TEST_F(StealShotWithAnotherWeapon, TakesNothing) {
     EXPECT_EQ(expanded::StealShotHeld(), nullptr);
 }
 
-TEST_F(StealShotBySuperSteve, TakesWithTheBanditsRingsSphere) {
+TEST_F(StealShotBySuperSteve, TakesWithTheSlingshotsSphere) {
     Steal(Monster::HALLOWEEN);
     EXPECT_NE(expanded::StealShotHeld(), nullptr);
+}
+
+TEST_F(StealShotByTheBanditsRingsSphere, TakesNothing) {
+    Steal(Monster::HALLOWEEN);
+    EXPECT_FALSE(expanded::StealShotActive());
+    EXPECT_EQ(expanded::StealShotHeld(), nullptr);
 }
 
 TEST_F(StealShot, APelletKeepsFlyingWithNothingHeld) {
