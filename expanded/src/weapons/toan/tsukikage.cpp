@@ -1,6 +1,11 @@
 #include "expanded/weapons/toan/tsukikage.hpp"
 
+#include <algorithm>
+
 #include "dun/gameloop.hpp"
+#include "editloop.hpp"
+#include "editloop3.hpp"
+#include "expanded/weapons/ownership.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 
@@ -34,6 +39,14 @@ void MoonlitFocusShot(float *vector) {
     for (int axis = 0; axis < 3; axis++) {
         vector[axis] *= kMoonlitFocusRate;
     }
+}
+
+bool MoonlitBaitActive() {
+    return EdGetTime(NowTime) == ED_TIME_NIGHT && WeaponOwned(ITEM_WEAPON_TSUKIKAGE);
+}
+
+float MoonlitBaitAffinity(float affinity) {
+    return affinity > 0.0f && MoonlitBaitActive() ? std::max(affinity, kMoonlitBait) : affinity;
 }
 
 } // namespace expanded

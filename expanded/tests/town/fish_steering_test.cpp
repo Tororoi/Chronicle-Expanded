@@ -18,6 +18,7 @@
 #include "fishing.hpp"
 #include "itemdata.hpp"
 #include "savedata.hpp"
+#include "stockitem.hpp"
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
@@ -25,9 +26,13 @@ namespace {
 
 using expanded::test::OptionScope;
 using expanded::test::TestSave;
+using expanded::test::TownClock;
 
 constexpr int   kSlots = 6;
 constexpr float kUnturned = 99.0f;
+
+// The game's clock, an hour into the day and the night.
+constexpr float kDay = 0.0f, kNight = 6.0f;
 
 // esa_info's indexes.
 constexpr int kPoisonousApple = 6;
@@ -194,6 +199,24 @@ TEST_F(FishSteering, AMardanSwordTurnsItsFishByTheirLikingForTheBait) {
     esa_type = kCarrot;
     expanded::FishSpotLoaded(0);
     EXPECT_EQ(TurnsOf(2, 481), (std::vector<int>{0, 240, 480}));
+}
+
+// A Tsukikage owned, at night (Moonlit Bait) the Baron Garayan likes the Potato Cake as much as the Mardan Garayan the
+// apple: turned every 240 frames rather than 480.
+TEST_F(FishSteering, MoonlitBaitTurnsTheBaronGarayanTwiceAsOften) {
+    Own(ITEM_WEAPON_MARDAN_EINS);
+    save_.stock().weapons[0].item_no = ITEM_WEAPON_TSUKIKAGE;
+    esa_type = kPotatoCake;
+    {
+        TownClock night(kNight);
+        expanded::FishSpotLoaded(0);
+        EXPECT_EQ(TurnsOf(1, 481), (std::vector<int>{0, 240, 480}));
+    }
+    {
+        TownClock day(kDay);
+        expanded::FishSpotLoaded(0);
+        EXPECT_EQ(TurnsOf(1, 481), (std::vector<int>{0, 480}));
+    }
 }
 
 TEST_F(FishSteering, TheBaitLastOnTheHookCountsAfterASwitch) {

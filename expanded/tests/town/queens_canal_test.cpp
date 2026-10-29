@@ -1,10 +1,12 @@
 #include <gtest/gtest.h>
 
+#include <cstdlib>
 #include <utility>
 
 #include "editloop.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/data/queens_canal.hpp"
+#include "expanded/town/fish_kinds.hpp"
 #include "expanded/town/fishing.hpp"
 #include "expanded/town/queens_canal.hpp"
 #include "main.hpp"
@@ -14,6 +16,8 @@ namespace {
 constexpr int kQueensBank = 6, kQueensFloor = 8;
 // The game's clock: an hour into each part of the day.
 constexpr float kMorning = 9.0f, kDay = 0.0f, kEvening = 3.0f, kNight = 6.0f;
+// FishingLoadFish's chance of a Garayan at each, one in so many.
+constexpr int kMorningInterval = 25, kDayInterval = 50, kEveningInterval = 20, kNightInterval = 35;
 
 // MapNo and the clock for a test, put back after.
 class Town {
@@ -124,6 +128,65 @@ TEST(QueensCanal, TheTideSetsTheFishsDepthAndEachSignItsCamera) {
     EXPECT_EQ(expanded::SpotFishDepth(5.0f), 5.0f);
     EXPECT_EQ(expanded::FishingCameraHeight(40.0f), 40.0f);
     expanded::FishingSpotLoad(0, 20.0f);
+}
+
+TEST(QueensCanal, TheCanalsFishAreBobosButAtLowTide) {
+    for (auto [time, interval] : {
+             std::pair{kDay,     kDayInterval    },
+             std::pair{kEvening, kEveningInterval},
+             std::pair{kNight,   kNightInterval  }
+    }) {
+        Town queens(expanded::kQueensMapNo, time);
+        for (int spot : {kQueensBank, kQueensFloor}) {
+            for (int roll = 0; roll < 5000; roll++) {
+                ASSERT_EQ(expanded::SpotFish(spot, roll, -1, interval), expanded::fish::kBobo) << time << " " << spot << " " << roll;
+            }
+        }
+    }
+}
+
+// The game's two rolls: one in rare_interval a Garayan, then one in 5 of those a Baron; a would-be Mardan is a Bobo.
+TEST(QueensCanal, AtLowTideTheGamesSecondRollMakesABaronOrLeavesABobo) {
+    using namespace expanded::fish;
+    Town queens(expanded::kQueensMapNo, kMorning);
+    for (int spot : {kQueensBank, kQueensFloor}) {
+        int barons = 0;
+        for (unsigned seed = 1; seed <= 40; seed++) {
+            std::srand(seed);
+            const bool baron = std::rand() % 5 == 0;
+            std::srand(seed);
+            EXPECT_EQ(expanded::SpotFish(spot, kMorningInterval * static_cast<int>(seed), -1, kMorningInterval), baron ? kBaronGarayan : kBobo) << spot << " " << seed;
+            barons += baron;
+        }
+        EXPECT_GT(barons, 0) << spot;
+        EXPECT_LT(barons, 40) << spot;
+        // Missing the first roll draws no second.
+        std::srand(1);
+        const int next = std::rand();
+        std::srand(1);
+        EXPECT_EQ(expanded::SpotFish(spot, kMorningInterval + 1, -1, kMorningInterval), kBobo) << spot;
+        EXPECT_EQ(std::rand(), next) << spot;
+    }
+}
+
+TEST(QueensCanal, AtLowTideOneFishIn125IsABaronGarayanAndNoneAMardan) {
+    using namespace expanded::fish;
+    constexpr int kFish = 250000, kBarons = kFish / 125;
+    Town          queens(expanded::kQueensMapNo, kMorning);
+    for (int spot : {kQueensBank, kQueensFloor}) {
+        std::srand(1);
+        int barons = 0;
+        for (int roll = 0; roll < kFish; roll++) {
+            const int kind = expanded::SpotFish(spot, roll, -1, kMorningInterval);
+            if (kind == kBaronGarayan) {
+                ASSERT_EQ(roll % kMorningInterval, 0) << spot << " " << roll;
+                barons++;
+            } else {
+                ASSERT_EQ(kind, kBobo) << spot << " " << roll;
+            }
+        }
+        EXPECT_NEAR(barons, kBarons, kBarons / 10) << spot; // 2000 of 10000 Garayan rolls, 5 standard deviations
+    }
 }
 
 TEST(QueensCanal, OnlyTheMistLeansSpray) {

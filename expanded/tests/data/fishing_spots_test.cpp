@@ -322,7 +322,10 @@ TEST(FishingSpot, QueensIsFishedFromTheCanalsNorthBank) {
     EXPECT_EQ(expanded::FishingSpotOfArea(6), &spot);
     EXPECT_EQ(expanded::FishingSpotOfArea(2), nullptr); // the game's own spots stay the game's
     EXPECT_EQ(spot.fish, std::vector<int>{expanded::fish::kBobo});
-    EXPECT_EQ(spot.rare_one_in, 0);
+    // At low tide a Baron Garayan as often as the game's Garayan spots give one, never a Mardan.
+    EXPECT_EQ(spot.rare_one_in, expanded::kTimeOfDayGarayans);
+    EXPECT_TRUE(spot.low_tide_only);
+    EXPECT_TRUE(spot.barons_only);
     // The trigger in front of the sign is where the player stands to fish, over the canal's water.
     EXPECT_EQ(spot.sign[0] + spot.trigger[0], spot.stance[0]);
     EXPECT_EQ(spot.sign[2] - spot.trigger[2], spot.stance[2]); // the sign faces north (yaw 180)
@@ -417,6 +420,8 @@ TEST(FishingSpot, BrownbooIsFishedFromTheBoardwalkByItsSign) {
     EXPECT_EQ(spot->code, "s04");
     EXPECT_EQ(expanded::FishingSpotOfArea(5), spot);
     EXPECT_EQ(spot->rare_one_in, 50);
+    EXPECT_FALSE(spot->low_tide_only);
+    EXPECT_FALSE(spot->barons_only);
     EXPECT_EQ(spot->line, 1.0f); // the boardwalk stands low over the pond
     // The trigger in front of the sign is where the player stands to fish.
     EXPECT_EQ(spot->sign[0] + spot->trigger[0], spot->stance[0]);
@@ -550,6 +555,9 @@ TEST(QueensCanal, TheCanalFloorIsASecondQueensSign) {
     EXPECT_EQ(floor.label, expanded::kCanalFloorSignLabel);
     EXPECT_EQ(floor.water, expanded::kLowTide);
     EXPECT_EQ(floor.fish, Queens().fish);
+    EXPECT_EQ(floor.rare_one_in, Queens().rare_one_in);
+    EXPECT_EQ(floor.low_tide_only, Queens().low_tide_only);
+    EXPECT_EQ(floor.barons_only, Queens().barons_only);
     // The sign faces west (yaw -90): the trigger 6 in front of it is the stance, on the canal floor.
     EXPECT_EQ(floor.sign[0] - floor.trigger[2], floor.stance[0]);
     EXPECT_EQ(floor.stance[1], floor.ground);
