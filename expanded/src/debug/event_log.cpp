@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <format>
+#include <string>
 
 #include "app/gameloop.hpp"
 #include "collisiondata.hpp"
@@ -11,6 +12,7 @@
 #include "expanded/core/party.hpp"
 #include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/town/fishing.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "fish.hpp"
 #include "fishing.hpp"
@@ -54,9 +56,14 @@ int FishDoing(FishAction action) {
     return -1;
 }
 
-void LogFish(std::string_view step, int fish) {
-    int kind = fish >= 0 && Fish != nullptr ? Fish[fish].fish_kind : -1;
-    LogEvent("fishing", std::format("\"step\":\"{}\",\"fish\":{},\"kind\":{}", step, fish, kind));
+// A fish's step; one taking the bait on the hook (took) with its affinity for it, as its roll saw it.
+void LogFish(std::string_view step, int fish, bool took) {
+    int         kind = fish >= 0 && Fish != nullptr ? Fish[fish].fish_kind : -1;
+    std::string fields = std::format("\"step\":\"{}\",\"fish\":{},\"kind\":{}", step, fish, kind);
+    if (took && kind >= 0 && esa_type >= 0) {
+        fields += std::format(",\"affinity\":{:.2f}", BaitAffinity(Fish[fish].info, esa_type));
+    }
+    LogEvent("fishing", fields);
 }
 
 void LogBait(std::string_view step, int bait) {
@@ -209,7 +216,7 @@ void EventLogFishingStep() {
             now.fish = FishDoing(FISH_ACTION_BITE_HOOK);
         }
         if (Change change = AnglingChange(angling.state, now.state); change.step != nullptr && change.fish) {
-            LogFish(change.step, now.fish);
+            LogFish(change.step, now.fish, now.state == ED_FISHING_BITE_CHECK || now.state == ED_FISHING_HOOKED);
         } else if (change.step != nullptr) {
             LogBait(change.step, now.bait);
         }

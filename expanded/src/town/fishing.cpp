@@ -21,8 +21,10 @@
 #include "expanded/town/fish_steering.hpp"
 #include "expanded/town/queens_canal.hpp"
 #include "expanded/weapons/toan/mardan.hpp"
+#include "expanded/weapons/toan/tsukikage.hpp"
 #include "expanded/weapons/ungaga/scorpion.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
+#include "fish.hpp"
 #include "fishing.hpp"
 #include "main.hpp"
 #include "texture.hpp"
@@ -237,6 +239,10 @@ void FishStep() {
 
 float BaitNoticeRadius(int item_no, float radius) {
     return VenomLureRadius(item_no, BaitFlamboyanceRadius(radius));
+}
+
+float BaitAffinity(const FishInfo &info, int bait) {
+    return MoonlitBaitAffinity(info.food_affinity[bait]);
 }
 
 int PoolFish(int spot, int kind) {
