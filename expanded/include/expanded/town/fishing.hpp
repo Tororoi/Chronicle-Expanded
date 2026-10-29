@@ -35,6 +35,10 @@ void FishStep();
 // the weapons' passives change it.
 float BaitNoticeRadius(int item_no, float radius);
 
+// A fish's affinity for bait (esa_info's index), as CFish's rolls to notice, nibble and bite it and the Mardan swords'
+// steering read it: info's food_affinity, as the weapons' passives change it.
+float BaitAffinity(const FishInfo &info, int bait);
+
 // The kind of a fish FishingLoadFish puts in spot, the game's drawn kind: the Matataki waterfall's Gummy is a Niler and
 // East Harbor's Piccoly a Gobbler.
 int PoolFish(int spot, int kind);

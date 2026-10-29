@@ -105,7 +105,11 @@ int CFish::FindFood() {
         return 0;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    return rand_check(expanded::BaitAffinity(info, food_kind) * 0.3f) != 0 ? 1 : 0;
+#else
     return rand_check(info.food_affinity[food_kind] * 0.3f) != 0 ? 1 : 0;
+#endif
 }
 
 int CFish::EatFood() {
@@ -121,7 +125,11 @@ int CFish::EatFood() {
         return 0;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    return rand_check(expanded::BaitAffinity(info, food_kind) * 0.5f) != 0 ? 1 : 0;
+#else
     return rand_check(info.food_affinity[food_kind] * 0.5f) != 0 ? 1 : 0;
+#endif
 }
 
 int CFish::BiteHook() {
@@ -137,7 +145,11 @@ int CFish::BiteHook() {
         return 0;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    return rand_check(expanded::BaitAffinity(info, food_kind) * 0.5f) != 0 ? 1 : 0;
+#else
     return rand_check(info.food_affinity[food_kind] * 0.5f) != 0 ? 1 : 0;
+#endif
 }
 
 int CFish::LeaveFood() {
