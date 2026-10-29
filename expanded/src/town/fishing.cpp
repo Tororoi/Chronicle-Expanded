@@ -21,6 +21,7 @@
 #include "expanded/town/fish_steering.hpp"
 #include "expanded/town/queens_canal.hpp"
 #include "expanded/weapons/toan/mardan.hpp"
+#include "expanded/weapons/toan/tsukikage.hpp"
 #include "expanded/weapons/ungaga/scorpion.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "fish.hpp"
@@ -240,6 +241,10 @@ float BaitNoticeRadius(int item_no, float radius) {
     return VenomLureRadius(item_no, BaitFlamboyanceRadius(radius));
 }
 
+float BaitAffinity(const FishInfo &info, int bait) {
+    return MoonlitBaitAffinity(info.food_affinity[bait]);
+}
+
 int PoolFish(int spot, int kind) {
     if (spot == kMatatakiWaterfall && kind == fish::kGummy) {
         return fish::kNiler;
@@ -257,13 +262,21 @@ void FishInfoLoaded(FishInfo &info, int kind) {
     }
 }
 
-int SpotFish(int spot, int roll, int kind) {
+int SpotFish(int spot, int roll, int kind, int rare_interval) {
     const FishingSpot *fishing = FishingSpotOfArea(spot);
     if (fishing == nullptr || fishing->fish.empty()) {
         return kind;
     }
-    if (fishing->rare_one_in > 0 && roll % fishing->rare_one_in == 0) {
-        return std::rand() % 5 == 0 ? fish::kBaronGarayan : fish::kMardanGarayan;
+    const int one_in = fishing->rare_one_in == kTimeOfDayGarayans ? rare_interval : fishing->rare_one_in;
+    // Low tide: the water FishingSpotLoad sets at or under kLowTide.
+    const bool garayans = one_in > 0 && (!fishing->low_tide_only || CanalTideLevel(NowTime) <= kLowTide);
+    if (garayans && roll % one_in == 0) {
+        if (std::rand() % kBaronOneIn == 0) {
+            return fish::kBaronGarayan;
+        }
+        if (!fishing->barons_only) {
+            return fish::kMardanGarayan;
+        }
     }
     return fishing->fish[static_cast<std::size_t>(roll) % fishing->fish.size()];
 }

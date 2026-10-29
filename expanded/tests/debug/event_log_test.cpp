@@ -16,6 +16,7 @@
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "savedata.hpp"
+#include "stockitem.hpp"
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
@@ -55,14 +56,16 @@ private:
     expanded::test::ScratchDir folder_{"event_log"};
 };
 
-// A town's fishing for a test: six fish of kinds 10-15, nothing biting, the player standing with the rod and bait
-// esa (esa_info's index) on the hook.
+// A town's fishing for a test: six fish of kinds 10-15 (a Tarton, a Piccoly and a Bon, which like the Mimi half as
+// much as their favourites, then a Hamahama, a Negie and a Den, which do not), nothing biting, the player standing
+// with the rod and bait esa (esa_info's index) on the hook.
 class TestFishing {
 public:
     explicit TestFishing(int esa) {
         Fish = fish_.get();
         for (int i = 0; i < 6; i++) {
             fish_[i].fish_kind = 10 + i;
+            fish_[i].info = *GetFishInfo(10 + i);
             fish_[i].action = FISH_ACTION_NONE;
         }
         EdMoveCharaInfo.fishing = 1;
@@ -97,7 +100,8 @@ private:
     int                      saved_esa_ = esa_type;
 };
 
-constexpr int kMimi = 1; // esa_info's index of the Mimi
+constexpr int   kMimi = 1;     // esa_info's index of the Mimi
+constexpr float kNight = 6.0f; // the game's clock an hour into the night
 
 } // namespace
 
@@ -217,13 +221,13 @@ TEST(EventLog, FishingAsItGoes) {
                           ",\"event\":\"fishing\",\"step\":\"start\",\"bait\":197}",
                           ",\"event\":\"fishing\",\"step\":\"cast\",\"bait\":197}",
                           ",\"event\":\"fishing\",\"step\":\"float\",\"bait\":197}",
-                          ",\"event\":\"fishing\",\"step\":\"bite\",\"fish\":2,\"kind\":12}",
+                          ",\"event\":\"fishing\",\"step\":\"bite\",\"fish\":2,\"kind\":12,\"affinity\":0.50}",
                           ",\"event\":\"fishing\",\"step\":\"let_go\",\"fish\":2,\"kind\":12}",
-                          ",\"event\":\"fishing\",\"step\":\"hooked\",\"fish\":3,\"kind\":13}",
+                          ",\"event\":\"fishing\",\"step\":\"hooked\",\"fish\":3,\"kind\":13,\"affinity\":0.00}",
                           ",\"event\":\"fishing\",\"step\":\"escaped\",\"fish\":3,\"kind\":13}",
                           ",\"event\":\"fishing\",\"step\":\"bait_lost\",\"bait\":197}",
                           ",\"event\":\"fishing\",\"step\":\"bait\",\"bait\":197}",
-                          ",\"event\":\"fishing\",\"step\":\"hooked\",\"fish\":4,\"kind\":14}",
+                          ",\"event\":\"fishing\",\"step\":\"hooked\",\"fish\":4,\"kind\":14,\"affinity\":0.00}",
                           ",\"event\":\"fishing\",\"step\":\"fight\",\"fish\":4,\"kind\":14}",
                           ",\"event\":\"fishing\",\"step\":\"landed\",\"fish\":4,\"kind\":14}",
                           ",\"event\":\"fishing\",\"step\":\"caught\",\"kind\":14,\"size\":71,\"points\":7,\"total\":90}",
@@ -253,7 +257,7 @@ TEST(EventLog, AStrikeTooSoonAndAReel) {
     }
     EXPECT_EQ(events, (std::vector<std::string>{
                           ",\"event\":\"fishing\",\"step\":\"start\",\"bait\":197}",
-                          ",\"event\":\"fishing\",\"step\":\"bite\",\"fish\":1,\"kind\":11}",
+                          ",\"event\":\"fishing\",\"step\":\"bite\",\"fish\":1,\"kind\":11,\"affinity\":0.50}",
                           ",\"event\":\"fishing\",\"step\":\"missed\",\"fish\":1,\"kind\":11}",
                           ",\"event\":\"fishing\",\"step\":\"bait_lost\",\"bait\":197}",
                           ",\"event\":\"fishing\",\"step\":\"ready\",\"bait\":-1}",
@@ -261,6 +265,30 @@ TEST(EventLog, AStrikeTooSoonAndAReel) {
                           ",\"event\":\"fishing\",\"step\":\"float\",\"bait\":-1}",
                           ",\"event\":\"fishing\",\"step\":\"reeled\",\"bait\":-1}",
                           ",\"event\":\"fishing\",\"step\":\"ready\",\"bait\":-1}",
+                      }));
+}
+
+// A nibble and a bite give the fish's affinity for the bait as its roll saw it: at night with a Tsukikage owned
+// (Moonlit Bait), the Bon's 0.5 for the Mimi is 1; the Hamahama's 0 stays 0.
+TEST(EventLog, ANibbleAndABiteGiveTheFishsAffinity) {
+    expanded::test::TestSave  save;
+    expanded::test::TownClock night(kNight);
+    save.stock().weapons[0].item_no = ITEM_WEAPON_TSUKIKAGE;
+    LogScope    log;
+    TestFishing fishing(kMimi);
+    fishing.Step(ED_FISHING_WAIT_BITE);
+    fishing.Step(ED_FISHING_BITE_CHECK, 2, FISH_ACTION_EAT_FOOD);
+    fishing.Step(ED_FISHING_WAIT_BITE, 2, FISH_ACTION_LEAVE);
+    fishing.Step(ED_FISHING_HOOKED, 3, FISH_ACTION_BITE_HOOK);
+    std::vector<std::string> events;
+    for (const std::string &line : log.Lines()) {
+        events.push_back(LogScope::Event(line));
+    }
+    EXPECT_EQ(events, (std::vector<std::string>{
+                          ",\"event\":\"fishing\",\"step\":\"start\",\"bait\":197}",
+                          ",\"event\":\"fishing\",\"step\":\"bite\",\"fish\":2,\"kind\":12,\"affinity\":1.00}",
+                          ",\"event\":\"fishing\",\"step\":\"let_go\",\"fish\":2,\"kind\":12}",
+                          ",\"event\":\"fishing\",\"step\":\"hooked\",\"fish\":3,\"kind\":13,\"affinity\":0.00}",
                       }));
 }
 

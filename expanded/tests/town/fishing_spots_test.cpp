@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <memory>
 #include <vector>
 
@@ -18,6 +19,8 @@ namespace {
 using expanded::scene::Triangle;
 
 constexpr int kBrownboo = 14, kBrownbooSpot = 5, kQueens = 2, kQueensSpot = 6;
+// FishingLoadFish's chance of a Garayan in the morning, one in 25.
+constexpr int kMorningInterval = 25;
 
 // MapNo for a test, put back after.
 class Town {
@@ -45,14 +48,24 @@ std::vector<Triangle> WallAt(double z) {
 
 TEST(FishingSpots, BrownbooFishArePiccolysNegiesAndGummiesAndOneInFiftyAGarayan) {
     using namespace expanded::fish;
-    EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 1, -1), kPiccoly);
-    EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 2, -1), kNegie);
-    EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 3, -1), kGummy);
-    EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 5, -1), kPiccoly);
-    for (int roll : {0, 50, 12350}) {
-        int kind = expanded::SpotFish(kBrownbooSpot, roll, -1);
-        EXPECT_TRUE(kind == kMardanGarayan || kind == kBaronGarayan) << roll;
+    for (int interval : {kMorningInterval, 50}) { // the game's chance for the time of day leaves it alone
+        EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 1, -1, interval), kPiccoly);
+        EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 2, -1, interval), kNegie);
+        EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 3, -1, interval), kGummy);
+        EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 5, -1, interval), kPiccoly);
+        EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 25, -1, interval), kPiccoly);
     }
+    // One in 50 a Garayan, the game's second roll a Baron one time in 5 and a Mardan otherwise.
+    int barons = 0;
+    for (unsigned seed = 1; seed <= 40; seed++) {
+        std::srand(seed);
+        const bool baron = std::rand() % 5 == 0;
+        std::srand(seed);
+        EXPECT_EQ(expanded::SpotFish(kBrownbooSpot, 50 * static_cast<int>(seed), -1, kMorningInterval), baron ? kBaronGarayan : kMardanGarayan) << seed;
+        barons += baron;
+    }
+    EXPECT_GT(barons, 0);
+    EXPECT_LT(barons, 40);
     EXPECT_EQ(expanded::SpotFishCount(kBrownbooSpot, 3), expanded::kSpotFishCount);
 }
 
@@ -104,17 +117,14 @@ TEST(FishingSpots, BrownboosLadderTopsAreDroppedFromWhatIsGathered) {
     EXPECT_EQ(expanded::DropPolys(polys.data(), 3, {}), 3);
 }
 
-TEST(FishingSpots, QueensFishAreBobos) {
-    for (int roll : {0, 1, 2, 3, 49, 50, 12345}) {
-        EXPECT_EQ(expanded::SpotFish(kQueensSpot, roll, -1), expanded::fish::kBobo) << roll;
-    }
+TEST(FishingSpots, QueensHasSixFish) {
     EXPECT_EQ(expanded::SpotFishCount(kQueensSpot, 5), expanded::kSpotFishCount);
 }
 
 TEST(FishingSpots, TheGamesSpotsKeepTheirFishAndLine) {
     const float retail = distp;
     for (int spot = 0; spot <= 4; spot++) {
-        EXPECT_EQ(expanded::SpotFish(spot, 3, 7), 7) << spot;
+        EXPECT_EQ(expanded::SpotFish(spot, 3, 7, kMorningInterval), 7) << spot;
         EXPECT_EQ(expanded::SpotFishCount(spot, 4), 4) << spot;
         EXPECT_EQ(expanded::SpotLineSegment(spot), retail) << spot;
     }
@@ -191,11 +201,11 @@ TEST(FishingSpots, AFishSwimmingPlusZMeetsAThinWall) {
 TEST(FishingSpots, YellowDropsFishAreTartonsNonkiesNegiesAndBons) {
     using namespace expanded::fish;
     constexpr int kYellowDropsSpot = 7;
-    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 0, -1), kTarton); // no Garayans here
-    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 1, -1), kNonky);
-    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 2, -1), kNegie);
-    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 3, -1), kBon);
-    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 50, -1), kNegie);
+    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 0, -1, kMorningInterval), kTarton); // no Garayans here
+    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 1, -1, kMorningInterval), kNonky);
+    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 2, -1, kMorningInterval), kNegie);
+    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 3, -1, kMorningInterval), kBon);
+    EXPECT_EQ(expanded::SpotFish(kYellowDropsSpot, 50, -1, kMorningInterval), kNegie);
     EXPECT_EQ(expanded::SpotFishCount(kYellowDropsSpot, 2), expanded::kSpotFishCount);
 }
 

@@ -38,6 +38,10 @@ void FishStep();
 // the weapons' passives change it.
 float BaitNoticeRadius(int item_no, float radius);
 
+// A fish's affinity for bait (esa_info's index), as CFish's rolls to notice, nibble and bite it and the Mardan swords'
+// steering read it: info's food_affinity, as the weapons' passives change it.
+float BaitAffinity(const FishInfo &info, int bait);
+
 // The kind of a fish FishingLoadFish puts in spot, the game's drawn kind: the Matataki waterfall's Gummy is a Niler and
 // East Harbor's Piccoly a Gobbler.
 int PoolFish(int spot, int kind);
@@ -45,10 +49,10 @@ int PoolFish(int spot, int kind);
 // The info LoadFish copies from fish_info for a fish of kind: a Piccoly likes only the Mellow Banana, fully.
 void FishInfoLoaded(FishInfo &info, int kind);
 
-// FishingLoadFish at Expanded's spots (expanded/data/fishing_spots.hpp): the kind of a fish from the slot's roll, kind
-// elsewhere; the fish count, count elsewhere; and the length of the line's segments from the rod to the float (distp)
-// as a cast starts, retail's elsewhere.
-int   SpotFish(int spot, int roll, int kind);
+// FishingLoadFish at Expanded's spots (expanded/data/fishing_spots.hpp): the kind of a fish from the slot's roll and
+// rare_interval, kind elsewhere; the fish count, count elsewhere; and the length of the line's segments from the rod to
+// the float (distp) as a cast starts, retail's elsewhere.
+int   SpotFish(int spot, int roll, int kind, int rare_interval);
 int   SpotFishCount(int spot, int count);
 float SpotLineSegment(int spot);
 

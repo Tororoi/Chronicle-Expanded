@@ -12,6 +12,7 @@
 #include <system_error>
 
 #include "dun/gameloop.hpp"
+#include "editloop.hpp"
 #include "expanded/core/options.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/enemies/enemy_events.hpp"
@@ -242,6 +243,20 @@ private:
 
     std::unique_ptr<Image> image_ = std::make_unique<Image>();
     CSaveData             *saved_ = SaveData;
+};
+
+// The town's clock (NowTime, 0-12) at time for a test.
+class TownClock {
+public:
+    explicit TownClock(float time) { NowTime = time; }
+
+    ~TownClock() { NowTime = saved_; }
+
+    TownClock(const TownClock &) = delete;
+    TownClock &operator=(const TownClock &) = delete;
+
+private:
+    float saved_ = NowTime;
 };
 
 // The active character's weapon for a test (NowWeaponHave): weapon_no in hand, carrying sphere's SynthSphere when

@@ -75,7 +75,7 @@ void FishSteeringStep() {
         if (spot_turn) {
             Turn(fish, i, player, "spot");
         }
-        int frames = g_bait < 0 ? 0 : MardanSteerFrames(g_sword, fish.fish_kind, fish.info.food_affinity[g_bait]);
+        int frames = g_bait < 0 ? 0 : MardanSteerFrames(g_sword, fish.fish_kind, BaitAffinity(fish.info, g_bait));
         if (frames > 0 && g_since[i] >= frames) {
             Turn(fish, i, player, "mardan");
             g_since[i] = 0;
