@@ -527,6 +527,9 @@ void LoadFish(CFish *fish, int fish_kind, int texture_slot, CDataAlloc2<1> *allo
     fish->Initialize();
     fish->model.LoadPackData3(read_buffer, "info.cfg", alloc, texture_slot, alloc, loaded_before, 0);
     fish->info = fish_info[fish_kind];
+#ifdef CHRONICLE_EXPANDED
+    expanded::FishInfoLoaded(fish->info, fish_kind);
+#endif
     fish->SetScale();
     fish->fish_kind = fish_kind;
 }

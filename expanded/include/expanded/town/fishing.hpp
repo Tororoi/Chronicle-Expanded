@@ -20,6 +20,9 @@ struct FloorDropZone;
 inline constexpr int kMatatakiWaterfall = 2;
 inline constexpr int kEastHarbor = 3;
 
+// The bait Expanded names: its index in esa_info (CFish's food_kind).
+inline constexpr int kMellowBanana = 7;
+
 // The kind of fish FishingLoadFish loads in a spot's slot: kind, the game's roll (-1 for none), as the weapons change it;
 // rare_interval is the slot's one-in-n chance of a Garayan for the time of day.
 int FishKind(int kind, int rare_interval);
@@ -38,6 +41,9 @@ float BaitNoticeRadius(int item_no, float radius);
 // The kind of a fish FishingLoadFish puts in spot, the game's drawn kind: the Matataki waterfall's Gummy is a Niler and
 // East Harbor's Piccoly a Gobbler.
 int PoolFish(int spot, int kind);
+
+// The info LoadFish copies from fish_info for a fish of kind: a Piccoly likes only the Mellow Banana, fully.
+void FishInfoLoaded(FishInfo &info, int kind);
 
 // FishingLoadFish at Expanded's spots (expanded/data/fishing_spots.hpp): the kind of a fish from the slot's roll, kind
 // elsewhere; the fish count, count elsewhere; and the length of the line's segments from the rod to the float (distp)
