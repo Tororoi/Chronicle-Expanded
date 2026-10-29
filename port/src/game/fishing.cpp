@@ -295,7 +295,7 @@ void FishingLoadFish(int spot, CDataAlloc2<1> *alloc, int slot) {
                 break;
             default:
 #ifdef CHRONICLE_EXPANDED
-                kind = expanded::SpotFish(spot, rand_value, kind);
+                kind = expanded::SpotFish(spot, rand_value, kind, rare_interval);
 #endif
                 break;
         }

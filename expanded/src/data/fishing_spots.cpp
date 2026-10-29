@@ -117,7 +117,8 @@ const FishingSpot kSpots[] = {
      .floor_drop = {.parts = "s04r", .radius = 45.0f, .min_y = 25.0f}},
     // Queens' canal from its north bank, 39 over the afternoon's water (the tide sets it): fished from the stance by the
     // sign, facing south across it, a cast paying the line out to twice retail's, the fish at retail's depth (at low tide
-    // the canal floor's); the camera's eye stays 4 under the walls' tops (70).
+    // the canal floor's); the camera's eye stays 4 under the walls' tops (70). Its fish are Bobos, at low tide now and
+    // then a Baron Garayan, as often as the game's Garayan spots give one.
     {.code = "e03",
      .map_no = 2,
      .area = 6,
@@ -138,7 +139,9 @@ const FishingSpot kSpots[] = {
      .line = 2.0f,
      .fish_depth = 12.0f,
      .fish = {fish::kBobo},
-     .rare_one_in = 0,
+     .rare_one_in = kTimeOfDayGarayans,
+     .low_tide_only = true,
+     .barons_only = true,
      .collision = QueensCollision,
      .edit_scene = nullptr,
      .edit_cfg = nullptr,
@@ -170,7 +173,9 @@ const FishingSpot kSpots[] = {
      .line = 1.0f,
      .fish_depth = kLowTideFishDepth,
      .fish = {fish::kBobo},
-     .rare_one_in = 0,
+     .rare_one_in = kTimeOfDayGarayans,
+     .low_tide_only = true,
+     .barons_only = true,
      .collision = QueensCollision,
      .edit_scene = nullptr,
      .edit_cfg = nullptr,

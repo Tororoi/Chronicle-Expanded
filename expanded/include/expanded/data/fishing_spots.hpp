@@ -71,9 +71,13 @@ struct FishingSpot {
     // How deep under the water the fish swim (retail's 12); the line under the float hangs the bait there.
     float fish_depth;
     // The fish: each drawn evenly from fish (a kind listed twice twice as likely), but one in rare_one_in a Garayan
-    // (none at 0), as the game draws its own spots'.
+    // (none at 0; kTimeOfDayGarayans, the game's chance for the time of day), a Baron one time in kBaronOneIn and a
+    // Mardan otherwise, as the game draws its own spots'. With low_tide_only there are Garayans only at Queens' low tide;
+    // with barons_only a would-be Mardan is drawn from fish.
     std::vector<int> fish;
     int              rare_one_in;
+    bool             low_tide_only = false;
+    bool             barons_only = false;
     // The fishing collision added to what the spot's rectangle gathers.
     std::vector<scene::Triangle> (*collision)(std::span<const unsigned char> scene, std::span<const unsigned char> cfg);
     // The town's scene and mapinfo, the signs in them, as the spot changes them (the scene with the disc's mapinfo at
@@ -110,6 +114,11 @@ inline constexpr float kLowestFishingCamera = 12.0f;
 
 // The fish at a spot of Expanded's.
 inline constexpr int kSpotFishCount = 6;
+
+// A spot's rare_one_in for FishingLoadFish's rare_interval (1 in 50 by day, 20 at dusk, 35 at night, 25 in the
+// morning); and the Garayans that are Barons, one in kBaronOneIn.
+inline constexpr int kTimeOfDayGarayans = -1;
+inline constexpr int kBaronOneIn = 5;
 
 // The spots, the first of a town (MapNo) and the one of a FishingLoadFish spot; null for none. A town's spots.
 std::span<const FishingSpot>     FishingSpots();
