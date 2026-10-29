@@ -186,7 +186,7 @@ Each character's weapons in the game's order: the ability Expanded gives each (a
 |---|---|---|---|
 | Mallet | — | — |  |
 | Steel Hammer | — | — |  |
-| Magical Hammer | **Circle Amplifier**, as the Crysknife's. | — | [#189](https://github.com/Tororoi/Chronicle-Expanded/pull/189) |
+| Magical Hammer | **Circle Amplifier**, as the Crysknife's.<br>**Bait Ward**: while you own a Magical Hammer (in any bag or the storage), a fish that won't take the bait last on your hook is gently turned away from the hook every 5 seconds while you fish, and Matataki's waterfall and East Harbor no longer turn it toward you. A fish that likes the bait, even a little, is left alone. | — | [#189](https://github.com/Tororoi/Chronicle-Expanded/pull/189), [#290](https://github.com/Tororoi/Chronicle-Expanded/pull/290) |
 | Battle Ax | — | — |  |
 | Turtle Shell | — | — |  |
 | Big Bucks Hammer | — | — |  |
