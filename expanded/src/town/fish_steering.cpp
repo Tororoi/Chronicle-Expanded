@@ -94,7 +94,7 @@ void FishSteeringStep() {
             continue;
         }
         // Bait Ward: a fish with no liking for the bait turns away from the hook on its slot's frame, and only then.
-        if (g_ward && g_bait >= 0 && fish.info.food_affinity[g_bait] <= 0.0f) {
+        if (g_ward && g_bait >= 0 && BaitAffinity(fish.info, g_bait) <= 0.0f) {
             if (g_frame % kBaitWardFrames == i * (kBaitWardFrames / kFishSlots)) {
                 TurnAway(fish, i, hookp[0]);
             }

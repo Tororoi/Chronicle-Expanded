@@ -381,6 +381,30 @@ TEST_F(FishSteering, AFishWithAnyLikingForTheBaitIsLeftAlone) {
     }));
 }
 
+TEST_F(FishSteering, BaitWardGoesByExpandedsBaitsLikings) {
+    OwnHammer();
+    // Only the Baron Garayan likes the Fruit of Eden.
+    esa_type = expanded::kFirstExtraBait;
+    expanded::FishSpotLoaded(0);
+    EXPECT_EQ(TurnFrames(300), (std::map<int, std::string>{
+                                   {0,   "h....."},
+                                   {100, "..h..."},
+                                   {150, "...h.."},
+                                   {250, ".....h"}
+    }));
+
+    // No fish likes Cheese.
+    esa_type = expanded::kFirstExtraBait + 1;
+    expanded::FishSpotLoaded(0);
+    EXPECT_EQ(TurnFrames(300), (std::map<int, std::string>{
+                                   {0,   "h....."},
+                                   {50,  ".h...."},
+                                   {100, "..h..."},
+                                   {150, "...h.."},
+                                   {250, ".....h"}
+    }));
+}
+
 TEST_F(FishSteering, BaitWardGoesByTheBaitLastOnTheHook) {
     OwnHammer();
     expanded::FishSpotLoaded(0);
