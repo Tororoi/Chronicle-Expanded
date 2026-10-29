@@ -255,6 +255,13 @@ int PoolFish(int spot, int kind) {
     return kind;
 }
 
+void FishInfoLoaded(FishInfo &info, int kind) {
+    if (kind == fish::kPiccoly) {
+        std::ranges::fill(info.food_affinity, 0.0f);
+        info.food_affinity[kMellowBanana] = 1.0f;
+    }
+}
+
 int SpotFish(int spot, int roll, int kind, int rare_interval) {
     const FishingSpot *fishing = FishingSpotOfArea(spot);
     if (fishing == nullptr || fishing->fish.empty()) {
