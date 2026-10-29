@@ -419,8 +419,8 @@ extern char fishing_err_format[];
  *
  * Puts bait into the list's first place after choice, the variable the picker writes to, if the
  * script would not attach it otherwise, and returns whether it did. Nothing is changed when bait is
- * not one of the thirteen (a cancelled pick), when it is on the list already, or when the eight
- * variables do not all hold baits (a script laid out otherwise).
+ * not one of the thirteen, nor in Expanded one of its own (a cancelled pick), when it is on the
+ * list already, or when the eight variables do not all hold baits (a script laid out otherwise).
  */
 bool ListBaitForScript(RS_STACKDATA *choice, int bait);
 

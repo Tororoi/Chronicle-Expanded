@@ -456,6 +456,7 @@ Blessing Gun → Skunk ★
 - The Queens canal follows the time of day: low in the morning, as before in the afternoon and at night, high at dusk, its fishing water and fish with it. At low tide a ladder on the south wall leads down to the canal floor, where you wade and fish from a second sign under the east bridge; at other tides the ladder says the tide is too high, and anyone still down there when it rises is taken to East Harbor's dock. The low canal has mist where the waterfalls meet it and ripples round you as you stand in it. [#282](https://github.com/Tororoi/Chronicle-Expanded/pull/282)
 - In the morning, at low tide, the Queens canal can hold a Baron Garayan, as often as the game's Garayan spots give one (1 fish in 125); never a Mardan Garayan, but for Mardan Twei's second chance. [#287](https://github.com/Tororoi/Chronicle-Expanded/pull/287)
 - Piccolies only bite the Mellow Banana, which they like fully; in the original game they took most baits, the Evy best. [#288](https://github.com/Tororoi/Chronicle-Expanded/pull/288)
+- The Fruit of Eden and Cheese can be used as bait; only the Baron Garayan goes for the Fruit of Eden, and no fish yet for Cheese. [#289](https://github.com/Tororoi/Chronicle-Expanded/pull/289)
 
 ### From Chronicle
 
