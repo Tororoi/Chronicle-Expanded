@@ -166,6 +166,7 @@ so a strike that comes too late in one comes too late in all: time it from the d
 | `fishing` | `step`: `start` (fishing, with its `bait`, -1 for none), `ready` (the rod ready to cast again), `cast`, `float` (in the water), `reeled` (in again), each with the `bait`; `bite` (a nibble), `let_go`, `hooked`, `escaped` (unstruck), `missed` (struck in a nibble), `fight` (struck when hooked) and `landed`, each with the `fish` (0-5) and its `kind`; `caught` (`kind`, `size` in cm, `points`, the `total` FP); `bait` (`bait`, put on), `bait_lost` (`bait`); `quit` |
 | `damage` | `monster`, `kind`, `amount`, `life` left, for a weapon's hit, and the hit's `owner` (the member) and `attack` (which of theirs) |
 | `kill` | `monster`, `kind`, `by` (the member the kill is credited to; the ABS goes to their weapon when they are out) |
+| `steal` | `monster`, `kind`, `item`, and `steals`, the times that monster has been robbed, as a hit steals its item |
 | `life` | `chara`, `from`, `to`, the member's life as it changes |
 | `whp` | `chara`, `weapon`, `from`, `to`, its weapon HP as it changes |
 | `sound` | `program`, `note`, an Expanded sound played |
