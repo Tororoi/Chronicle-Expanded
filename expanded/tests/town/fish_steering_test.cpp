@@ -7,6 +7,7 @@
 
 #include "character.hpp"
 #include "editloop.hpp"
+#include "expanded/town/baits.hpp"
 #include "expanded/town/fish_kinds.hpp"
 #include "expanded/town/fish_steering.hpp"
 #include "expanded/town/fishing.hpp"
@@ -219,6 +220,24 @@ TEST_F(FishSteering, TheBaitLastOnTheHookCountsAfterASwitch) {
     EXPECT_EQ(Turned(), kNone);
     Step(1);
     EXPECT_EQ(Turned(), Only(0));
+}
+
+// Expanded's baits, liked by kind (town/baits.hpp): the Baron Garayan likes the Fruit of Eden fully, no fish Cheese.
+TEST_F(FishSteering, AMardanSwordTurnsTheBaronGarayanToTheFruitOfEdenAndNoFishToCheese) {
+    Own(ITEM_WEAPON_MARDAN_EINS);
+    esa_type = expanded::ExtraBaitType(ITEM_FRUIT_OF_EDEN);
+    expanded::FishSpotLoaded(0);
+    Step(1);
+    EXPECT_EQ(Turned(), Only(1));
+    Step(239);
+    EXPECT_EQ(Turned(), kNone);
+    Step(1);
+    EXPECT_EQ(Turned(), Only(1));
+
+    esa_type = expanded::ExtraBaitType(ITEM_CHEESE);
+    expanded::FishSpotLoaded(0);
+    Step(1000);
+    EXPECT_EQ(Turned(), kNone);
 }
 
 TEST_F(FishSteering, NoBaitYetOrNoSwordTurnsNothing) {

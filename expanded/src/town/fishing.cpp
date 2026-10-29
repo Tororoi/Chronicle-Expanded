@@ -17,12 +17,14 @@
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/data/queens_canal.hpp"
 #include "expanded/debug/event_log.hpp"
+#include "expanded/town/baits.hpp"
 #include "expanded/town/fish_kinds.hpp"
 #include "expanded/town/fish_steering.hpp"
 #include "expanded/town/queens_canal.hpp"
 #include "expanded/weapons/toan/mardan.hpp"
 #include "expanded/weapons/ungaga/scorpion.hpp"
 #include "expanded/weapons/xiao/flamingo.hpp"
+#include "fish.hpp"
 #include "fishing.hpp"
 #include "main.hpp"
 #include "texture.hpp"
@@ -33,6 +35,8 @@ namespace {
 
 // fishing.cpp's distp: the length of each of the line's segments.
 constexpr float kRetailLineSegment = 1.6666666f;
+
+constexpr int kFishSlots = 6; // FishingLoadFish's CFish[6]
 
 // The line's point the float rides (FishLineGetUki), the segments under it to the hook, and how far under them the bait
 // rests: 3 under the hook, and the float's own 0.47 under the water.
@@ -217,6 +221,21 @@ const SpotCollision &ReadSpotCollision(const FishingSpot &spot) {
     return found->second;
 }
 
+// The kind of the fish whose info this is: a row of fish_info, or the copy one of the spot's fish holds; -1 for neither.
+int FishKindOf(const FishInfo &info) {
+    for (int kind = 0; kind < fish::kKindCount; kind++) {
+        if (&info == GetFishInfo(kind)) {
+            return kind;
+        }
+    }
+    for (int i = 0; Fish != nullptr && i < kFishSlots; i++) {
+        if (&info == &Fish[i].info) {
+            return Fish[i].fish_kind;
+        }
+    }
+    return -1;
+}
+
 } // namespace
 
 int FishKind(int kind, int rare_interval) {
@@ -237,6 +256,13 @@ void FishStep() {
 
 float BaitNoticeRadius(int item_no, float radius) {
     return VenomLureRadius(item_no, BaitFlamboyanceRadius(radius));
+}
+
+float BaitAffinity(const FishInfo &info, int bait) {
+    if (bait < 0) {
+        return 0.0f;
+    }
+    return bait < kFirstExtraBait ? info.food_affinity[bait] : ExtraBaitAffinity(FishKindOf(info), bait);
 }
 
 int PoolFish(int spot, int kind) {

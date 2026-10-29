@@ -29,6 +29,7 @@
 #include "vu0_ops.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/town/baits.hpp"
 #include "expanded/town/fishing.hpp"
 #include "expanded/weapons/ruby/fairys_ring.hpp"
 #endif
@@ -80,6 +81,15 @@ constexpr std::array<std::array<int, 2>, 6> uki_link = {
 
 void GetHookPos(float *position) {
     sceVu0CopyVector(position, hookp[0]);
+}
+
+// The bait of kind type (esa_type): esa_info's, and in Expanded its own past them.
+const EsaInfo &Esa(int type) {
+#ifdef CHRONICLE_EXPANDED
+    return expanded::BaitInfo(type);
+#else
+    return esa_info[type];
+#endif
 }
 
 } // namespace
@@ -334,7 +344,7 @@ CFish::CFish() {
 
 void FishingLoadEsa(int item_no, CFrameVu1 *frame, int slot) {
     if (esa_type >= 0) {
-        EdGetItem(esa_info[esa_type].item_no, 1, -1);
+        EdGetItem(Esa(esa_type).item_no, 1, -1);
     }
 
     EsaFrame = frame;
@@ -347,6 +357,12 @@ void FishingLoadEsa(int item_no, CFrameVu1 *frame, int slot) {
             return;
         }
     }
+
+#ifdef CHRONICLE_EXPANDED
+    if (const int type = expanded::ExtraBaitType(item_no); type >= 0) {
+        esa_type = type;
+    }
+#endif
 }
 
 void FishingDeleteEsa() {
@@ -359,7 +375,7 @@ int FishingGetEsaItemNo() {
         return -1;
     }
 
-    return esa_info[esa_type].item_no;
+    return Esa(esa_type).item_no;
 }
 
 void FishingInit() {
@@ -384,7 +400,7 @@ void FishingInit() {
 
 void FishingExit() {
     if (esa_type >= 0) {
-        EdGetItem(esa_info[esa_type].item_no, 1, -1);
+        EdGetItem(Esa(esa_type).item_no, 1, -1);
     }
 
     for (int i = 0; i < 6; i++) {
@@ -624,10 +640,10 @@ void FishingStepFish() {
             float radius = 0.0f;
             Fish[i].SetFoodPos(-1, hook, radius);
         } else {
-            float radius = esa_info[esa_type].radius;
+            float radius = Esa(esa_type).radius;
 
 #ifdef CHRONICLE_EXPANDED
-            radius = expanded::BaitNoticeRadius(esa_info[esa_type].item_no, radius);
+            radius = expanded::BaitNoticeRadius(Esa(esa_type).item_no, radius);
 #endif
 
             // Debug builds let every fish notice the bait from anywhere.
@@ -1216,6 +1232,11 @@ constexpr std::array<int, 13> kBaits = {ITEM_EVY, ITEM_MIMI, ITEM_PRICKLY, ITEM_
 constexpr int kScriptBaitList = 8;
 
 bool IsBait(int item) {
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::ExtraBaitType(item) >= 0) {
+        return true;
+    }
+#endif
     return std::ranges::find(kBaits, item) != kBaits.end();
 }
 

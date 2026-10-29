@@ -35,6 +35,10 @@
 #include "ui/menu_pointer.hpp"
 #include "userstatus.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town/baits.hpp"
+#endif
+
 namespace dc::game {
 
 using namespace dc::localize;
@@ -1266,6 +1270,17 @@ int EventItemSelectKey(int *result) {
                         break;
                     }
                 }
+
+#ifdef CHRONICLE_EXPANDED
+                // Expanded's baits, which usable's thirteen leave out.
+                if (accepted == 0 && slot != nullptr && MiniMenu.fish_mode != 0 && expanded::PickerTakesBait(*result)) {
+                    accepted = 1;
+
+                    if (MiniMenu.vanish != 0 && 0 <= pack_index && pack_index < EventItemPackPt->num) {
+                        EventItemPackPt->item[pack_index] = 0;
+                    }
+                }
+#endif
 
                 if (slot == nullptr) {
                     ComMenuSePlay(MENU_SOUND_REFUSE);

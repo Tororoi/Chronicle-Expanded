@@ -462,7 +462,7 @@ TEST(StageFile, ATimeIsAPeriodOrTheClock) {
 
 TEST(StageFile, ABaitIsOneThePickerOffers) {
     Stage stage;
-    for (int bait : {ITEM_EVY, ITEM_MIMI, ITEM_THROBBING_CHERRY, ITEM_PETITE_FISH}) {
+    for (int bait : {ITEM_EVY, ITEM_MIMI, ITEM_THROBBING_CHERRY, ITEM_PETITE_FISH, ITEM_FRUIT_OF_EDEN, ITEM_CHEESE}) {
         ASSERT_TRUE(expanded::ParseStage(std::format("town = 0\nbait = {}", bait), stage)) << bait;
         EXPECT_EQ(stage.bait, bait);
     }

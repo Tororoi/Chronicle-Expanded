@@ -33,6 +33,7 @@
 #include "expanded/debug/event_log.hpp"
 #include "expanded/dungeon/floor_grid.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/town/baits.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "fishing.hpp"
 #include "framevu1.hpp"
@@ -202,7 +203,7 @@ bool Bait(std::string_view text, int &out) {
     constexpr int kBaits[] = {ITEM_EVY, ITEM_MIMI, ITEM_PRICKLY, ITEM_THROBBING_CHERRY, ITEM_GOOEY_PEACH,
                               ITEM_BOMB_NUTS, ITEM_POISONOUS_APPLE, ITEM_MELLOW_BANANA, ITEM_CARROT, ITEM_POTATO_CAKE,
                               ITEM_MINON, ITEM_BATTAN, ITEM_PETITE_FISH};
-    return Number(text, out) && std::ranges::contains(kBaits, out);
+    return Number(text, out) && (std::ranges::contains(kBaits, out) || ExtraBaitType(out) >= 0);
 }
 
 // Item and weapon numbers, comma-separated, as --give takes them.

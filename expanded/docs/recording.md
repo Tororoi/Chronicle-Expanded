@@ -110,7 +110,8 @@ the town lists them, so a sign a feature adds is found the same way. The vanilla
 
 Fishing starts with no bait, as it does after the sign. A stage's `bait` is put on the way the square button and the
 bait picker would: the stage asks for the bait change as fishing starts and picks its bait, out of the bag. A fish
-takes a bait it likes ([fish.cpp](../../port/src/game/fish.cpp)'s `food_affinity`): Norune's Gummies and Nonkies
+takes a bait it likes ([fish.cpp](../../port/src/game/fish.cpp)'s `food_affinity`, and for Expanded's baits, the
+Fruit of Eden (180) and Cheese (155), [baits.hpp](../include/expanded/town/baits.hpp)'s): Norune's Gummies and Nonkies
 like Mimi (197), not Evy. Morning, day, evening and night by name start an hour into that part of the day (each
 lasts about 5,400 frames of walking at normal time speed). For Norune's pond, `norune-catch.stage`:
 
