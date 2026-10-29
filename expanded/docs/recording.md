@@ -174,6 +174,7 @@ so a strike that comes too late in one comes too late in all: time it from the d
 | `flame_gun` | `step`: Super Steve's flame `lit`, `out` (let go), `empty` (the gauge run out) and the run-out gauge `refilled`, each with the action `gauge` |
 | `babel` | `step`: Babel's Spear's `summoned` (`target`, `x`, `z`), `struck`, `spike` or `hand` (`monster`, `damage` before defense), `risen`, `gone` |
 | `tide` | `step`: `level` (`level`, the Queens canal's water as it shows, on entering Queens and when it changes), `evict` (a player caught down in the canal by the rising tide, sent to East Harbor's dock) |
+| `fish_turn` | `fish` (0-5), `kind`, `by`: `spot` (Matataki's waterfall and East Harbor) and `mardan` turn it toward the player, `bait_ward` (the Magical Hammer) away from the hook |
 
 A feature can add its own with `expanded::LogEvent` (`expanded/debug/event_log.hpp`).
 

@@ -1,8 +1,11 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <initializer_list>
+#include <map>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "character.hpp"
@@ -38,6 +41,9 @@ constexpr int kPotatoCake = 9;
 // (and the fruits a little).
 constexpr int kKinds[kSlots] = {expanded::fish::kMardanGarayan, expanded::fish::kBaronGarayan, expanded::fish::kUmadakara, expanded::fish::kNegie, -1, expanded::fish::kNegie};
 
+// The hook, out over the water from the fish.
+constexpr float kHook[4] = {40.0f, -9.0f, 30.0f, 1.0f};
+
 FishInfo Info(int kind) {
     FishInfo info = {.model_size = 21.0f, .min_size = 8.0f, .max_size = 16.0f, .min_fp = 15, .max_fp = 40, .food_affinity = {}};
     if (kind == expanded::fish::kMardanGarayan) {
@@ -59,6 +65,8 @@ protected:
         Fish = fish_.get();
         Chara = &player_;
         esa_type = -1;
+        std::copy_n(hookp[0], 4, saved_hook_);
+        std::copy_n(kHook, 4, hookp[0]);
         player_.SetPosition(100.0f, 0.0f, 0.0f);
         for (int i = 0; i < kSlots; i++) {
             fish_[i].fish_kind = kKinds[i];
@@ -73,9 +81,12 @@ protected:
         Fish = saved_fish_;
         Chara = saved_chara_;
         esa_type = saved_esa_;
+        std::copy_n(saved_hook_, 4, hookp[0]);
     }
 
     void Own(int sword) { save_.status().chara_weapons[CHARA_TOAN][2].item_no = static_cast<s16>(sword); }
+
+    void OwnHammer() { save_.status().chara_weapons[CHARA_GORO][1].item_no = ITEM_WEAPON_MAGICAL_HAMMER; }
 
     void Unturn() {
         for (int i = 0; i < kSlots; i++) {
@@ -116,12 +127,45 @@ protected:
         return turns;
     }
 
+    // Each slot's turn since Unturn: 'p' toward the player, 'h' away from the hook, '?' elsewhere, '.' none; then
+    // Unturn.
+    std::string Turns() {
+        std::string turns;
+        for (int i = 0; i < kSlots; i++) {
+            const float yaw = fish_[i].target_yaw, z = 10.0f * static_cast<float>(i);
+            if (yaw == kUnturned) {
+                turns += '.';
+            } else if (std::abs(yaw - atan2f(100.0f, -z)) < 1e-5f) {
+                turns += 'p';
+            } else if (std::abs(yaw - atan2f(-kHook[0], z - kHook[2])) < 1e-5f) {
+                turns += 'h';
+            } else {
+                turns += '?';
+            }
+        }
+        Unturn();
+        return turns;
+    }
+
+    // The turns of each of frames steps that turns a fish, by the step.
+    std::map<int, std::string> TurnFrames(int frames) {
+        std::map<int, std::string> turns;
+        for (int frame = 0; frame < frames; frame++) {
+            Step(1);
+            if (std::string turned = Turns(); turned != "......") {
+                turns[frame] = turned;
+            }
+        }
+        return turns;
+    }
+
     TestSave                 save_;
     std::unique_ptr<CFish[]> fish_ = std::make_unique<CFish[]>(kSlots);
     CCharacter               player_;
     CFish                   *saved_fish_ = Fish;
     CCharacter              *saved_chara_ = Chara;
     int                      saved_esa_ = esa_type;
+    float                    saved_hook_[4] = {};
 };
 
 const std::vector<bool> kNone(kSlots, false);
@@ -255,6 +299,144 @@ TEST_F(FishSteering, WithoutWeaponAbilitiesOnlyTheSpotsTurnFish) {
     EXPECT_EQ(Turned(), kEveryFish);
     Step(expanded::kSteerFrames - 1);
     EXPECT_EQ(Turned(), kNone);
+}
+
+TEST_F(FishSteering, TheMagicalHammerTurnsFishWithNoLikingForTheBaitAwayFromTheHook) {
+    OwnHammer();
+    esa_type = kCarrot;
+    expanded::FishSpotLoaded(0);
+    // Only the Umadakara likes the Carrot: the others turn away from the hook every 300 frames, the slots 50 apart.
+    EXPECT_EQ(TurnFrames(601), (std::map<int, std::string>{
+                                   {0,   "h....."},
+                                   {50,  ".h...."},
+                                   {150, "...h.."},
+                                   {250, ".....h"},
+                                   {300, "h....."},
+                                   {350, ".h...."},
+                                   {450, "...h.."},
+                                   {550, ".....h"},
+                                   {600, "h....."}
+    }));
+}
+
+TEST_F(FishSteering, AFishWithAnyLikingForTheBaitIsLeftAlone) {
+    OwnHammer();
+    // The Baron Garayan and the Negies like the Potato Cake.
+    esa_type = kPotatoCake;
+    expanded::FishSpotLoaded(0);
+    EXPECT_EQ(TurnFrames(300), (std::map<int, std::string>{
+                                   {0,   "h....."},
+                                   {100, "..h..."}
+    }));
+
+    // The Negies like the Throbbing Cherry a little.
+    esa_type = 3;
+    expanded::FishSpotLoaded(0);
+    EXPECT_EQ(TurnFrames(300), (std::map<int, std::string>{
+                                   {0,   "h....."},
+                                   {50,  ".h...."},
+                                   {100, "..h..."}
+    }));
+}
+
+TEST_F(FishSteering, BaitWardGoesByTheBaitLastOnTheHook) {
+    OwnHammer();
+    expanded::FishSpotLoaded(0);
+    esa_type = kCarrot;
+    Step(100);
+    Unturn();
+    // Switched to the apple and eaten off the hook: the Umadakara has no liking for the apple.
+    esa_type = kPoisonousApple;
+    Step(1);
+    esa_type = -1;
+    EXPECT_EQ(Turns(), "..h...");
+}
+
+TEST_F(FishSteering, NoBaitYetWardsNoFish) {
+    OwnHammer();
+    expanded::FishSpotLoaded(0);
+    EXPECT_TRUE(TurnFrames(600).empty());
+
+    // The waterfall turns every fish toward the player.
+    expanded::FishSpotLoaded(expanded::kMatatakiWaterfall);
+    EXPECT_EQ(TurnFrames(600), (std::map<int, std::string>{
+                                   {0, "pppp.p"}
+    }));
+}
+
+TEST_F(FishSteering, WithoutAMagicalHammerNoFishIsWarded) {
+    esa_type = kCarrot;
+    expanded::FishSpotLoaded(0);
+    EXPECT_TRUE(TurnFrames(600).empty());
+
+    // Owned as the fish load: one in the storage counts.
+    save_.stock().weapons[0].item_no = ITEM_WEAPON_MAGICAL_HAMMER;
+    EXPECT_TRUE(TurnFrames(600).empty());
+    expanded::FishSpotLoaded(0);
+    EXPECT_EQ(TurnFrames(1), (std::map<int, std::string>{
+                                 {0, "h....."}
+    }));
+}
+
+TEST_F(FishSteering, WithoutWeaponAbilitiesNoFishIsWarded) {
+    OptionScope options;
+    ASSERT_TRUE(options.Set(expanded::kWeaponAbilities, false));
+    OwnHammer();
+    esa_type = kCarrot;
+    expanded::FishSpotLoaded(0);
+    EXPECT_TRUE(TurnFrames(600).empty());
+    expanded::FishSpotLoaded(expanded::kEastHarbor);
+    EXPECT_EQ(TurnFrames(600), (std::map<int, std::string>{
+                                   {0, "pppp.p"}
+    }));
+}
+
+TEST_F(FishSteering, AtTheWaterfallAndEastHarborAWardedFishIsNotTurnedTowardThePlayer) {
+    OwnHammer();
+    esa_type = kCarrot;
+    for (int spot : {expanded::kMatatakiWaterfall, expanded::kEastHarbor}) {
+        expanded::FishSpotLoaded(spot);
+        // The Umadakara likes the Carrot and turns toward the player; the others turn away from the hook alone.
+        EXPECT_EQ(TurnFrames(601), (std::map<int, std::string>{
+                                       {0,   "h.p..."},
+                                       {50,  ".h...."},
+                                       {150, "...h.."},
+                                       {250, ".....h"},
+                                       {300, "h....."},
+                                       {350, ".h...."},
+                                       {450, "...h.."},
+                                       {550, ".....h"},
+                                       {600, "h.p..."}
+        }))
+            << spot;
+    }
+}
+
+TEST_F(FishSteering, TheMardanSwordsAndTheMagicalHammerNeverTurnTheSameFish) {
+    Own(ITEM_WEAPON_MARDAN_EINS);
+    OwnHammer();
+    esa_type = kPoisonousApple;
+    expanded::FishSpotLoaded(0);
+    // The Mardan Garayan likes the apple: toward the player every 240 frames. The others have no liking for it.
+    EXPECT_EQ(TurnFrames(481), (std::map<int, std::string>{
+                                   {0,   "p....."},
+                                   {50,  ".h...."},
+                                   {100, "..h..."},
+                                   {150, "...h.."},
+                                   {240, "p....."},
+                                   {250, ".....h"},
+                                   {350, ".h...."},
+                                   {400, "..h..."},
+                                   {450, "...h.."},
+                                   {480, "p....."}
+    }));
+}
+
+TEST_F(FishSteering, AFishAtTheHookKeepsItsCourse) {
+    float at_hook[4] = {kHook[0], -12.0f, kHook[2], 1.0f};
+    fish_[0].SetPosition(at_hook);
+    expanded::TurnFishAway(fish_[0], kHook);
+    EXPECT_EQ(fish_[0].target_yaw, kUnturned);
 }
 
 TEST(MardanSteerFrames, TheSwordsPaceOverTheFishsLiking) {
