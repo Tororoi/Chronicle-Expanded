@@ -39,10 +39,10 @@ float BaitNoticeRadius(int item_no, float radius);
 // East Harbor's Piccoly a Gobbler.
 int PoolFish(int spot, int kind);
 
-// FishingLoadFish at Expanded's spots (expanded/data/fishing_spots.hpp): the kind of a fish from the slot's roll, kind
-// elsewhere; the fish count, count elsewhere; and the length of the line's segments from the rod to the float (distp)
-// as a cast starts, retail's elsewhere.
-int   SpotFish(int spot, int roll, int kind);
+// FishingLoadFish at Expanded's spots (expanded/data/fishing_spots.hpp): the kind of a fish from the slot's roll and
+// rare_interval, kind elsewhere; the fish count, count elsewhere; and the length of the line's segments from the rod to
+// the float (distp) as a cast starts, retail's elsewhere.
+int   SpotFish(int spot, int roll, int kind, int rare_interval);
 int   SpotFishCount(int spot, int count);
 float SpotLineSegment(int spot);
 
