@@ -16,6 +16,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/town/fishing.hpp"
+#include "expanded/town/fishing_fight.hpp"
 #endif
 
 namespace dc::game {
@@ -276,6 +277,9 @@ void CFish::Step() {
         target_speed = 0.5f;
         turn_step *= 2.0f;
         speed_step *= 2.0f;
+#ifdef CHRONICLE_EXPANDED
+        expanded::FishFightSwim(*this);
+#endif
     }
 
     if (action == FISH_ACTION_LEAVE) {

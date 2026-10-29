@@ -91,7 +91,7 @@ Change AnglingChange(int from, int to) {
             }
             return from == ED_FISHING_HOOKED ? Change{"escaped", true} : Change{};
         case ED_FISHING_REEL_IN:
-            return {"reeled"};
+            return from == ED_FISHING_BATTLE ? Change{"got_away", true} : Change{"reeled"};
         case ED_FISHING_BITE_CHECK:
             return {"bite", true};
         case ED_FISHING_HOOKED:
