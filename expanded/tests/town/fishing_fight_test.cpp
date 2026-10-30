@@ -311,11 +311,11 @@ CCPoly Wall(std::array<float, 3> a, std::array<float, 3> b, std::array<float, 3>
 }
 
 TEST_F(FishingFight, ABankInTheWayHoldsTheFishAsWellAsItCan) {
-    // The line (23 segments of 1, 23) from a rod tip over the angler reaches 34.5; the fish past it at 40.
+    // The line (23 segments) from a rod tip over the angler reaches 34.5; the fish past it at 40.
     const float saved_distp = distp;
     float       saved_rod[4];
     std::copy_n(rod_top, 4, saved_rod);
-    distp = 1.0f;
+    distp = 34.5f / (23.0f * expanded::kLineReach);
     ASSERT_FLOAT_EQ(expanded::FightLineLength() * expanded::kLineReach, 34.5f);
     const float rod[4] = {0.0f, 10.0f, 0.0f, 1.0f};
     std::copy_n(rod, 4, rod_top);
