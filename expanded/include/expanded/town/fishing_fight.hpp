@@ -59,7 +59,10 @@ bool FightLineHold(float *position, const float *rod, float reach);
 // The way to pull: against the way the fish swims (its heading turned round), turned into kCone either side of the way
 // from the float to the angler, the gauge's middle: the fish's cone about the way from the angler to it, mirrored at
 // the float. The float trails the fish along the line, so the way from the fish to it stays near that middle whatever
-// the fish does; its heading sweeps the cone as it runs. The way is the fish's own heading each frame, unsmoothed.
+// the fish does; its heading sweeps the cone as it runs. The way follows kTargetEase of the turn a frame, so the
+// fish's thrash steadies a little, and no more than kTargetTurn (3 degrees) a frame, so a switch sweeps the mark
+// across the gauge rather than jumping it.
+inline constexpr float kTargetEase = 0.2f, kTargetTurn = 0.05235988f;
 
 // A stick pulls when it is pushed past kPullBack (as read) and points, as the screen shows the water, within
 // kPullTolerance (20 degrees, a third of the gauge's arc for the block) of the way to pull. Its way is read with the
@@ -86,6 +89,9 @@ float FightStickYaw(float camera_yaw, float x, float y);
 // The way to pull for a fish swimming heading (a yaw): turned round, inside the cone about middle (the way from the
 // float to the angler).
 float FightTargetYaw(float middle, float heading);
+
+// target followed toward yaw a frame.
+float FightEaseTarget(float target, float yaw);
 
 // Whether a stick read at (x, y) (as GetLXf and GetLYf) with the camera looking camera_yaw pulls toward target.
 bool FightPulls(float x, float y, float camera_yaw, float target);
