@@ -2,6 +2,7 @@
 
 namespace dc::game {
 class CCharacter;
+class CCPoly;
 class CFish;
 struct FishInfo;
 } // namespace dc::game
@@ -34,7 +35,19 @@ inline constexpr float kRunWidth = 20.0f, kRunSpeed = 0.35f;
 
 // How much faster than the game's own fight a fought fish goes: its heading swings (the turn and speed steps) and it
 // swims, the run's speed and its slowest at a run's end.
-inline constexpr float kFightPace = 2.5f;
+inline constexpr float kFightPace = 2.0f;
+
+// The fish swims away from the angler: its heading stays within kCone (60 degrees) either side of the way from him to
+// it. The line holds it to kLineSlack farther from him (across the ground) than it was struck at, so at the line's end
+// swimming away slides it along the line's arc.
+inline constexpr float kCone = 1.0471976f, kLineSlack = 2.0f;
+
+// yaw turned into the cone either side of away (the way from the angler to the fish): itself inside it, else its
+// nearer edge.
+float FightConeYaw(float away, float yaw);
+
+// position (x, z) held to limit from angler across the ground; whether it was.
+bool FightLineHold(float *position, const float *angler, float limit);
 
 // How far a stick counts as pulled back, and as pushed aside.
 inline constexpr float kPullBack = 0.3f, kPushAside = 0.3f;
@@ -69,12 +82,14 @@ enum class FightStep {
 // stick read only while a fight goes on (stick_x and stick_y: as read), which turns the angler as the stick does while
 // waiting for a bite and, for a fish that got away, sends it off (BattleFish cleared) with its close-up model's read
 // dropped; CFish::Step on a fish in FISH_ACTION_BATTLE, which steers the fought fish on its run and returns the pace its
-// turn and speed steps take (kFightPace for the fought fish, 1 for any other); and the town's 2D drawing, the bar while
-// fighting.
+// turn and speed steps take (kFightPace for the fought fish, 1 for any other), and once it has moved (after its
+// collision against count polys), which holds the fought fish to the line's end unless a wall is in the way; and the
+// town's 2D drawing, the bar while fighting.
 void      FishingFightStarted(dc::game::CFish &fish);
 FightStep FishingFightStep(dc::game::CCharacter &angler, float *facing);
 FightStep FishingFightStep(dc::game::CCharacter &angler, float *facing, float stick_x, float stick_y);
 float     FishFightSwim(dc::game::CFish &fish);
+void      FishFightHold(dc::game::CFish &fish, dc::game::CCPoly *polys, int count);
 void      DrawFishingFight();
 
 // The fight's bar (0 to 1) and the side its fish runs to, while one goes on (side 0 for none).

@@ -109,6 +109,26 @@ TEST(FishingFightRules, AStrongerFishFillsSlowerAndRunsShorterAndFaster) {
     EXPECT_FLOAT_EQ(expanded::FightRunSpeed(2.0f), 0.525f * expanded::kFightPace);
 }
 
+TEST(FishingFightRules, TheConeKeepsTheFishSwimmingAway) {
+    const float cone = expanded::kCone;
+    EXPECT_FLOAT_EQ(expanded::FightConeYaw(0.0f, 0.5f), 0.5f);
+    EXPECT_FLOAT_EQ(expanded::FightConeYaw(0.0f, 1.5f), cone);
+    EXPECT_FLOAT_EQ(expanded::FightConeYaw(0.0f, -2.0f), -cone);
+    // Around the turn of the circle: away at 3, a heading of -3 is 0.28 from it.
+    EXPECT_NEAR(std::remainder(expanded::FightConeYaw(3.0f, -3.0f) + 3.0f, 2.0f * PI), 0.0f, 1e-5f);
+    EXPECT_NEAR(expanded::FightConeYaw(3.0f, 0.5f), 3.0f - cone, 1e-5f);
+}
+
+TEST(FishingFightRules, TheLineHoldsAcrossTheGround) {
+    const float angler[2] = {10.0f, 10.0f};
+    float       at[2] = {10.0f, 60.0f};
+    EXPECT_TRUE(expanded::FightLineHold(at, angler, 30.0f));
+    EXPECT_FLOAT_EQ(at[0], 10.0f);
+    EXPECT_FLOAT_EQ(at[1], 40.0f);
+    EXPECT_FALSE(expanded::FightLineHold(at, angler, 30.0f));
+    EXPECT_FALSE(expanded::FightLineHold(at, angler, 31.0f));
+}
+
 TEST(FishingFightRules, OnlyBackAndAwayFromTheFishPulls) {
     // Down is positive: the stick pulled back toward the player.
     EXPECT_TRUE(expanded::FightPulls(0.8f, 0.8f, -1));   // running left: down and right
@@ -183,14 +203,18 @@ TEST_F(FishingFight, TheFishSwitchesSidesAndRunsToThem) {
     EXPECT_GE(frames, expanded::kShortestRun);
     EXPECT_LE(frames, expanded::kLongestRun);
 
-    // With no camera, the angler's right as he faces now (-x facing +z): the fish heads to the side it runs to, 20 out
-    // from where it was hooked (the game's thrash rolled straight ahead).
+    // With no camera, the angler's right as he faces now (-x facing +z): the fish heads for the side it runs to, 20 out
+    // from where it was hooked, as far as the cone away from the angler (+z) lets it (the game's thrash rolled straight
+    // ahead): its cone's edge on that side.
     CFish &fish = fish_[kHooked];
     fish.target_yaw = 0.0f;
     expanded::FishFightSwim(fish);
     const float side = static_cast<float>(expanded::FishingFightSide());
     const float yaw = angler_.GetRotation()->y;
-    EXPECT_NEAR(fish.target_yaw, std::atan2(-side * std::cos(yaw), side * std::sin(yaw)), 1e-5f);
+    const float run = std::atan2(-side * std::cos(yaw), side * std::sin(yaw));
+    EXPECT_NEAR(fish.target_yaw, expanded::FightConeYaw(0.0f, run), 1e-5f);
+    EXPECT_NEAR(std::fabs(fish.target_yaw), expanded::kCone, 1e-5f);
+    EXPECT_LT(side * std::sin(fish.target_yaw), 0.0f); // toward -x for the right
     EXPECT_FLOAT_EQ(fish.target_speed, expanded::FightRunSpeed(0.0f));
 }
 
@@ -206,8 +230,10 @@ TEST_F(FishingFight, TheFishRunsToTheScreensSides) {
     CFish &fish = fish_[kHooked];
     fish.target_yaw = 0.0f;
     expanded::FishFightSwim(fish);
+    // The run's end lies 20 along +z for the right (straight away from the angler) and 20 back for the left, where the
+    // cone stops it at an edge.
     const float side = static_cast<float>(expanded::FishingFightSide());
-    EXPECT_NEAR(fish.target_yaw, std::atan2(0.0f, side * expanded::kRunWidth), 1e-5f);
+    EXPECT_NEAR(fish.target_yaw, expanded::FightConeYaw(0.0f, std::atan2(0.0f, side * expanded::kRunWidth)), 1e-5f);
     NowCamera = nullptr;
 }
 
@@ -217,11 +243,13 @@ TEST_F(FishingFight, TheFishThrashesAboutItsRunsHeading) {
     fish.target_yaw = 0.0f;
     expanded::FishFightSwim(fish);
     const float heading = fish.target_yaw;
-    // The game's thrash rolls a heading anywhere; the run keeps half of it either side.
-    for (float roll : {1.0f, -2.0f, 3.0f}) {
+    // The game's thrash rolls a heading anywhere; the run keeps a third of it either side, inside the cone away from the
+    // angler (+z).
+    for (float roll : {1.0f, -2.0f, 3.0f, -3.0f}) {
         fish.target_yaw = roll;
         expanded::FishFightSwim(fish);
-        EXPECT_NEAR(std::remainder(fish.target_yaw - heading, 2.0f * PI), roll * 0.5f, 1e-4f) << roll;
+        EXPECT_NEAR(fish.target_yaw, expanded::FightConeYaw(0.0f, heading + roll / 3.0f), 1e-4f) << roll;
+        EXPECT_LE(std::fabs(std::remainder(fish.target_yaw, 2.0f * PI)), expanded::kCone + 1e-5f) << roll;
     }
     // At its run's end (facing +z with no camera, its right is -x) it still struggles.
     const float side = static_cast<float>(expanded::FishingFightSide());
@@ -229,6 +257,31 @@ TEST_F(FishingFight, TheFishThrashesAboutItsRunsHeading) {
     fish.SetPosition(end);
     expanded::FishFightSwim(fish);
     EXPECT_GT(fish.target_speed, 0.0f);
+}
+
+TEST_F(FishingFight, TheLineHoldsTheFishToItsEnd) {
+    // Struck 40 out: the line lets it 42 from the angler, across the ground.
+    Strike();
+    CFish &fish = fish_[kHooked];
+    float  far[4] = {30.0f, -12.0f, 40.0f, 1.0f};
+    fish.SetPosition(far);
+    expanded::FishFightHold(fish, nullptr, 0);
+    float held[4] = {};
+    fish.GetPosition(held);
+    EXPECT_NEAR(std::hypot(held[0], held[2]), 40.0f + expanded::kLineSlack, 1e-4f);
+    EXPECT_NEAR(std::atan2(held[0], held[2]), std::atan2(30.0f, 40.0f), 1e-5f);
+    EXPECT_FLOAT_EQ(held[1], -12.0f);
+    // Within it, it is left alone; so is another fish.
+    float near[4] = {5.0f, -12.0f, 30.0f, 1.0f};
+    fish.SetPosition(near);
+    expanded::FishFightHold(fish, nullptr, 0);
+    fish.GetPosition(held);
+    EXPECT_FLOAT_EQ(held[0], 5.0f);
+    EXPECT_FLOAT_EQ(held[2], 30.0f);
+    fish_[0].SetPosition(far);
+    expanded::FishFightHold(fish_[0], nullptr, 0);
+    fish_[0].GetPosition(held);
+    EXPECT_FLOAT_EQ(held[0], 30.0f);
 }
 
 TEST_F(FishingFight, PushingAsideTurnsTheAngler) {

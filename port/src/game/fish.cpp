@@ -366,6 +366,9 @@ void CFish::Step() {
         GetPosition(position);
         CheckWidth(nearby_polys.get(), count, position, 2.0f * angle_model_scale, next_position, 0);
         SetPosition(next_position);
+#ifdef CHRONICLE_EXPANDED
+        expanded::FishFightHold(*this, nearby_polys.get(), count);
+#endif
     }
 
     if (move_mode == FISH_MOVE_ANGLE) {
