@@ -38,16 +38,21 @@ inline constexpr float kRunWidth = 20.0f, kRunSpeed = 0.35f;
 inline constexpr float kFightPace = 2.0f;
 
 // The fish swims away from the angler: its heading stays within kCone (60 degrees) either side of the way from him to
-// it. The line holds it to kLineSlack farther from him (across the ground) than it was struck at, so at the line's end
-// swimming away slides it along the line's arc.
-inline constexpr float kCone = 1.0471976f, kLineSlack = 2.0f;
+// it. The line holds it to kLineStretch times the line's length from the rod tip, so at the line's end it pulls the
+// line taut and stretched and swimming away slides it along the line's reach.
+inline constexpr float kCone = 1.0471976f, kLineStretch = 1.1f;
+
+// The line's length from the rod tip to the hook, as it is now: its segments' lengths (distp as the cast paid it out,
+// the spot's hang under the float).
+float FightLineLength();
 
 // yaw turned into the cone either side of away (the way from the angler to the fish): itself inside it, else its
 // nearer edge.
 float FightConeYaw(float away, float yaw);
 
-// position (x, z) held to limit from angler across the ground; whether it was.
-bool FightLineHold(float *position, const float *angler, float limit);
+// position (x, y, z) held to reach from rod (x, y, z): across the ground no farther than reach leaves at its depth under
+// the rod (none, past it); whether it was moved.
+bool FightLineHold(float *position, const float *rod, float reach);
 
 // How far a stick counts as pulled back, and as pushed aside.
 inline constexpr float kPullBack = 0.3f, kPushAside = 0.3f;
