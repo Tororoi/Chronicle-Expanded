@@ -279,6 +279,23 @@ TEST(FishingFightRules, OnlyAPushWithinTheToleranceOfTheWayPulls) {
     EXPECT_FALSE(expanded::FightPulls(off_down[0], off_down[1], 0.0f, PI + PI / 9.0f));
 }
 
+TEST(FishingFightRules, ANearMissHolds) {
+    // Between the pull's tolerance and the hold's, pushed far enough: it holds and does not pull.
+    const float slant = 3.0f * PI / 4.0f;
+    const float between = (expanded::kPullTolerance + expanded::kHoldTolerance) / 2.0f;
+    for (float off : {between, -between}) {
+        const auto stick = StickToward(0.0f, slant + off, 1.0f);
+        EXPECT_TRUE(expanded::FightHolds(stick[0], stick[1], 0.0f, slant));
+        EXPECT_FALSE(expanded::FightPulls(stick[0], stick[1], 0.0f, slant));
+    }
+    // A pull holds too; past the hold's tolerance, or let go, it does neither.
+    const auto on = StickToward(0.0f, slant, 1.0f);
+    EXPECT_TRUE(expanded::FightHolds(on[0], on[1], 0.0f, slant));
+    const auto off = StickToward(0.0f, slant + expanded::kHoldTolerance + 0.01f, 1.0f);
+    EXPECT_FALSE(expanded::FightHolds(off[0], off[1], 0.0f, slant));
+    EXPECT_FALSE(expanded::FightHolds(0.0f, 0.0f, 0.0f, slant));
+}
+
 TEST(FishingFightRules, TheGaugeLiesFlatOnTheWater) {
     const float centre[4] = {10.0f, -2.0f, 40.0f, 1.0f};
     float       point[4] = {};
@@ -382,6 +399,34 @@ TEST_F(FishingFight, LettingGoLosesTheFishThreeTimesAsFast) {
     EXPECT_EQ(fish_[kHooked].move_mode, FISH_MOVE_SWIM);
     EXPECT_EQ(expanded::FishingFightSide(), 0);
     EXPECT_EQ(Step(0.0f, 0.0f), FightStep::kRetail);
+}
+
+TEST_F(FishingFight, ANearMissHoldsTheBarStill) {
+    // The angler (and so the camera) turned an eighth, so the way to pull lies on the stick's diagonal, clear of the
+    // dead band.
+    Strike();
+    facing_[1] = PI / 4.0f;
+    angler_.SetRotation(facing_);
+    for (int i = 0; i < expanded::kStartGrace; i++) {
+        Pull();
+    }
+    // Just off the way to pull, between the two tolerances, the bar neither fills nor drains.
+    const float off = (expanded::kPullTolerance + expanded::kHoldTolerance) / 2.0f;
+    int         held = 0;
+    for (int i = 0; i < 30; i++) {
+        const float bar = expanded::FishingFightBar();
+        const float target = expanded::FishingFightTarget();
+        const auto  stick = StickToward(CameraYaw(), target + off, 1.0f);
+        // Unless the thrash took the way near an axis, where the dead band reads the stick onto it.
+        const bool holds = expanded::FightHolds(stick[0], stick[1], CameraYaw(), target) &&
+                           !expanded::FightPulls(stick[0], stick[1], CameraYaw(), target);
+        EXPECT_EQ(Step(stick[0], stick[1]), FightStep::kFighting);
+        if (holds && expanded::FishingFightTarget() == target) {
+            EXPECT_FLOAT_EQ(expanded::FishingFightBar(), bar);
+            held++;
+        }
+    }
+    EXPECT_GT(held, 20);
 }
 
 TEST_F(FishingFight, TheBarHoldsAsTheFightStarts) {

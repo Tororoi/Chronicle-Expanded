@@ -13,7 +13,7 @@ namespace expanded {
 // way from him to it: the screen's left and right with the camera behind him), thrashing as it goes as the game's fight
 // has it, switching sides now and then, and the left stick pulls against it: pointed, as the screen shows the water (up
 // into it, down toward the camera), against the way the fish swims. A pull fills the tension bar at the top of the
-// screen, anything else drains it kDrain times as fast; a full bar lands the fish the game's way, an empty one lets it
+// screen, a near miss holds it, anything else drains it kDrain times as fast; a full bar lands the fish the game's way, an empty one lets it
 // get away ("Bait ran out.": the bait went as it was struck). A gauge lies on the water at the float: the arc of the
 // ways a pull can go, the way to pull marked on it and the stick's way a block on it. A bigger fish switches sooner,
 // swims faster and takes longer to land, a Garayan most. Off (the Fishing Fights option, config.json's
@@ -65,9 +65,10 @@ bool FightLineHold(float *position, const float *rod, float reach);
 inline constexpr float kTargetEase = 0.2f, kTargetTurn = 0.05235988f;
 
 // A stick pulls when it is pushed past kPullBack (as read) and points, as the screen shows the water, within
-// kPullTolerance (20 degrees, a third of the gauge's arc for the block) of the way to pull. Its way is read with the
-// game's stretch undone (FightStickAxis), and kept while it rests.
-inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.34906585f;
+// kPullTolerance (10 degrees: the block's green middle) of the way to pull; pushed as far within kHoldTolerance (20
+// degrees: the block's yellow ends) it holds, the bar standing still. Its way is read with the game's stretch undone
+// (FightStickAxis), and kept while it rests.
+inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.17453293f, kHoldTolerance = 0.34906585f;
 
 // A stick's axis as it stands (-1 to 1) from GetLXf's or GetLYf's: the game zeroes each axis within kAxisDead of
 // centre and stretches the rest over 0 to 1, which bends a diagonal toward the nearer axis (pushed 30 degrees off
@@ -95,6 +96,10 @@ float FightEaseTarget(float target, float yaw);
 
 // Whether a stick read at (x, y) (as GetLXf and GetLYf) with the camera looking camera_yaw pulls toward target.
 bool FightPulls(float x, float y, float camera_yaw, float target);
+
+// Whether a stick read at (x, y) with the camera looking camera_yaw holds toward target: pushed as far, within
+// kHoldTolerance (a pull holds too).
+bool FightHolds(float x, float y, float camera_yaw, float target);
 
 // A point of the gauge (x, y, z): radius out from centre across the water, along (radians) from its middle, which
 // points middle (a yaw); at centre's height.
