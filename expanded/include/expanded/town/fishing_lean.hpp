@@ -9,8 +9,8 @@ class CFrame;
 
 namespace expanded {
 
-// In a fishing fight Toan's rod leans with the stick, as the screen shows it: the stick points across the water as the
-// fight reads it (fishing_fight.hpp's FightStickYaw, the camera's frame) and is turned into his own frame as he faces
+// In a fishing fight Toan's rod leans with the stick, as the screen shows it: the stick points across the water in the
+// camera's frame (up into the screen, right to its right) and is turned into his own frame as he faces
 // (LeanStickFor), so the rod leans the way it points on screen whichever way the camera looks. His fishing motion (and
 // its shadow) is posed as a mix of the fight poses (data/fishing_poses.hpp), the stick across him (x) taking the pull
 // from the left lean (KEY 16) through the disc's pull (KEY 12 at its frame 360) to the right lean (KEY 17), the stick
