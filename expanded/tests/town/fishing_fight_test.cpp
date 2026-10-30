@@ -105,8 +105,8 @@ TEST(FishingFightRules, AStrongerFishFillsSlowerAndRunsShorterAndFaster) {
     EXPECT_EQ(expanded::FightRunFrames(0.0f, 1.0f), 120);
     EXPECT_EQ(expanded::FightRunFrames(2.0f, 0.0f), 42);
     EXPECT_EQ(expanded::FightRunFrames(2.0f, 1.0f), 84);
-    EXPECT_FLOAT_EQ(expanded::FightRunSpeed(0.0f), 0.35f);
-    EXPECT_FLOAT_EQ(expanded::FightRunSpeed(2.0f), 0.525f);
+    EXPECT_FLOAT_EQ(expanded::FightRunSpeed(0.0f), 0.35f * expanded::kFightPace);
+    EXPECT_FLOAT_EQ(expanded::FightRunSpeed(2.0f), 0.525f * expanded::kFightPace);
 }
 
 TEST(FishingFightRules, OnlyBackAndAwayFromTheFishPulls) {
@@ -260,8 +260,13 @@ TEST_F(FishingFight, OffTheStruckFishIsLandedAsInTheGame) {
 TEST_F(FishingFight, OnlyTheFoughtFishIsSteered) {
     Strike();
     fish_[0].target_yaw = 9.0f;
-    expanded::FishFightSwim(fish_[0]);
+    EXPECT_FLOAT_EQ(expanded::FishFightSwim(fish_[0]), 1.0f);
     EXPECT_FLOAT_EQ(fish_[0].target_yaw, 9.0f);
+    fish_[0].model.motion_speed = -1.0f;
+    expanded::FishFightMotion(fish_[0]);
+    EXPECT_FLOAT_EQ(fish_[0].model.motion_speed, -1.0f);
+    // The fought fish turns and speeds up at the fight's pace.
+    EXPECT_FLOAT_EQ(expanded::FishFightSwim(fish_[kHooked]), expanded::kFightPace);
 }
 
 } // namespace

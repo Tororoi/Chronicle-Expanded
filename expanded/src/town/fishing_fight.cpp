@@ -147,7 +147,7 @@ int FightRunFrames(float strength, float roll) {
 }
 
 float FightRunSpeed(float strength) {
-    return kRunSpeed * (1.0f + kSpeedPerStrength * strength);
+    return kRunSpeed * kFightPace * (1.0f + kSpeedPerStrength * strength);
 }
 
 bool FightPulls(float x, float y, int side) {
@@ -227,9 +227,9 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     return FightStep::kFighting;
 }
 
-void FishFightSwim(CFish &fish) {
+float FishFightSwim(CFish &fish) {
     if (&fish != fight.fish) {
-        return;
+        return 1.0f;
     }
     float         to_x = fight.anchor[0] + static_cast<float>(fight.side) * kRunWidth * fight.right[0];
     float         to_z = fight.anchor[2] + static_cast<float>(fight.side) * kRunWidth * fight.right[1];
@@ -242,7 +242,21 @@ void FishFightSwim(CFish &fish) {
     float thrash = std::remainder(fish.target_yaw, 2.0f * PI) * kThrash;
     float heading = distance > 0.0f ? atan2f(dx, dz) : fish.target_yaw;
     fish.target_yaw = AngleLimit(heading + thrash);
-    fish.target_speed = std::max(kThrashSpeed, FightRunSpeed(fight.strength) * std::min(1.0f, distance / kArrive));
+    fish.target_speed = std::max(kThrashSpeed * kFightPace, FightRunSpeed(fight.strength) * std::min(1.0f, distance / kArrive));
+    return kFightPace;
+}
+
+void FishFightMotion(CFish &fish) {
+    if (&fish != fight.fish || fish.action != FISH_ACTION_BATTLE) {
+        return;
+    }
+    for (CCharacter *model : {&fish.model, &fish.angle_model}) {
+        int             index = -1;
+        tagMOTION_TYPE *motion = model->GetMotionParam(model->motion_no, &index, nullptr, nullptr, nullptr);
+        if (motion != nullptr && motion->motion_info != nullptr && index >= 0) {
+            model->motion_speed = motion->motion_info[index].speed * kFightPace;
+        }
+    }
 }
 
 void DrawFishingFight() {

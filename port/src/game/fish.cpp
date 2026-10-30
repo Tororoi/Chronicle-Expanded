@@ -278,7 +278,9 @@ void CFish::Step() {
         turn_step *= 2.0f;
         speed_step *= 2.0f;
 #ifdef CHRONICLE_EXPANDED
-        expanded::FishFightSwim(*this);
+        const float pace = expanded::FishFightSwim(*this);
+        turn_step *= pace;
+        speed_step *= pace;
 #endif
     }
 
@@ -327,6 +329,9 @@ void CFish::Step() {
 
     if (action == FISH_ACTION_BITE_HOOK || action == FISH_ACTION_BATTLE) {
         SetMotion(1, 0);
+#ifdef CHRONICLE_EXPANDED
+        expanded::FishFightMotion(*this);
+#endif
     }
 
     angle_model.SetScale(angle_model_scale, angle_model_scale, angle_model_scale);
