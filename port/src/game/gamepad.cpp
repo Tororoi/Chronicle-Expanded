@@ -480,6 +480,16 @@ float CGamePad::GetLYf() {
     return static_cast<float>(GetLY()) / 128.0f;
 }
 
+float CGamePad::GetLXRaw() {
+    InputNoteLeftStickRead();
+    return std::clamp(static_cast<float>(pad[0].input.status.left_x - 128) / 127.0f, -1.0f, 1.0f);
+}
+
+float CGamePad::GetLYRaw() {
+    InputNoteLeftStickRead();
+    return std::clamp(static_cast<float>(pad[0].input.status.left_y - 128) / 127.0f, -1.0f, 1.0f);
+}
+
 float CGamePad::GetLXf2() {
     return static_cast<float>(GetLX2()) / 128.0f;
 }

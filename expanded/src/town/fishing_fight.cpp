@@ -52,7 +52,7 @@ constexpr float kSwitchRipple = 10.0f;
 constexpr float kArrive = 3.0f, kThrashSpeed = 0.15f, kThrash = 1.0f / 3.0f;
 
 // The bar, in pixels and field rows: kBarWidth wide, centred at the top of the screen, its track kInset inside.
-constexpr int   kBarWidth = 240, kBarX = 320 - kBarWidth / 2, kBarY = 12, kBarHeight = 4, kInset = 1;
+constexpr int kBarWidth = 240, kBarX = 320 - kBarWidth / 2, kBarY = 12, kBarHeight = 4, kInset = 1;
 // The bar glows from kGlowFrom of the way full, its halo kGlowLayers pixels out.
 constexpr float kGlowFrom = 0.6f;
 constexpr int   kGlowLayers = 4;
@@ -258,17 +258,19 @@ float FightEaseTarget(float target, float yaw) {
     return std::remainder(target + turn, 2.0f * PI);
 }
 
-float FightStickAxis(float read) {
-    if (read == 0.0f) {
-        return 0.0f;
+FightStick FightStickRead(float x, float y) {
+    const float push = std::hypot(x, y);
+    if (push <= kStickDead) {
+        return {};
     }
-    return std::copysign(std::min(1.0f, kAxisDead + std::fabs(read) * (1.0f - kAxisDead)), read);
+    const float read = std::min(1.0f, (push - kStickDead) / (1.0f - kStickDead));
+    return {.x = x / push * read, .y = y / push * read};
 }
 
 namespace {
 
 bool Within(float x, float y, float camera_yaw, float target, float tolerance) {
-    const float way = FightStickYaw(camera_yaw, FightStickAxis(x), FightStickAxis(y));
+    const float way = FightStickYaw(camera_yaw, x, y);
     return std::hypot(x, y) > kPullBack && std::fabs(std::remainder(way - target, 2.0f * PI)) <= tolerance;
 }
 
@@ -333,7 +335,8 @@ FightStep FishingFightStep(CCharacter &angler, float *facing) {
     if (fight.fish == nullptr) {
         return FightStep::kRetail;
     }
-    return FishingFightStep(angler, facing, GamePad.GetLXf(), GamePad.GetLYf());
+    const FightStick stick = FightStickRead(GamePad.GetLXRaw(), GamePad.GetLYRaw());
+    return FishingFightStep(angler, facing, stick.x, stick.y);
 }
 
 FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, float stick_y) {
@@ -366,7 +369,7 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     // the bar within the hold's.
     fight.push = std::hypot(stick_x, stick_y);
     if (fight.push > 0.0f) {
-        fight.stick = FightStickYaw(fight.camera, FightStickAxis(stick_x), FightStickAxis(stick_y));
+        fight.stick = FightStickYaw(fight.camera, stick_x, stick_y);
     }
     fight.pulls = DebugMode != 0 || FightPulls(stick_x, stick_y, fight.camera, fight.target);
     fight.holds = fight.pulls || FightHolds(stick_x, stick_y, fight.camera, fight.target);

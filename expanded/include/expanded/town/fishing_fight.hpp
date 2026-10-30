@@ -66,24 +66,29 @@ inline constexpr float kTargetEase = 0.2f, kTargetTurn = 0.05235988f;
 
 // A stick pulls when it is pushed past kPullBack (as read) and points, as the screen shows the water, within
 // kPullTolerance (10 degrees: the block's green middle) of the way to pull; pushed as far within kHoldTolerance (20
-// degrees: the block's yellow ends) it holds, the bar standing still. Its way is read with the game's stretch undone
-// (FightStickAxis), and kept while it rests.
+// degrees: the block's yellow ends) it holds, the bar standing still. Its way is kept while it rests.
 inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.17453293f, kHoldTolerance = 0.34906585f;
 
-// A stick's axis as it stands (-1 to 1) from GetLXf's or GetLYf's: the game zeroes each axis within kAxisDead of
-// centre and stretches the rest over 0 to 1, which bends a diagonal toward the nearer axis (pushed 30 degrees off
-// down it reads 13); the stretch undone, it reads at its own angle outside the dead band.
-inline constexpr float kAxisDead = 49.0f / 127.0f;
+// The fight reads the left stick with its dead zone measured from the centre: within kStickDead of it (as far out as
+// the game's own dead band) the stick reads nothing, and past it, it reads its own way, its push stretched over 0 to 1.
+// The game's reads (GetLXf, GetLYf) zero each axis on its own, which reads a push within about 23 degrees of an axis
+// as on it.
+inline constexpr float kStickDead = 49.0f / 127.0f;
 
-float FightStickAxis(float read);
+struct FightStick {
+    float x = 0.0f, y = 0.0f;
+};
+
+// A stick standing at (x, y) from its centre (-1 to 1 each, right and down positive), as the fight reads it.
+FightStick FightStickRead(float x, float y);
 
 // The gauge: an arc flat on the water, its middle kGaugeRadius out from the float on the angler's side and kGaugeBand
 // wide, spanning kCone either side; it follows the float kGaugeEase of the way a frame, so it holds still while the
 // float bobs. The mark for the way to pull reaches kMarkOverhang past the band's edges.
 inline constexpr float kGaugeRadius = 7.0f, kGaugeBand = 2.5f, kGaugeEase = 0.1f, kMarkOverhang = 0.75f;
 
-// The way (a yaw, as atan2(x, z)) across the water that a stick standing at (x, y) (as FightStickAxis gives its axes:
-// right and down positive) points with the camera looking camera_yaw: up into the screen, right to the screen's right,
+// The way (a yaw, as atan2(x, z)) across the water that a stick read at (x, y) (as FightStickRead reads it: right
+// and down positive) points with the camera looking camera_yaw: up into the screen, right to the screen's right,
 // down toward the camera.
 float FightStickYaw(float camera_yaw, float x, float y);
 
