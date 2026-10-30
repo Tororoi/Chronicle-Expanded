@@ -65,7 +65,7 @@ LeanStick LeanStickFor(float camera_yaw, float facing_yaw, float x, float y) {
         return {.x = 0.0f, .y = 0.0f};
     }
     // Its way across the water, then that way from where he faces: 0 ahead of him, a quarter turn his right.
-    const float from_him = facing_yaw - FightStickYaw(camera_yaw, FightStickAxis(x), FightStickAxis(y));
+    const float from_him = facing_yaw - FightStickYaw(camera_yaw, x, y);
     return {.x = push * std::sin(from_him), .y = -push * std::cos(from_him)};
 }
 
