@@ -457,6 +457,7 @@ Blessing Gun → Skunk ★
 - In the morning, at low tide, the Queens canal can hold a Baron Garayan, as often as the game's Garayan spots give one (1 fish in 125); never a Mardan Garayan, but for Mardan Twei's second chance. [#287](https://github.com/Tororoi/Chronicle-Expanded/pull/287)
 - Piccolies only bite the Mellow Banana, which they like fully; in the original game they took most baits, the Evy best. [#288](https://github.com/Tororoi/Chronicle-Expanded/pull/288)
 - The Fruit of Eden and Cheese can be used as bait; only the Baron Garayan goes for the Fruit of Eden, and no fish yet for Cheese. [#289](https://github.com/Tororoi/Chronicle-Expanded/pull/289)
+- A struck fish fights back instead of always being caught: it runs to the left and right instead of thrashing in place, and you pull the left stick back and away from it to fill a tension bar that lands it; let the bar run empty and it gets away with the bait. Bigger fish fight harder, the Garayans hardest. The Fishing Fights option (Options, Expanded page, on by default) turned off lands every struck fish as in the original game. [#292](https://github.com/Tororoi/Chronicle-Expanded/pull/292)
 
 ### From Chronicle
 
