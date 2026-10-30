@@ -262,9 +262,6 @@ TEST_F(FishingFight, OnlyTheFoughtFishIsSteered) {
     fish_[0].target_yaw = 9.0f;
     EXPECT_FLOAT_EQ(expanded::FishFightSwim(fish_[0]), 1.0f);
     EXPECT_FLOAT_EQ(fish_[0].target_yaw, 9.0f);
-    fish_[0].model.motion_speed = -1.0f;
-    expanded::FishFightMotion(fish_[0]);
-    EXPECT_FLOAT_EQ(fish_[0].model.motion_speed, -1.0f);
     // The fought fish turns and speeds up at the fight's pace.
     EXPECT_FLOAT_EQ(expanded::FishFightSwim(fish_[kHooked]), expanded::kFightPace);
 }

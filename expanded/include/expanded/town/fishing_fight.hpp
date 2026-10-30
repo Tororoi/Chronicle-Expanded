@@ -32,8 +32,8 @@ inline constexpr int   kStartGrace = 30, kSwitchGrace = 12;
 inline constexpr int   kShortestRun = 60, kLongestRun = 120;
 inline constexpr float kRunWidth = 20.0f, kRunSpeed = 0.35f;
 
-// How much faster than the game's own fight a fought fish goes: its fight motion plays, its heading swings (the turn
-// and speed steps) and it swims, the run's speed and its slowest at a run's end.
+// How much faster than the game's own fight a fought fish goes: its heading swings (the turn and speed steps) and it
+// swims, the run's speed and its slowest at a run's end.
 inline constexpr float kFightPace = 2.5f;
 
 // How far a stick counts as pulled back, and as pushed aside.
@@ -69,13 +69,12 @@ enum class FightStep {
 // stick read only while a fight goes on (stick_x and stick_y: as read), which turns the angler as the stick does while
 // waiting for a bite and, for a fish that got away, sends it off (BattleFish cleared) with its close-up model's read
 // dropped; CFish::Step on a fish in FISH_ACTION_BATTLE, which steers the fought fish on its run and returns the pace its
-// turn and speed steps take (kFightPace for the fought fish, 1 for any other), and once its fight motion is set, which
-// plays it kFightPace times as fast; and the town's 2D drawing, the bar while fighting.
+// turn and speed steps take (kFightPace for the fought fish, 1 for any other); and the town's 2D drawing, the bar while
+// fighting.
 void      FishingFightStarted(dc::game::CFish &fish);
 FightStep FishingFightStep(dc::game::CCharacter &angler, float *facing);
 FightStep FishingFightStep(dc::game::CCharacter &angler, float *facing, float stick_x, float stick_y);
 float     FishFightSwim(dc::game::CFish &fish);
-void      FishFightMotion(dc::game::CFish &fish);
 void      DrawFishingFight();
 
 // The fight's bar (0 to 1) and the side its fish runs to, while one goes on (side 0 for none).

@@ -246,19 +246,6 @@ float FishFightSwim(CFish &fish) {
     return kFightPace;
 }
 
-void FishFightMotion(CFish &fish) {
-    if (&fish != fight.fish || fish.action != FISH_ACTION_BATTLE) {
-        return;
-    }
-    for (CCharacter *model : {&fish.model, &fish.angle_model}) {
-        int             index = -1;
-        tagMOTION_TYPE *motion = model->GetMotionParam(model->motion_no, &index, nullptr, nullptr, nullptr);
-        if (motion != nullptr && motion->motion_info != nullptr && index >= 0) {
-            model->motion_speed = motion->motion_info[index].speed * kFightPace;
-        }
-    }
-}
-
 void DrawFishingFight() {
     if (fight.fish == nullptr || GameMode != ED_MODE_FISHING || chara_fishing != ED_FISHING_BATTLE) {
         return;

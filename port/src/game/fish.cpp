@@ -329,9 +329,6 @@ void CFish::Step() {
 
     if (action == FISH_ACTION_BITE_HOOK || action == FISH_ACTION_BATTLE) {
         SetMotion(1, 0);
-#ifdef CHRONICLE_EXPANDED
-        expanded::FishFightMotion(*this);
-#endif
     }
 
     angle_model.SetScale(angle_model_scale, angle_model_scale, angle_model_scale);
