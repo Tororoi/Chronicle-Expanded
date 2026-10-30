@@ -15,7 +15,7 @@ namespace expanded {
 // its shadow) is posed as a mix of the fight poses (data/fishing_poses.hpp), the stick across him (x) taking the pull
 // from the left lean (KEY 16) through the disc's pull (KEY 12 at its frame 360) to the right lean (KEY 17), the stick
 // back toward him (y) from the relaxed stance (KEY 18) to that pull. The lean follows the stick kLeanFollow of the way each frame, and fades in and out over kLeanFade frames as a
-// fight starts and ends. After each mix the right hand is put back on the rod, which a joint-by-joint mix lets slide.
+// fight starts and ends. After each mix the rod is put back in the right hand: a joint-by-joint mix lets it slip.
 // Without the poses in the data (a model built before them), the fight plays the disc's pull.
 inline constexpr float kLeanFollow = 0.25f;
 inline constexpr int   kLeanFade = 10;
@@ -41,7 +41,7 @@ LeanStick LeanStickFor(float camera_yaw, float facing_yaw, float x, float y);
 void LeanRod(dc::game::CCharacter &angler, float camera_yaw, float stick_x, float stick_y);
 void EndLean();
 
-// The mix's fix on the fishing model: the right hand back on the rod, its wrist where the motion as played holds it.
+// The mix's fix on the fishing model: the rod back in the right hand, held as the motion as played holds it.
 void HoldTheRodAfterMix(dc::game::CFrame *frame, const MixLocal *played, int count);
 
 } // namespace expanded

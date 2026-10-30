@@ -191,10 +191,11 @@ int KeyCount(std::span<const unsigned char> cfg) {
 
 } // namespace
 
-bool HoldTheRod(Skeleton &mixed, const Skeleton &played, const FishingGrip &grip) {
+void HoldTheRod(Skeleton &mixed, const Skeleton &played, const FishingGrip &grip) {
     const Mat4 held = MatMulExact(played.World(grip.right.wrist), RigidInv(played.World(grip.rod)));
-    const Vec3 forearm = mixed.BoneIn(grip.right.wrist, grip.right.elbow);
-    return PlaceHand(mixed, grip.right, MatMulExact(held, mixed.World(grip.rod)), forearm);
+    const Mat4 rod = MatMulExact(RigidInv(held), mixed.World(grip.right.wrist));
+    const int  up = mixed.parent[std::size_t(grip.rod)];
+    mixed.local[std::size_t(grip.rod)] = up < 0 ? rod : MatMulExact(rod, RigidInv(mixed.World(up)));
 }
 
 Bytes BuildFishingPoses(std::span<const unsigned char> model) {

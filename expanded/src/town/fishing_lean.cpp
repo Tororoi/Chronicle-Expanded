@@ -85,14 +85,12 @@ void HoldTheRodAfterMix(CFrame *frame, const MixLocal *played, int count) {
     Skeleton mixed = ToSkeleton(frame, count, [&](int j) { return frames[j].local; });
     Skeleton as_played = ToSkeleton(frame, count, [&](int j) { return played[j]; });
     HoldTheRod(mixed, as_played, grip);
-    for (int joint : {grip.right.collarbone, grip.right.shoulder, grip.right.elbow, grip.right.wrist}) {
-        for (std::size_t r = 0; r < 4; r++) {
-            for (std::size_t c = 0; c < 4; c++) {
-                frames[joint].local[r][c] = static_cast<float>(mixed.local[std::size_t(joint)][r][c]);
-            }
+    for (std::size_t r = 0; r < 4; r++) {
+        for (std::size_t c = 0; c < 4; c++) {
+            frames[grip.rod].local[r][c] = static_cast<float>(mixed.local[std::size_t(grip.rod)][r][c]);
         }
-        frames[joint].world_valid = false;
     }
+    frames[grip.rod].world_valid = false;
 }
 
 void LeanRod(CCharacter &angler, float camera_yaw, float stick_x, float stick_y) {

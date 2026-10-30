@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -71,6 +72,37 @@ double Gap(const Vec3 &a, const Vec3 &b) {
     return std::hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }
 
+// The fishing model's poses from DC_TEST_DATA (an extracted data directory), read as the game's mix reads them.
+struct Poses {
+    FishingGrip grip;
+    Skeleton    left, centre, right, relaxed;
+
+    // The stick's mix: pulled of the way from relaxed to the pull, leant side of the way to that side's pull.
+    Skeleton Mix(double pulled, double side) const {
+        return Blend(relaxed, Blend(centre, side < 0 ? left : right, std::abs(side)), pulled);
+    }
+};
+
+std::optional<Poses> ReadPoses() {
+    const char *data = std::getenv("DC_TEST_DATA");
+    if (data == nullptr) {
+        return std::nullopt;
+    }
+    ChrPack               pack = ChrPack::Parse(BuildFishingPoses(ReadDataFile(fs::path(data) / kFishingModelFile)));
+    std::vector<MdsFrame> frames = ReadMdsSkeleton(pack.Require("c01d_turi.mds").Payload());
+    MotFile               mot = MotFile::FromRecord(pack.Require("c01d_turi.mot"));
+    auto                  at = [&](const char *name) { return FindFrame(frames, name)->index; };
+    return Poses{
+        .grip = {.rod = at(kFishingRod),
+                 .right = {at(kFishingRightArm.collarbone), at(kFishingRightArm.shoulder), at(kFishingRightArm.elbow),
+                           at(kFishingRightArm.wrist)}},
+        .left = At(frames, mot, 380),
+        .centre = At(frames, mot, kFishingPullFrame),
+        .right = At(frames, mot, 390),
+        .relaxed = At(frames, mot, 400),
+    };
+}
+
 } // namespace
 
 TEST(FishingLean, TheStickLeansTheWayItPointsOnScreen) {
@@ -121,37 +153,56 @@ TEST(FishingLean, TheStickSharesThePoses) {
     }
 }
 
-// DC_TEST_DATA, an extracted data directory: the poses mixed as the stick mixes them hold the rod once the right hand is
-// put back, where a plain mix lets it slide.
+// The poses mixed as the stick mixes them hold the rod once it is put back in the right hand, where a plain mix lets
+// the hand slide off it; the arm stays as mixed.
 TEST(FishingLean, TheRightHandHoldsTheRodAfterAMix) {
-    const char *data = std::getenv("DC_TEST_DATA");
-    if (data == nullptr) {
+    const std::optional<Poses> poses = ReadPoses();
+    if (!poses) {
         GTEST_SKIP() << "DC_TEST_DATA is not set";
     }
-    ChrPack               pack = ChrPack::Parse(BuildFishingPoses(ReadDataFile(fs::path(data) / kFishingModelFile)));
-    std::vector<MdsFrame> frames = ReadMdsSkeleton(pack.Require("c01d_turi.mds").Payload());
-    MotFile               mot = MotFile::FromRecord(pack.Require("c01d_turi.mot"));
-    auto                  at = [&](const char *name) { return FindFrame(frames, name)->index; };
-    const FishingGrip     grip = {
-        .rod = at(kFishingRod),
-        .right = {at(kFishingRightArm.collarbone), at(kFishingRightArm.shoulder), at(kFishingRightArm.elbow),
-                  at(kFishingRightArm.wrist)}
-    };
-    const Skeleton left = At(frames, mot, 380), centre = At(frames, mot, kFishingPullFrame), right = At(frames, mot, 390);
-    const Skeleton relaxed = At(frames, mot, 400);
-    const Vec3     held = WristOnRod(centre, grip);
-    double         slid = 0.0;
+    const FishingGrip &grip = poses->grip;
+    const Vec3         held = WristOnRod(poses->centre, grip);
+    double             slid = 0.0;
     for (auto [pulled, side] : {
              std::pair{0.5, 0.5 },
              {0.7, -0.6},
              {1.0, 0.5 },
              {0.3, -1.0}
     }) {
-        Skeleton leant = Blend(centre, side < 0 ? left : right, std::abs(side));
-        Skeleton mixed = Blend(relaxed, leant, pulled);
-        slid = std::max(slid, Gap(WristOnRod(mixed, grip), held));
-        ASSERT_TRUE(HoldTheRod(mixed, centre, grip));
-        EXPECT_LT(Gap(WristOnRod(mixed, grip), held), 0.01) << pulled << ", " << side;
+        const Skeleton mix = poses->Mix(pulled, side);
+        Skeleton       held_mix = mix;
+        slid = std::max(slid, Gap(WristOnRod(mix, grip), held));
+        HoldTheRod(held_mix, poses->centre, grip);
+        EXPECT_LT(Gap(WristOnRod(held_mix, grip), held), 0.01) << pulled << ", " << side;
+        for (int joint : {grip.right.collarbone, grip.right.shoulder, grip.right.elbow, grip.right.wrist}) {
+            EXPECT_EQ(held_mix.local[std::size_t(joint)], mix.local[std::size_t(joint)]) << joint;
+        }
     }
     EXPECT_GT(slid, 0.05);
+}
+
+// The stick's mix moved a little, the arm and the rod move a little: in fiftieths from relaxed to the pull, and from
+// the left lean to the right one pulled all the way and part way.
+TEST(FishingLean, ALittleChangeInTheMixMovesTheArmAndRodALittle) {
+    const std::optional<Poses> poses = ReadPoses();
+    if (!poses) {
+        GTEST_SKIP() << "DC_TEST_DATA is not set";
+    }
+    const FishingGrip &grip = poses->grip;
+    double             most = 0.0;
+    auto               step = [&](double pulled, double side, double next_pulled, double next_side) {
+        Skeleton from = poses->Mix(pulled, side), to = poses->Mix(next_pulled, next_side);
+        HoldTheRod(from, poses->centre, grip);
+        HoldTheRod(to, poses->centre, grip);
+        for (int joint : {grip.right.shoulder, grip.right.elbow, grip.right.wrist, grip.rod}) {
+            most = std::max(most, Gap(from.Position(joint), to.Position(joint)));
+        }
+    };
+    for (int i = 0; i < 50; i++) {
+        step(i / 50.0, 0.0, (i + 1) / 50.0, 0.0);
+        for (double pulled : {1.0, 0.6}) {
+            step(pulled, (i - 25) / 25.0, pulled, (i - 24) / 25.0);
+        }
+    }
+    EXPECT_LT(most, 0.3);
 }

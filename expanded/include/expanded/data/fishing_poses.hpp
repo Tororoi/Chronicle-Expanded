@@ -47,10 +47,10 @@ struct FishingGrip {
     ArmJoints right;
 };
 
-// The right hand put back on the rod in a pose mixed from others (each holding it as the disc does): the wrist where the
-// motion as played (played) holds it on the rod, reached through the arm with its wrist bent as mixed. False when the arm
-// falls short.
-bool HoldTheRod(Skeleton &mixed, const Skeleton &played, const FishingGrip &grip);
+// The rod put back in the right hand of a pose mixed from others (each holding it as the disc does): held as the motion
+// as played (played) holds it, in the hand where the mix puts it. The mix turns each frame on its own, so the hand at
+// the end of the arm and the rod (a frame under the root) go their own ways between the poses.
+void HoldTheRod(Skeleton &mixed, const Skeleton &played, const FishingGrip &grip);
 
 // The fishing model with the poses, from the disc's.
 Bytes BuildFishingPoses(std::span<const unsigned char> model);
