@@ -31,19 +31,22 @@ constexpr int kDiscKeys = 16;
 constexpr const char *kSpine = "jnt2_1", *kNeck = "jnt11_1";
 constexpr const char *kRod = "turizao";
 
-// The arms (shoulder, elbow, wrist), and the way each elbow bends when its hand reaches for the rod: down, out to its own
-// side and ahead.
+// The arms: collarbone, shoulder, elbow, wrist.
 struct Arm {
-    const char *shoulder, *elbow, *wrist;
-    Vec3        pole;
+    const char *collarbone, *shoulder, *elbow, *wrist;
 };
 
-constexpr Arm kLeftArm = {
-    "jnt9_1", "jnt9_2", "jnt10_1", {0.5, -1.0, 0.3}
-};
-constexpr Arm kRightArm = {
-    "jnt17_1", "jnt17_2", "jnt18_1", {-0.5, -1.0, 0.3}
-};
+constexpr Arm kLeftArm = {"jnt8_1", "jnt9_1", "jnt9_2", "jnt10_1"}, kRightArm = {"jnt16_1", "jnt17_1", "jnt17_2", "jnt18_1"};
+
+// The left hand on the rod: the wait's grip moved kLeftGripShift across the rod (in the rod's frame), which closes the
+// fist round it, then turned kLeftGripTurn degrees round the rod, where the left wrist bends least. The wait holds it
+// beside the rod; here its mesh (l_hand) wraps 319 degrees of the rod, its deepest vertex 0.06 inside the rod's surface
+// (the right fist's goes 0.18 in).
+constexpr Vec3   kLeftGripShift = {-0.35, 0.0, -0.975};
+constexpr double kLeftGripTurn = 20.0;
+// How short of its full length an arm reaches, and how far its collarbone may swing (degrees, about each of two axes) to
+// bring the shoulder where the elbow and wrist want it.
+constexpr double kReachSlack = 0.05, kCollarboneSwing = 30.0;
 
 // The axes the poses turn about (RotAbout; Toan faces +Z, his left is +X): about kUp ahead turns to his left, about kBack
 // his head leans to his left, about kRight a rod held ahead tips up.
@@ -106,16 +109,50 @@ public:
         }
     }
 
-    // Bends a limb of two bones (upper, its child lower, and end under lower) so end's frame becomes target: the elbow
-    // swung toward pole, then end turned to the target's rotation. Throws when the limb is too short.
-    void Reach(std::string_view upper, std::string_view lower, std::string_view end, const Mat4 &target, const Vec3 &pole) {
+    // A joint's direction to its parent (the forearm from the wrist), in the joint's own frame.
+    Vec3 BoneIn(std::string_view joint, std::string_view parent) const {
+        Vec3 back = Add(Position(parent), Scale(Position(joint), -1.0));
+        return Unit(VecMatExact(back, Transpose(RotOf(World(joint)))));
+    }
+
+    // Swings the arm's collarbone, at most kCollarboneSwing degrees each way about two axes square to it, to put the
+    // shoulder as near as it can to an upper arm's length from elbow (where the elbow is wanted) and within reach of
+    // wrist, the least swing that does best.
+    void Shrug(const Arm &arm, const Vec3 &elbow, const Vec3 &wrist) {
+        Vec3   at = Position(arm.collarbone), from = Add(Position(arm.shoulder), Scale(at, -1.0));
+        double upper = Distance(Position(arm.shoulder), Position(arm.elbow)), lower = Distance(Position(arm.elbow), Position(arm.wrist));
+        Vec3   across = Cross(from, Add(elbow, Scale(at, -1.0)));
+        if (Dot(across, across) < 1e-12) {
+            across = Cross(from, kUp);
+        }
+        Vec3   u = Unit(across), v = Unit(Cross(from, u));
+        Mat3   best = kIdentity;
+        double best_score = 1e30;
+        for (int i = -int(kCollarboneSwing); i <= int(kCollarboneSwing); i++) {
+            for (int j = -int(kCollarboneSwing); j <= int(kCollarboneSwing); j++) {
+                Mat3   turn = MatMulExact(RotAbout(u, i), RotAbout(v, j));
+                Vec3   shoulder = Add(at, VecMatExact(from, turn));
+                double over = std::max(0.0, Distance(shoulder, wrist) - (upper + lower - kReachSlack));
+                double score = std::abs(Distance(shoulder, elbow) - upper) + 10 * over + 1e-5 * (i * i + j * j);
+                if (score < best_score) {
+                    best_score = score;
+                    best = turn;
+                }
+            }
+        }
+        Turn(arm.collarbone, best);
+    }
+
+    // Bends a limb of two bones (upper, its child lower, and end under lower) so end's frame becomes target, the elbow on
+    // the side of toward, then end turned to the target's rotation. Throws when the limb is too short.
+    void Reach(std::string_view upper, std::string_view lower, std::string_view end, const Mat4 &target, const Vec3 &toward) {
         Vec3   at = Position(upper), goal = TransOf(target);
         double a = Distance(at, Position(lower)), b = Distance(Position(lower), Position(end)), d = Distance(at, goal);
         if (d >= a + b) {
             throw std::runtime_error(std::format("{} cannot reach {} away, its limb is {} long", end, d, a + b));
         }
-        Vec3   ahead = Scale(Add(goal, Scale(at, -1.0)), 1.0 / d);
-        Vec3   side = Unit(Add(pole, Scale(ahead, -Dot(pole, ahead))));
+        Vec3   ahead = Scale(Add(goal, Scale(at, -1.0)), 1.0 / d), out = Add(toward, Scale(at, -1.0));
+        Vec3   side = Unit(Add(out, Scale(ahead, -Dot(out, ahead))));
         double cosine = (a * a + d * d - b * b) / (2 * a * d), sine = std::sqrt(1 - cosine * cosine);
         Aim(upper, lower, Add(at, Add(Scale(ahead, a * cosine), Scale(side, a * sine))));
         Aim(lower, end, goal);
@@ -173,24 +210,39 @@ Pose PullTo(const Rig &rig, double side) {
     return pose;
 }
 
-// Where the hands hold the rod while he waits for a bite (kFishingWaitFrame), the disc's own two-handed grip: each wrist's
-// frame in the rod's, the left hand on the butt below the right.
+// Where the hands hold the rod: each wrist's frame in the rod's, the right as in the wait for a bite (kFishingWaitFrame),
+// the left on the butt below it, closed round the rod (kLeftGripShift); and the left forearm's direction in the left
+// wrist's frame there.
 struct Grip {
     Mat4 left, right;
+    Vec3 left_forearm;
 };
 
 Grip WaitGrip(const Rig &body) {
     Pose wait(body.frames, body.mot, kFishingWaitFrame);
     Mat4 rod = RigidInv(wait.World(kRod));
-    return {MatMulExact(wait.World(kLeftArm.wrist), rod), MatMulExact(wait.World(kRightArm.wrist), rod)};
+    Mat4 left = MatMulExact(wait.World(kLeftArm.wrist), rod);
+    left[3] = {left[3][0] + kLeftGripShift[0], left[3][1] + kLeftGripShift[1], left[3][2] + kLeftGripShift[2], 1.0};
+    left = MatMulExact(left, MatFromRT(RotAbout(kUp, kLeftGripTurn), {0.0, 0.0, 0.0}));
+    return {left, MatMulExact(wait.World(kRightArm.wrist), rod), wait.BoneIn(kLeftArm.wrist, kLeftArm.elbow)};
 }
 
-// The right hand, and with two_hands the left, put on the rod (its world frame) as they hold it in the wait, through the
-// arms.
-void OnTheRod(Pose &pose, const Grip &grip, const Mat4 &rod, bool two_hands) {
-    pose.Reach(kRightArm.shoulder, kRightArm.elbow, kRightArm.wrist, MatMulExact(grip.right, rod), kRightArm.pole);
+// Puts a hand's wrist on target through its arm, the elbow swung as near as the arm allows to where forearm (its
+// direction in the wrist's frame) puts it, so the wrist bends as it does there.
+void HandTo(Pose &pose, const Arm &arm, const Mat4 &target, const Vec3 &forearm) {
+    double length = std::sqrt(Dot(Add(pose.Position(arm.elbow), Scale(pose.Position(arm.wrist), -1.0)),
+                                  Add(pose.Position(arm.elbow), Scale(pose.Position(arm.wrist), -1.0))));
+    Vec3   elbow = Add(TransOf(target), Scale(VecMatExact(forearm, RotOf(target)), length));
+    pose.Shrug(arm, elbow, TransOf(target));
+    pose.Reach(arm.shoulder, arm.elbow, arm.wrist, target, elbow);
+}
+
+// The right hand, and with two_hands the left, put on the rod (its world frame), the right wrist bent as in the pose's
+// source frame (right_forearm), the left as in the wait.
+void OnTheRod(Pose &pose, const Grip &grip, const Mat4 &rod, const Vec3 &right_forearm, bool two_hands) {
+    HandTo(pose, kRightArm, MatMulExact(grip.right, rod), right_forearm);
     if (two_hands) {
-        pose.Reach(kLeftArm.shoulder, kLeftArm.elbow, kLeftArm.wrist, MatMulExact(grip.left, rod), kLeftArm.pole);
+        HandTo(pose, kLeftArm, MatMulExact(grip.left, rod), grip.left_forearm);
     }
 }
 
@@ -201,7 +253,7 @@ struct PoseRecipe {
     double      source;
     double      side;      // 1 leant to his left, -1 to his right, 0 not leant
     bool        two_hands; // the left hand on the rod
-    bool        raise;     // the rod raised between the hands (the wait)
+    bool        raise;     // the rod raised about the left hand's grip (the wait)
 };
 
 constexpr PoseRecipe kPoses[] = {
@@ -215,12 +267,12 @@ constexpr PoseRecipe kPoses[] = {
 
 // A pose on a rig. The shadow, which has no rod, takes the body's rod (rod) for its hands.
 Pose MakePose(const Rig &rig, const PoseRecipe &recipe, const Grip &grip, const Mat4 *rod) {
+    Vec3 right_forearm = Pose(rig.frames, rig.mot, recipe.source).BoneIn(kRightArm.wrist, kRightArm.elbow);
     Pose pose = recipe.side != 0.0 ? PullTo(rig, recipe.side) : Pose(rig.frames, rig.mot, recipe.source);
     if (recipe.raise && rig.rod) {
-        Vec3 left = pose.Position(kLeftArm.wrist), right = pose.Position(kRightArm.wrist);
-        pose.TurnAbout(kRod, RotAbout(kRight, kFishingRodRaise), Add(Scale(left, 0.75), Scale(right, 0.25)));
+        pose.TurnAbout(kRod, RotAbout(kRight, kFishingRodRaise), TransOf(MatMulExact(grip.left, pose.World(kRod))));
     }
-    OnTheRod(pose, grip, rod != nullptr ? *rod : pose.World(kRod), recipe.two_hands);
+    OnTheRod(pose, grip, rod != nullptr ? *rod : pose.World(kRod), right_forearm, recipe.two_hands);
     return pose;
 }
 

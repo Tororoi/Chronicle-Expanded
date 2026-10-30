@@ -1,9 +1,12 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
+#include <optional>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -131,28 +134,69 @@ TEST(FishingPoses, TheRodLeansLeftAndRightAndRisesRelaxed) {
     EXPECT_GT(relaxed[1] - wait[1], 10.0);
 }
 
+// The angle in degrees the wrist bends: between the forearm (elbow to wrist) and the hand (wrist to its end).
+double WristBend(const std::vector<MdsFrame> &frames, const std::vector<Mat4> &world, const char *elbow, const char *wrist, const char *end) {
+    auto at = [&](const char *joint) { return TransOf(world[std::size_t(FindFrame(frames, joint)->index)]); };
+    Vec3 forearm = Unit(Add(at(wrist), Scale(at(elbow), -1.0))), hand = Unit(Add(at(end), Scale(at(wrist), -1.0)));
+    return std::acos(std::clamp(Dot(forearm, hand), -1.0, 1.0)) * 180.0 / 3.14159265358979;
+}
+
 TEST(FishingPoses, TheHandsKeepTheirGripOnTheRod) {
     DATA_OR_SKIP(data);
     ChrPack               pack = ChrPack::Parse(BuildFishingPoses(ReadDataFile(fs::path(data) / kFishingModelFile)));
-    std::vector<MdsFrame> frames = ReadMdsSkeleton(pack.Require("c01d_turi.mds").Payload());
+    Bytes                 mds = pack.Require("c01d_turi.mds").Payload();
+    std::vector<MdsFrame> frames = ReadMdsSkeleton(mds);
     MotFile               mot = MotFile::FromRecord(pack.Require("c01d_turi.mot"));
-    // The disc's two-handed grip, while he waits for a bite: each wrist's place in the rod's frame.
-    std::vector<Mat4> wait = World(frames, mot, kFishingWaitFrame);
-    Vec3              left = OnRod(frames, wait, "jnt10_1"), right = OnRod(frames, wait, "jnt18_1");
-    auto              near = [](const Vec3 &a, const Vec3 &b) { return std::hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) < 0.01; };
-    // The right hand holds the rod there in every pose, the left in the two-handed ones and the relaxed one.
-    for (auto [frame, two_hands] : {
-             std::pair{380, false},
-             {390, false},
-             {400, true },
-             {410, true },
-             {420, true },
-             {430, true }
+    // The disc's grip, while he waits for a bite: the right wrist's place in the rod's frame. The left fist's mesh.
+    std::vector<Mat4>   wait = World(frames, mot, kFishingWaitFrame);
+    Vec3                right = OnRod(frames, wait, "jnt18_1");
+    const MdsFrame     *fist = FindFrame(frames, "l_hand");
+    MdtMesh             mesh = MdtMesh::Parse(MdtAt(mds, std::size_t(fist->mesh)));
+    auto                near = [](const Vec3 &a, const Vec3 &b) { return std::hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) < 0.01; };
+    std::optional<Vec3> left;
+    // The right hand holds the rod as in the wait in every pose, its wrist bent within 2 degrees of the pose's source
+    // frame. The left, in the two-handed poses and the relaxed one, holds it in one place, its fist closed round the rod:
+    // none of its vertices more than 0.1 inside the rod's surface (0.24 across the butt), and the vertices near the rod
+    // all round it but for a gap of at most 60 degrees.
+    for (auto [frame, source, two_hands] : {
+             std::tuple{380, kFishingPullFrame, false},
+             {390, kFishingPullFrame, false},
+             {400, kFishingWaitFrame, true },
+             {410, kFishingPullFrame, true },
+             {420, kFishingPullFrame, true },
+             {430, kFishingPullFrame, true }
     }) {
-        std::vector<Mat4> world = World(frames, mot, frame);
+        std::vector<Mat4> world = World(frames, mot, frame), from = World(frames, mot, source);
         EXPECT_TRUE(near(OnRod(frames, world, "jnt18_1"), right)) << frame;
-        EXPECT_EQ(near(OnRod(frames, world, "jnt10_1"), left), two_hands) << frame;
+        EXPECT_NEAR(WristBend(frames, world, "jnt17_2", "jnt18_1", "eff18"), WristBend(frames, from, "jnt17_2", "jnt18_1", "eff18"), 2.0)
+            << frame;
+        if (!two_hands) {
+            continue;
+        }
+        Vec3 held = OnRod(frames, world, "jnt10_1");
+        EXPECT_TRUE(!left || near(held, *left)) << frame;
+        left = held;
+        EXPECT_LT(WristBend(frames, world, "jnt9_2", "jnt10_1", "eff10"), 26.0) << frame;
+        Mat4                into_rod = MatMulExact(world[std::size_t(fist->index)], RigidInv(world[std::size_t(FindFrame(frames, "turizao")->index)]));
+        double              deepest = 1e9;
+        std::vector<double> around;
+        for (const auto &p : mesh.positions) {
+            Vec3   q = XformPt(into_rod, {p[0], p[1], p[2]});
+            double r = std::hypot(q[0], q[2]);
+            deepest = std::min(deepest, r);
+            if (r < 0.7) {
+                around.push_back(std::atan2(q[2], q[0]) * 180.0 / 3.14159265358979);
+            }
+        }
+        std::sort(around.begin(), around.end());
+        double gap = around.empty() ? 360.0 : around.front() + 360.0 - around.back();
+        for (std::size_t i = 1; i < around.size(); i++) {
+            gap = std::max(gap, around[i] - around[i - 1]);
+        }
+        EXPECT_GT(deepest, 0.14) << frame;
+        EXPECT_LT(gap, 60.0) << frame;
     }
     // The left hand on the butt, below the right.
-    EXPECT_LT(left[1] + 1.0, right[1]);
+    ASSERT_TRUE(left);
+    EXPECT_LT((*left)[1] + 1.0, right[1]);
 }
