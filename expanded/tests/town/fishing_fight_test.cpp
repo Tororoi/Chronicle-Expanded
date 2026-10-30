@@ -412,23 +412,21 @@ TEST_F(FishingFight, TheFishSwitchesSidesAndRunsToThem) {
     EXPECT_GE(frames, expanded::kShortestRun);
     EXPECT_LE(frames, expanded::kLongestRun);
 
-    // With no camera, the angler's right as he faces now (-x facing +z): the fish heads for the side it runs to, 20 out
-    // from where it was hooked, as far as the cone away from the angler (+z) lets it (the game's thrash rolled straight
-    // ahead): its cone's edge on that side.
+    // The angler's right as he looks at the fish (-x, the fish out along +z): the fish heads for the side it runs to,
+    // 20 out from where it was hooked, as far as the cone away from the angler (+z) lets it (the game's thrash rolled
+    // straight ahead): its cone's edge on that side.
     CFish &fish = fish_[kHooked];
     fish.target_yaw = 0.0f;
     expanded::FishFightSwim(fish);
     const float side = static_cast<float>(expanded::FishingFightSide());
-    const float yaw = angler_.GetRotation()->y;
-    const float run = std::atan2(-side * std::cos(yaw), side * std::sin(yaw));
-    EXPECT_NEAR(fish.target_yaw, expanded::FightConeYaw(0.0f, run), 1e-5f);
+    EXPECT_NEAR(fish.target_yaw, expanded::FightConeYaw(0.0f, std::atan2(-side, 0.0f)), 1e-5f);
     EXPECT_NEAR(std::fabs(fish.target_yaw), expanded::kCone, 1e-5f);
     EXPECT_LT(side * std::sin(fish.target_yaw), 0.0f); // toward -x for the right
     EXPECT_FLOAT_EQ(fish.target_speed, expanded::FightRunSpeed(0.0f));
 }
 
-TEST_F(FishingFight, TheFishRunsToTheScreensSides) {
-    // The camera looks along +x from behind the angler: the screen's right is +z.
+TEST_F(FishingFight, TheRunsStaySquareToTheLineWhicheverWayTheCameraLooks) {
+    // The camera looks along +x across the line (the screen's right is +z, the way out to the fish).
     CCamera camera(1.0f);
     float   eye[4] = {-30.0f, 20.0f, 0.0f, 1.0f};
     camera.SetPos(eye);
@@ -439,10 +437,10 @@ TEST_F(FishingFight, TheFishRunsToTheScreensSides) {
     CFish &fish = fish_[kHooked];
     fish.target_yaw = 0.0f;
     expanded::FishFightSwim(fish);
-    // The run's end lies 20 along +z for the right (straight away from the angler) and 20 back for the left, where the
-    // cone stops it at an edge.
+    // The runs still go to the angler's sides, square to the line (his right -x), to the cone's edge on that side.
     const float side = static_cast<float>(expanded::FishingFightSide());
-    EXPECT_NEAR(fish.target_yaw, expanded::FightConeYaw(0.0f, std::atan2(0.0f, side * expanded::kRunWidth)), 1e-5f);
+    EXPECT_NEAR(fish.target_yaw, expanded::FightConeYaw(0.0f, std::atan2(-side, 0.0f)), 1e-5f);
+    EXPECT_NEAR(fish.target_yaw, -side * expanded::kCone, 1e-5f);
     NowCamera = nullptr;
 }
 
