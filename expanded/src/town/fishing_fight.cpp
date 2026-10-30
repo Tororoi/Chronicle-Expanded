@@ -59,6 +59,10 @@ constexpr int kBarWidth = 240, kBarX = 320 - kBarWidth / 2, kBarY = 12, kBarHeig
 constexpr int   kGaugeSteps = 24;
 constexpr float kGaugeRim = 0.3f, kMarkWidth = 0.04f;
 
+// The mark turns from white to red while the stick does not pull, over kMarkFade frames (a tenth of a second) either
+// way, so a frame or two off the mark never flickers it.
+constexpr int kMarkFade = 6;
+
 struct Fight {
     CFish        *fish = nullptr; // null: no fight going on
     sceVu0FVECTOR anchor = {};    // where it was hooked
@@ -77,6 +81,7 @@ struct Fight {
     int           grace = 0;  // the frames left that the bar holds
     int           frames = 0; // the fight's frames
     int           pulled = 0; // the frames of this run that pulled
+    float         red = 0.0f; // how far the mark has turned red, 0 to 1
     bool          pulls = false;
     bool          won = false;
 };
@@ -348,6 +353,8 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     }
     fight.pulls = DebugMode != 0 || FightPulls(stick_x, stick_y, fight.camera, fight.target);
     fight.pulled += fight.pulls ? 1 : 0;
+    const float fade = 1.0f / static_cast<float>(kMarkFade);
+    fight.red = std::clamp(fight.red + (fight.pulls ? -fade : fade), 0.0f, 1.0f);
     if (fight.grace > 0) {
         fight.grace--;
     } else {
@@ -445,29 +452,32 @@ void DrawFishingFight() {
         Box(kBarX + kInset, kBarY + 1, filled, kBarHeight - 2, 0xB4, 0x20, 0x18);
     }
 
-    // The gauge on the water, drawn over everything: its arc, the stick's block on it (green, a brighter green while it
-    // pulls; held inside the arc) and the mark for the way to pull.
+    // The gauge on the water, drawn over everything: its arc, the stick's block on it (a bright green; held inside the
+    // arc) and the mark for the way to pull, white while the stick pulls and red while it does not.
     sceVu0FVECTOR centre;
     sceVu0CopyVector(centre, fight.gauge);
     int screen[4] = {};
     if (MGRotTransPers2D(screen, centre, 0) == 0) {
         return;
     }
-    constexpr u_char           kArc[4] = {0xA0, 0xA8, 0xB0, 0x30};
-    constexpr u_char           kRim[4] = {0xE0, 0xE0, 0xE0, 0x60};
-    constexpr u_char           kBlock[4] = {0x30, 0x90, 0x40, 0xA0};
-    constexpr u_char           kPulling[4] = {0x70, 0xFF, 0x70, 0xC0};
-    constexpr u_char           kMark[4] = {0xF0, 0xF0, 0xF0, 0x80};
+    constexpr u_char kArc[4] = {0xA0, 0xA8, 0xB0, 0x30};
+    constexpr u_char kRim[4] = {0xE0, 0xE0, 0xE0, 0x60};
+    constexpr u_char kBlock[4] = {0x70, 0xFF, 0x70, 0xC0};
+    constexpr u_char kMarkWhite[4] = {0xF0, 0xF0, 0xF0, 0x80};
+    constexpr u_char kMarkRed[4] = {0xFF, 0x20, 0x20, 0xC0};
+    u_char           mark_shade[4];
+    for (int i = 0; i < 4; i++) {
+        mark_shade[i] = static_cast<u_char>(std::lround(kMarkWhite[i] + (kMarkRed[i] - kMarkWhite[i]) * fight.red));
+    }
     const float                inner = kGaugeRadius - kGaugeBand / 2.0f, outer = kGaugeRadius + kGaugeBand / 2.0f;
     std::vector<gfx::Vertex2D> quads;
     Band(quads, -kCone, kCone, inner, outer, kArc);
     Band(quads, -kCone, kCone, inner, inner + kGaugeRim, kRim);
     Band(quads, -kCone, kCone, outer - kGaugeRim, outer, kRim);
-    const float   block = std::clamp(std::remainder(fight.stick - fight.middle, 2.0f * PI) - kPullTolerance, -kCone, kCone - 2.0f * kPullTolerance);
-    const u_char *shade = fight.pulls ? kPulling : kBlock;
-    Band(quads, block, block + 2.0f * kPullTolerance, inner, outer, shade);
+    const float block = std::clamp(std::remainder(fight.stick - fight.middle, 2.0f * PI) - kPullTolerance, -kCone, kCone - 2.0f * kPullTolerance);
+    Band(quads, block, block + 2.0f * kPullTolerance, inner, outer, kBlock);
     const float mark = std::remainder(FightConeYaw(fight.middle, fight.target) - fight.middle, 2.0f * PI);
-    Band(quads, mark - kMarkWidth, mark + kMarkWidth, inner - kMarkOverhang, outer + kMarkOverhang, kMark);
+    Band(quads, mark - kMarkWidth, mark + kMarkWidth, inner - kMarkOverhang, outer + kMarkOverhang, mark_shade);
     draw2d::DrawUntextured(gfx::Primitive::Quads, quads, draw2d::SpriteState());
     draw2d::RestoreTestZbuf();
 }
