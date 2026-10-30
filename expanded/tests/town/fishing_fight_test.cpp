@@ -32,26 +32,16 @@ FishInfo Nonky() {
 // How far the stick is pushed to pull.
 constexpr float kPush = 0.8f;
 
-// An axis standing at axis (-1 to 1) as GetLXf and GetLYf read it: nothing within the dead band, the rest stretched.
-float AsRead(float axis) {
-    const float beyond = std::fabs(axis) - expanded::kAxisDead;
-    return beyond > 0.0f ? std::copysign(beyond / (1.0f - expanded::kAxisDead), axis) : 0.0f;
-}
-
-// A stick pushed push the way yaw across the water, with the camera looking camera_yaw, as read: x right, y down.
+// A stick pushed push the way yaw across the water, with the camera looking camera_yaw, as the fight reads it: x right,
+// y down.
 std::array<float, 2> StickToward(float camera_yaw, float yaw, float push = kPush) {
-    return {AsRead(push * std::sin(camera_yaw - yaw)), AsRead(-push * std::cos(camera_yaw - yaw))};
+    const expanded::FightStick read = expanded::FightStickRead(push * std::sin(camera_yaw - yaw), -push * std::cos(camera_yaw - yaw));
+    return {read.x, read.y};
 }
 
-// A stick pushed fully as near the way yaw as the dead band lets it read: an axis within 15 degrees of its own way
-// lies on it, one a little farther out just past the band.
+// A stick pushed fully the way yaw.
 std::array<float, 2> StickNear(float camera_yaw, float yaw) {
-    auto axis = [](float along) {
-        const float size = std::fabs(along);
-        const float least = expanded::kAxisDead + 0.01f;
-        return size < std::sin(PI / 12.0f) ? 0.0f : std::copysign(std::max(size, least), along);
-    };
-    return {AsRead(axis(std::sin(camera_yaw - yaw))), AsRead(axis(-std::cos(camera_yaw - yaw)))};
+    return StickToward(camera_yaw, yaw, 1.0f);
 }
 
 // Six fish, the hooked one a usual-sized Nonky out from the angler, who stands at the origin facing +z, the float just
@@ -198,28 +188,38 @@ TEST(FishingFightRules, TheStickPointsAcrossTheWaterAsTheScreenShowsIt) {
     // Facing him from out on the water, looking -z: up -z (toward him), right +x.
     EXPECT_TRUE(same(yaw(PI, 0.0f, -1.0f), PI));
     EXPECT_TRUE(same(yaw(PI, 1.0f, 0.0f), PI / 2.0f));
-    // A stick read with the stretch undone points its own way, on an axis or with both outside the dead band.
+    // A stick as the fight reads it points its own way, whichever way it is pushed.
     for (float camera : {0.0f, 1.0f, -2.5f}) {
         for (float off : {0.0f, PI / 4.0f, 2.0f, -0.9f, PI}) {
             const float way = camera - off;
             const auto  stick = StickToward(camera, way, 1.0f);
-            EXPECT_TRUE(same(yaw(camera, expanded::FightStickAxis(stick[0]), expanded::FightStickAxis(stick[1])), way))
+            EXPECT_TRUE(same(yaw(camera, stick[0], stick[1]), way))
                 << camera << " " << way;
         }
     }
 }
 
-TEST(FishingFightRules, TheSticksStretchIsUndone) {
-    EXPECT_FLOAT_EQ(expanded::FightStickAxis(0.0f), 0.0f);
-    EXPECT_FLOAT_EQ(expanded::FightStickAxis(1.0f), 1.0f);
-    EXPECT_FLOAT_EQ(expanded::FightStickAxis(-1.0f), -1.0f);
-    for (float axis : {0.4f, 0.5f, 0.75f, -0.6f}) {
-        EXPECT_NEAR(expanded::FightStickAxis(AsRead(axis)), axis, 1e-5f) << axis;
+TEST(FishingFightRules, TheDeadZoneIsMeasuredFromTheCentre) {
+    auto read = [](float x, float y) {
+        const expanded::FightStick stick = expanded::FightStickRead(x, y);
+        return std::array<float, 2>{stick.x, stick.y};
+    };
+    const float dead = expanded::kStickDead;
+    // Within the dead zone, nothing, whichever way.
+    EXPECT_EQ(read(0.0f, 0.0f), (std::array<float, 2>{0.0f, 0.0f}));
+    EXPECT_EQ(read(0.3f, 0.2f), (std::array<float, 2>{0.0f, 0.0f}));
+    EXPECT_EQ(read(dead * 0.7f, dead * 0.7f), (std::array<float, 2>{0.0f, 0.0f}));
+    // Full on an axis reads full; past the edge, the push is stretched over 0 to 1 and held to 1.
+    EXPECT_FLOAT_EQ(read(1.0f, 0.0f)[0], 1.0f);
+    EXPECT_FLOAT_EQ(read(0.0f, -1.0f)[1], -1.0f);
+    EXPECT_NEAR(std::hypot(read(0.0f, (1.0f + dead) / 2.0f)[0], read(0.0f, (1.0f + dead) / 2.0f)[1]), 0.5f, 1e-5f);
+    EXPECT_NEAR(std::hypot(read(1.0f, 1.0f)[0], read(1.0f, 1.0f)[1]), 1.0f, 1e-5f);
+    // Its own way however near an axis: 10 and 30 degrees off down read 10 and 30 (the game's reads give 0 and 13).
+    for (float degrees : {10.0f, 30.0f, -5.0f}) {
+        const float angle = degrees * PI / 180.0f;
+        const auto  stick = read(std::sin(angle), std::cos(angle));
+        EXPECT_NEAR(std::atan2(stick[0], stick[1]) * 180.0f / PI, degrees, 1e-3f) << degrees;
     }
-    // Pushed full 30 degrees off down: read 13 degrees off it, 30 again undone.
-    const float x = AsRead(std::sin(PI / 6.0f)), y = AsRead(std::cos(PI / 6.0f));
-    EXPECT_NEAR(std::atan2(x, y) * 180.0f / PI, 13.0f, 0.5f);
-    EXPECT_NEAR(std::atan2(expanded::FightStickAxis(x), expanded::FightStickAxis(y)) * 180.0f / PI, 30.0f, 1e-3f);
 }
 
 TEST(FishingFightRules, TheWayToPullIsAgainstTheFishInsideTheCone) {
@@ -258,7 +258,7 @@ TEST(FishingFightRules, OnlyAPushWithinTheToleranceOfTheWayPulls) {
     };
     EXPECT_TRUE(pulls(PI, PI));
     EXPECT_FALSE(pulls(0.0f, PI)); // pushed forward
-    // Down and to the side (both axes clear of the dead band through the tolerance either side).
+    // Down and to the side.
     const float slant = 3.0f * PI / 4.0f;
     EXPECT_TRUE(pulls(slant, slant));
     EXPECT_TRUE(pulls(slant + tolerance - 0.01f, slant));
@@ -402,31 +402,19 @@ TEST_F(FishingFight, LettingGoLosesTheFishThreeTimesAsFast) {
 }
 
 TEST_F(FishingFight, ANearMissHoldsTheBarStill) {
-    // The angler (and so the camera) turned an eighth, so the way to pull lies on the stick's diagonal, clear of the
-    // dead band.
     Strike();
-    facing_[1] = PI / 4.0f;
-    angler_.SetRotation(facing_);
     for (int i = 0; i < expanded::kStartGrace; i++) {
         Pull();
     }
-    // Just off the way to pull, between the two tolerances, the bar neither fills nor drains.
+    // Halfway between the two tolerances off the way to pull (which moves no more than kTargetTurn a frame), either
+    // side, the bar neither fills nor drains.
     const float off = (expanded::kPullTolerance + expanded::kHoldTolerance) / 2.0f;
-    int         held = 0;
     for (int i = 0; i < 30; i++) {
         const float bar = expanded::FishingFightBar();
-        const float target = expanded::FishingFightTarget();
-        const auto  stick = StickToward(CameraYaw(), target + off, 1.0f);
-        // Unless the thrash took the way near an axis, where the dead band reads the stick onto it.
-        const bool holds = expanded::FightHolds(stick[0], stick[1], CameraYaw(), target) &&
-                           !expanded::FightPulls(stick[0], stick[1], CameraYaw(), target);
+        const auto  stick = StickToward(CameraYaw(), expanded::FishingFightTarget() + (i % 2 == 0 ? off : -off), 1.0f);
         EXPECT_EQ(Step(stick[0], stick[1]), FightStep::kFighting);
-        if (holds && expanded::FishingFightTarget() == target) {
-            EXPECT_FLOAT_EQ(expanded::FishingFightBar(), bar);
-            held++;
-        }
+        EXPECT_FLOAT_EQ(expanded::FishingFightBar(), bar) << i;
     }
-    EXPECT_GT(held, 20);
 }
 
 TEST_F(FishingFight, TheBarHoldsAsTheFightStarts) {
