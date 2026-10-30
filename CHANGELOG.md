@@ -458,6 +458,7 @@ Blessing Gun → Skunk ★
 - Piccolies only bite the Mellow Banana, which they like fully; in the original game they took most baits, the Evy best. [#288](https://github.com/Tororoi/Chronicle-Expanded/pull/288)
 - The Fruit of Eden and Cheese can be used as bait; only the Baron Garayan goes for the Fruit of Eden, and no fish yet for Cheese. [#289](https://github.com/Tororoi/Chronicle-Expanded/pull/289)
 - A struck fish fights back instead of always being caught: it swims away to your left and right, thrashing, as far as the line lets it, instead of thrashing in place, and you pull the left stick back and away from it to fill a tension bar that lands it; let the bar run empty and it gets away with the bait. Bigger fish fight harder, the Garayans hardest. The Fishing Fights option (Options, Expanded page, on by default) turned off lands every struck fish as in the original game. [#292](https://github.com/Tororoi/Chronicle-Expanded/pull/292)
+- In a fishing fight Toan's rod follows the left stick: pushed left or right he leans the rod that way, pulled back he hauls on it, and at rest he holds it relaxed. He no longer turns with the stick during a fight. [#294](https://github.com/Tororoi/Chronicle-Expanded/pull/294)
 
 ### From Chronicle
 
