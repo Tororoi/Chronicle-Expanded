@@ -72,6 +72,7 @@ struct Config : HostSettings {
     float             shadow_distance = 0.0f;
     int               anisotropy = 0;
     float             mouse_camera_return = 0.2f; /**< Third-person vertical return after mouse input: 0 holds height, 1 is retail's rate. */
+    bool              radial_dead_zone = false;   /**< input.dead_zone: false zeroes each stick axis on its own, true measures from the centre. */
     ConfigGameOptions options;
     bool              discord_rich_presence = true;
     /**
