@@ -67,7 +67,7 @@ struct Fight {
     float         camera = 0.0f;  // the way the camera looks across the water (a yaw)
     float         right[2] = {};  // the angler's right across the water (x, z), as he looks at the fish: the side 1 runs to
     float         middle = 0.0f;  // the gauge's middle: the way from its centre to the angler
-    float         target = 0.0f;  // the way to pull, as eased
+    float         target = 0.0f;  // the way to pull
     float         stick = 0.0f;   // the way the stick last pointed across the water
     float         push = 0.0f;    // how far it is pushed
     float         strength = 0.0f;
@@ -128,7 +128,7 @@ void Follow() {
     fight.middle = atan2f(fight.angler[0] - fight.gauge[0], fight.angler[1] - fight.gauge[2]);
     sceVu0FVECTOR heading;
     fight.fish->GetRotation(heading);
-    fight.target = FightEaseTarget(fight.target, FightTargetYaw(fight.middle, heading[1]));
+    fight.target = FightTargetYaw(fight.middle, heading[1]);
 }
 
 const char *SideName(int side) {
@@ -243,11 +243,6 @@ float FightStickYaw(float camera_yaw, float x, float y) {
 
 float FightTargetYaw(float middle, float heading) {
     return FightConeYaw(middle, heading + PI);
-}
-
-float FightEaseTarget(float target, float yaw) {
-    const float turn = std::clamp(std::remainder(yaw - target, 2.0f * PI) * kTargetEase, -kTargetTurn, kTargetTurn);
-    return std::remainder(target + turn, 2.0f * PI);
 }
 
 float FightStickAxis(float read) {
@@ -448,7 +443,7 @@ void DrawFishingFight() {
     }
 
     // The gauge on the water, drawn over everything: its arc, the stick's block on it (glowing while it pulls, plain
-    // while it points the right way unpushed, dim otherwise; held inside the arc) and the mark for the way to pull.
+    // while it points the right way unpushed, blue otherwise; held inside the arc) and the mark for the way to pull.
     sceVu0FVECTOR centre;
     sceVu0CopyVector(centre, fight.gauge);
     int screen[4] = {};
@@ -459,7 +454,7 @@ void DrawFishingFight() {
     constexpr u_char           kRim[4] = {0xE0, 0xE0, 0xE0, 0x60};
     constexpr u_char           kGlow[4] = {0xFF, 0xB0, 0x40, 0x80};
     constexpr u_char           kPlain[4] = {0xB4, 0x64, 0x28, 0x70};
-    constexpr u_char           kDim[4] = {0x60, 0x60, 0x60, 0x40};
+    constexpr u_char           kOff[4] = {0x30, 0x50, 0x90, 0xA0};
     constexpr u_char           kMark[4] = {0xF0, 0xF0, 0xF0, 0x80};
     const float                inner = kGaugeRadius - kGaugeBand / 2.0f, outer = kGaugeRadius + kGaugeBand / 2.0f;
     std::vector<gfx::Vertex2D> quads;
@@ -467,7 +462,7 @@ void DrawFishingFight() {
     Band(quads, -kCone, kCone, inner, inner + kGaugeRim, kRim);
     Band(quads, -kCone, kCone, outer - kGaugeRim, outer, kRim);
     const float   block = std::clamp(std::remainder(fight.stick - fight.middle, 2.0f * PI) - kPullTolerance, -kCone, kCone - 2.0f * kPullTolerance);
-    const u_char *shade = fight.pulls ? kGlow : (fight.aligned ? kPlain : kDim);
+    const u_char *shade = fight.pulls ? kGlow : (fight.aligned ? kPlain : kOff);
     Band(quads, block, block + 2.0f * kPullTolerance, inner, outer, shade);
     const float mark = std::remainder(FightConeYaw(fight.middle, fight.target) - fight.middle, 2.0f * PI);
     Band(quads, mark - kMarkWidth, mark + kMarkWidth, inner - kMarkOverhang, outer + kMarkOverhang, kMark);
