@@ -184,8 +184,9 @@ TEST_F(FishingFight, TheFishSwitchesSidesAndRunsToThem) {
     EXPECT_LE(frames, expanded::kLongestRun);
 
     // With no camera, the angler's right as he faces now (-x facing +z): the fish heads to the side it runs to, 20 out
-    // from where it was hooked.
+    // from where it was hooked (the game's thrash rolled straight ahead).
     CFish &fish = fish_[kHooked];
+    fish.target_yaw = 0.0f;
     expanded::FishFightSwim(fish);
     const float side = static_cast<float>(expanded::FishingFightSide());
     const float yaw = angler_.GetRotation()->y;
@@ -203,10 +204,31 @@ TEST_F(FishingFight, TheFishRunsToTheScreensSides) {
     Strike();
     Pull();
     CFish &fish = fish_[kHooked];
+    fish.target_yaw = 0.0f;
     expanded::FishFightSwim(fish);
     const float side = static_cast<float>(expanded::FishingFightSide());
     EXPECT_NEAR(fish.target_yaw, std::atan2(0.0f, side * expanded::kRunWidth), 1e-5f);
     NowCamera = nullptr;
+}
+
+TEST_F(FishingFight, TheFishThrashesAboutItsRunsHeading) {
+    Strike();
+    CFish &fish = fish_[kHooked];
+    fish.target_yaw = 0.0f;
+    expanded::FishFightSwim(fish);
+    const float heading = fish.target_yaw;
+    // The game's thrash rolls a heading anywhere; the run keeps half of it either side.
+    for (float roll : {1.0f, -2.0f, 3.0f}) {
+        fish.target_yaw = roll;
+        expanded::FishFightSwim(fish);
+        EXPECT_NEAR(std::remainder(fish.target_yaw - heading, 2.0f * PI), roll * 0.5f, 1e-4f) << roll;
+    }
+    // At its run's end (facing +z with no camera, its right is -x) it still struggles.
+    const float side = static_cast<float>(expanded::FishingFightSide());
+    float       end[4] = {-side * expanded::kRunWidth, -12.0f, 40.0f, 1.0f};
+    fish.SetPosition(end);
+    expanded::FishFightSwim(fish);
+    EXPECT_GT(fish.target_speed, 0.0f);
 }
 
 TEST_F(FishingFight, PushingAsideTurnsTheAngler) {

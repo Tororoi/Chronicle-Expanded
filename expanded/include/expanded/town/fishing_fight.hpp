@@ -9,7 +9,7 @@ struct FishInfo;
 namespace expanded {
 
 // Fishing fights: a struck fish runs to the left or right of where it was hooked, as the screen shows it (square to the
-// camera's look), switching sides now and then, and the left stick pulls against it, back and away from its side (a
+// camera's look), thrashing as it goes as the game's fight has it, switching sides now and then, and the left stick pulls against it, back and away from its side (a
 // fish running left: down and right). A pull fills the tension bar, anything else drains it kDrain times as fast; a
 // full bar lands the fish the game's way, an empty one lets it get away ("Bait ran out.": the bait went as it was
 // struck). A bigger fish switches sooner, swims faster and takes longer to land, a Garayan most. Off (the Fishing Fights option, config.json's expanded.fishing_fights, on by default), a struck fish is

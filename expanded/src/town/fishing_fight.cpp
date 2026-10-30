@@ -42,8 +42,9 @@ constexpr int kGotAwayFrames = 180;
 constexpr int   kPullRumble = 70, kSlackRumble = 120, kRumbleFrames = 4;
 constexpr float kSwitchRipple = 10.0f;
 
-// A run's fish slows within kArrive of its end.
-constexpr float kArrive = 3.0f;
+// A run's fish slows within kArrive of its end, to no slower than kThrashSpeed; it thrashes kThrash of the game's
+// fight thrash (a heading anywhere) either side of its run's heading.
+constexpr float kArrive = 3.0f, kThrashSpeed = 0.15f, kThrash = 0.5f;
 
 // The bar, in pixels and field rows: kBarWidth wide, centred low on the screen, its track kInset inside.
 constexpr int kBarWidth = 160, kBarX = 320 - kBarWidth / 2, kBarY = 200, kBarHeight = 7, kInset = 2;
@@ -236,10 +237,12 @@ void FishFightSwim(CFish &fish) {
     fish.GetPosition(here);
     float dx = to_x - here[0], dz = to_z - here[2];
     float distance = std::sqrt(dx * dx + dz * dz);
-    if (distance > 0.0f) {
-        fish.target_yaw = atan2f(dx, dz);
-    }
-    fish.target_speed = FightRunSpeed(fight.strength) * std::min(1.0f, distance / kArrive);
+    // The game's thrash, a new heading every frame (the battle block's roll, target_yaw), narrowed to kThrash of it either
+    // side of the run's heading: the fish twists and struggles as it goes, and still crosses the screen.
+    float thrash = std::remainder(fish.target_yaw, 2.0f * PI) * kThrash;
+    float heading = distance > 0.0f ? atan2f(dx, dz) : fish.target_yaw;
+    fish.target_yaw = AngleLimit(heading + thrash);
+    fish.target_speed = std::max(kThrashSpeed, FightRunSpeed(fight.strength) * std::min(1.0f, distance / kArrive));
 }
 
 void DrawFishingFight() {
