@@ -478,8 +478,8 @@ void DrawFishingFight() {
     Box(kBarX + kInset, kBarY + 1, filled, kBarHeight - 2, lit(0x00, 0x90), lit(0xA2, 0xE0), 0xFF);
 
     // The gauge on the water, drawn over everything: its arc, the stick's block on it (a bright green middle, the pull's
-    // tolerance, between yellow ends, the hold's; held inside the arc) and the mark for the way to pull, white while the
-    // stick pulls or holds and red while it does neither.
+    // tolerance, between yellow ends, the hold's; cut off at the arc's ends) and the mark for the way to pull, white
+    // while the stick pulls or holds and red while it does neither.
     sceVu0FVECTOR centre;
     sceVu0CopyVector(centre, fight.gauge);
     int screen[4] = {};
@@ -501,10 +501,18 @@ void DrawFishingFight() {
     Band(quads, -kCone, kCone, inner, outer, kArc);
     Band(quads, -kCone, kCone, inner, inner + kGaugeRim, kRim);
     Band(quads, -kCone, kCone, outer - kGaugeRim, outer, kRim);
-    const float block = std::clamp(std::remainder(fight.stick - fight.middle, 2.0f * PI), -kCone + kHoldTolerance, kCone - kHoldTolerance);
-    Band(quads, block - kHoldTolerance, block - kPullTolerance, inner, outer, kHold);
-    Band(quads, block - kPullTolerance, block + kPullTolerance, inner, outer, kBlock);
-    Band(quads, block + kPullTolerance, block + kHoldTolerance, inner, outer, kHold);
+    // The block's middle reaches the arc's ends, the parts past them cut off.
+    const float block = std::clamp(std::remainder(fight.stick - fight.middle, 2.0f * PI), -kCone, kCone);
+    auto        part = [&](float a, float b, const u_char *rgba) {
+        a = std::max(a, -kCone);
+        b = std::min(b, kCone);
+        if (a < b) {
+            Band(quads, a, b, inner, outer, rgba);
+        }
+    };
+    part(block - kHoldTolerance, block - kPullTolerance, kHold);
+    part(block - kPullTolerance, block + kPullTolerance, kBlock);
+    part(block + kPullTolerance, block + kHoldTolerance, kHold);
     const float mark = std::remainder(FightConeYaw(fight.middle, fight.target) - fight.middle, 2.0f * PI);
     Band(quads, mark - kMarkWidth, mark + kMarkWidth, inner - kMarkOverhang, outer + kMarkOverhang, mark_shade);
     draw2d::DrawUntextured(gfx::Primitive::Quads, quads, draw2d::SpriteState());
