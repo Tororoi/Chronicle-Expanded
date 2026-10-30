@@ -6,6 +6,7 @@
 #include <span>
 #include <vector>
 
+#include "expanded/data/arm_reach.hpp"
 #include "expanded/data/bytes.hpp"
 #include "expanded/data/data_build.hpp"
 
@@ -39,6 +40,17 @@ struct FishingArm {
 inline constexpr const char *kFishingSpine = "jnt2_1", *kFishingNeck = "jnt11_1", *kFishingRod = "turizao";
 inline constexpr FishingArm  kFishingRightArm = {"jnt16_1", "jnt17_1", "jnt17_2", "jnt18_1"};
 inline constexpr const char *kFishingLeftArmRoot = "chn8";
+
+// A posed fishing model's frames the right hand's grip needs: the rod and the right arm.
+struct FishingGrip {
+    int       rod;
+    ArmJoints right;
+};
+
+// The right hand put back on the rod in a pose mixed from others (each holding it as the disc does): the wrist where the
+// motion as played (played) holds it on the rod, reached through the arm with its wrist bent as mixed. False when the arm
+// falls short.
+bool HoldTheRod(Skeleton &mixed, const Skeleton &played, const FishingGrip &grip);
 
 // The fishing model with the poses, from the disc's.
 Bytes BuildFishingPoses(std::span<const unsigned char> model);

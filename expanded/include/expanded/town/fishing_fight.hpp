@@ -83,9 +83,9 @@ enum class FightStep {
 };
 
 // Hooks: FishingBattleFish having struck fish; EdMoveChara's ED_FISHING_BATTLE with the angler turned facing, the left
-// stick read only while a fight goes on (stick_x and stick_y: as read), which turns the angler as the stick does while
-// waiting for a bite and, for a fish that got away, sends it off (BattleFish cleared) with its close-up model's read
-// dropped; CFish::Step on a fish in FISH_ACTION_BATTLE, which steers the fought fish on its run and returns the pace its
+// stick read only while a fight goes on (stick_x and stick_y: as read), which keeps the angler turned as he stands and
+// leans his rod with the stick (fishing_lean.hpp) and, for a fish that got away, sends it off (BattleFish cleared) with
+// its close-up model's read dropped; CFish::Step on a fish in FISH_ACTION_BATTLE, which steers the fought fish on its run and returns the pace its
 // turn and speed steps take (kFightPace for the fought fish, 1 for any other), and once it has moved from start (after
 // its collision against count polys), which draws the fought fish back to the line's reach, sliding along a bank in the
 // way, and failing that ends its step no farther from the rod than it started; and the town's 2D drawing, the bar while

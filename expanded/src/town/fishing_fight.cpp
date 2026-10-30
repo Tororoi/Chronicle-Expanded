@@ -20,6 +20,7 @@
 #include "expanded/debug/event_log.hpp"
 #include "expanded/town/fish_kinds.hpp"
 #include "expanded/town/fishing.hpp"
+#include "expanded/town/fishing_lean.hpp"
 #include "fish.hpp"
 #include "fishing.hpp"
 #include "gamepad.hpp"
@@ -219,12 +220,13 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     if (fight.fish == nullptr) {
         return FightStep::kRetail;
     }
-    // The angler turns as while waiting for a bite.
-    facing[1] = AngleInterpolate(facing[1], facing[1] - 0.1f * stick_x, 0.01f, INTERPOLATE_STEP);
+    // The angler stands where he is turned and leans the rod with the stick.
     angler.SetRotation(facing);
     if (fight.won) {
+        EndLean();
         return FightStep::kLanded;
     }
+    LeanRod(angler, stick_x, stick_y);
 
     fight.frames++;
     LookRight();
@@ -253,6 +255,7 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
         return FightStep::kLanded;
     }
     if (fight.bar <= 0.0f) {
+        EndLean();
         GotAway();
         return FightStep::kGotAway;
     }

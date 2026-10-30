@@ -191,6 +191,12 @@ int KeyCount(std::span<const unsigned char> cfg) {
 
 } // namespace
 
+bool HoldTheRod(Skeleton &mixed, const Skeleton &played, const FishingGrip &grip) {
+    const Mat4 held = MatMulExact(played.World(grip.right.wrist), RigidInv(played.World(grip.rod)));
+    const Vec3 forearm = mixed.BoneIn(grip.right.wrist, grip.right.elbow);
+    return PlaceHand(mixed, grip.right, MatMulExact(held, mixed.World(grip.rod)), forearm);
+}
+
 Bytes BuildFishingPoses(std::span<const unsigned char> model) {
     ChrPack    pack = ChrPack::Parse(model);
     ChrRecord &cfg = pack.Require(kCfg);
