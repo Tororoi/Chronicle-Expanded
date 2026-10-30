@@ -13,7 +13,8 @@ namespace expanded {
 // way from him to it: the screen's left and right with the camera behind him), thrashing as it goes as the game's fight
 // has it, switching sides now and then, and the left stick pulls against it: pointed, as the screen shows the water (up
 // into it, down toward the camera), against the way the fish swims. A pull fills the tension bar at the top of the
-// screen, a near miss holds it, anything else drains it kDrain times as fast; a full bar lands the fish the game's way, an empty one lets it
+// screen, a near miss holds it, anything else drains it (as fast as a pull fills it until the bar first rises past
+// where it started, then kDrain times as fast); a full bar lands the fish the game's way, an empty one lets it
 // get away ("Bait ran out.": the bait went as it was struck). A gauge lies on the water at the float: the arc of the
 // ways a pull can go, the way to pull marked on it and the stick's way a block on it. A bigger fish switches sooner,
 // swims faster and takes longer to land, a Garayan most. Off (the Fishing Fights option, config.json's
@@ -23,12 +24,13 @@ inline constexpr const char *kFishingFights = "fishing_fights";
 
 bool FishingFightsOn();
 
-// The bar's frames of pulling to fill from empty for the weakest fish, and how much faster anything else drains it.
+// The bar's frames of pulling to fill from empty for the weakest fish, and how much faster anything else drains it once
+// the bar has risen past kStartBar (until then a miss drains it only as fast as a pull fills it).
 inline constexpr int   kFillFrames = 240;
 inline constexpr float kDrain = 3.0f;
 
 // The bar as a fight starts; the frames it holds as a fight starts and after each switch, for the stick to follow.
-inline constexpr float kStartBar = 1.0f / 3.0f;
+inline constexpr float kStartBar = 0.3f;
 inline constexpr int   kStartGrace = 30, kSwitchGrace = 12;
 
 // The frames between a weakest fish's switches (drawn between the two), how far to each side of where it was hooked
@@ -65,9 +67,9 @@ bool FightLineHold(float *position, const float *rod, float reach);
 inline constexpr float kTargetEase = 0.2f, kTargetTurn = 0.05235988f;
 
 // A stick pulls when it is pushed past kPullBack (as read) and points, as the screen shows the water, within
-// kPullTolerance (10 degrees: the block's green middle) of the way to pull; pushed as far within kHoldTolerance (20
+// kPullTolerance (20 degrees: the block's green middle) of the way to pull; pushed as far within kHoldTolerance (30
 // degrees: the block's yellow ends) it holds, the bar standing still. Its way is kept while it rests.
-inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.17453293f, kHoldTolerance = 0.34906585f;
+inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.34906585f, kHoldTolerance = 0.52359878f;
 
 // The fight reads the left stick with its dead zone measured from the centre: within kStickDead of it (as far out as
 // the game's own dead band) the stick reads nothing, and past it, it reads its own way, its push stretched over 0 to 1.
