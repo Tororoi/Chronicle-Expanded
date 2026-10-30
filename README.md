@@ -99,13 +99,17 @@ writes none of it. For a data directory extracted before, rebuild just these fil
 port/build/pc/dcdata expanded data
 ```
 
-It writes only what changed and exits 1 if anything failed to build. What it builds:
+It writes only what changed and exits 1 if anything failed to build. Then it bakes the textures of what it built
+again (`textures/expanded/`), as an extraction does, since the game reads a built file's textures from the baked
+documents of that file. What it builds:
 
 - `expanded/town/<ally>.chr`: each ally's town model (`expanded/docs/town-models.md`).
 - `expanded/monstor/c16a.chr`: Minotaur Joe with his defeat scene's stagger and fall, for his death on a
   regular floor (`expanded/docs/bosses.md`).
 - `expanded/chara/spirit_cat.chr`: the Divine Beast Title's and the Angel Shooter's cat, the s86 town cat with
   the e01 town cat's float-up grafted into its motion, Dran's wings, and a cape (a cloth) and mask for Super Steve.
+- `expanded/disc/chara/c01d_turi.chr`: Toan's fishing model with the fishing fight's poses after its own motions
+  (`expanded/include/expanded/data/fishing_poses.hpp`).
 - `expanded/enemies/script_damage.txt`: each monster script's strongest melee hit and shot, which the
   enemy stat scaling starts from; without it monster damage is left as it is.
 

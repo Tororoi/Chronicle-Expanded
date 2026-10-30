@@ -6,6 +6,7 @@
 #include <cstring>
 #include <vector>
 
+#include "expanded/core/motion_mix.hpp"
 #include "framevu1.hpp"
 #include "gameutil.hpp"
 
@@ -364,6 +365,7 @@ void MotionPosing(tagMOTION_TYPE *motion, MOTION_STATE *state) {
 }
 
 void MotionPosed(CFrame *frame, tagMOTION_TYPE *motion) {
+    MixPosed(frame, motion);
     Entry *entry = Find(motion);
     if (entry == nullptr || entry->layer == nullptr || frame == nullptr) {
         return;

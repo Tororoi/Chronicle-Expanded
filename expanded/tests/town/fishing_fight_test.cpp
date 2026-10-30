@@ -600,10 +600,10 @@ TEST_F(FishingFight, ABankInTheWayHoldsTheFishAsWellAsItCan) {
     std::copy_n(saved_rod, 4, rod_top);
 }
 
-TEST_F(FishingFight, PushingAsideTurnsTheAngler) {
+TEST_F(FishingFight, PushingAsideLeavesTheAnglerTurnedAsHeIs) {
     Strike();
     Step(1.0f, 1.0f);
-    EXPECT_FLOAT_EQ(facing_[1], -0.01f);
+    EXPECT_FLOAT_EQ(facing_[1], 0.0f);
 }
 
 TEST_F(FishingFight, DebugModeAlwaysPulls) {
