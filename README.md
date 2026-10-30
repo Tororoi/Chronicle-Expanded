@@ -106,6 +106,8 @@ It writes only what changed and exits 1 if anything failed to build. What it bui
   regular floor (`expanded/docs/bosses.md`).
 - `expanded/chara/spirit_cat.chr`: the Divine Beast Title's and the Angel Shooter's cat, the s86 town cat with
   the e01 town cat's float-up grafted into its motion, Dran's wings, and a cape (a cloth) and mask for Super Steve.
+- `expanded/disc/chara/c01d_turi.chr`: Toan's fishing model with the fishing fight's poses after its own motions
+  (`expanded/include/expanded/data/fishing_poses.hpp`).
 - `expanded/enemies/script_damage.txt`: each monster script's strongest melee hit and shot, which the
   enemy stat scaling starts from; without it monster damage is left as it is.
 
