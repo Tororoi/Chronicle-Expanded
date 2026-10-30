@@ -39,9 +39,9 @@ constexpr float kRetailLineSegment = 1.6666666f;
 
 constexpr int kFishSlots = 6; // FishingLoadFish's CFish[6]
 
-// The line's point the float rides (FishLineGetUki), the segments under it to the hook, and how far under them the bait
-// rests: 3 under the hook, and the float's own 0.47 under the water.
-constexpr int   kFloatPoint = 18, kHangSegments = 5;
+// The segments under the float to the hook, and how far under them the bait rests: 3 under the hook, and the float's
+// own 0.47 under the water.
+constexpr int   kHangSegments = 5;
 constexpr float kBaitUnderHang = 3.47f, kShortestHang = 0.2f;
 
 // A cast's pay-out: it starts once the rod tip swings kWindUp back from its place ahead of the angler at rest, then

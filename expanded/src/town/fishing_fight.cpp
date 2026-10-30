@@ -158,16 +158,16 @@ float FightConeYaw(float away, float yaw) {
     return away + std::clamp(off, -kCone, kCone);
 }
 
-float FightLineLength() {
+float FightLineToFloat() {
     float length = 0.0f;
-    for (int segment = 1; segment < 24; segment++) {
+    for (int segment = 1; segment <= kFloatPoint; segment++) {
         length += LineSegment(segment);
     }
     return length;
 }
 
-bool FightLineHold(float *position, const float *rod, float reach) {
-    float dy = position[1] - rod[1];
+bool FightLineHold(float *position, const float *rod, float reach, float level) {
+    float dy = level - rod[1];
     if (!(std::fabs(dy) < reach)) {
         return false;
     }
@@ -205,7 +205,7 @@ void FishingFightStarted(CFish &fish) {
         fight.angler[1] = angler[2];
     }
     const float out = std::hypot(fight.anchor[0] - fight.angler[0], fight.anchor[2] - fight.angler[1]);
-    const float line = FightLineLength();
+    const float line = FightLineToFloat();
     float       dx = fight.anchor[0] - rod_top[0], dy = fight.anchor[1] - rod_top[1], dz = fight.anchor[2] - rod_top[2];
     LogFight("start", std::format("\"kind\":{},\"size\":{},\"strength\":{:.2f},\"out\":{:.0f},\"line\":{:.1f},"
                                   "\"from_rod\":{:.1f},\"side\":\"{}\",\"run\":{}",
@@ -294,7 +294,7 @@ void FishFightHold(CFish &fish, CCPoly *polys, int count) {
     fish.GetPosition(position);
     sceVu0FVECTOR held;
     sceVu0CopyVector(held, position);
-    if (!FightLineHold(held, rod_top, FightLineLength())) {
+    if (!FightLineHold(held, rod_top, FightLineToFloat(), FishingGetWaterLevel())) {
         return;
     }
     // Drawn in toward the rod, unless a wall is in the way: then it stays where its collision left it.

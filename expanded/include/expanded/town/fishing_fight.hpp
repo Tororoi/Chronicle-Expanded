@@ -38,21 +38,21 @@ inline constexpr float kRunWidth = 20.0f, kRunSpeed = 0.35f;
 inline constexpr float kFightPace = 2.0f;
 
 // The fish swims away from the angler: its heading stays within kCone (60 degrees) either side of the way from him to
-// it. The line holds it to the line's length from the rod tip, so at the line's end it pulls the line taut and swimming
-// away slides it along the line's reach.
+// it. The line holds it under the float's reach: the line from the rod tip to the float, pulled taut to the water, so at
+// the line's end swimming away slides it along that reach.
 inline constexpr float kCone = 1.0471976f;
 
-// The line's length from the rod tip to the hook, as it is now: its segments' lengths (distp as the cast paid it out,
-// the spot's hang under the float).
-float FightLineLength();
+// The line's length from the rod tip to the float, as it is now: its segments' lengths there (distp as the spot sets it
+// and the cast paid it out).
+float FightLineToFloat();
 
 // yaw turned into the cone either side of away (the way from the angler to the fish): itself inside it, else its
 // nearer edge.
 float FightConeYaw(float away, float yaw);
 
-// position (x, y, z) held to reach from rod (x, y, z): across the ground no farther than reach leaves at its depth under
-// the rod (none, past it); whether it was moved.
-bool FightLineHold(float *position, const float *rod, float reach);
+// position (x, y, z) held to reach from rod (x, y, z) at level, the water the float rides: across the ground no farther
+// than reach leaves at level's depth under the rod (none, past it); whether it was moved.
+bool FightLineHold(float *position, const float *rod, float reach, float level);
 
 // How far a stick counts as pulled back, and as pushed aside.
 inline constexpr float kPullBack = 0.3f, kPushAside = 0.3f;
