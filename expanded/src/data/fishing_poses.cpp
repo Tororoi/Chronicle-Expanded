@@ -26,10 +26,24 @@ constexpr const char *kShadowMds = "c01d_turis.mds", *kShadowMot = "c01d_turis.m
 // The disc's keys, the fight's first after them.
 constexpr int kDiscKeys = 16;
 
-// The joints the poses turn: the spine, the neck, the left shoulder and the ends of both hands; the rod, a frame of its
-// own under the root which the motion keeps in the right hand.
-constexpr const char *kSpine = "jnt2_1", *kNeck = "jnt11_1", *kLeftShoulder = "jnt9_1", *kLeftHand = "eff10", *kRightHand = "eff18";
+// The joints the poses turn: the spine and the neck; the rod, a frame of its own under the root which the motion keeps
+// in the right hand.
+constexpr const char *kSpine = "jnt2_1", *kNeck = "jnt11_1";
 constexpr const char *kRod = "turizao";
+
+// The arms (shoulder, elbow, wrist), and the way each elbow bends when its hand reaches for the rod: down, out to its own
+// side and ahead.
+struct Arm {
+    const char *shoulder, *elbow, *wrist;
+    Vec3        pole;
+};
+
+constexpr Arm kLeftArm = {
+    "jnt9_1", "jnt9_2", "jnt10_1", {0.5, -1.0, 0.3}
+};
+constexpr Arm kRightArm = {
+    "jnt17_1", "jnt17_2", "jnt18_1", {-0.5, -1.0, 0.3}
+};
 
 // The axes the poses turn about (RotAbout; Toan faces +Z, his left is +X): about kUp ahead turns to his left, about kBack
 // his head leans to his left, about kRight a rod held ahead tips up.
@@ -65,6 +79,8 @@ public:
 
     const Mat4 &Local(std::uint32_t joint) const { return local_.at(joint); }
 
+    Mat4 World(std::string_view joint) const { return World(Joint(joint)); }
+
     Vec3 Position(std::string_view joint) const { return TransOf(World(Joint(joint))); }
 
     // Turns a joint by a world rotation about a world point, its children with it.
@@ -90,7 +106,35 @@ public:
         }
     }
 
+    // Bends a limb of two bones (upper, its child lower, and end under lower) so end's frame becomes target: the elbow
+    // swung toward pole, then end turned to the target's rotation. Throws when the limb is too short.
+    void Reach(std::string_view upper, std::string_view lower, std::string_view end, const Mat4 &target, const Vec3 &pole) {
+        Vec3   at = Position(upper), goal = TransOf(target);
+        double a = Distance(at, Position(lower)), b = Distance(Position(lower), Position(end)), d = Distance(at, goal);
+        if (d >= a + b) {
+            throw std::runtime_error(std::format("{} cannot reach {} away, its limb is {} long", end, d, a + b));
+        }
+        Vec3   ahead = Scale(Add(goal, Scale(at, -1.0)), 1.0 / d);
+        Vec3   side = Unit(Add(pole, Scale(ahead, -Dot(pole, ahead))));
+        double cosine = (a * a + d * d - b * b) / (2 * a * d), sine = std::sqrt(1 - cosine * cosine);
+        Aim(upper, lower, Add(at, Add(Scale(ahead, a * cosine), Scale(side, a * sine))));
+        Aim(lower, end, goal);
+        std::size_t i = Joint(end);
+        Mat3        parent = RotOf(World(std::size_t(frames_[i].parent)));
+        Mat3        r = MatMulExact(RotOf(target), Transpose(parent));
+        for (std::size_t row = 0; row < 3; row++) {
+            for (std::size_t col = 0; col < 3; col++) {
+                local_[i][row][col] = r[row][col];
+            }
+        }
+    }
+
 private:
+    static double Distance(const Vec3 &p, const Vec3 &q) {
+        Vec3 d = Add(p, Scale(q, -1.0));
+        return std::sqrt(Dot(d, d));
+    }
+
     std::size_t Joint(std::string_view name) const {
         const MdsFrame *frame = FindFrame(frames_, name);
         if (frame == nullptr) {
@@ -124,21 +168,59 @@ Pose PullTo(const Rig &rig, double side) {
     pose.Turn(kNeck, RotAbout(kUp, -side * kFishingHeadBack));
     if (rig.rod) {
         pose.TurnAbout(kRod, turn, waist);
-        pose.TurnAbout(kRod, RotAbout(kBack, side * kFishingRodLean), pose.Position(kRightHand));
+        pose.TurnAbout(kRod, RotAbout(kBack, side * kFishingRodLean), pose.Position(kRightArm.wrist));
     }
     return pose;
 }
 
-// The wait at kFishingWaitFrame, the rod raised.
-Pose Relaxed(const Rig &rig) {
-    Pose pose(rig.frames, rig.mot, kFishingWaitFrame);
-    Vec3 grip = pose.Position(kRightHand), left = pose.Position(kLeftHand);
-    Mat3 raise = RotAbout(kRight, kFishingRodRaise);
-    if (rig.rod) {
-        pose.TurnAbout(kRod, raise, grip);
+// Where the hands hold the rod while he waits for a bite (kFishingWaitFrame), the disc's own two-handed grip: each wrist's
+// frame in the rod's, the left hand on the butt below the right.
+struct Grip {
+    Mat4 left, right;
+};
+
+Grip WaitGrip(const Rig &body) {
+    Pose wait(body.frames, body.mot, kFishingWaitFrame);
+    Mat4 rod = RigidInv(wait.World(kRod));
+    return {MatMulExact(wait.World(kLeftArm.wrist), rod), MatMulExact(wait.World(kRightArm.wrist), rod)};
+}
+
+// The right hand, and with two_hands the left, put on the rod (its world frame) as they hold it in the wait, through the
+// arms.
+void OnTheRod(Pose &pose, const Grip &grip, const Mat4 &rod, bool two_hands) {
+    pose.Reach(kRightArm.shoulder, kRightArm.elbow, kRightArm.wrist, MatMulExact(grip.right, rod), kRightArm.pole);
+    if (two_hands) {
+        pose.Reach(kLeftArm.shoulder, kLeftArm.elbow, kLeftArm.wrist, MatMulExact(grip.left, rod), kLeftArm.pole);
     }
-    Vec3 held = XformPt(MatFromRT(raise, {0.0, 0.0, 0.0}), {left[0] - grip[0], left[1] - grip[1], left[2] - grip[2]});
-    pose.Aim(kLeftShoulder, kLeftHand, {held[0] + grip[0], held[1] + grip[1], held[2] + grip[2]});
+}
+
+// A pose: the frame it is made from, and how.
+struct PoseRecipe {
+    int         key;
+    const char *name;
+    double      source;
+    double      side;      // 1 leant to his left, -1 to his right, 0 not leant
+    bool        two_hands; // the left hand on the rod
+    bool        raise;     // the rod raised between the hands (the wait)
+};
+
+constexpr PoseRecipe kPoses[] = {
+    {kFishingPullLeftKey,       "pull left",             kFishingPullFrame, 1.0,  false, false},
+    {kFishingPullRightKey,      "pull right",            kFishingPullFrame, -1.0, false, false},
+    {kFishingRelaxedKey,        "relaxed",               kFishingWaitFrame, 0.0,  true,  true },
+    {kFishingTwoHandedPullKey,  "pull, two hands",       kFishingPullFrame, 0.0,  true,  false},
+    {kFishingTwoHandedLeftKey,  "pull left, two hands",  kFishingPullFrame, 1.0,  true,  false},
+    {kFishingTwoHandedRightKey, "pull right, two hands", kFishingPullFrame, -1.0, true,  false},
+};
+
+// A pose on a rig. The shadow, which has no rod, takes the body's rod (rod) for its hands.
+Pose MakePose(const Rig &rig, const PoseRecipe &recipe, const Grip &grip, const Mat4 *rod) {
+    Pose pose = recipe.side != 0.0 ? PullTo(rig, recipe.side) : Pose(rig.frames, rig.mot, recipe.source);
+    if (recipe.raise && rig.rod) {
+        Vec3 left = pose.Position(kLeftArm.wrist), right = pose.Position(kRightArm.wrist);
+        pose.TurnAbout(kRod, RotAbout(kRight, kFishingRodRaise), Add(Scale(left, 0.75), Scale(right, 0.25)));
+    }
+    OnTheRod(pose, grip, rod != nullptr ? *rod : pose.World(kRod), recipe.two_hands);
     return pose;
 }
 
@@ -190,22 +272,29 @@ Bytes BuildFishingPoses(std::span<const unsigned char> model) {
     if (KeyCount(cfg.Payload()) != kDiscKeys) {
         throw std::runtime_error(std::format("{} has not the disc's {} keys", kCfg, kDiscKeys));
     }
-    Rig                 body{ReadMdsSkeleton(pack.Require(kBodyMds).Payload()), MotFile::FromRecord(pack.Require(kBodyMot)), true};
-    Rig                 shadow{ReadMdsSkeleton(pack.Require(kShadowMds).Payload()), MotFile::FromRecord(pack.Require(kShadowMot)), false};
-    std::uint32_t       first = (std::max(LastFrame(body.mot), LastFrame(shadow.mot)) / 10 + 1) * 10;
-    const std::uint32_t frames[] = {first, first + 10, first + 20};
-    for (Rig *rig : {&body, &shadow}) {
-        Pose left = PullTo(*rig, 1.0), right = PullTo(*rig, -1.0), relaxed = Relaxed(*rig);
-        KeyPose(rig->mot, left, kFishingPullFrame, frames[0]);
-        KeyPose(rig->mot, right, kFishingPullFrame, frames[1]);
-        KeyPose(rig->mot, relaxed, kFishingWaitFrame, frames[2]);
+    Rig           body{ReadMdsSkeleton(pack.Require(kBodyMds).Payload()), MotFile::FromRecord(pack.Require(kBodyMot)), true};
+    Rig           shadow{ReadMdsSkeleton(pack.Require(kShadowMds).Payload()), MotFile::FromRecord(pack.Require(kShadowMot)), false};
+    std::uint32_t first = (std::max(LastFrame(body.mot), LastFrame(shadow.mot)) / 10 + 1) * 10;
+    Grip          grip = WaitGrip(body);
+    std::string   lines;
+    for (std::size_t i = 0; i < std::size(kPoses); i++) {
+        const PoseRecipe &recipe = kPoses[i];
+        if (recipe.key != kDiscKeys + int(i)) {
+            throw std::runtime_error(std::format("the fishing pose {} is not KEY {}", recipe.name, kDiscKeys + int(i)));
+        }
+        std::uint32_t frame = first + 10 * std::uint32_t(i);
+        try {
+            Pose pose = MakePose(body, recipe, grip, nullptr);
+            Mat4 rod = pose.World(kRod);
+            KeyPose(body.mot, pose, recipe.source, frame);
+            KeyPose(shadow.mot, MakePose(shadow, recipe, grip, &rod), recipe.source, frame);
+        } catch (const std::runtime_error &failure) {
+            throw std::runtime_error(std::format("{}: {}", recipe.name, failure.what()));
+        }
+        lines += std::format("KEY\t{0},\t{0},\t0.0,\t//{1} {2}\r\n", frame, recipe.name, recipe.key);
     }
     pack.Require(kBodyMot).ReplacePayload(body.mot.BuildPayload());
     pack.Require(kShadowMot).ReplacePayload(shadow.mot.BuildPayload());
-    std::string lines = std::format("KEY\t{0},\t{0},\t0.0,\t//pull left {1}\r\n"
-                                    "KEY\t{2},\t{2},\t0.0,\t//pull right {3}\r\n"
-                                    "KEY\t{4},\t{4},\t0.0,\t//relaxed {5}\r\n",
-                                    frames[0], kFishingPullLeftKey, frames[1], kFishingPullRightKey, frames[2], kFishingRelaxedKey);
     cfg.ReplacePayload(AppendCfgKeys(cfg.Payload(), lines));
     return pack.Rebuild();
 }
