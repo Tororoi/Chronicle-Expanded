@@ -13,14 +13,6 @@ namespace expanded {
 
 namespace {
 
-// The way (a yaw, as atan2(x, z)) across the water that a stick read at (x, y) points with the camera looking
-// camera_yaw: up into the screen, right to the screen's right, down toward the camera. The camera's ahead across the
-// water is (sin, cos) of its yaw, its right (-cos, sin).
-float StickYaw(float camera_yaw, float x, float y) {
-    const float c = std::cos(camera_yaw), s = std::sin(camera_yaw);
-    return atan2f(-x * c - y * s, x * s - y * c);
-}
-
 struct Lean {
     MotionMix mix;
     float     x = 0.0f, y = 0.0f; // the stick in Toan's frame as the lean follows it
@@ -73,7 +65,7 @@ LeanStick LeanStickFor(float camera_yaw, float facing_yaw, float x, float y) {
         return {.x = 0.0f, .y = 0.0f};
     }
     // Its way across the water, then that way from where he faces: 0 ahead of him, a quarter turn his right.
-    const float from_him = facing_yaw - StickYaw(camera_yaw, x, y);
+    const float from_him = facing_yaw - FightStickYaw(camera_yaw, x, y);
     return {.x = push * std::sin(from_him), .y = -push * std::cos(from_him)};
 }
 
