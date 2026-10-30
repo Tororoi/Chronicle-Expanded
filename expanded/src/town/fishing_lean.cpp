@@ -5,6 +5,7 @@
 
 #include "character.hpp"
 #include "expanded/data/fishing_poses.hpp"
+#include "expanded/town/fishing_fight.hpp"
 #include "framevu1.hpp"
 #include "gameutil.hpp"
 
@@ -14,7 +15,7 @@ namespace {
 
 struct Lean {
     MotionMix mix;
-    float     x = 0.0f, y = 0.0f; // the stick as the lean follows it
+    float     x = 0.0f, y = 0.0f; // the stick in Toan's frame as the lean follows it
     bool      on = false;
 };
 
@@ -58,6 +59,16 @@ LeanShares LeanSharesFor(float x, float y) {
             .relaxed = 1.0f - pulled};
 }
 
+LeanStick LeanStickFor(float camera_yaw, float facing_yaw, float x, float y) {
+    const float push = std::hypot(x, y);
+    if (push == 0.0f) {
+        return {.x = 0.0f, .y = 0.0f};
+    }
+    // Its way across the water, then that way from where he faces: 0 ahead of him, a quarter turn his right.
+    const float from_him = facing_yaw - FightStickYaw(camera_yaw, FightStickAxis(x), FightStickAxis(y));
+    return {.x = push * std::sin(from_him), .y = -push * std::cos(from_him)};
+}
+
 void HoldTheRodAfterMix(CFrame *frame, const MixLocal *played, int count) {
     auto       *frames = static_cast<CFrameVu1 *>(frame);
     auto        at = [&](const char *name) { return Index(frame, frame->SearchFrame(const_cast<char *>(name))); };
@@ -84,7 +95,7 @@ void HoldTheRodAfterMix(CFrame *frame, const MixLocal *played, int count) {
     }
 }
 
-void LeanRod(CCharacter &angler, float stick_x, float stick_y) {
+void LeanRod(CCharacter &angler, float camera_yaw, float stick_x, float stick_y) {
     const MOTION_INFO *left = angler.GetMotionInfo(kFishingPullLeftKey), *right = angler.GetMotionInfo(kFishingPullRightKey);
     const MOTION_INFO *relaxed = angler.GetMotionInfo(kFishingRelaxedKey);
     if (angler.frame == nullptr || left == nullptr || right == nullptr || relaxed == nullptr) {
@@ -94,8 +105,9 @@ void LeanRod(CCharacter &angler, float stick_x, float stick_y) {
         lean = {};
         lean.on = true;
     }
-    lean.x += (stick_x - lean.x) * kLeanFollow;
-    lean.y += (stick_y - lean.y) * kLeanFollow;
+    const LeanStick stick = LeanStickFor(camera_yaw, angler.GetRotation()->y, stick_x, stick_y);
+    lean.x += (stick.x - lean.x) * kLeanFollow;
+    lean.y += (stick.y - lean.y) * kLeanFollow;
     const LeanShares shares = LeanSharesFor(lean.x, lean.y);
     lean.mix.time = {static_cast<float>(left->start), static_cast<float>(kFishingPullFrame), static_cast<float>(right->start),
                      static_cast<float>(relaxed->start)};

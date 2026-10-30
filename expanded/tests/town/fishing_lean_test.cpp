@@ -73,6 +73,32 @@ double Gap(const Vec3 &a, const Vec3 &b) {
 
 } // namespace
 
+TEST(FishingLean, TheStickLeansTheWayItPointsOnScreen) {
+    auto            near = [](LeanStick got, float x, float y) { return std::fabs(got.x - x) < 1e-4f && std::fabs(got.y - y) < 1e-4f; };
+    constexpr float kPi = 3.14159265f;
+    // Toan faces +z (his right -x). The camera behind him: the stick is his own (right is his right, down is back).
+    EXPECT_TRUE(near(LeanStickFor(0.0f, 0.0f, 1.0f, 0.0f), 1.0f, 0.0f));
+    EXPECT_TRUE(near(LeanStickFor(0.0f, 0.0f, 0.0f, 1.0f), 0.0f, 1.0f));
+    EXPECT_TRUE(near(LeanStickFor(0.0f, 0.0f, -1.0f, 1.0f), -1.0f, 1.0f));
+    // Behind him whichever way he faces.
+    EXPECT_TRUE(near(LeanStickFor(2.0f, 2.0f, 0.0f, 1.0f), 0.0f, 1.0f));
+    // The camera turned to look +x across him (the screen's right is his forward, up his left): left on the stick is
+    // back, down is his right, right is forward (pushed away, no haul).
+    EXPECT_TRUE(near(LeanStickFor(kPi / 2.0f, 0.0f, -1.0f, 0.0f), 0.0f, 1.0f));
+    EXPECT_TRUE(near(LeanStickFor(kPi / 2.0f, 0.0f, 0.0f, 1.0f), 1.0f, 0.0f));
+    EXPECT_TRUE(near(LeanStickFor(kPi / 2.0f, 0.0f, 1.0f, 0.0f), 0.0f, -1.0f));
+    // The camera facing him: down (toward the camera) is forward, right on screen is his left.
+    EXPECT_TRUE(near(LeanStickFor(kPi, 0.0f, 0.0f, 1.0f), 0.0f, -1.0f));
+    EXPECT_TRUE(near(LeanStickFor(kPi, 0.0f, 1.0f, 0.0f), -1.0f, 0.0f));
+    // Let go, nothing; pushed part way, that far.
+    EXPECT_TRUE(near(LeanStickFor(1.0f, 0.3f, 0.0f, 0.0f), 0.0f, 0.0f));
+    EXPECT_TRUE(near(LeanStickFor(0.0f, 0.0f, 0.0f, 0.5f), 0.0f, 0.5f));
+    // A diagonal read as the game stretches it points its own way: down and right, as far back as aside.
+    const LeanStick diagonal = LeanStickFor(0.0f, 0.0f, 0.6f, 0.6f);
+    EXPECT_NEAR(diagonal.x, diagonal.y, 1e-4f);
+    EXPECT_GT(diagonal.x, 0.0f);
+}
+
 TEST(FishingLean, TheStickSharesThePoses) {
     // At rest relaxed; pulled straight back the disc's pull; back and to a side, that side's lean.
     LeanShares rest = LeanSharesFor(0.0f, 0.0f);

@@ -327,7 +327,7 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
         EndLean();
         return FightStep::kLanded;
     }
-    LeanRod(angler, stick_x, stick_y);
+    LeanRod(angler, fight.camera, stick_x, stick_y);
 
     fight.frames++;
     Follow();
