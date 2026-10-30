@@ -11,11 +11,13 @@ namespace expanded {
 
 // Fishing fights: a struck fish runs to the left or right of where it was hooked, as the screen shows it (square to the
 // camera's look), thrashing as it goes as the game's fight has it, switching sides now and then, and the left stick
-// pulls against it, back and away from its side (a fish running left: down and right). A pull fills the tension bar,
-// anything else drains it kDrain times as fast; a full bar lands the fish the game's way, an empty one lets it get away
-// ("Bait ran out.": the bait went as it was struck). A bigger fish switches sooner, swims faster and takes longer to
-// land, a Garayan most. Off (the Fishing Fights option, config.json's expanded.fishing_fights, on by default), a struck
-// fish is landed as in the original game; debug mode always pulls, as it always strikes.
+// pulls against it: pointed, as the screen shows the water (up into it, down toward the camera), against the way the
+// fish swims. A pull fills the tension bar at the top of the screen, anything else drains it kDrain times as fast; a full
+// bar lands the fish the game's way, an empty one lets it get away ("Bait ran out.": the bait went as it was struck). A
+// gauge lies on the water at the float: the arc of the ways a pull can go, the way to pull marked on it and the stick's
+// way a block on it. A bigger fish switches sooner, swims faster and takes longer to land, a Garayan most. Off (the
+// Fishing Fights option, config.json's expanded.fishing_fights, on by default), a struck fish is landed as in the
+// original game; debug mode always pulls, as it always strikes.
 inline constexpr const char *kFishingFights = "fishing_fights";
 
 bool FishingFightsOn();
@@ -53,8 +55,50 @@ float FightConeYaw(float away, float yaw);
 // position (x, y, z) held across the ground to reach from rod (x, y, z), whatever their heights; whether it was moved.
 bool FightLineHold(float *position, const float *rod, float reach);
 
-// How far a stick counts as pulled back, and as pushed aside.
-inline constexpr float kPullBack = 0.3f, kPushAside = 0.3f;
+// The way to pull: against the way the fish swims (its heading turned round), turned into kCone either side of the way
+// from the float to the angler, the gauge's middle: the fish's cone about the way from the angler to it, mirrored at
+// the float. The float trails the fish along the line, so the way from the fish to it stays near that middle whatever
+// the fish does; its heading sweeps the cone as it runs. The way follows kTargetEase of the turn a frame, so the
+// fish's thrash (its heading anywhere within a third of the game's fight thrash either side of its run's) steadies,
+// and no more than kTargetTurn (1.5 degrees) a frame, so as the fish switches sides it slides across the gauge at a
+// pace the stick can follow.
+inline constexpr float kTargetEase = 0.08f, kTargetTurn = 0.02617994f;
+
+// A stick pulls when it is pushed past kPullBack (as read) and points, as the screen shows the water, within
+// kPullTolerance (20 degrees, a third of the gauge's arc for the block) of the way to pull. Its way is read with the
+// game's stretch undone (FightStickAxis), and kept while it rests.
+inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.34906585f;
+
+// A stick's axis as it stands (-1 to 1) from GetLXf's or GetLYf's: the game zeroes each axis within kAxisDead of
+// centre and stretches the rest over 0 to 1, which bends a diagonal toward the nearer axis (pushed 30 degrees off
+// down it reads 13); the stretch undone, it reads at its own angle outside the dead band.
+inline constexpr float kAxisDead = 49.0f / 127.0f;
+
+float FightStickAxis(float read);
+
+// The gauge: an arc flat on the water, its middle kGaugeRadius out from the float on the angler's side and kGaugeBand
+// wide, spanning kCone either side; it follows the float kGaugeEase of the way a frame, so it holds still while the
+// float bobs. The mark for the way to pull reaches kMarkOverhang past the band's edges.
+inline constexpr float kGaugeRadius = 7.0f, kGaugeBand = 2.5f, kGaugeEase = 0.1f, kMarkOverhang = 0.75f;
+
+// The way (a yaw, as atan2(x, z)) across the water that a stick standing at (x, y) (as FightStickAxis gives its axes:
+// right and down positive) points with the camera looking camera_yaw: up into the screen, right to the screen's right,
+// down toward the camera.
+float FightStickYaw(float camera_yaw, float x, float y);
+
+// The way to pull for a fish swimming heading (a yaw): turned round, inside the cone about middle (the way from the
+// float to the angler).
+float FightTargetYaw(float middle, float heading);
+
+// target followed toward yaw a frame.
+float FightEaseTarget(float target, float yaw);
+
+// Whether a stick read at (x, y) (as GetLXf and GetLYf) with the camera looking camera_yaw pulls toward target.
+bool FightPulls(float x, float y, float camera_yaw, float target);
+
+// A point of the gauge (x, y, z): radius out from centre across the water, along (radians) from its middle, which
+// points middle (a yaw); at centre's height.
+void FightGaugePoint(const float *centre, float middle, float along, float radius, float *point);
 
 // A fish's strength, 0 to 2: how far it is from its kind's usual size to its largest (none under it), and 1 more for a
 // Garayan. Each point of it makes the bar's fill kFillPerStrength more frames, its runs kRunsPerStrength shorter and its
@@ -69,10 +113,6 @@ float FightFill(float strength);
 int   FightRunFrames(float strength, float roll);
 float FightRunSpeed(float strength);
 
-// Whether a stick at (x, y) (as GetLXf and GetLYf: right and down positive) pulls against a fish running to side (-1
-// the screen's left, 1 the right).
-bool FightPulls(float x, float y, int side);
-
 // What EdMoveChara's ED_FISHING_BATTLE does this frame: the game's own fight (none started), the fight going on, the
 // fish landed (the bar full: the game's landing once the fish's close-up model is read), or got away.
 enum class FightStep {
@@ -85,11 +125,11 @@ enum class FightStep {
 // Hooks: FishingBattleFish having struck fish; EdMoveChara's ED_FISHING_BATTLE with the angler turned facing, the left
 // stick read only while a fight goes on (stick_x and stick_y: as read), which keeps the angler turned as he stands and
 // leans his rod with the stick (fishing_lean.hpp) and, for a fish that got away, sends it off (BattleFish cleared) with
-// its close-up model's read dropped; CFish::Step on a fish in FISH_ACTION_BATTLE, which steers the fought fish on its run and returns the pace its
-// turn and speed steps take (kFightPace for the fought fish, 1 for any other), and once it has moved from start (after
-// its collision against count polys), which draws the fought fish back to the line's reach, sliding along a bank in the
-// way, and failing that ends its step no farther from the rod than it started; and the town's 2D drawing, the bar while
-// fighting.
+// its close-up model's read dropped; CFish::Step on a fish in FISH_ACTION_BATTLE, which steers the fought fish on its
+// run and returns the pace its turn and speed steps take (kFightPace for the fought fish, 1 for any other), and once
+// it has moved from start (after its collision against count polys), which draws the fought fish back to the line's
+// reach, sliding along a bank in the way, and failing that ends its step no farther from the rod than it started; and
+// the town's 2D drawing, the bar and the gauge while fighting.
 void      FishingFightStarted(dc::game::CFish &fish);
 FightStep FishingFightStep(dc::game::CCharacter &angler, float *facing);
 FightStep FishingFightStep(dc::game::CCharacter &angler, float *facing, float stick_x, float stick_y);
@@ -97,8 +137,10 @@ float     FishFightSwim(dc::game::CFish &fish);
 void      FishFightHold(dc::game::CFish &fish, const float *start, dc::game::CCPoly *polys, int count);
 void      DrawFishingFight();
 
-// The fight's bar (0 to 1) and the side its fish runs to, while one goes on (side 0 for none).
+// The fight's bar (0 to 1), the side its fish runs to and the way to pull (a yaw, as eased), while one goes on (side 0
+// and way 0 for none).
 float FishingFightBar();
 int   FishingFightSide();
+float FishingFightTarget();
 
 } // namespace expanded
