@@ -54,9 +54,10 @@ constexpr float kArrive = 3.0f, kThrashSpeed = 0.15f, kThrash = 1.0f / 3.0f;
 // The bar, in pixels and field rows: kBarWidth wide, centred at the top of the screen, its track kInset inside.
 constexpr int kBarWidth = 240, kBarX = 320 - kBarWidth / 2, kBarY = 12, kBarHeight = 4, kInset = 1;
 
-// The gauge's arc is drawn in kGaugeSteps pieces; the mark is kMarkWidth (radians) either side of the way to pull.
+// The gauge's arc is drawn in kGaugeSteps pieces, a pale band with rims kGaugeRim wide so it shows on dark water and
+// light; the mark is kMarkWidth (radians) either side of the way to pull.
 constexpr int   kGaugeSteps = 24;
-constexpr float kMarkWidth = 0.04f;
+constexpr float kGaugeRim = 0.3f, kMarkWidth = 0.04f;
 
 struct Fight {
     CFish        *fish = nullptr; // null: no fight going on
@@ -454,7 +455,8 @@ void DrawFishingFight() {
     if (MGRotTransPers2D(screen, centre, 0) == 0) {
         return;
     }
-    constexpr u_char           kArc[4] = {0x18, 0x1C, 0x24, 0x60};
+    constexpr u_char           kArc[4] = {0xA0, 0xA8, 0xB0, 0x30};
+    constexpr u_char           kRim[4] = {0xE0, 0xE0, 0xE0, 0x60};
     constexpr u_char           kGlow[4] = {0xFF, 0xB0, 0x40, 0x80};
     constexpr u_char           kPlain[4] = {0xB4, 0x64, 0x28, 0x70};
     constexpr u_char           kDim[4] = {0x60, 0x60, 0x60, 0x40};
@@ -462,6 +464,8 @@ void DrawFishingFight() {
     const float                inner = kGaugeRadius - kGaugeBand / 2.0f, outer = kGaugeRadius + kGaugeBand / 2.0f;
     std::vector<gfx::Vertex2D> quads;
     Band(quads, -kCone, kCone, inner, outer, kArc);
+    Band(quads, -kCone, kCone, inner, inner + kGaugeRim, kRim);
+    Band(quads, -kCone, kCone, outer - kGaugeRim, outer, kRim);
     const float   block = std::clamp(std::remainder(fight.stick - fight.middle, 2.0f * PI) - kPullTolerance, -kCone, kCone - 2.0f * kPullTolerance);
     const u_char *shade = fight.pulls ? kGlow : (fight.aligned ? kPlain : kDim);
     Band(quads, block, block + 2.0f * kPullTolerance, inner, outer, shade);
