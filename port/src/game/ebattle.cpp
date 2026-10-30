@@ -2319,9 +2319,6 @@ void EdMoveChara() {
                         chara_fishing = ED_FISHING_BATTLE;
                         chara->SetMotion(12, 2);
                         FishingBattleFish(fish_no);
-#ifdef CHRONICLE_EXPANDED
-                        expanded::FishingFightTurnCamera(*camera);
-#endif
                         char *fish_file = GetFishFileName(FishingFishKind(fish_no));
 
                         if (fish_file != nullptr) {
