@@ -35,7 +35,7 @@ inline constexpr int   kStartGrace = 30, kSwitchGrace = 12;
 
 // The frames between a weakest fish's switches (drawn between the two), how far to each side of where it was hooked
 // it runs, and how fast.
-inline constexpr int   kShortestRun = 60, kLongestRun = 120;
+inline constexpr int   kShortestRun = 120, kLongestRun = 240;
 inline constexpr float kRunWidth = 20.0f, kRunSpeed = 0.35f;
 
 // How much faster than the game's own fight a fought fish goes: its heading swings (the turn and speed steps) and it

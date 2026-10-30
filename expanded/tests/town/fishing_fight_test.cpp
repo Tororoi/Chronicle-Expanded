@@ -139,10 +139,10 @@ TEST(FishingFightRules, StrengthIsTheSizeOverTheUsualAndAGarayanOneMore) {
 TEST(FishingFightRules, AStrongerFishFillsSlowerAndRunsShorterAndFaster) {
     EXPECT_FLOAT_EQ(expanded::FightFill(0.0f), 1.0f / 240.0f);
     EXPECT_FLOAT_EQ(expanded::FightFill(2.0f), 1.0f / 360.0f);
-    EXPECT_EQ(expanded::FightRunFrames(0.0f, 0.0f), 60);
-    EXPECT_EQ(expanded::FightRunFrames(0.0f, 1.0f), 120);
-    EXPECT_EQ(expanded::FightRunFrames(2.0f, 0.0f), 42);
-    EXPECT_EQ(expanded::FightRunFrames(2.0f, 1.0f), 84);
+    EXPECT_EQ(expanded::FightRunFrames(0.0f, 0.0f), 120);
+    EXPECT_EQ(expanded::FightRunFrames(0.0f, 1.0f), 240);
+    EXPECT_EQ(expanded::FightRunFrames(2.0f, 0.0f), 84);
+    EXPECT_EQ(expanded::FightRunFrames(2.0f, 1.0f), 168);
     EXPECT_FLOAT_EQ(expanded::FightRunSpeed(0.0f), 0.35f * expanded::kFightPace);
     EXPECT_FLOAT_EQ(expanded::FightRunSpeed(2.0f), 0.525f * expanded::kFightPace);
 }
