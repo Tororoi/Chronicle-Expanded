@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "camera.hpp"
+#include "camerafollow.hpp"
 #include "character.hpp"
 #include "collision.hpp"
 #include "dataread.hpp"
@@ -73,10 +74,10 @@ struct Fight {
     float         angler[2] = {}; // where the angler stands (x, z)
     float         camera = 0.0f;  // the way the camera looks across the water (a yaw)
     float         right[2] = {};  // the angler's right across the water (x, z), as he looks at the fish: the side 1 runs to
-    float         middle = 0.0f;  // the gauge's middle: the way from its centre to the angler
-    float         target = 0.0f;  // the way to pull, as eased
-    float         stick = 0.0f;   // the way the stick last pointed across the water
-    float         push = 0.0f;    // how far it is pushed
+    float         away = 0.0f;    // the way from the angler to where it was hooked (a yaw): its heading as the fight starts
+    float         middle = 0.0f;  // the gauge's middle: the way from its centre back toward the camera
+    float         target = 0.0f;  // the mark's place on the gauge, as eased
+    float         stick = 0.0f;   // the block's
     float         strength = 0.0f;
     float         bar = 0.0f;
     int           side = 0;   // -1 the angler's left, 1 the right
@@ -86,6 +87,7 @@ struct Fight {
     int           pulled = 0; // the frames of this run that pulled
     float         red = 0.0f; // how far the mark has turned red, 0 to 1
     bool          pulls = false;
+    bool          back = false;  // the stick pulled back: the bar goes kPullBoost times as fast
     bool          holds = false; // pulls, or near enough that the bar stands still
     bool          rose = false;  // the bar has risen past kStartBar: misses drain kDrain times as fast
     bool          won = false;
@@ -116,28 +118,27 @@ void Look() {
     fight.camera = Chara != nullptr ? Chara->GetRotation()->y : 0.0f;
 }
 
-// A yaw as the screen shows it, in degrees: 0 up (into the screen), 90 right, 180 down, -90 left.
-float ScreenDegrees(float yaw) {
-    return std::remainder(fight.camera - yaw, 2.0f * PI) * 180.0f / PI;
+// A place on the gauge in degrees, the screen's right positive.
+float Degrees(float along) {
+    return along * 180.0f / PI;
 }
 
-// The way to pull and the stick's, for the log.
+// The mark's place and the block's, for the log.
 std::string Ways() {
-    return std::format("\"target\":{:.0f},\"stick\":{:.0f},\"push\":{:.2f}", ScreenDegrees(fight.target), ScreenDegrees(fight.stick),
-                       fight.push);
+    return std::format("\"target\":{:.0f},\"stick\":{:.0f},\"back\":{}", Degrees(fight.target), Degrees(fight.stick), fight.back);
 }
 
-// The gauge follows the float on the water, and the way to pull the fish as it swims.
+// The gauge follows the float on the water, facing the camera, and the mark the fish as it swims.
 void Follow() {
     sceVu0FVECTOR bob;
     FishLineGetUki(bob);
     fight.gauge[0] += (bob[0] - fight.gauge[0]) * kGaugeEase;
     fight.gauge[2] += (bob[2] - fight.gauge[2]) * kGaugeEase;
     fight.gauge[1] = FishingGetWaterLevel();
-    fight.middle = atan2f(fight.angler[0] - fight.gauge[0], fight.angler[1] - fight.gauge[2]);
+    fight.middle = fight.camera + PI;
     sceVu0FVECTOR heading;
     fight.fish->GetRotation(heading);
-    fight.target = FightEaseTarget(fight.target, FightTargetYaw(fight.middle, heading[1]));
+    fight.target = FightEaseTarget(fight.target, FightTargetAlong(fight.camera, heading[1]));
 }
 
 const char *SideName(int side) {
@@ -244,19 +245,18 @@ bool FightLineHold(float *position, const float *rod, float reach) {
     return true;
 }
 
-float FightStickYaw(float camera_yaw, float x, float y) {
-    // The camera's ahead across the water is (sin, cos) of its yaw, its right (-cos, sin); the stick's up is ahead.
-    const float c = std::cos(camera_yaw), s = std::sin(camera_yaw);
-    return atan2f(-x * c - y * s, x * s - y * c);
+float FightStickAlong(float x) {
+    return std::clamp(x, -1.0f, 1.0f) * kCone;
 }
 
-float FightTargetYaw(float middle, float heading) {
-    return FightConeYaw(middle, heading + PI);
+float FightTargetAlong(float camera_yaw, float heading) {
+    // The screen's right is a quarter turn clockwise from the camera's ahead (yaw falling): swimming that way, the
+    // fish is pulled from the left.
+    return std::clamp(std::remainder(heading - camera_yaw, 2.0f * PI), -kCone, kCone);
 }
 
-float FightEaseTarget(float target, float yaw) {
-    const float turn = std::clamp(std::remainder(yaw - target, 2.0f * PI) * kTargetEase, -kTargetTurn, kTargetTurn);
-    return std::remainder(target + turn, 2.0f * PI);
+float FightEaseTarget(float target, float along) {
+    return target + std::clamp((along - target) * kTargetEase, -kTargetTurn, kTargetTurn);
 }
 
 FightStick FightStickRead(float x, float y) {
@@ -268,21 +268,16 @@ FightStick FightStickRead(float x, float y) {
     return {.x = x / push * read, .y = y / push * read};
 }
 
-namespace {
-
-bool Within(float x, float y, float camera_yaw, float target, float tolerance) {
-    const float way = FightStickYaw(camera_yaw, x, y);
-    return std::hypot(x, y) > kPullBack && std::fabs(std::remainder(way - target, 2.0f * PI)) <= tolerance;
+bool FightPulls(float x, float target) {
+    return std::fabs(FightStickAlong(x) - target) <= kPullTolerance;
 }
 
-} // namespace
-
-bool FightPulls(float x, float y, float camera_yaw, float target) {
-    return Within(x, y, camera_yaw, target, kPullTolerance);
+bool FightHolds(float x, float target) {
+    return std::fabs(FightStickAlong(x) - target) <= kHoldTolerance;
 }
 
-bool FightHolds(float x, float y, float camera_yaw, float target) {
-    return Within(x, y, camera_yaw, target, kHoldTolerance);
+bool FightPullsBack(float y) {
+    return y > kPullBack;
 }
 
 void FightGaugePoint(const float *centre, float middle, float along, float radius, float *point) {
@@ -314,15 +309,20 @@ void FishingFightStarted(CFish &fish) {
     // screen's left and right), whichever way the camera turns after.
     const float out_x = fight.anchor[0] - fight.angler[0], out_z = fight.anchor[2] - fight.angler[1];
     const float out_length = std::hypot(out_x, out_z);
-    const float out_yaw = out_length > 0.0f ? atan2f(out_x, out_z) : fight.camera;
-    fight.right[0] = -std::cos(out_yaw);
-    fight.right[1] = std::sin(out_yaw);
-    // The gauge starts on the float, the way to pull straight back to the angler.
+    fight.away = out_length > 0.0f ? atan2f(out_x, out_z) : fight.camera;
+    fight.right[0] = -std::cos(fight.away);
+    fight.right[1] = std::sin(fight.away);
+    // The fish turns straight away from the angler and the camera turns to look that way (FishingFightTurnCamera), so
+    // the mark starts in the gauge's middle, where the stick at rest sits. The gauge starts on the float.
+    sceVu0FVECTOR heading;
+    fish.GetRotation(heading);
+    heading[1] = fight.away;
+    fish.SetRotation(heading);
+    fish.target_yaw = AngleLimit(fight.away);
     FishLineGetUki(fight.gauge);
     fight.gauge[1] = FishingGetWaterLevel();
-    fight.middle = atan2f(fight.angler[0] - fight.gauge[0], fight.angler[1] - fight.gauge[2]);
-    fight.target = fight.middle;
-    fight.stick = fight.middle;
+    fight.middle = fight.camera + PI;
+    fight.target = 0.0f;
     const float out = std::hypot(fight.anchor[0] - fight.angler[0], fight.anchor[2] - fight.angler[1]);
     const float line = FightLineLength();
     float       dx = fight.anchor[0] - rod_top[0], dy = fight.anchor[1] - rod_top[1], dz = fight.anchor[2] - rod_top[2];
@@ -330,6 +330,13 @@ void FishingFightStarted(CFish &fish) {
                                   "\"from_rod\":{:.1f},\"across\":{:.1f},\"side\":\"{}\",\"run\":{}",
                                   fish.fish_kind, static_cast<int>(fish.size * 10.0f), fight.strength, out, line, line * kLineReach,
                                   std::sqrt(dx * dx + dy * dy + dz * dz), std::hypot(dx, dz), SideName(fight.side), fight.run));
+}
+
+void FishingFightTurnCamera(CCameraFollow &camera) {
+    if (fight.fish != nullptr) {
+        // The eye sits at its angle out from what it watches, so it looks the opposite way.
+        camera.SetAngle(AngleLimit(fight.away + PI));
+    }
 }
 
 FightStep FishingFightStep(CCharacter &angler, float *facing) {
@@ -344,9 +351,8 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     if (fight.fish == nullptr) {
         return FightStep::kRetail;
     }
-    // The stick reads in the camera's frame as the frame starts; the angler turns as while waiting for a bite.
+    // The gauge faces the camera as the frame starts; the angler stands where he is turned.
     Look();
-    facing[1] = AngleInterpolate(facing[1], facing[1] - 0.1f * stick_x, 0.01f, INTERPOLATE_STEP);
     angler.SetRotation(facing);
     if (fight.won) {
         return FightStep::kLanded;
@@ -366,21 +372,19 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
         LogFight("switch", std::format("\"side\":\"{}\",\"run\":{},\"pulled\":{},{}", SideName(fight.side), fight.run, pulled, Ways()));
     }
 
-    // The stick's way across the water, kept while it rests; it pulls pushed far enough within the tolerance, and holds
-    // the bar within the hold's.
-    fight.push = std::hypot(stick_x, stick_y);
-    if (fight.push > 0.0f) {
-        fight.stick = FightStickYaw(fight.camera, stick_x, stick_y);
-    }
-    fight.pulls = DebugMode != 0 || FightPulls(stick_x, stick_y, fight.camera, fight.target);
-    fight.holds = fight.pulls || FightHolds(stick_x, stick_y, fight.camera, fight.target);
+    // The block goes where the stick's left and right put it: on the mark it pulls, near it it holds the bar; pulled
+    // back, the bar goes faster either way.
+    fight.stick = FightStickAlong(stick_x);
+    fight.back = FightPullsBack(stick_y);
+    fight.pulls = DebugMode != 0 || FightPulls(stick_x, fight.target);
+    fight.holds = fight.pulls || FightHolds(stick_x, fight.target);
     fight.pulled += fight.pulls ? 1 : 0;
     const float fade = 1.0f / static_cast<float>(kMarkFade);
     fight.red = std::clamp(fight.red + (fight.holds ? -fade : fade), 0.0f, 1.0f);
     if (fight.grace > 0) {
         fight.grace--;
     } else if (fight.pulls || !fight.holds) {
-        float fill = FightFill(fight.strength);
+        const float fill = FightFill(fight.strength) * (fight.back ? kPullBoost : 1.0f);
         fight.bar = std::clamp(fight.bar + (fight.pulls ? fill : -(fight.rose ? kDrain : 1.0f) * fill), 0.0f, 1.0f);
         fight.rose = fight.rose || fight.bar > kStartBar;
     }
@@ -408,6 +412,12 @@ float FishFightSwim(CFish &fish) {
     float         to_z = fight.anchor[2] + static_cast<float>(fight.side) * kRunWidth * fight.right[1];
     sceVu0FVECTOR here;
     fish.GetPosition(here);
+    // As the fight starts it swims straight away from the angler, no faster than it thrashes.
+    if (fight.frames <= kStartGrace) {
+        fish.target_yaw = AngleLimit(fight.away);
+        fish.target_speed = kThrashSpeed * kFightPace;
+        return kFightPace;
+    }
     float dx = to_x - here[0], dz = to_z - here[2];
     float distance = std::sqrt(dx * dx + dz * dz);
     float away = atan2f(here[0] - fight.angler[0], here[2] - fight.angler[1]);
@@ -504,7 +514,7 @@ void DrawFishingFight() {
     Band(quads, -kCone, kCone, inner, inner + kGaugeRim, kRim);
     Band(quads, -kCone, kCone, outer - kGaugeRim, outer, kRim);
     // The block's middle reaches the arc's ends, the parts past them cut off.
-    const float block = std::clamp(std::remainder(fight.stick - fight.middle, 2.0f * PI), -kCone, kCone);
+    const float block = fight.stick;
     auto        part = [&](float a, float b, const u_char *rgba) {
         a = std::max(a, -kCone);
         b = std::min(b, kCone);
@@ -515,8 +525,7 @@ void DrawFishingFight() {
     part(block - kHoldTolerance, block - kPullTolerance, kHold);
     part(block - kPullTolerance, block + kPullTolerance, kBlock);
     part(block + kPullTolerance, block + kHoldTolerance, kHold);
-    const float mark = std::remainder(FightConeYaw(fight.middle, fight.target) - fight.middle, 2.0f * PI);
-    Band(quads, mark - kMarkWidth, mark + kMarkWidth, inner - kMarkOverhang, outer + kMarkOverhang, mark_shade);
+    Band(quads, fight.target - kMarkWidth, fight.target + kMarkWidth, inner - kMarkOverhang, outer + kMarkOverhang, mark_shade);
     draw2d::DrawUntextured(gfx::Primitive::Quads, quads, draw2d::SpriteState());
     draw2d::RestoreTestZbuf();
 }
