@@ -53,14 +53,17 @@ constexpr float kSwitchRipple = 10.0f;
 constexpr float kArrive = 3.0f, kThrashSpeed = 0.15f, kThrash = 1.0f / 3.0f;
 
 // The bar, in pixels and field rows: kBarWidth wide, centred at the top of the screen, its track kInset inside.
-constexpr int kBarWidth = 240, kBarX = 320 - kBarWidth / 2, kBarY = 12, kBarHeight = 4, kInset = 1;
+constexpr int   kBarWidth = 240, kBarX = 320 - kBarWidth / 2, kBarY = 12, kBarHeight = 4, kInset = 1;
+// The bar glows from kGlowFrom of the way full, its halo kGlowLayers pixels out.
+constexpr float kGlowFrom = 0.6f;
+constexpr int   kGlowLayers = 4;
 
 // The gauge's arc is drawn in kGaugeSteps pieces, a pale band with rims kGaugeRim wide so it shows on dark water and
 // light; the mark is kMarkWidth (radians) either side of the way to pull.
 constexpr int   kGaugeSteps = 24;
 constexpr float kGaugeRim = 0.3f, kMarkWidth = 0.04f;
 
-// The mark turns from white to red while the stick does not pull, over kMarkFade frames (a tenth of a second) either
+// The mark turns from white to red while the stick neither pulls nor holds, over kMarkFade frames (a tenth of a second) either
 // way, so a frame or two off the mark never flickers it.
 constexpr int kMarkFade = 6;
 
@@ -84,6 +87,7 @@ struct Fight {
     int           pulled = 0; // the frames of this run that pulled
     float         red = 0.0f; // how far the mark has turned red, 0 to 1
     bool          pulls = false;
+    bool          holds = false; // pulls, or near enough that the bar stands still
     bool          won = false;
 };
 
@@ -160,13 +164,13 @@ void GotAway() {
 }
 
 // A box at (x, y), in pixels and field rows, as MGFillBox takes them in 1/16ths.
-void Box(int x, int y, int width, int height, u_char r, u_char g, u_char b) {
+void Box(int x, int y, int width, int height, u_char r, u_char g, u_char b, u_char a = 0x80) {
     CRect_i_ box;
     box.x = x * 16;
     box.y = y * 16;
     box.width = width * 16;
     box.height = height * 16;
-    MGFillBox(box, r, g, b, 0x80);
+    MGFillBox(box, r, g, b, a);
 }
 
 // The gauge's band from along a to b (radians from its middle), inner to outer out from its centre, as quads on the
@@ -262,9 +266,21 @@ float FightStickAxis(float read) {
     return std::copysign(std::min(1.0f, kAxisDead + std::fabs(read) * (1.0f - kAxisDead)), read);
 }
 
-bool FightPulls(float x, float y, float camera_yaw, float target) {
+namespace {
+
+bool Within(float x, float y, float camera_yaw, float target, float tolerance) {
     const float way = FightStickYaw(camera_yaw, FightStickAxis(x), FightStickAxis(y));
-    return std::hypot(x, y) > kPullBack && std::fabs(std::remainder(way - target, 2.0f * PI)) <= kPullTolerance;
+    return std::hypot(x, y) > kPullBack && std::fabs(std::remainder(way - target, 2.0f * PI)) <= tolerance;
+}
+
+} // namespace
+
+bool FightPulls(float x, float y, float camera_yaw, float target) {
+    return Within(x, y, camera_yaw, target, kPullTolerance);
+}
+
+bool FightHolds(float x, float y, float camera_yaw, float target) {
+    return Within(x, y, camera_yaw, target, kHoldTolerance);
 }
 
 void FightGaugePoint(const float *centre, float middle, float along, float radius, float *point) {
@@ -349,22 +365,24 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
         LogFight("switch", std::format("\"side\":\"{}\",\"run\":{},\"pulled\":{},{}", SideName(fight.side), fight.run, pulled, Ways()));
     }
 
-    // The stick's way across the water, kept while it rests; it pulls pushed far enough within the tolerance.
+    // The stick's way across the water, kept while it rests; it pulls pushed far enough within the tolerance, and holds
+    // the bar within the hold's.
     fight.push = std::hypot(stick_x, stick_y);
     if (fight.push > 0.0f) {
         fight.stick = FightStickYaw(fight.camera, FightStickAxis(stick_x), FightStickAxis(stick_y));
     }
     fight.pulls = DebugMode != 0 || FightPulls(stick_x, stick_y, fight.camera, fight.target);
+    fight.holds = fight.pulls || FightHolds(stick_x, stick_y, fight.camera, fight.target);
     fight.pulled += fight.pulls ? 1 : 0;
     const float fade = 1.0f / static_cast<float>(kMarkFade);
-    fight.red = std::clamp(fight.red + (fight.pulls ? -fade : fade), 0.0f, 1.0f);
+    fight.red = std::clamp(fight.red + (fight.holds ? -fade : fade), 0.0f, 1.0f);
     if (fight.grace > 0) {
         fight.grace--;
-    } else {
+    } else if (fight.pulls || !fight.holds) {
         float fill = FightFill(fight.strength);
         fight.bar = std::clamp(fight.bar + (fight.pulls ? fill : -kDrain * fill), 0.0f, 1.0f);
     }
-    GamePad.SetVibration(1, fight.pulls ? kPullRumble : kSlackRumble, kRumbleFrames);
+    GamePad.SetVibration(1, fight.holds ? kPullRumble : kSlackRumble, kRumbleFrames);
 
     if (fight.bar >= 1.0f) {
         fight.won = true;
@@ -444,20 +462,25 @@ void DrawFishingFight() {
     if (fight.fish == nullptr || GameMode != ED_MODE_FISHING || chara_fishing != ED_FISHING_BATTLE) {
         return;
     }
-    // As Georama's parts gauge, thin at the top: a dark frame, a grey track, the bar orange while the stick pulls (and
-    // while it holds), red while it does not.
-    const int track = kBarWidth - 2 * kInset;
-    Box(kBarX, kBarY, kBarWidth, kBarHeight, 0x14, 0x14, 0x14);
-    Box(kBarX + kInset, kBarY + 1, track, kBarHeight - 2, 0x64, 0x64, 0x64);
-    const int filled = static_cast<int>(fight.bar * static_cast<float>(track));
-    if (fight.pulls || fight.grace > 0) {
-        Box(kBarX + kInset, kBarY + 1, filled, kBarHeight - 2, 0xB4, 0x64, 0x28);
-    } else {
-        Box(kBarX + kInset, kBarY + 1, filled, kBarHeight - 2, 0xB4, 0x20, 0x18);
+    // Thin at the top: a dark frame, a grey track and the bar in the dungeon's ABS blue, which glows as it nears full:
+    // from kGlowFrom of the way it brightens and gathers a pulsing halo, kGlowLayers pixels out.
+    const int   track = kBarWidth - 2 * kInset;
+    const int   filled = static_cast<int>(fight.bar * static_cast<float>(track));
+    const float near = std::clamp((fight.bar - kGlowFrom) / (1.0f - kGlowFrom), 0.0f, 1.0f);
+    const float glow = near * near * (0.8f + 0.2f * std::sin(static_cast<float>(fight.frames) * 0.2f));
+    for (int layer = kGlowLayers; layer >= 1 && filled > 0; layer--) {
+        const float fade = glow * static_cast<float>(kGlowLayers + 1 - layer) / static_cast<float>(kGlowLayers + 1);
+        Box(kBarX + kInset - layer, kBarY + 1 - layer, filled + 2 * layer, kBarHeight - 2 + 2 * layer, 0x60, 0xC8, 0xFF,
+            static_cast<u_char>(std::lround(0x60 * fade)));
     }
+    Box(kBarX, kBarY, kBarWidth, kBarHeight, 0x14, 0x14, 0x14);
+    Box(kBarX + kInset, kBarY + 1, track, kBarHeight - 2, 0x40, 0x40, 0x40);
+    auto lit = [&](int from, int to) { return static_cast<u_char>(std::lround(static_cast<float>(from) + static_cast<float>(to - from) * near)); };
+    Box(kBarX + kInset, kBarY + 1, filled, kBarHeight - 2, lit(0x00, 0x90), lit(0xA2, 0xE0), 0xFF);
 
-    // The gauge on the water, drawn over everything: its arc, the stick's block on it (a bright green; held inside the
-    // arc) and the mark for the way to pull, white while the stick pulls and red while it does not.
+    // The gauge on the water, drawn over everything: its arc, the stick's block on it (a bright green middle, the pull's
+    // tolerance, between yellow ends, the hold's; held inside the arc) and the mark for the way to pull, white while the
+    // stick pulls or holds and red while it does neither.
     sceVu0FVECTOR centre;
     sceVu0CopyVector(centre, fight.gauge);
     int screen[4] = {};
@@ -467,6 +490,7 @@ void DrawFishingFight() {
     constexpr u_char kArc[4] = {0xA0, 0xA8, 0xB0, 0x30};
     constexpr u_char kRim[4] = {0xE0, 0xE0, 0xE0, 0x60};
     constexpr u_char kBlock[4] = {0x70, 0xFF, 0x70, 0xC0};
+    constexpr u_char kHold[4] = {0xFF, 0xE0, 0x40, 0xC0};
     constexpr u_char kMarkWhite[4] = {0xF0, 0xF0, 0xF0, 0x80};
     constexpr u_char kMarkRed[4] = {0xFF, 0x20, 0x20, 0xC0};
     u_char           mark_shade[4];
@@ -478,8 +502,10 @@ void DrawFishingFight() {
     Band(quads, -kCone, kCone, inner, outer, kArc);
     Band(quads, -kCone, kCone, inner, inner + kGaugeRim, kRim);
     Band(quads, -kCone, kCone, outer - kGaugeRim, outer, kRim);
-    const float block = std::clamp(std::remainder(fight.stick - fight.middle, 2.0f * PI) - kPullTolerance, -kCone, kCone - 2.0f * kPullTolerance);
-    Band(quads, block, block + 2.0f * kPullTolerance, inner, outer, kBlock);
+    const float block = std::clamp(std::remainder(fight.stick - fight.middle, 2.0f * PI), -kCone + kHoldTolerance, kCone - kHoldTolerance);
+    Band(quads, block - kHoldTolerance, block - kPullTolerance, inner, outer, kHold);
+    Band(quads, block - kPullTolerance, block + kPullTolerance, inner, outer, kBlock);
+    Band(quads, block + kPullTolerance, block + kHoldTolerance, inner, outer, kHold);
     const float mark = std::remainder(FightConeYaw(fight.middle, fight.target) - fight.middle, 2.0f * PI);
     Band(quads, mark - kMarkWidth, mark + kMarkWidth, inner - kMarkOverhang, outer + kMarkOverhang, mark_shade);
     draw2d::DrawUntextured(gfx::Primitive::Quads, quads, draw2d::SpriteState());
