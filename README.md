@@ -99,7 +99,9 @@ writes none of it. For a data directory extracted before, rebuild just these fil
 port/build/pc/dcdata expanded data
 ```
 
-It writes only what changed and exits 1 if anything failed to build. What it builds:
+It writes only what changed and exits 1 if anything failed to build. Then it bakes the textures of what it built
+again (`textures/expanded/`), as an extraction does, since the game reads a built file's textures from the baked
+documents of that file. What it builds:
 
 - `expanded/town/<ally>.chr`: each ally's town model (`expanded/docs/town-models.md`).
 - `expanded/monstor/c16a.chr`: Minotaur Joe with his defeat scene's stagger and fall, for his death on a

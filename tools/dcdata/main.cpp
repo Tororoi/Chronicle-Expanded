@@ -429,7 +429,13 @@ int main(int argc, char **argv) {
         }
 #ifdef CHRONICLE_EXPANDED
         if (argc == 3 && std::strcmp(argv[1], "expanded") == 0) {
-            return expanded::RebuildExpandedData(argv[2], stdout);
+            return expanded::RebuildExpandedData(
+                argv[2],
+                [](const fs::path &raw, const fs::path &out) {
+                    kazarov::textures_convert_dc1(Utf8Path(raw), Utf8Path(out), WorkerCount());
+                    kazarov::textures_verify(Utf8Path(out / "data" / "textures"));
+                },
+                stdout);
         }
 #endif
         if (argc == 4 && std::strcmp(argv[1], "bake-textures") == 0) {
