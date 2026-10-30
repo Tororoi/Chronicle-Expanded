@@ -202,10 +202,10 @@ void FishingFightStarted(CFish &fish) {
     const float out = std::hypot(fight.anchor[0] - fight.angler[0], fight.anchor[2] - fight.angler[1]);
     const float line = FightLineLength();
     float       dx = fight.anchor[0] - rod_top[0], dy = fight.anchor[1] - rod_top[1], dz = fight.anchor[2] - rod_top[2];
-    LogFight("start", std::format("\"kind\":{},\"size\":{},\"strength\":{:.2f},\"out\":{:.0f},\"line\":{:.1f},"
-                                  "\"from_rod\":{:.1f},\"side\":\"{}\",\"run\":{}",
-                                  fish.fish_kind, static_cast<int>(fish.size * 10.0f), fight.strength, out, line,
-                                  std::sqrt(dx * dx + dy * dy + dz * dz), SideName(fight.side), fight.run));
+    LogFight("start", std::format("\"kind\":{},\"size\":{},\"strength\":{:.2f},\"out\":{:.0f},\"line\":{:.1f},\"reach\":{:.1f},"
+                                  "\"from_rod\":{:.1f},\"across\":{:.1f},\"side\":\"{}\",\"run\":{}",
+                                  fish.fish_kind, static_cast<int>(fish.size * 10.0f), fight.strength, out, line, line * kLineReach,
+                                  std::sqrt(dx * dx + dy * dy + dz * dz), std::hypot(dx, dz), SideName(fight.side), fight.run));
 }
 
 FightStep FishingFightStep(CCharacter &angler, float *facing) {
@@ -281,22 +281,43 @@ float FishFightSwim(CFish &fish) {
     return kFightPace;
 }
 
-void FishFightHold(CFish &fish, CCPoly *polys, int count) {
-    if (&fish != fight.fish) {
+void FishFightHold(CFish &fish, const float *start, CCPoly *polys, int count) {
+    if (&fish != fight.fish || fish.action != FISH_ACTION_BATTLE) {
         return;
     }
     sceVu0FVECTOR position;
     fish.GetPosition(position);
     sceVu0FVECTOR held;
     sceVu0CopyVector(held, position);
-    if (!FightLineHold(held, rod_top, FightLineLength())) {
+    const float reach = FightLineLength() * kLineReach;
+    if (!FightLineHold(held, rod_top, reach)) {
         return;
     }
-    // Drawn in toward the rod, unless a wall is in the way: then it stays where its collision left it.
+    // Drawn in toward the rod; against a bank, slid along it as far in as the pull goes.
     sceVu0FVECTOR hit;
-    if (polys == nullptr || CheckHit(polys, count, position, held, hit, 0, 0) < 0) {
-        fish.SetPosition(held);
+    const int     wall = polys == nullptr ? -1 : CheckHit(polys, count, position, held, hit, 0, 0);
+    if (wall >= 0) {
+        float pull[2] = {held[0] - position[0], held[2] - position[2]};
+        float normal[2] = {polys[wall].normal[0], polys[wall].normal[2]};
+        float length = std::hypot(normal[0], normal[1]);
+        sceVu0CopyVector(held, position);
+        if (length > 0.0f) {
+            normal[0] /= length;
+            normal[1] /= length;
+            float into = pull[0] * normal[0] + pull[1] * normal[1];
+            held[0] += pull[0] - into * normal[0];
+            held[2] += pull[1] - into * normal[1];
+            if (CheckHit(polys, count, position, held, hit, 0, 0) >= 0) {
+                sceVu0CopyVector(held, position);
+            }
+        }
     }
+    // Still past the line's reach, it ends the step no farther from the rod than it started it.
+    auto from_rod = [](const float *at) { return std::hypot(at[0] - rod_top[0], at[2] - rod_top[2]); };
+    if (from_rod(held) > reach && from_rod(start) < from_rod(held)) {
+        std::copy_n(start, 3, held);
+    }
+    fish.SetPosition(held);
 }
 
 void DrawFishingFight() {

@@ -38,9 +38,10 @@ inline constexpr float kRunWidth = 20.0f, kRunSpeed = 0.35f;
 inline constexpr float kFightPace = 2.0f;
 
 // The fish swims away from the angler: its heading stays within kCone (60 degrees) either side of the way from him to
-// it. The line holds it across the ground to the line's length from the rod tip, whatever their heights, so at the
-// line's end swimming away slides it along that reach.
-inline constexpr float kCone = 1.0471976f;
+// it. The line holds it across the ground to kLineReach times the line's length from the rod tip, whatever their
+// heights (the line as long again as half its own length, for the fight to have room), so at that reach swimming away
+// slides it along it.
+inline constexpr float kCone = 1.0471976f, kLineReach = 1.5f;
 
 // The line's length from the rod tip to the hook, as it is now: its segments' lengths (distp as the spot sets it and the
 // cast paid it out, the spot's hang under the float).
@@ -86,14 +87,15 @@ enum class FightStep {
 // stick read only while a fight goes on (stick_x and stick_y: as read), which turns the angler as the stick does while
 // waiting for a bite and, for a fish that got away, sends it off (BattleFish cleared) with its close-up model's read
 // dropped; CFish::Step on a fish in FISH_ACTION_BATTLE, which steers the fought fish on its run and returns the pace its
-// turn and speed steps take (kFightPace for the fought fish, 1 for any other), and once it has moved (after its
-// collision against count polys), which holds the fought fish to the line's end unless a wall is in the way; and the
-// town's 2D drawing, the bar while fighting.
+// turn and speed steps take (kFightPace for the fought fish, 1 for any other), and once it has moved from start (after
+// its collision against count polys), which draws the fought fish back to the line's reach, sliding along a bank in the
+// way, and failing that ends its step no farther from the rod than it started; and the town's 2D drawing, the bar while
+// fighting.
 void      FishingFightStarted(dc::game::CFish &fish);
 FightStep FishingFightStep(dc::game::CCharacter &angler, float *facing);
 FightStep FishingFightStep(dc::game::CCharacter &angler, float *facing, float stick_x, float stick_y);
 float     FishFightSwim(dc::game::CFish &fish);
-void      FishFightHold(dc::game::CFish &fish, dc::game::CCPoly *polys, int count);
+void      FishFightHold(dc::game::CFish &fish, const float *start, dc::game::CCPoly *polys, int count);
 void      DrawFishingFight();
 
 // The fight's bar (0 to 1) and the side its fish runs to, while one goes on (side 0 for none).

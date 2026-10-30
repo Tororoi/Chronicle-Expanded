@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <memory>
 
 #include "camera.hpp"
 #include "character.hpp"
+#include "collision.hpp"
 #include "editloop.hpp"
 #include "expanded/town/fish_kinds.hpp"
 #include "expanded/town/fishing_fight.hpp"
@@ -263,7 +265,7 @@ TEST_F(FishingFight, TheFishThrashesAboutItsRunsHeading) {
 }
 
 TEST_F(FishingFight, TheLineHoldsTheFishToItsEnd) {
-    // The line, 23 segments of distp from the rod tip, holds the fish to its length across the ground.
+    // The line, 23 segments of distp from the rod tip, holds the fish to kLineReach times its length across the ground.
     const float saved_distp = distp;
     float       saved_rod[4];
     std::copy_n(rod_top, 4, saved_rod);
@@ -273,25 +275,80 @@ TEST_F(FishingFight, TheLineHoldsTheFishToItsEnd) {
     EXPECT_FLOAT_EQ(expanded::FightLineLength(), 23 * 1.5f);
     Strike();
     CFish &fish = fish_[kHooked];
-    float  far[4] = {30.0f, -12.0f, 40.0f, 1.0f};
+    float  far[4] = {45.0f, -12.0f, 60.0f, 1.0f};
     fish.SetPosition(far);
-    expanded::FishFightHold(fish, nullptr, 0);
+    expanded::FishFightHold(fish, far, nullptr, 0);
     float held[4] = {};
     fish.GetPosition(held);
-    EXPECT_NEAR(std::hypot(held[0], held[2]), 23 * 1.5f, 1e-3f);
-    EXPECT_NEAR(std::atan2(held[0], held[2]), std::atan2(30.0f, 40.0f), 1e-5f);
+    EXPECT_NEAR(std::hypot(held[0], held[2]), 23 * 1.5f * expanded::kLineReach, 1e-3f);
+    EXPECT_NEAR(std::atan2(held[0], held[2]), std::atan2(45.0f, 60.0f), 1e-5f);
     EXPECT_FLOAT_EQ(held[1], -12.0f);
     // Within it, it is left alone; so is another fish.
     float near[4] = {5.0f, -12.0f, 20.0f, 1.0f};
     fish.SetPosition(near);
-    expanded::FishFightHold(fish, nullptr, 0);
+    expanded::FishFightHold(fish, near, nullptr, 0);
     fish.GetPosition(held);
     EXPECT_FLOAT_EQ(held[0], 5.0f);
     EXPECT_FLOAT_EQ(held[2], 20.0f);
     fish_[0].SetPosition(far);
-    expanded::FishFightHold(fish_[0], nullptr, 0);
+    expanded::FishFightHold(fish_[0], far, nullptr, 0);
     fish_[0].GetPosition(held);
-    EXPECT_FLOAT_EQ(held[0], 30.0f);
+    EXPECT_FLOAT_EQ(held[0], 45.0f);
+    distp = saved_distp;
+    std::copy_n(saved_rod, 4, rod_top);
+}
+
+// A wall triangle through a, b and c, facing normal.
+CCPoly Wall(std::array<float, 3> a, std::array<float, 3> b, std::array<float, 3> c, std::array<float, 3> normal) {
+    CCPoly                              poly{};
+    std::array<std::array<float, 3>, 3> corners{a, b, c};
+    for (int i = 0; i < 3; i++) {
+        std::copy_n(corners[i].data(), 3, poly.vertex[i]);
+        poly.vertex[i][3] = 1.0f;
+    }
+    std::copy_n(normal.data(), 3, poly.normal);
+    return poly;
+}
+
+TEST_F(FishingFight, ABankInTheWayHoldsTheFishAsWellAsItCan) {
+    // The line (23 segments of 1, 23) from a rod tip over the angler reaches 34.5; the fish past it at 40.
+    const float saved_distp = distp;
+    float       saved_rod[4];
+    std::copy_n(rod_top, 4, saved_rod);
+    distp = 1.0f;
+    ASSERT_FLOAT_EQ(expanded::FightLineLength() * expanded::kLineReach, 34.5f);
+    const float rod[4] = {0.0f, 10.0f, 0.0f, 1.0f};
+    std::copy_n(rod, 4, rod_top);
+    Strike();
+    CFish &fish = fish_[kHooked];
+    float  out[4] = {0.0f, -12.0f, 40.0f, 1.0f};
+    float  held[4] = {};
+
+    // A bank square across the pull at z 38: no way in, so it ends its step where it started, nearer the rod.
+    CCPoly across = Wall({-100.0f, -100.0f, 38.0f}, {100.0f, -100.0f, 38.0f}, {0.0f, 100.0f, 38.0f}, {0.0f, 0.0f, 1.0f});
+    float  start[4] = {0.0f, -12.0f, 39.5f, 1.0f};
+    fish.SetPosition(out);
+    expanded::FishFightHold(fish, start, &across, 1);
+    fish.GetPosition(held);
+    EXPECT_FLOAT_EQ(held[0], 0.0f);
+    EXPECT_FLOAT_EQ(held[2], 39.5f);
+    // Started farther out, it stays where its swim left it, still on its side of the bank.
+    float farther[4] = {0.0f, -12.0f, 41.0f, 1.0f};
+    fish.SetPosition(out);
+    expanded::FishFightHold(fish, farther, &across, 1);
+    fish.GetPosition(held);
+    EXPECT_FLOAT_EQ(held[2], 40.0f);
+
+    // A bank at a slant (x + z = 38): it slides along it, nearer the rod, without crossing it.
+    const float slant = 1.0f / std::sqrt(2.0f);
+    CCPoly      sloped = Wall({-62.0f, -100.0f, 100.0f}, {138.0f, -100.0f, -100.0f}, {38.0f, 100.0f, 0.0f}, {slant, 0.0f, slant});
+    fish.SetPosition(out);
+    expanded::FishFightHold(fish, farther, &sloped, 1);
+    fish.GetPosition(held);
+    EXPECT_LT(std::hypot(held[0], held[2]), 40.0f);
+    EXPECT_GE(held[0] + held[2], 38.0f);
+    EXPECT_GT(held[0], 0.0f);
+
     distp = saved_distp;
     std::copy_n(saved_rod, 4, rod_top);
 }

@@ -342,6 +342,10 @@ void CFish::Step() {
 
     GetPosition(position);
     sceVu0AddVector(next_position, position, velocity);
+#ifdef CHRONICLE_EXPANDED
+    sceVu0FVECTOR step_start;
+    sceVu0CopyVector(step_start, position);
+#endif
 
     if (collision_polys != nullptr) {
         auto    nearby_polys = std::make_unique_for_overwrite<CCPoly[]>(kMaxNearbyPolys);
@@ -367,7 +371,7 @@ void CFish::Step() {
         CheckWidth(nearby_polys.get(), count, position, 2.0f * angle_model_scale, next_position, 0);
         SetPosition(next_position);
 #ifdef CHRONICLE_EXPANDED
-        expanded::FishFightHold(*this, nearby_polys.get(), count);
+        expanded::FishFightHold(*this, step_start, nearby_polys.get(), count);
 #endif
     }
 
