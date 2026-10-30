@@ -29,10 +29,33 @@ FishInfo Nonky() {
     return {.model_size = 25.5f, .min_size = 8.0f, .max_size = 19.0f, .min_fp = 8, .max_fp = 25, .food_affinity = {}};
 }
 
-// The stick pulling against a fish running to side, and left alone.
-constexpr float kBack = 0.8f, kAside = 0.8f;
+// How far the stick is pushed to pull.
+constexpr float kPush = 0.8f;
 
-// Six fish, the hooked one a usual-sized Nonky out from the angler, who stands at the origin facing +z; no camera.
+// An axis standing at axis (-1 to 1) as GetLXf and GetLYf read it: nothing within the dead band, the rest stretched.
+float AsRead(float axis) {
+    const float beyond = std::fabs(axis) - expanded::kAxisDead;
+    return beyond > 0.0f ? std::copysign(beyond / (1.0f - expanded::kAxisDead), axis) : 0.0f;
+}
+
+// A stick pushed push the way yaw across the water, with the camera looking camera_yaw, as read: x right, y down.
+std::array<float, 2> StickToward(float camera_yaw, float yaw, float push = kPush) {
+    return {AsRead(push * std::sin(camera_yaw - yaw)), AsRead(-push * std::cos(camera_yaw - yaw))};
+}
+
+// A stick pushed fully as near the way yaw as the dead band lets it read: an axis within 15 degrees of its own way
+// lies on it, one a little farther out just past the band.
+std::array<float, 2> StickNear(float camera_yaw, float yaw) {
+    auto axis = [](float along) {
+        const float size = std::fabs(along);
+        const float least = expanded::kAxisDead + 0.01f;
+        return size < std::sin(PI / 12.0f) ? 0.0f : std::copysign(std::max(size, least), along);
+    };
+    return {AsRead(axis(std::sin(camera_yaw - yaw))), AsRead(axis(-std::cos(camera_yaw - yaw)))};
+}
+
+// Six fish, the hooked one a usual-sized Nonky out from the angler, who stands at the origin facing +z, the float just
+// short of it; no camera.
 class FishingFight : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -51,6 +74,9 @@ protected:
             fish_[i].SetPosition(position);
         }
         fish_[kHooked].action = FISH_ACTION_BITE_HOOK;
+        std::copy_n(point[kFloat], 4, saved_float_);
+        const float bob[4] = {0.0f, 0.0f, 36.0f, 1.0f};
+        std::copy_n(bob, 4, point[kFloat]);
     }
 
     void TearDown() override {
@@ -59,6 +85,7 @@ protected:
         BattleFish = saved_battle_;
         NowCamera = saved_camera_;
         DebugMode = saved_debug_;
+        std::copy_n(saved_float_, 4, point[kFloat]);
     }
 
     void Strike() { FishingBattleFish(kHooked); }
@@ -66,8 +93,23 @@ protected:
     // A frame of the fight with the stick at (x, y).
     FightStep Step(float x, float y) { return expanded::FishingFightStep(angler_, facing_, x, y); }
 
-    // A frame pulling against the fish's run.
-    FightStep Pull() { return Step(-static_cast<float>(expanded::FishingFightSide()) * kAside, kBack); }
+    // The way the camera looks: with none, the way the angler faces.
+    float CameraYaw() {
+        if (NowCamera == nullptr) {
+            return angler_.GetRotation()->y;
+        }
+        float eye[4];
+        float look[4];
+        NowCamera->GetPos(eye);
+        NowCamera->GetRef(look);
+        return std::atan2(look[0] - eye[0], look[2] - eye[2]);
+    }
+
+    // A frame pulling the way to pull.
+    FightStep Pull() {
+        const auto stick = StickNear(CameraYaw(), expanded::FishingFightTarget());
+        return Step(stick[0], stick[1]);
+    }
 
     // Frames of Pull until the fight ends (or limit); the frames it took.
     int PullUntilOver(FightStep &end, int limit = 2000) {
@@ -89,6 +131,9 @@ protected:
     CFish                   *saved_battle_ = BattleFish;
     CCamera                 *saved_camera_ = NowCamera;
     s32                      saved_debug_ = DebugMode;
+    float                    saved_float_[4] = {};
+
+    static constexpr int kFloat = 18; // the line's point the float rides
 };
 
 TEST(FishingFightRules, StrengthIsTheSizeOverTheUsualAndAGarayanOneMore) {
@@ -134,15 +179,128 @@ TEST(FishingFightRules, TheLineHoldsTheFishAcrossTheGround) {
     EXPECT_FALSE(expanded::FightLineHold(at, rod, 41.0f));
 }
 
-TEST(FishingFightRules, OnlyBackAndAwayFromTheFishPulls) {
-    // Down is positive: the stick pulled back toward the player.
-    EXPECT_TRUE(expanded::FightPulls(0.8f, 0.8f, -1));   // running left: down and right
-    EXPECT_TRUE(expanded::FightPulls(-0.8f, 0.8f, 1));   // running right: down and left
-    EXPECT_FALSE(expanded::FightPulls(-0.8f, 0.8f, -1)); // toward the fish
-    EXPECT_FALSE(expanded::FightPulls(0.8f, -0.8f, -1)); // pushed forward
-    EXPECT_FALSE(expanded::FightPulls(0.0f, 1.0f, -1));  // straight back
-    EXPECT_FALSE(expanded::FightPulls(1.0f, 0.0f, -1));  // straight aside
-    EXPECT_FALSE(expanded::FightPulls(0.0f, 0.0f, 1));   // let go
+TEST(FishingFightRules, TheStickPointsAcrossTheWaterAsTheScreenShowsIt) {
+    // Up into the screen, right to its right, down toward the camera: the camera's ahead is (sin, cos) of its yaw and
+    // its right (-cos, sin).
+    auto yaw = [](float camera, float x, float y) { return expanded::FightStickYaw(camera, x, y); };
+    auto same = [](float a, float b) { return std::fabs(std::remainder(a - b, 2.0f * PI)) < 1e-5f; };
+    // Behind the angler, looking +z (his way): up +z, right -x, down -z.
+    EXPECT_TRUE(same(yaw(0.0f, 0.0f, -1.0f), 0.0f));
+    EXPECT_TRUE(same(yaw(0.0f, 1.0f, 0.0f), -PI / 2.0f));
+    EXPECT_TRUE(same(yaw(0.0f, 0.0f, 1.0f), PI));
+    EXPECT_TRUE(same(yaw(0.0f, 0.7f, 0.7f), -3.0f * PI / 4.0f));
+    // Turned 90 degrees to look -x across him: up -x, right -z, down +x.
+    EXPECT_TRUE(same(yaw(-PI / 2.0f, 0.0f, -1.0f), -PI / 2.0f));
+    EXPECT_TRUE(same(yaw(-PI / 2.0f, 1.0f, 0.0f), PI));
+    EXPECT_TRUE(same(yaw(-PI / 2.0f, 0.0f, 1.0f), PI / 2.0f));
+    // Turned the other way, looking +x: right +z.
+    EXPECT_TRUE(same(yaw(PI / 2.0f, 1.0f, 0.0f), 0.0f));
+    // Facing him from out on the water, looking -z: up -z (toward him), right +x.
+    EXPECT_TRUE(same(yaw(PI, 0.0f, -1.0f), PI));
+    EXPECT_TRUE(same(yaw(PI, 1.0f, 0.0f), PI / 2.0f));
+    // A stick read with the stretch undone points its own way, on an axis or with both outside the dead band.
+    for (float camera : {0.0f, 1.0f, -2.5f}) {
+        for (float off : {0.0f, PI / 4.0f, 2.0f, -0.9f, PI}) {
+            const float way = camera - off;
+            const auto  stick = StickToward(camera, way, 1.0f);
+            EXPECT_TRUE(same(yaw(camera, expanded::FightStickAxis(stick[0]), expanded::FightStickAxis(stick[1])), way))
+                << camera << " " << way;
+        }
+    }
+}
+
+TEST(FishingFightRules, TheSticksStretchIsUndone) {
+    EXPECT_FLOAT_EQ(expanded::FightStickAxis(0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(expanded::FightStickAxis(1.0f), 1.0f);
+    EXPECT_FLOAT_EQ(expanded::FightStickAxis(-1.0f), -1.0f);
+    for (float axis : {0.4f, 0.5f, 0.75f, -0.6f}) {
+        EXPECT_NEAR(expanded::FightStickAxis(AsRead(axis)), axis, 1e-5f) << axis;
+    }
+    // Pushed full 30 degrees off down: read 13 degrees off it, 30 again undone.
+    const float x = AsRead(std::sin(PI / 6.0f)), y = AsRead(std::cos(PI / 6.0f));
+    EXPECT_NEAR(std::atan2(x, y) * 180.0f / PI, 13.0f, 0.5f);
+    EXPECT_NEAR(std::atan2(expanded::FightStickAxis(x), expanded::FightStickAxis(y)) * 180.0f / PI, 30.0f, 1e-3f);
+}
+
+TEST(FishingFightRules, TheWayToPullIsAgainstTheFishInsideTheCone) {
+    // The gauge's middle -z (pi): the float out along +z from the angler.
+    auto off = [](float way) { return std::remainder(way - PI, 2.0f * PI); };
+    // A fish swimming straight away (+z): pull straight back.
+    EXPECT_NEAR(off(expanded::FightTargetYaw(PI, 0.0f)), 0.0f, 1e-5f);
+    // Swimming away and to +x: pull back and to -x, the yaw's way up from -z.
+    EXPECT_NEAR(off(expanded::FightTargetYaw(PI, 0.5f)), 0.5f, 1e-5f);
+    EXPECT_NEAR(off(expanded::FightTargetYaw(PI, -0.5f)), -0.5f, 1e-5f);
+    // Square across or toward the angler: held at the cone's edge.
+    EXPECT_NEAR(off(expanded::FightTargetYaw(PI, PI / 2.0f)), expanded::kCone, 1e-5f);
+    EXPECT_NEAR(off(expanded::FightTargetYaw(PI, -2.5f)), -expanded::kCone, 1e-5f);
+    // The middle anywhere round the circle.
+    EXPECT_NEAR(std::remainder(expanded::FightTargetYaw(1.0f, 1.0f + PI + 0.3f) - 1.3f, 2.0f * PI), 0.0f, 1e-5f);
+}
+
+TEST(FishingFightRules, TheWayToPullEasesAndSlides) {
+    const float ease = expanded::kTargetEase;
+    EXPECT_FLOAT_EQ(expanded::FightEaseTarget(0.0f, 0.2f), 0.2f * ease);
+    EXPECT_FLOAT_EQ(expanded::FightEaseTarget(0.5f, 0.5f), 0.5f);
+    // A far turn (the fish switching sides) slides at kTargetTurn a frame.
+    EXPECT_FLOAT_EQ(expanded::FightEaseTarget(0.0f, 1.5f), expanded::kTargetTurn);
+    EXPECT_FLOAT_EQ(expanded::FightEaseTarget(0.0f, -1.5f), -expanded::kTargetTurn);
+    // The short way round the circle: from 3 toward -3 is up past pi.
+    const float eased = expanded::FightEaseTarget(3.0f, -3.0f);
+    EXPECT_NEAR(std::remainder(eased - 3.0f, 2.0f * PI), ease * (2.0f * PI - 6.0f), 1e-5f);
+    // A thrash either side of a heading averages out: the way settles near it.
+    float way = 0.0f;
+    for (int i = 0; i < 300; i++) {
+        way = expanded::FightEaseTarget(way, 0.6f + (i % 2 == 0 ? 0.3f : -0.3f));
+    }
+    EXPECT_NEAR(way, 0.6f, 0.05f);
+}
+
+TEST(FishingFightRules, OnlyAPushWithinTheToleranceOfTheWayPulls) {
+    // The camera behind the angler, the way to pull straight back to him: the stick down.
+    const float tolerance = expanded::kPullTolerance;
+    auto        pulls = [&](float way, float target) {
+        const auto stick = StickToward(0.0f, way, 1.0f);
+        return expanded::FightPulls(stick[0], stick[1], 0.0f, target);
+    };
+    EXPECT_TRUE(pulls(PI, PI));
+    EXPECT_FALSE(pulls(0.0f, PI)); // pushed forward
+    // Down and to the side (both axes clear of the dead band through the tolerance either side).
+    const float slant = 3.0f * PI / 4.0f;
+    EXPECT_TRUE(pulls(slant, slant));
+    EXPECT_TRUE(pulls(slant + tolerance - 0.01f, slant));
+    EXPECT_TRUE(pulls(slant - tolerance + 0.01f, slant));
+    EXPECT_FALSE(pulls(slant + tolerance + 0.01f, slant));
+    EXPECT_FALSE(pulls(slant - tolerance - 0.01f, slant));
+    EXPECT_FALSE(expanded::FightPulls(0.0f, expanded::kPullBack - 0.01f, 0.0f, PI)); // not far enough (as read)
+    EXPECT_TRUE(expanded::FightPulls(0.0f, expanded::kPullBack + 0.01f, 0.0f, PI));
+    EXPECT_FALSE(expanded::FightPulls(0.0f, 0.0f, 0.0f, PI)); // let go
+    // Down and right is down and right of the screen whichever way the camera looks: for a way to pull of -3/4 pi
+    // (-x and -z), looking +z it is down and right; looking +x, down and left.
+    EXPECT_TRUE(expanded::FightPulls(0.6f, 0.6f, 0.0f, -3.0f * PI / 4.0f));
+    EXPECT_FALSE(expanded::FightPulls(0.6f, 0.6f, PI / 2.0f, -3.0f * PI / 4.0f));
+    EXPECT_TRUE(expanded::FightPulls(-0.6f, 0.6f, PI / 2.0f, -3.0f * PI / 4.0f));
+    // A way 30 degrees off down, pushed there, pulls though the game reads the push 13 degrees off down.
+    const auto off_down = StickToward(0.0f, PI - PI / 6.0f);
+    EXPECT_TRUE(expanded::FightPulls(off_down[0], off_down[1], 0.0f, PI - PI / 6.0f));
+    EXPECT_FALSE(expanded::FightPulls(off_down[0], off_down[1], 0.0f, PI + PI / 9.0f));
+}
+
+TEST(FishingFightRules, TheGaugeLiesFlatOnTheWater) {
+    const float centre[4] = {10.0f, -2.0f, 40.0f, 1.0f};
+    float       point[4] = {};
+    // Its middle points back to the angler (-z): radius out that way, at the centre's height.
+    expanded::FightGaugePoint(centre, PI, 0.0f, 7.0f, point);
+    EXPECT_NEAR(point[0], 10.0f, 1e-5f);
+    EXPECT_FLOAT_EQ(point[1], -2.0f);
+    EXPECT_NEAR(point[2], 33.0f, 1e-5f);
+    EXPECT_FLOAT_EQ(point[3], 1.0f);
+    // Its ends, kCone either side.
+    expanded::FightGaugePoint(centre, PI, expanded::kCone, 7.0f, point);
+    EXPECT_NEAR(point[0], 10.0f - 7.0f * std::sin(expanded::kCone), 1e-4f);
+    EXPECT_NEAR(point[2], 40.0f - 7.0f * std::cos(expanded::kCone), 1e-4f);
+    expanded::FightGaugePoint(centre, PI, -expanded::kCone, 9.0f, point);
+    EXPECT_NEAR(point[0], 10.0f + 9.0f * std::sin(expanded::kCone), 1e-4f);
+    EXPECT_NEAR(std::hypot(point[0] - 10.0f, point[2] - 40.0f), 9.0f, 1e-4f);
 }
 
 TEST_F(FishingFight, AStruckFishIsFoughtFromAThirdOfTheBar) {
@@ -150,6 +308,52 @@ TEST_F(FishingFight, AStruckFishIsFoughtFromAThirdOfTheBar) {
     EXPECT_EQ(BattleFish, &fish_[kHooked]);
     EXPECT_FLOAT_EQ(expanded::FishingFightBar(), expanded::kStartBar);
     EXPECT_NE(expanded::FishingFightSide(), 0);
+}
+
+TEST_F(FishingFight, TheWayToPullStartsBackToTheAnglerAndFollowsTheFish) {
+    // The way to pull starts as the gauge's middle, from the float to the angler (-z).
+    Strike();
+    EXPECT_NEAR(std::fabs(expanded::FishingFightTarget()), PI, 1e-5f);
+    // The fish swimming away and to +x: the way eases round toward pulling back and to -x (the yaw's way up from -z),
+    // never past the cone.
+    float heading[4] = {0.0f, 0.8f, 0.0f, 0.0f};
+    fish_[kHooked].SetRotation(heading);
+    float previous = 0.0f;
+    for (int i = 0; i < 60; i++) {
+        Pull();
+        const float way = std::remainder(expanded::FishingFightTarget() - PI, 2.0f * PI);
+        EXPECT_GE(way, previous - 1e-5f);
+        EXPECT_LE(way, 0.8f + 1e-5f);
+        previous = way;
+    }
+    EXPECT_NEAR(previous, 0.8f, 0.01f);
+    // Swimming square across to -x: held at the cone's far edge.
+    heading[1] = -PI / 2.0f;
+    fish_[kHooked].SetRotation(heading);
+    for (int i = 0; i < 120; i++) {
+        Pull();
+    }
+    EXPECT_NEAR(std::remainder(expanded::FishingFightTarget() - PI, 2.0f * PI), -expanded::kCone, 0.01f);
+}
+
+TEST_F(FishingFight, TheStickFollowsTheScreenWithTheCameraTurned) {
+    // The camera 90 degrees round, looking +x across the line (the screen's right +z): the pull back to the angler
+    // (-z) is the screen's left, so the stick pulls left, not down.
+    CCamera camera(1.0f);
+    float   eye[4] = {-30.0f, 20.0f, 20.0f, 1.0f};
+    camera.SetPos(eye);
+    camera.SetRef(0.0f, 0.0f, 20.0f);
+    NowCamera = &camera;
+    Strike();
+    for (int i = 0; i < expanded::kStartGrace; i++) {
+        Step(0.0f, kPush);
+    }
+    Step(0.0f, kPush);
+    EXPECT_LT(expanded::FishingFightBar(), expanded::kStartBar);
+    const float down = expanded::FishingFightBar();
+    Step(-kPush, 0.0f);
+    EXPECT_GT(expanded::FishingFightBar(), down);
+    NowCamera = nullptr;
 }
 
 TEST_F(FishingFight, PullingLandsTheFish) {

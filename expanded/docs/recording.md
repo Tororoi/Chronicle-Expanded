@@ -152,10 +152,15 @@ The Nonky (125 cm, 15 FP) is caught at frame 1260 and the rod is ready again at 
 so a strike that comes too late in one comes too late in all: time it from the dry run's `hooked`.
 
 With the Fishing Fights option on (the Expanded page, on by default), a struck fish is fought before it is landed: the
-script plays the left stick back and away from the side the fish runs to (`lx ly rx ry`: `30 230 128 128` while it runs
-right, `226 230 128 128` while it runs left), timed from the dry run's `fishing_fight` events, whose `start` and each
-`switch` name the side it runs to. The fight's rolls are the game's own, so a run that strikes at the same frame meets
-the same switches; the script above, which leaves the stick alone, loses its fish. `"expanded": {"fishing_fights":
+script points the left stick, as the screen shows the water, at the mark on the gauge (`lx ly rx ry`: `128 230 128 128`
+for straight down, `30 230 128 128` down and left), timed from a dry run's `fishing_fight` events. The mark is the way
+to pull, against the way the fish swims, and each `switch`, `landed` and `got_away` gives it as `target` in screen
+degrees (0 up, 90 right, 180 down, -90 left) with the stick's own `stick`; after a switch it slides to the gauge's other
+side at up to 1.5 degrees a frame. A stick angle a is `128 + 127 sin a` across and `128 - 127 cos a` down; the game
+reads nothing within 50 of 128 on either axis, so an axis is either 128 or at least 50 from it. The fight's rolls are
+the game's own and the stick does not steer the fish, so a run that strikes at the same frame meets the same switches;
+the script above, which leaves the stick alone, loses its fish. The right stick turns the camera, and the stick's
+screen directions turn with it. `"expanded": {"fishing_fights":
 false}` in the save copy's `config.json` lands every struck fish as the original game does.
 
 ## Event log
@@ -172,7 +177,7 @@ false}` in the save copy's `config.json` lands every struck fish as the original
 | `character` | `chara`, the member out, as it changes |
 | `stage` | `step`: `out`, `walked`, `placed`, `circle`; in a town `town` (in play), `at_sign` and `bait` (`item`, on the hook) |
 | `fishing` | `step`: `start` (fishing, with its `bait`, -1 for none), `ready` (the rod ready to cast again), `cast`, `float` (in the water), `reeled` (in again), each with the `bait`; `bite` (a nibble), `let_go`, `hooked`, `escaped` (unstruck), `missed` (struck in a nibble), `fight` (struck when hooked), `got_away` (lost in a fight) and `landed`, each with the `fish` (0-5) and its `kind`, `bite` and `hooked` also with its `affinity` for the bait (0-1, as its roll saw it: the game's `food_affinity`, as the weapons change it); `caught` (`kind`, `size` in cm, `points`, the `total` FP); `bait` (`bait`, put on), `bait_lost` (`bait`); `quit` |
-| `fishing_fight` | `step`: `start` (the fish's `kind`, `size` in cm as `caught` gives it, `strength` 0-2, `out`, its distance from the angler, the `line`'s length from the rod tip to the hook, the `reach` (twice it) the line holds it to across the ground, and its distance `from_rod` (the rod tip) and `across` the ground from it, the `side` it runs to first, `left` or `right` as the screen shows it, and that `run`'s frames), `switch` (`side`, `run`), `landed` (the bar full) and `got_away` (the bar empty), each with the fight's `frames` so far and its `bar` (0-1) |
+| `fishing_fight` | `step`: `start` (the fish's `kind`, `size` in cm as `caught` gives it, `strength` 0-2, `out`, its distance from the angler, the `line`'s length from the rod tip to the hook, the `reach` (twice it) the line holds it to across the ground, and its distance `from_rod` (the rod tip) and `across` the ground from it, the `side` it runs to first, `left` or `right` as the screen shows it, and that `run`'s frames), `switch` (`side`, `run`, and the frames of the run just ended that `pulled`), `landed` (the bar full) and `got_away` (the bar empty), each with the fight's `frames` so far and its `bar` (0-1), and all but `start` with the way to pull, `target`, and the stick's last way, `stick`, in screen degrees (0 up, 90 right, 180 down, -90 left), and how far the stick is pushed, `push` (as the game reads it) |
 | `damage` | `monster`, `kind`, `amount`, `life` left, for a weapon's hit, and the hit's `owner` (the member) and `attack` (which of theirs) |
 | `kill` | `monster`, `kind`, `by` (the member the kill is credited to; the ABS goes to their weapon when they are out) |
 | `steal` | `monster`, `kind`, `item`, and `steals`, the times that monster has been robbed, as a hit steals its item |

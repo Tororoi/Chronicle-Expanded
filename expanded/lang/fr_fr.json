@@ -33,7 +33,7 @@
     "options.expanded.weapon_abilities.choice.0": "Activé",
     "options.expanded.weapon_abilities.choice.1": "Désactivé",
     "options.expanded.fishing_fights.label": "Combats de pêche",
-    "options.expanded.fishing_fights.help": "\"Combats de pêche\"\nLe poisson ferré fuit :\ntirez le stick en\narrière, à l'opposé.\nSinon, il est pris.",
+    "options.expanded.fishing_fights.help": "\"Combats de pêche\"\nLe poisson ferré fuit :\npointez le stick sur\nla marque de la jauge.\nSinon, il est pris.",
     "options.expanded.fishing_fights.choice.0": "Activé",
     "options.expanded.fishing_fights.choice.1": "Désactivé",
     "dun.message.ww_mes.dunmsd00.3320": "Gemrond bombe",
