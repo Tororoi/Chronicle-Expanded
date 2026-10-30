@@ -23,9 +23,6 @@ inline constexpr int kEastHarbor = 3;
 // The bait Expanded names: its index in esa_info (CFish's food_kind).
 inline constexpr int kMellowBanana = 7;
 
-// The line's point the float rides (FishLineGetUki): segments 1 to kFloatPoint run from the rod tip to it.
-inline constexpr int kFloatPoint = 18;
-
 // The kind of fish FishingLoadFish loads in a spot's slot: kind, the game's roll (-1 for none), as the weapons change it;
 // rare_interval is the slot's one-in-n chance of a Garayan for the time of day.
 int FishKind(int kind, int rare_interval);

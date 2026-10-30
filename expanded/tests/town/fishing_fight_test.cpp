@@ -120,18 +120,16 @@ TEST(FishingFightRules, TheConeKeepsTheFishSwimmingAway) {
     EXPECT_NEAR(expanded::FightConeYaw(3.0f, 0.5f), 3.0f - cone, 1e-5f);
 }
 
-TEST(FishingFightRules, TheLineHoldsTheFishWithinItsReachAtTheWater) {
-    // 50 of reach from a rod 30 over the water leaves 40 across the ground, however deep the fish.
-    const float rod[3] = {10.0f, 30.0f, 10.0f};
+TEST(FishingFightRules, TheLineHoldsTheFishAcrossTheGround) {
+    // 40 of reach holds the fish 40 across the ground from the rod, however high the rod and deep the fish.
+    const float rod[3] = {10.0f, 60.0f, 10.0f};
     float       at[3] = {10.0f, -12.0f, 70.0f};
-    EXPECT_TRUE(expanded::FightLineHold(at, rod, 50.0f, 0.0f));
+    EXPECT_TRUE(expanded::FightLineHold(at, rod, 40.0f));
     EXPECT_FLOAT_EQ(at[0], 10.0f);
     EXPECT_FLOAT_EQ(at[1], -12.0f);
     EXPECT_FLOAT_EQ(at[2], 50.0f);
-    EXPECT_FALSE(expanded::FightLineHold(at, rod, 50.0f, 0.0f));
-    EXPECT_FALSE(expanded::FightLineHold(at, rod, 51.0f, 0.0f));
-    // Water deeper under the rod than the reach: no hold.
-    EXPECT_FALSE(expanded::FightLineHold(at, rod, 50.0f, -30.0f));
+    EXPECT_FALSE(expanded::FightLineHold(at, rod, 40.0f));
+    EXPECT_FALSE(expanded::FightLineHold(at, rod, 41.0f));
 }
 
 TEST(FishingFightRules, OnlyBackAndAwayFromTheFishPulls) {
@@ -265,17 +263,14 @@ TEST_F(FishingFight, TheFishThrashesAboutItsRunsHeading) {
 }
 
 TEST_F(FishingFight, TheLineHoldsTheFishToItsEnd) {
-    // The line, 18 segments of distp from a rod tip 10 over the water to the float, holds the fish under the float's
-    // reach: 27 taut to the water, about 25.1 across it.
+    // The line, 23 segments of distp from the rod tip, holds the fish to its length across the ground.
     const float saved_distp = distp;
-    const float saved_water = WaterLevel;
-    WaterLevel = 0.0f;
     float       saved_rod[4];
     std::copy_n(rod_top, 4, saved_rod);
     distp = 1.5f;
     const float rod[4] = {0.0f, 10.0f, 0.0f, 1.0f};
     std::copy_n(rod, 4, rod_top);
-    EXPECT_FLOAT_EQ(expanded::FightLineToFloat(), 18 * 1.5f);
+    EXPECT_FLOAT_EQ(expanded::FightLineLength(), 23 * 1.5f);
     Strike();
     CFish &fish = fish_[kHooked];
     float  far[4] = {30.0f, -12.0f, 40.0f, 1.0f};
@@ -283,7 +278,7 @@ TEST_F(FishingFight, TheLineHoldsTheFishToItsEnd) {
     expanded::FishFightHold(fish, nullptr, 0);
     float held[4] = {};
     fish.GetPosition(held);
-    EXPECT_NEAR(std::hypot(held[0], held[2]), std::sqrt(27.0f * 27.0f - 10.0f * 10.0f), 1e-3f);
+    EXPECT_NEAR(std::hypot(held[0], held[2]), 23 * 1.5f, 1e-3f);
     EXPECT_NEAR(std::atan2(held[0], held[2]), std::atan2(30.0f, 40.0f), 1e-5f);
     EXPECT_FLOAT_EQ(held[1], -12.0f);
     // Within it, it is left alone; so is another fish.
@@ -298,7 +293,6 @@ TEST_F(FishingFight, TheLineHoldsTheFishToItsEnd) {
     fish_[0].GetPosition(held);
     EXPECT_FLOAT_EQ(held[0], 30.0f);
     distp = saved_distp;
-    WaterLevel = saved_water;
     std::copy_n(saved_rod, 4, rod_top);
 }
 
