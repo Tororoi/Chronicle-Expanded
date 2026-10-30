@@ -16,24 +16,29 @@ inline constexpr const char *kFishingModelFile = "chara/c01d_turi.chr";
 
 // The poses, each a KEY after the disc's sixteen holding one frame (keyed on it and the next, speed 0), on the next
 // multiple of ten after the motion's last keyed frame (370) and ten apart, in key order. Toan faces +Z, his left is +X.
-// - kFishingPullLeftKey, kFishingPullRightKey: KEY 12's pull at kFishingPullFrame (the rod in his right hand alone), the
-//   spine (jnt2_1) turned kFishingTurn degrees and leant kFishingLean degrees to that side, the neck (jnt11_1) turned
-//   kFishingHeadBack back, the rod (turizao) turned with the spine about the spine's joint, then leant kFishingRodLean
-//   more about the right hand.
+// The fight's pull, KEY 12 at kFishingPullFrame (the rod in his right hand alone), is the centre between the leans.
+// - kFishingPullLeftKey, kFishingPullRightKey: the pull, the spine turned kFishingTurn degrees and leant kFishingLean
+//   degrees to that side, the neck turned kFishingHeadBack back, the rod turned with the spine about the spine's joint,
+//   then leant kFishingRodLean more about the right wrist.
 // - kFishingRelaxedKey: the wait for a bite (KEY 5) at kFishingWaitFrame, the rod raised kFishingRodRaise degrees about
-//   the left hand's grip.
-// - kFishingTwoHandedPullKey, kFishingTwoHandedLeftKey, kFishingTwoHandedRightKey: the pull, and the pull leant left and
-//   right, with the left hand on the rod.
-// In every pose the right hand holds the rod where it does in the wait, and in the two-handed ones and the relaxed one
-// the left fist is closed round the rod's butt below it. Each arm (collarbone, shoulder, elbow, wrist: jnt16_1, jnt17_1,
-// jnt17_2, jnt18_1 and jnt8_1, jnt9_1, jnt9_2, jnt10_1) is bent to reach its grip, the elbow put where the wrist bends
-// as it does in the pose's own frame of the disc (the left as in the wait), the collarbone swung to let it. The shadow
-// motion takes the same turns on its own joints.
+//   the right wrist, the left arm (kFishingLeftArmRoot and under it) as in the pull.
+// In each the right hand holds the rod where the disc's motion keeps it, through the arm (arm_reach.hpp: the elbow put
+// where the wrist bends as in the pose's own frame of the disc, the collarbone swung to let it), and the rod's bend is
+// the pull's. The shadow motion takes the same turns on its own joints.
 inline constexpr int    kFishingPullLeftKey = 16, kFishingPullRightKey = 17, kFishingRelaxedKey = 18;
-inline constexpr int    kFishingTwoHandedPullKey = 19, kFishingTwoHandedLeftKey = 20, kFishingTwoHandedRightKey = 21;
 inline constexpr int    kFishingPullFrame = 360, kFishingWaitFrame = 219;
 inline constexpr double kFishingTurn = 25.0, kFishingLean = 12.0, kFishingHeadBack = 12.0, kFishingRodLean = 10.0;
-inline constexpr double kFishingRodRaise = 30.0;
+inline constexpr double kFishingRodRaise = 40.0;
+
+// The fishing model's frames the poses move: the spine, the neck, the rod (a frame of its own under the root, which the
+// motion keeps in the right hand), the right arm (collarbone, shoulder, elbow, wrist) and the left arm's first frame.
+struct FishingArm {
+    const char *collarbone, *shoulder, *elbow, *wrist;
+};
+
+inline constexpr const char *kFishingSpine = "jnt2_1", *kFishingNeck = "jnt11_1", *kFishingRod = "turizao";
+inline constexpr FishingArm  kFishingRightArm = {"jnt16_1", "jnt17_1", "jnt17_2", "jnt18_1"};
+inline constexpr const char *kFishingLeftArmRoot = "chn8";
 
 // The fishing model with the poses, from the disc's.
 Bytes BuildFishingPoses(std::span<const unsigned char> model);
