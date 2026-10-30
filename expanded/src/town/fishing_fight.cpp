@@ -64,14 +64,14 @@ struct Fight {
     sceVu0FVECTOR gauge = {};     // the gauge's centre: on the water, following the float
     float         angler[2] = {}; // where the angler stands (x, z)
     float         camera = 0.0f;  // the way the camera looks across the water (a yaw)
-    float         right[2] = {};  // the screen's right across the water (x, z): the side 1 runs to
+    float         right[2] = {};  // the angler's right across the water (x, z), as he looks at the fish: the side 1 runs to
     float         middle = 0.0f;  // the gauge's middle: the way from its centre to the angler
     float         target = 0.0f;  // the way to pull, as eased
     float         stick = 0.0f;   // the way the stick last pointed across the water
     float         push = 0.0f;    // how far it is pushed
     float         strength = 0.0f;
     float         bar = 0.0f;
-    int           side = 0;        // -1 the screen's left, 1 the right
+    int           side = 0;        // -1 the angler's left, 1 the right
     int           run = 0;         // the frames left of the run
     int           grace = 0;       // the frames left that the bar holds
     int           frames = 0;      // the fight's frames
@@ -90,8 +90,7 @@ void LogFight(std::string_view step, std::string_view fields = {}) {
     }
 }
 
-// The way the camera looks across the water (a yaw, as atan2(x, z)) and the screen's right square to it, or without a
-// camera, the way the angler faces and his right.
+// The way the camera looks across the water (a yaw, as atan2(x, z)), or without a camera, the way the angler faces.
 void Look() {
     if (NowCamera != nullptr) {
         sceVu0FVECTOR eye;
@@ -99,17 +98,12 @@ void Look() {
         NowCamera->GetPos(eye);
         NowCamera->GetRef(look);
         float ahead_x = look[0] - eye[0], ahead_z = look[2] - eye[2];
-        float length = std::hypot(ahead_x, ahead_z);
-        if (length > 0.0f) {
+        if (std::hypot(ahead_x, ahead_z) > 0.0f) {
             fight.camera = atan2f(ahead_x, ahead_z);
-            fight.right[0] = -ahead_z / length;
-            fight.right[1] = ahead_x / length;
             return;
         }
     }
     fight.camera = Chara != nullptr ? Chara->GetRotation()->y : 0.0f;
-    fight.right[0] = -std::cos(fight.camera);
-    fight.right[1] = std::sin(fight.camera);
 }
 
 // A yaw as the screen shows it, in degrees: 0 up (into the screen), 90 right, 180 down, -90 left.
@@ -292,6 +286,13 @@ void FishingFightStarted(CFish &fish) {
         fight.angler[0] = angler[0];
         fight.angler[1] = angler[2];
     }
+    // The runs go square to the way from the angler to where the fish was hooked (with the camera behind him, the
+    // screen's left and right), whichever way the camera turns after.
+    const float out_x = fight.anchor[0] - fight.angler[0], out_z = fight.anchor[2] - fight.angler[1];
+    const float out_length = std::hypot(out_x, out_z);
+    const float out_yaw = out_length > 0.0f ? atan2f(out_x, out_z) : fight.camera;
+    fight.right[0] = -std::cos(out_yaw);
+    fight.right[1] = std::sin(out_yaw);
     // The gauge starts on the float, the way to pull straight back to the angler.
     FishLineGetUki(fight.gauge);
     fight.gauge[1] = FishingGetWaterLevel();
@@ -372,8 +373,8 @@ float FishFightSwim(CFish &fish) {
     if (&fish != fight.fish) {
         return 1.0f;
     }
-    // The run's end, kRunWidth to the screen's side of where it was hooked: the fish heads for it as far as the cone
-    // lets it, so it goes the way the screen shows its side even where it can only slide along the line's arc.
+    // The run's end, kRunWidth to the angler's side of where it was hooked: the fish heads for it as far as the cone lets
+    // it, so it goes that way even where it can only slide along the line's arc.
     float         to_x = fight.anchor[0] + static_cast<float>(fight.side) * kRunWidth * fight.right[0];
     float         to_z = fight.anchor[2] + static_cast<float>(fight.side) * kRunWidth * fight.right[1];
     sceVu0FVECTOR here;
