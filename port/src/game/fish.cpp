@@ -16,6 +16,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/town/fishing.hpp"
+#include "expanded/town/fishing_fight.hpp"
 #endif
 
 namespace dc::game {
@@ -276,6 +277,11 @@ void CFish::Step() {
         target_speed = 0.5f;
         turn_step *= 2.0f;
         speed_step *= 2.0f;
+#ifdef CHRONICLE_EXPANDED
+        const float pace = expanded::FishFightSwim(*this);
+        turn_step *= pace;
+        speed_step *= pace;
+#endif
     }
 
     if (action == FISH_ACTION_LEAVE) {
@@ -336,6 +342,10 @@ void CFish::Step() {
 
     GetPosition(position);
     sceVu0AddVector(next_position, position, velocity);
+#ifdef CHRONICLE_EXPANDED
+    sceVu0FVECTOR step_start;
+    sceVu0CopyVector(step_start, position);
+#endif
 
     if (collision_polys != nullptr) {
         auto    nearby_polys = std::make_unique_for_overwrite<CCPoly[]>(kMaxNearbyPolys);
@@ -360,6 +370,9 @@ void CFish::Step() {
         GetPosition(position);
         CheckWidth(nearby_polys.get(), count, position, 2.0f * angle_model_scale, next_position, 0);
         SetPosition(next_position);
+#ifdef CHRONICLE_EXPANDED
+        expanded::FishFightHold(*this, step_start, nearby_polys.get(), count);
+#endif
     }
 
     if (move_mode == FISH_MOVE_ANGLE) {
