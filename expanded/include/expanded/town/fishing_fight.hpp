@@ -38,9 +38,9 @@ inline constexpr float kRunWidth = 20.0f, kRunSpeed = 0.35f;
 inline constexpr float kFightPace = 2.0f;
 
 // The fish swims away from the angler: its heading stays within kCone (60 degrees) either side of the way from him to
-// it. The line holds it to kLineStretch times the line's length from the rod tip, so at the line's end it pulls the
-// line taut and stretched and swimming away slides it along the line's reach.
-inline constexpr float kCone = 1.0471976f, kLineStretch = 1.1f;
+// it. The line holds it to the line's length from the rod tip, so at the line's end it pulls the line taut and swimming
+// away slides it along the line's reach.
+inline constexpr float kCone = 1.0471976f;
 
 // The line's length from the rod tip to the hook, as it is now: its segments' lengths (distp as the cast paid it out,
 // the spot's hang under the float).

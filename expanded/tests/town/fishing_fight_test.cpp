@@ -266,7 +266,7 @@ TEST_F(FishingFight, TheFishThrashesAboutItsRunsHeading) {
 }
 
 TEST_F(FishingFight, TheLineHoldsTheFishToItsEnd) {
-    // The line, 23 segments of distp from a rod tip 10 over the angler, holds the fish to kLineStretch of its length.
+    // The line, 23 segments of distp from a rod tip 10 over the angler, holds the fish to its length.
     const float saved_distp = distp;
     float       saved_rod[4];
     std::copy_n(rod_top, 4, saved_rod);
@@ -281,7 +281,7 @@ TEST_F(FishingFight, TheLineHoldsTheFishToItsEnd) {
     expanded::FishFightHold(fish, nullptr, 0);
     float held[4] = {};
     fish.GetPosition(held);
-    EXPECT_NEAR(std::hypot(std::hypot(held[0], held[2]), held[1] - 10.0f), 23 * 1.5f * expanded::kLineStretch, 1e-3f);
+    EXPECT_NEAR(std::hypot(std::hypot(held[0], held[2]), held[1] - 10.0f), 23 * 1.5f, 1e-3f);
     EXPECT_NEAR(std::atan2(held[0], held[2]), std::atan2(30.0f, 40.0f), 1e-5f);
     EXPECT_FLOAT_EQ(held[1], -12.0f);
     // Within it, it is left alone; so is another fish.

@@ -207,9 +207,9 @@ void FishingFightStarted(CFish &fish) {
     const float out = std::hypot(fight.anchor[0] - fight.angler[0], fight.anchor[2] - fight.angler[1]);
     const float line = FightLineLength();
     float       dx = fight.anchor[0] - rod_top[0], dy = fight.anchor[1] - rod_top[1], dz = fight.anchor[2] - rod_top[2];
-    LogFight("start", std::format("\"kind\":{},\"size\":{},\"strength\":{:.2f},\"out\":{:.0f},\"line\":{:.1f},\"cap\":{:.1f},"
+    LogFight("start", std::format("\"kind\":{},\"size\":{},\"strength\":{:.2f},\"out\":{:.0f},\"line\":{:.1f},"
                                   "\"from_rod\":{:.1f},\"side\":\"{}\",\"run\":{}",
-                                  fish.fish_kind, static_cast<int>(fish.size * 10.0f), fight.strength, out, line, line * kLineStretch,
+                                  fish.fish_kind, static_cast<int>(fish.size * 10.0f), fight.strength, out, line,
                                   std::sqrt(dx * dx + dy * dy + dz * dz), SideName(fight.side), fight.run));
 }
 
@@ -294,7 +294,7 @@ void FishFightHold(CFish &fish, CCPoly *polys, int count) {
     fish.GetPosition(position);
     sceVu0FVECTOR held;
     sceVu0CopyVector(held, position);
-    if (!FightLineHold(held, rod_top, FightLineLength() * kLineStretch)) {
+    if (!FightLineHold(held, rod_top, FightLineLength())) {
         return;
     }
     // Drawn in toward the rod, unless a wall is in the way: then it stays where its collision left it.
