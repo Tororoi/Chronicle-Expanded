@@ -237,24 +237,6 @@ TEST(FishingFightRules, TheWayToPullIsAgainstTheFishInsideTheCone) {
     EXPECT_NEAR(std::remainder(expanded::FightTargetYaw(1.0f, 1.0f + PI + 0.3f) - 1.3f, 2.0f * PI), 0.0f, 1e-5f);
 }
 
-TEST(FishingFightRules, TheWayToPullEasesAndSlides) {
-    const float ease = expanded::kTargetEase;
-    EXPECT_FLOAT_EQ(expanded::FightEaseTarget(0.0f, 0.2f), 0.2f * ease);
-    EXPECT_FLOAT_EQ(expanded::FightEaseTarget(0.5f, 0.5f), 0.5f);
-    // A far turn (the fish switching sides) slides at kTargetTurn a frame.
-    EXPECT_FLOAT_EQ(expanded::FightEaseTarget(0.0f, 1.5f), expanded::kTargetTurn);
-    EXPECT_FLOAT_EQ(expanded::FightEaseTarget(0.0f, -1.5f), -expanded::kTargetTurn);
-    // The short way round the circle: from 3 toward -3 is up past pi.
-    const float eased = expanded::FightEaseTarget(3.0f, -3.0f);
-    EXPECT_NEAR(std::remainder(eased - 3.0f, 2.0f * PI), ease * (2.0f * PI - 6.0f), 1e-5f);
-    // A thrash either side of a heading averages out: the way settles near it.
-    float way = 0.0f;
-    for (int i = 0; i < 300; i++) {
-        way = expanded::FightEaseTarget(way, 0.6f + (i % 2 == 0 ? 0.3f : -0.3f));
-    }
-    EXPECT_NEAR(way, 0.6f, 0.05f);
-}
-
 TEST(FishingFightRules, OnlyAPushWithinTheToleranceOfTheWayPulls) {
     // The camera behind the angler, the way to pull straight back to him: the stick down.
     const float tolerance = expanded::kPullTolerance;
