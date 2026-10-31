@@ -140,10 +140,10 @@ float WayDegrees() {
     return fight.way * 180.0f / PI;
 }
 
-// A run starts the way given.
-void StartRun(float way) {
+// A run starts the way given, for frames (0: as long as the fish's strength has its runs).
+void StartRun(float way, int frames = 0) {
     fight.way = way;
-    fight.run = FightRunFrames(fight.strength, GameFraction());
+    fight.run = frames > 0 ? frames : FightRunFrames(fight.strength, GameFraction());
 }
 
 // The fish lets go of the hook and swims off from it, then swims as any fish; its close-up model is not wanted.
@@ -298,11 +298,6 @@ bool FightHolds(float x, float y, float camera_yaw, float middle, float target, 
     return Within(x, y, camera_yaw, middle, target, tolerance);
 }
 
-float FightPullTolerance(int frames) {
-    const float open = std::clamp(static_cast<float>(frames) / static_cast<float>(kOpenFrames), 0.0f, 1.0f);
-    return 2.0f * kCone + (kPullTolerance - 2.0f * kCone) * open;
-}
-
 void FightGaugePoint(const float *centre, float middle, float along, float radius, float *point) {
     point[0] = centre[0] + radius * std::sin(middle + along);
     point[1] = centre[1];
@@ -320,7 +315,7 @@ void FishingFightStarted(CFish &fish) {
     Look();
     fight.strength = FightStrength(fish.size);
     fight.bar = kStartBar;
-    StartRun((2.0f * GameFraction() - 1.0f) * kCone);
+    StartRun(0.0f, kOpenFrames);
     if (Chara != nullptr) {
         sceVu0FVECTOR angler;
         Chara->GetPosition(angler);
@@ -366,7 +361,9 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     Follow();
     if (--fight.run <= 0) {
         const int pulled = fight.pulled;
-        StartRun(FightRunWay(fight.way, GameFraction()));
+        // The opening's run goes straight out; the first after it goes either side at random.
+        const float way = FightRunWay(fight.way, GameFraction());
+        StartRun(fight.frames <= kOpenFrames ? (GameFraction() < 0.5f ? 1.0f : -1.0f) * std::fabs(way) : way);
         fight.pulled = 0;
         fight.grace = kSwitchGrace;
         sceVu0FVECTOR ripple;
@@ -380,10 +377,8 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     // within the hold's.
     fight.push = std::hypot(stick_x, stick_y);
     fight.stick = FightStickWay(fight.camera, fight.middle, stick_x, stick_y);
-    const float pull = FightPullTolerance(fight.frames);
-    fight.pulls = DebugMode != 0 || FightPulls(stick_x, stick_y, fight.camera, fight.middle, fight.target, pull);
-    fight.holds = fight.pulls ||
-                  FightHolds(stick_x, stick_y, fight.camera, fight.middle, fight.target, pull + kHoldTolerance - kPullTolerance);
+    fight.pulls = DebugMode != 0 || FightPulls(stick_x, stick_y, fight.camera, fight.middle, fight.target);
+    fight.holds = fight.pulls || FightHolds(stick_x, stick_y, fight.camera, fight.middle, fight.target);
     fight.pulled += fight.pulls ? 1 : 0;
     const float fade = 1.0f / static_cast<float>(kMarkFade);
     fight.red = std::clamp(fight.red + (fight.holds ? -fade : fade), 0.0f, 1.0f);
@@ -512,7 +507,7 @@ void DrawFishingFight() {
             Band(quads, a, b, inner, outer, rgba);
         }
     };
-    const float pull = FightPullTolerance(fight.frames), hold = pull + kHoldTolerance - kPullTolerance;
+    const float pull = kPullTolerance, hold = kHoldTolerance;
     part(block - hold, block - pull, kHold);
     part(block - pull, block + pull, kBlock);
     part(block + pull, block + hold, kHold);

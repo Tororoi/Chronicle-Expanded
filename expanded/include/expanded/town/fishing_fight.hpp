@@ -25,9 +25,9 @@ bool FishingFightsOn();
 // The bar's frames of pulling to fill from empty, and of missing to drain from full, for every fish.
 inline constexpr int kFillFrames = 180, kDrainFrames = 300;
 
-// The bar as a fight starts (empty); the frames of the fight's opening, while the pull's tolerance narrows from the whole
-// gauge to its own and a miss holds the bar rather than draining it; and the frames the bar holds after each switch,
-// for the stick to follow.
+// The bar as a fight starts (empty); the frames of the fight's opening, its first run, straight out from the angler (so
+// the way to pull is the gauge's middle, where a stick at rest points), while a miss holds the bar rather than draining
+// it; and the frames the bar holds after each switch, for the stick to follow.
 inline constexpr float kStartBar = 0.0f;
 inline constexpr int   kOpenFrames = 60, kSwitchGrace = 12;
 
@@ -76,15 +76,10 @@ bool FightLineHold(float *position, const float *rod, float reach);
 // across the gauge rather than jumping it.
 inline constexpr float kTargetEase = 0.2f, kTargetTurn = 0.10471976f;
 
-// A stick pulls when it points, as the screen shows the water, within kPullTolerance (18 degrees: the block's green
+// A stick pulls when it points, as the screen shows the water, within kPullTolerance (15 degrees: the block's green
 // middle) of the way to pull; within kHoldTolerance (35 degrees: the block's yellow ends) it holds, the bar standing
 // still. Pushed no further than kPullBack (as read), it is at rest and points at the gauge's middle.
-inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.31415927f, kHoldTolerance = 0.61086524f;
-
-// The pull's tolerance frames into a fight: the whole gauge (twice kCone, so the block covers the arc wherever it sits)
-// as it starts, narrowing evenly to kPullTolerance over kOpenFrames. The hold's stays kHoldTolerance - kPullTolerance
-// past it.
-float FightPullTolerance(int frames);
+inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.26179939f, kHoldTolerance = 0.61086524f;
 
 // The fight reads the left stick with its dead zone measured from the centre: within kStickDead of it (as far out as
 // the game's own dead band) the stick reads nothing, and past it, it reads its own way, its push stretched over 0 to 1.
@@ -132,11 +127,11 @@ bool FightHolds(float x, float y, float camera_yaw, float middle, float target, 
 void FightGaugePoint(const float *centre, float middle, float along, float radius, float *point);
 
 // A fish's strength by its length, whatever its kind (sizes as CFish::size, a tenth of its centimetres): 0 at
-// kSmallFish (30 cm) and under, 1 at kLargeFish (300 cm, the largest fish), 2 at kAriseFish (600 cm, the largest the
+// kSmallFish (30 cm) and under, 1 at kLargeFish (300 cm, the largest fish), 2 at kAriseFish (450 cm, the largest the
 // Arise Mardan grows) and over, straight between them. Its runs are 1 - 2/3 of a point as long up to 1 (a third at
-// 300 cm: 1 to 2 seconds) and a sixth less for each point past it (a sixth at 600 cm: half a second to a second); it
+// 300 cm: 1 to 2 seconds) and a sixth less for each point past it (a sixth at 450 cm: half a second to a second); it
 // swims kSpeedPerStrength faster for each point.
-inline constexpr float kSmallFish = 3.0f, kLargeFish = 30.0f, kAriseFish = 60.0f, kSpeedPerStrength = 0.25f;
+inline constexpr float kSmallFish = 3.0f, kLargeFish = 30.0f, kAriseFish = 45.0f, kSpeedPerStrength = 0.25f;
 
 float FightStrength(float size);
 

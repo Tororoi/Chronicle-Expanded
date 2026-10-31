@@ -154,10 +154,10 @@ TEST_F(Mardan, AriseScalesUpToTwiceTheLargestAndHoldsTheEnds) {
              {8.0f,  20.0f}
     }) {
         const float smallest = 0.5f * usual;
-        EXPECT_FLOAT_EQ(expanded::AriseSize(largest, usual, largest), 2.0f * largest);
+        EXPECT_FLOAT_EQ(expanded::AriseSize(largest, usual, largest), expanded::kAriseGrowth * largest);
         EXPECT_FLOAT_EQ(expanded::AriseSize(smallest, usual, largest), smallest);
-        // Hard-capped at twice the largest.
-        EXPECT_FLOAT_EQ(expanded::AriseSize(3.0f * largest, usual, largest), 2.0f * largest);
+        // Hard-capped at kAriseGrowth times the largest.
+        EXPECT_FLOAT_EQ(expanded::AriseSize(3.0f * largest, usual, largest), expanded::kAriseGrowth * largest);
 
         float previous = smallest;
         for (int step = 1; step <= 1000; step++) {
@@ -165,12 +165,12 @@ TEST_F(Mardan, AriseScalesUpToTwiceTheLargestAndHoldsTheEnds) {
             float size = smallest + (largest - smallest) * t;
             float grown = expanded::AriseSize(size, usual, largest);
             ASSERT_GE(grown, previous);
-            ASSERT_LE(grown, 2.0f * largest);
-            // Bigger rolls are grown nearer twice: at least 1 + t times, t how far up the roll is.
-            ASSERT_GE(grown, size * (1.0f + t) * (1.0f - 1e-6f));
+            ASSERT_LE(grown, expanded::kAriseGrowth * largest);
+            // Bigger rolls are grown nearer kAriseGrowth times: at least 1 + (kAriseGrowth - 1) t times, t how far up the roll is.
+            ASSERT_GE(grown, size * (1.0f + (expanded::kAriseGrowth - 1.0f) * t) * (1.0f - 1e-6f));
             // Only the largest roll reaches the new largest's centimetre.
             if (step < 1000) {
-                ASSERT_LT(static_cast<int>(grown * 10.0f), static_cast<int>(20.0f * largest));
+                ASSERT_LT(static_cast<int>(grown * 10.0f), static_cast<int>(10.0f * expanded::kAriseGrowth * largest));
             }
             previous = grown;
         }
@@ -182,12 +182,12 @@ TEST_F(Mardan, AriseSmoothsTheScaledRange) {
     const float usual = 10.0f;
     const float largest = 30.0f;
     const float smallest = 5.0f;
-    auto        scaled = [&](float size) { return size * (1.0f + (size - smallest) / (largest - smallest)); };
+    auto        scaled = [&](float size) { return size * (1.0f + (expanded::kAriseGrowth - 1.0f) * (size - smallest) / (largest - smallest)); };
     EXPECT_FLOAT_EQ(expanded::AriseSize(usual, usual, largest), scaled(usual));
     for (float size : {12.0f, 18.0f, 24.0f, 29.0f}) {
         float grown = expanded::AriseSize(size, usual, largest);
         float lifted_by = grown - scaled(size);
-        float range = 2.0f * largest - scaled(usual);
+        float range = expanded::kAriseGrowth * largest - scaled(usual);
         float t = (scaled(size) - scaled(usual)) / range;
         EXPECT_GT(lifted_by, 0.0f) << size;
         EXPECT_NEAR(lifted_by, expanded::kAriseSmoothing * range * t * t * (1.0f - t), 1e-3f) << size;
