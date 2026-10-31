@@ -58,6 +58,8 @@ constexpr int kBarWidth = 240, kBarX = 320 - kBarWidth / 2, kBarY = 12, kBarHeig
 // light; the mark is kMarkWidth (radians) either side of the stick's way.
 constexpr int   kGaugeSteps = 24;
 constexpr float kGaugeRim = 0.3f, kMarkWidth = 0.04f;
+// The next run's triangle reaches at least this far past the block's yellow (radians: 10 degrees).
+constexpr float kCueReach = 0.17453293f;
 
 // The mark turns from white to red while the stick neither pulls nor holds, over kMarkFade frames (a tenth of a second) either
 // way, so a frame or two off the mark never flickers it.
@@ -70,6 +72,7 @@ struct Fight {
     float         angler[2] = {}; // where the angler stands (x, z)
     float         camera = 0.0f;  // the way the camera looks across the water (a yaw)
     float         middle = 0.0f;  // the gauge's middle: the way from its centre to the angler
+    float         away = 0.0f;    // the way out from the angler to the fish, which runs are measured from
     float         target = 0.0f;  // the way to pull, as eased
     float         stick = 0.0f;   // the way the stick last pointed across the water
     float         push = 0.0f;    // how far it is pushed
@@ -135,6 +138,9 @@ void Follow() {
     sceVu0FVECTOR heading;
     fight.fish->GetRotation(heading);
     fight.target = FightEaseTarget(fight.target, FightTargetYaw(fight.middle, heading[1]));
+    sceVu0FVECTOR here;
+    fight.fish->GetPosition(here);
+    fight.away = atan2f(here[0] - fight.angler[0], here[2] - fight.angler[1]);
 }
 
 // A run's way in degrees, for the log.
@@ -555,13 +561,16 @@ void DrawFishingFight() {
     part(block - hold, block - pull, kHold);
     part(block - pull, block + pull, kBlock);
     part(block + pull, block + hold, kHold);
-    // Past the opening, the yellow on the side of the next run's way stretches out toward it as a triangle, reaching the
-    // place it puts the block (the run's way is the block's place on the gauge) as the run ends.
-    if (fight.frames > kOpenFrames && fight.run_frames > 0 && std::fabs(fight.next - block) > hold) {
-        const float side = fight.next > block ? 1.0f : -1.0f;
+    // Past the opening, the yellow on the side of the next run's place for the block (the way to pull for a fish
+    // heading the next run's way from where it is now) stretches out toward it as a triangle, reaching it as the run
+    // ends; at least kCueReach long, where that place is within the block's own yellow.
+    if (fight.frames > kOpenFrames && fight.run_frames > 0) {
+        const float next = std::remainder(FightTargetYaw(fight.middle, fight.away + fight.next) - fight.middle, 2.0f * PI);
+        const float side = next >= block ? 1.0f : -1.0f;
         const float edge = block + side * hold;
         const float done = 1.0f - static_cast<float>(fight.run) / static_cast<float>(fight.run_frames);
-        const float tip = std::clamp(edge + (fight.next - edge) * done, -kCone, kCone);
+        const float reach = std::max(side * (next - edge), kCueReach);
+        const float tip = std::clamp(edge + side * reach * done, -kCone, kCone);
         if ((tip - edge) * side > 0.0f) {
             Wedge(quads, edge, tip, inner, outer, kHold);
         }
