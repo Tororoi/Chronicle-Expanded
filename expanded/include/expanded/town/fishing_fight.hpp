@@ -13,7 +13,7 @@ namespace expanded {
 // way from him to it: the screen's left and right with the camera behind him), thrashing as it goes as the game's fight
 // has it, switching sides now and then, and the left stick pulls against it: pointed, as the screen shows the water (up
 // into it, down toward the camera), against the way the fish swims. A pull fills the tension bar at the top of the
-// screen, a near miss holds it, anything else drains it as fast; a full bar lands the fish the game's way, an empty
+// screen, a near miss holds it, anything else drains it half as fast; a full bar lands the fish the game's way, an empty
 // one lets it get away ("Bait ran out.": the bait went as it was struck). A gauge lies on the water at the float: the arc of the
 // ways a pull can go, the way to pull marked on it and the stick's way a block on it. A bigger fish switches sooner,
 // swims faster and takes longer to land, a Garayan most. Off (the Fishing Fights option, config.json's
@@ -23,8 +23,8 @@ inline constexpr const char *kFishingFights = "fishing_fights";
 
 bool FishingFightsOn();
 
-// The bar's frames of pulling to fill from empty for the weakest fish (a miss drains it as fast).
-inline constexpr int kFillFrames = 240;
+// The bar's frames of pulling to fill from empty for the weakest fish, and of missing to drain from full.
+inline constexpr int kFillFrames = 120, kDrainFrames = 240;
 
 // The bar as a fight starts; the frames it holds as a fight starts and after each switch, for the stick to follow.
 inline constexpr float kStartBar = 0.3f;
@@ -110,15 +110,16 @@ bool FightHolds(float x, float y, float camera_yaw, float target);
 void FightGaugePoint(const float *centre, float middle, float along, float radius, float *point);
 
 // A fish's strength, 0 to 2: how far it is from its kind's usual size to its largest (none under it), and 1 more for a
-// Garayan. Each point of it makes the bar's fill kFillPerStrength more frames, its runs kRunsPerStrength shorter and its
+// Garayan. Each point of it makes the bar's fill and drain kFillPerStrength more frames, its runs kRunsPerStrength shorter and its
 // speed kSpeedPerStrength faster.
 inline constexpr float kFillPerStrength = 0.25f, kRunsPerStrength = 0.15f, kSpeedPerStrength = 0.25f;
 
 float FightStrength(int kind, float size, const dc::game::FishInfo &info);
 
-// What a strength makes of a fight: the bar's fill a frame of pulling, a run's frames (roll, 0 to 1, between the
+// What a strength makes of a fight: the bar's fill a frame of pulling and drain a frame of missing, a run's frames (roll, 0 to 1, between the
 // shortest and longest) and its speed (kRunSpeed at kFightPace).
 float FightFill(float strength);
+float FightDrain(float strength);
 int   FightRunFrames(float strength, float roll);
 float FightRunSpeed(float strength);
 

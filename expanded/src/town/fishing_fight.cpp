@@ -210,6 +210,10 @@ float FightFill(float strength) {
     return 1.0f / (static_cast<float>(kFillFrames) * (1.0f + kFillPerStrength * strength));
 }
 
+float FightDrain(float strength) {
+    return 1.0f / (static_cast<float>(kDrainFrames) * (1.0f + kFillPerStrength * strength));
+}
+
 int FightRunFrames(float strength, float roll) {
     float frames = static_cast<float>(kShortestRun) + std::clamp(roll, 0.0f, 1.0f) * static_cast<float>(kLongestRun - kShortestRun);
     return std::max(1, static_cast<int>(frames * (1.0f - kRunsPerStrength * strength)));
@@ -379,8 +383,7 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     if (fight.grace > 0) {
         fight.grace--;
     } else if (fight.pulls || !fight.holds) {
-        float fill = FightFill(fight.strength);
-        fight.bar = std::clamp(fight.bar + (fight.pulls ? fill : -fill), 0.0f, 1.0f);
+        fight.bar = std::clamp(fight.bar + (fight.pulls ? FightFill(fight.strength) : -FightDrain(fight.strength)), 0.0f, 1.0f);
     }
     GamePad.SetVibration(1, fight.holds ? kPullRumble : kSlackRumble, kRumbleFrames);
 
