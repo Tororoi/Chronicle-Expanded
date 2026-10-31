@@ -368,9 +368,6 @@ TEST_F(FishingFight, AStruckFishIsFoughtFromAnEmptyBar) {
     EXPECT_EQ(BattleFish, &fish_[kHooked]);
     EXPECT_FLOAT_EQ(expanded::FishingFightBar(), 0.0f);
     EXPECT_LE(std::fabs(expanded::FishingFightRunWay()), expanded::kCone);
-    // The next run's way is picked already, 30 degrees or more from this one's.
-    EXPECT_LE(std::fabs(expanded::FishingFightNextWay()), expanded::kCone);
-    EXPECT_GE(std::fabs(expanded::FishingFightNextWay() - expanded::FishingFightRunWay()), expanded::kMinSwitch - 1e-5f);
 }
 
 TEST(FishingFightRules, TheOpeningNarrowsTheTolerance) {
@@ -537,7 +534,6 @@ TEST_F(FishingFight, TheOpeningHoldsAMissAndTakesAnyPull) {
 TEST_F(FishingFight, TheFishSwitchesRunsAndRunsTheirWay) {
     Strike();
     const float first = expanded::FishingFightRunWay();
-    const float next = expanded::FishingFightNextWay();
     int         frames = 0;
     // Pulling three frames in eight (a pull fills 5/3 of what a miss drains), the bar stays where it is.
     while (expanded::FishingFightRunWay() == first && frames < expanded::kLongestRun + 1) {
@@ -549,9 +545,8 @@ TEST_F(FishingFight, TheFishSwitchesRunsAndRunsTheirWay) {
         frames++;
     }
     EXPECT_NE(expanded::FishingFightRunWay(), first);
-    // The way picked for it, and the next one picked.
-    EXPECT_EQ(expanded::FishingFightRunWay(), next);
-    EXPECT_GE(std::fabs(expanded::FishingFightNextWay() - next), expanded::kMinSwitch - 1e-5f);
+    // 30 degrees or more from the last one's.
+    EXPECT_GE(std::fabs(expanded::FishingFightRunWay() - first), expanded::kMinSwitch - 1e-5f);
     EXPECT_GE(frames, expanded::kShortestRun);
     EXPECT_LE(frames, expanded::kLongestRun);
 

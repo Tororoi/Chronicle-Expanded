@@ -58,8 +58,6 @@ constexpr int kBarWidth = 240, kBarX = 320 - kBarWidth / 2, kBarY = 12, kBarHeig
 // light; the mark is kMarkWidth (radians) either side of the stick's way.
 constexpr int   kGaugeSteps = 24;
 constexpr float kGaugeRim = 0.3f, kMarkWidth = 0.04f;
-// The next run's triangle reaches at least this far past the block's yellow (radians: 10 degrees).
-constexpr float kCueReach = 0.17453293f;
 
 // The mark turns from white to red while the stick neither pulls nor holds, over kMarkFade frames (a tenth of a second) either
 // way, so a frame or two off the mark never flickers it.
@@ -72,7 +70,6 @@ struct Fight {
     float         angler[2] = {}; // where the angler stands (x, z)
     float         camera = 0.0f;  // the way the camera looks across the water (a yaw)
     float         middle = 0.0f;  // the gauge's middle: the way from its centre to the angler
-    float         away = 0.0f;    // the way out from the angler to the fish, which runs are measured from
     float         target = 0.0f;  // the way to pull, as eased
     float         stick = 0.0f;   // the way the stick last pointed across the water
     float         push = 0.0f;    // how far it is pushed
@@ -80,8 +77,6 @@ struct Fight {
     float         bar = 0.0f;
     float         way = 0.0f;     // the run's way: radians from the way out from the angler to the fish, inside the cone
     int           run = 0;        // the frames left of the run
-    int           run_frames = 0; // and all its frames
-    float         next = 0.0f;    // the next run's way, picked as this one starts
     int           grace = 0;      // the frames left that the bar holds
     int           frames = 0;     // the fight's frames
     int           pulled = 0;     // the frames of this run that pulled
@@ -138,9 +133,6 @@ void Follow() {
     sceVu0FVECTOR heading;
     fight.fish->GetRotation(heading);
     fight.target = FightEaseTarget(fight.target, FightTargetYaw(fight.middle, heading[1]));
-    sceVu0FVECTOR here;
-    fight.fish->GetPosition(here);
-    fight.away = atan2f(here[0] - fight.angler[0], here[2] - fight.angler[1]);
 }
 
 // A run's way in degrees, for the log.
@@ -148,11 +140,10 @@ float WayDegrees() {
     return fight.way * 180.0f / PI;
 }
 
-// A run starts the way picked for it, and picks the next run's.
+// A run starts the way given.
 void StartRun(float way) {
     fight.way = way;
-    fight.run = fight.run_frames = FightRunFrames(fight.strength, GameFraction());
-    fight.next = FightRunWay(way, GameFraction(), GameFraction());
+    fight.run = FightRunFrames(fight.strength, GameFraction());
 }
 
 // The fish lets go of the hook and swims off from it, then swims as any fish; its close-up model is not wanted.
@@ -198,28 +189,6 @@ void Band(std::vector<gfx::Vertex2D> &quads, float a, float b, float inner, floa
         quads.push_back(vertex(from, outer));
         quads.push_back(vertex(to, outer));
         quads.push_back(vertex(to, inner));
-    }
-}
-
-// A triangle on the gauge: the band's full width at along a, narrowing to a point at the band's middle at b.
-void Wedge(std::vector<gfx::Vertex2D> &quads, float a, float b, float inner, float outer, const u_char *rgba) {
-    const int   steps = std::max(1, static_cast<int>(std::ceil(static_cast<float>(kGaugeSteps) * std::fabs(b - a) / (2.0f * kCone))));
-    const float middle = (inner + outer) / 2.0f, half = (outer - inner) / 2.0f;
-    auto        vertex = [&](float along, float radius) {
-        sceVu0FVECTOR point;
-        FightGaugePoint(fight.gauge, fight.middle, along, radius, point);
-        int screen[4] = {};
-        MGRotTransPers2D(screen, point, 0);
-        return draw2d::Vertex(static_cast<float>(screen[0]), static_cast<float>(screen[1]), 0.0f, 0.0f, 0.0f, rgba[0], rgba[1], rgba[2],
-                              rgba[3]);
-    };
-    for (int i = 0; i < steps; i++) {
-        const float t0 = static_cast<float>(i) / static_cast<float>(steps), t1 = static_cast<float>(i + 1) / static_cast<float>(steps);
-        const float from = a + (b - a) * t0, to = a + (b - a) * t1;
-        quads.push_back(vertex(from, middle - half * (1.0f - t0)));
-        quads.push_back(vertex(from, middle + half * (1.0f - t0)));
-        quads.push_back(vertex(to, middle + half * (1.0f - t1)));
-        quads.push_back(vertex(to, middle - half * (1.0f - t1)));
     }
 }
 
@@ -411,7 +380,7 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     Follow();
     if (--fight.run <= 0) {
         const int pulled = fight.pulled;
-        StartRun(fight.next);
+        StartRun(FightRunWay(fight.way, GameFraction(), GameFraction()));
         fight.pulled = 0;
         fight.grace = kSwitchGrace;
         sceVu0FVECTOR ripple;
@@ -561,20 +530,6 @@ void DrawFishingFight() {
     part(block - hold, block - pull, kHold);
     part(block - pull, block + pull, kBlock);
     part(block + pull, block + hold, kHold);
-    // Past the opening, the yellow on the side of the next run's place for the block (the way to pull for a fish
-    // heading the next run's way from where it is now) stretches out toward it as a triangle, reaching it as the run
-    // ends; at least kCueReach long, where that place is within the block's own yellow.
-    if (fight.frames > kOpenFrames && fight.run_frames > 0) {
-        const float next = std::remainder(FightTargetYaw(fight.middle, fight.away + fight.next) - fight.middle, 2.0f * PI);
-        const float side = next >= block ? 1.0f : -1.0f;
-        const float edge = block + side * hold;
-        const float done = 1.0f - static_cast<float>(fight.run) / static_cast<float>(fight.run_frames);
-        const float reach = std::max(side * (next - edge), kCueReach);
-        const float tip = std::clamp(edge + side * reach * done, -kCone, kCone);
-        if ((tip - edge) * side > 0.0f) {
-            Wedge(quads, edge, tip, inner, outer, kHold);
-        }
-    }
     // The mark held to the arc's ends when the stick points past them.
     const float mark = std::clamp(std::remainder(fight.stick - fight.middle, 2.0f * PI), -kCone, kCone);
     Band(quads, mark - kMarkWidth, mark + kMarkWidth, inner - kMarkOverhang, outer + kMarkOverhang, mark_shade);
@@ -588,10 +543,6 @@ float FishingFightBar() {
 
 float FishingFightRunWay() {
     return fight.fish != nullptr ? fight.way : 0.0f;
-}
-
-float FishingFightNextWay() {
-    return fight.fish != nullptr ? fight.next : 0.0f;
 }
 
 float FishingFightTarget() {
