@@ -44,8 +44,8 @@ std::array<float, 2> StickNear(float camera_yaw, float yaw) {
     return StickToward(camera_yaw, yaw, 1.0f);
 }
 
-// Six fish, the hooked one a usual-sized Nonky out from the angler, who stands at the origin facing +z, the float just
-// short of it; no camera.
+// Six fish, the hooked one a 30 cm Nonky (strength 0) out from the angler, who stands at the origin facing +z, the
+// float just short of it; no camera.
 class FishingFight : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -59,7 +59,7 @@ protected:
         for (int i = 0; i < kSlots; i++) {
             fish_[i].fish_kind = expanded::fish::kNonky;
             fish_[i].info = Nonky();
-            fish_[i].size = 8.0f;
+            fish_[i].size = expanded::kSmallFish;
             float position[4] = {0.0f, -12.0f, 40.0f, 1.0f};
             fish_[i].SetPosition(position);
         }
@@ -126,25 +126,29 @@ protected:
     static constexpr int kFloat = 18; // the line's point the float rides
 };
 
-TEST(FishingFightRules, StrengthIsTheSizeOverTheUsualAndAGarayanOneMore) {
-    const FishInfo info = Nonky();
-    EXPECT_FLOAT_EQ(expanded::FightStrength(expanded::fish::kNonky, 8.0f, info), 0.0f);
-    EXPECT_FLOAT_EQ(expanded::FightStrength(expanded::fish::kNonky, 6.0f, info), 0.0f);
-    EXPECT_FLOAT_EQ(expanded::FightStrength(expanded::fish::kNonky, 13.5f, info), 0.5f);
-    EXPECT_FLOAT_EQ(expanded::FightStrength(expanded::fish::kNonky, 19.0f, info), 1.0f);
-    EXPECT_FLOAT_EQ(expanded::FightStrength(expanded::fish::kMardanGarayan, 8.0f, info), 1.0f);
-    EXPECT_FLOAT_EQ(expanded::FightStrength(expanded::fish::kBaronGarayan, 19.0f, info), 2.0f);
+TEST(FishingFightRules, StrengthIsTheLengthWhateverTheKind) {
+    // 30 cm and under 0, 300 cm 1, 600 cm 2 and over, straight between.
+    EXPECT_FLOAT_EQ(expanded::FightStrength(3.0f), 0.0f);
+    EXPECT_FLOAT_EQ(expanded::FightStrength(2.0f), 0.0f);
+    EXPECT_FLOAT_EQ(expanded::FightStrength(16.5f), 0.5f);
+    EXPECT_FLOAT_EQ(expanded::FightStrength(30.0f), 1.0f);
+    EXPECT_FLOAT_EQ(expanded::FightStrength(45.0f), 1.5f);
+    EXPECT_FLOAT_EQ(expanded::FightStrength(60.0f), 2.0f);
+    EXPECT_FLOAT_EQ(expanded::FightStrength(80.0f), 2.0f);
 }
 
-TEST(FishingFightRules, AStrongerFishFillsSlowerAndRunsShorterAndFaster) {
-    EXPECT_FLOAT_EQ(expanded::FightFill(0.0f), 1.0f / 120.0f);
-    EXPECT_FLOAT_EQ(expanded::FightFill(2.0f), 1.0f / 180.0f);
-    EXPECT_FLOAT_EQ(expanded::FightDrain(0.0f), 1.0f / 240.0f);
-    EXPECT_FLOAT_EQ(expanded::FightDrain(2.0f), 1.0f / 360.0f);
-    EXPECT_EQ(expanded::FightRunFrames(0.0f, 0.0f), 120);
-    EXPECT_EQ(expanded::FightRunFrames(0.0f, 1.0f), 240);
-    EXPECT_EQ(expanded::FightRunFrames(2.0f, 0.0f), 84);
-    EXPECT_EQ(expanded::FightRunFrames(2.0f, 1.0f), 168);
+TEST(FishingFightRules, AStrongerFishRunsShorterAndFasterAndTheBarIsTheSame) {
+    // Three seconds to fill, five to drain, for every fish.
+    EXPECT_FLOAT_EQ(expanded::FightFill(), 1.0f / 180.0f);
+    EXPECT_FLOAT_EQ(expanded::FightDrain(), 1.0f / 300.0f);
+    // 3 to 6 seconds at 30 cm, 1 to 2 at 300 cm, half a second to a second at 600 cm.
+    EXPECT_EQ(expanded::FightRunFrames(0.0f, 0.0f), 180);
+    EXPECT_EQ(expanded::FightRunFrames(0.0f, 1.0f), 360);
+    EXPECT_EQ(expanded::FightRunFrames(1.0f, 0.0f), 60);
+    EXPECT_EQ(expanded::FightRunFrames(1.0f, 1.0f), 120);
+    EXPECT_EQ(expanded::FightRunFrames(1.5f, 0.0f), 45);
+    EXPECT_EQ(expanded::FightRunFrames(2.0f, 0.0f), 30);
+    EXPECT_EQ(expanded::FightRunFrames(2.0f, 1.0f), 60);
     EXPECT_FLOAT_EQ(expanded::FightRunSpeed(0.0f), 0.35f * expanded::kFightPace);
     EXPECT_FLOAT_EQ(expanded::FightRunSpeed(2.0f), 0.525f * expanded::kFightPace);
 }
@@ -392,7 +396,7 @@ TEST_F(FishingFight, LettingGoLosesTheFish) {
         frames++;
     }
     EXPECT_EQ(end, FightStep::kGotAway);
-    // A miss drains the bar half as fast as a pull fills it.
+    // A miss drains the bar in kDrainFrames from full.
     const int drain = static_cast<int>(std::ceil(expanded::kStartBar * expanded::kDrainFrames));
     EXPECT_GE(frames, drain + expanded::kStartGrace);
     EXPECT_LE(frames, drain + expanded::kStartGrace + expanded::kSwitchGrace + 1);
@@ -420,7 +424,7 @@ TEST_F(FishingFight, ANearMissHoldsTheBarStill) {
     }
 }
 
-TEST_F(FishingFight, AMissDrainsHalfAsFastAsAPullFills) {
+TEST_F(FishingFight, AMissDrainsAtTheDrainRate) {
     Strike();
     for (int i = 0; i < expanded::kStartGrace; i++) {
         Step(0.0f, 0.0f);
@@ -428,13 +432,13 @@ TEST_F(FishingFight, AMissDrainsHalfAsFastAsAPullFills) {
     // Before the bar has risen and after.
     float bar = expanded::FishingFightBar();
     Step(0.0f, 0.0f);
-    EXPECT_NEAR(bar - expanded::FishingFightBar(), expanded::FightFill(0.0f) / 2.0f, 1e-6f);
+    EXPECT_NEAR(bar - expanded::FishingFightBar(), expanded::FightDrain(), 1e-6f);
     while (expanded::FishingFightBar() <= expanded::kStartBar) {
         ASSERT_EQ(Pull(), FightStep::kFighting);
     }
     bar = expanded::FishingFightBar();
     Step(0.0f, 0.0f);
-    EXPECT_NEAR(bar - expanded::FishingFightBar(), expanded::FightFill(0.0f) / 2.0f, 1e-6f);
+    EXPECT_NEAR(bar - expanded::FishingFightBar(), expanded::FightDrain(), 1e-6f);
 }
 
 TEST_F(FishingFight, TheBarHoldsAsTheFightStarts) {
@@ -451,9 +455,9 @@ TEST_F(FishingFight, TheFishSwitchesSidesAndRunsToThem) {
     Strike();
     const int first = expanded::FishingFightSide();
     int       frames = 0;
-    // Pulling one frame in three (a pull fills twice what a miss drains), the bar stays where it is.
+    // Pulling three frames in eight (a pull fills 5/3 of what a miss drains), the bar stays where it is.
     while (expanded::FishingFightSide() == first && frames < expanded::kLongestRun + 1) {
-        if (frames % 3 == 0) {
+        if (frames % 8 < 3) {
             Pull();
         } else {
             Step(0.0f, 0.0f);

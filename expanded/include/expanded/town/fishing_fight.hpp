@@ -4,7 +4,6 @@ namespace dc::game {
 class CCharacter;
 class CCPoly;
 class CFish;
-struct FishInfo;
 } // namespace dc::game
 
 namespace expanded {
@@ -16,23 +15,23 @@ namespace expanded {
 // screen, a near miss holds it, anything else drains it half as fast; a full bar lands the fish the game's way, an empty
 // one lets it get away ("Bait ran out.": the bait went as it was struck). A gauge lies on the water at the float: the arc of the
 // ways a pull can go, the way to pull a block on it and the stick's way marked on it. A bigger fish switches sooner,
-// swims faster and takes longer to land, a Garayan most. Off (the Fishing Fights option, config.json's
+// switches sooner and swims faster, by its length whatever its kind. Off (the Fishing Fights option, config.json's
 // expanded.fishing_fights, on by default), a struck fish is landed as in the original game; debug mode always pulls, as
 // it always strikes.
 inline constexpr const char *kFishingFights = "fishing_fights";
 
 bool FishingFightsOn();
 
-// The bar's frames of pulling to fill from empty for the weakest fish, and of missing to drain from full.
-inline constexpr int kFillFrames = 120, kDrainFrames = 240;
+// The bar's frames of pulling to fill from empty, and of missing to drain from full, for every fish.
+inline constexpr int kFillFrames = 180, kDrainFrames = 300;
 
 // The bar as a fight starts; the frames it holds as a fight starts and after each switch, for the stick to follow.
 inline constexpr float kStartBar = 0.3f;
 inline constexpr int   kStartGrace = 30, kSwitchGrace = 12;
 
-// The frames between a weakest fish's switches (drawn between the two), how far to each side of where it was hooked
+// The frames between a smallest fish's switches (drawn between the two), how far to each side of where it was hooked
 // it runs, and how fast.
-inline constexpr int   kShortestRun = 120, kLongestRun = 240;
+inline constexpr int   kShortestRun = 180, kLongestRun = 360;
 inline constexpr float kRunWidth = 20.0f, kRunSpeed = 0.35f;
 
 // How much faster than the game's own fight a fought fish goes: its heading swings (the turn and speed steps) and it
@@ -64,9 +63,9 @@ bool FightLineHold(float *position, const float *rod, float reach);
 inline constexpr float kTargetEase = 0.2f, kTargetTurn = 0.05235988f;
 
 // A stick pulls when it is pushed past kPullBack (as read) and points, as the screen shows the water, within
-// kPullTolerance (20 degrees: the block's green middle) of the way to pull; pushed as far within kHoldTolerance (30
+// kPullTolerance (15 degrees: the block's green middle) of the way to pull; pushed as far within kHoldTolerance (25
 // degrees: the block's yellow ends) it holds, the bar standing still. Its way is kept while it rests.
-inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.34906585f, kHoldTolerance = 0.52359878f;
+inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.26179939f, kHoldTolerance = 0.43633231f;
 
 // The fight reads the left stick with its dead zone measured from the centre: within kStickDead of it (as far out as
 // the game's own dead band) the stick reads nothing, and past it, it reads its own way, its push stretched over 0 to 1.
@@ -109,17 +108,19 @@ bool FightHolds(float x, float y, float camera_yaw, float target);
 // points middle (a yaw); at centre's height.
 void FightGaugePoint(const float *centre, float middle, float along, float radius, float *point);
 
-// A fish's strength, 0 to 2: how far it is from its kind's usual size to its largest (none under it), and 1 more for a
-// Garayan. Each point of it makes the bar's fill and drain kFillPerStrength more frames, its runs kRunsPerStrength shorter and its
-// speed kSpeedPerStrength faster.
-inline constexpr float kFillPerStrength = 0.25f, kRunsPerStrength = 0.15f, kSpeedPerStrength = 0.25f;
+// A fish's strength by its length, whatever its kind (sizes as CFish::size, a tenth of its centimetres): 0 at
+// kSmallFish (30 cm) and under, 1 at kLargeFish (300 cm, the largest fish), 2 at kAriseFish (600 cm, the largest the
+// Arise Mardan grows) and over, straight between them. Its runs are 1 - 2/3 of a point as long up to 1 (a third at
+// 300 cm: 1 to 2 seconds) and a sixth less for each point past it (a sixth at 600 cm: half a second to a second); it
+// swims kSpeedPerStrength faster for each point.
+inline constexpr float kSmallFish = 3.0f, kLargeFish = 30.0f, kAriseFish = 60.0f, kSpeedPerStrength = 0.25f;
 
-float FightStrength(int kind, float size, const dc::game::FishInfo &info);
+float FightStrength(float size);
 
-// What a strength makes of a fight: the bar's fill a frame of pulling and drain a frame of missing, a run's frames (roll, 0 to 1, between the
-// shortest and longest) and its speed (kRunSpeed at kFightPace).
-float FightFill(float strength);
-float FightDrain(float strength);
+// The bar's fill a frame of pulling and drain a frame of missing; what a strength makes of a fight: a run's frames
+// (roll, 0 to 1, between the shortest and longest) and its speed (kRunSpeed at kFightPace).
+float FightFill();
+float FightDrain();
 int   FightRunFrames(float strength, float roll);
 float FightRunSpeed(float strength);
 
