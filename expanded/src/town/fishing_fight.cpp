@@ -47,9 +47,9 @@ constexpr int kGotAwayFrames = 180;
 constexpr int   kPullRumble = 120, kSlackRumble = 70, kRumbleFrames = 4;
 constexpr float kSwitchRipple = 10.0f;
 
-// A running fish thrashes kThrash of the game's fight thrash (a heading anywhere) either side of its run's heading,
-// inside the cone.
-constexpr float kThrash = 1.0f / 3.0f;
+// A running fish thrashes kThrash of the game's fight thrash (a heading anywhere: up to 45 degrees) either side of its
+// run's heading, inside the cone.
+constexpr float kThrash = 0.25f;
 
 // The bar, in pixels and field rows: kBarWidth wide, centred at the top of the screen, its track kInset inside.
 constexpr int kBarWidth = 240, kBarX = 320 - kBarWidth / 2, kBarY = 12, kBarHeight = 4, kInset = 1;
@@ -228,9 +228,24 @@ float FightConeYaw(float away, float yaw) {
 }
 
 float FightRunWay(float previous, float half_roll, float within_roll) {
-    const bool  opposite = half_roll < kOppositeOdds / (kOppositeOdds + 1.0f);
-    const float half = (previous >= 0.0f) != opposite ? 1.0f : -1.0f;
-    return half * std::clamp(within_roll, 0.0f, 1.0f) * kCone;
+    const bool opposite = half_roll < kOppositeOdds / (kOppositeOdds + 1.0f);
+    float      half = (previous >= 0.0f) != opposite ? 1.0f : -1.0f;
+    // Out from the middle along the half, what lies kMinSwitch or more from previous: up to its near side and on from
+    // its far side.
+    auto room = [&](float side, float &near, float &far) {
+        const float from = side * previous;
+        near = std::clamp(from - kMinSwitch, 0.0f, kCone);
+        far = std::clamp(from + kMinSwitch, 0.0f, kCone);
+        return near + (kCone - far);
+    };
+    float near = 0.0f, far = 0.0f;
+    if (room(half, near, far) <= 0.0f) {
+        half = -half;
+        room(half, near, far);
+    }
+    const float out = std::clamp(within_roll, 0.0f, 1.0f) * (near + kCone - far);
+    // On the near side, unless it is empty (then the far side) or the far side is (then the near side's end).
+    return half * ((out < near || far >= kCone) ? out : far + (out - near));
 }
 
 float FightLineLength() {

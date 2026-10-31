@@ -154,20 +154,36 @@ TEST(FishingFightRules, AStrongerFishRunsShorterAndFasterAndTheBarIsTheSame) {
 }
 
 TEST(FishingFightRules, ARunGoesAnyWayInTheConeLikelierToTheOtherHalf) {
-    const float cone = expanded::kCone;
+    const float cone = expanded::kCone, least = expanded::kMinSwitch;
     const float opposite = expanded::kOppositeOdds / (expanded::kOppositeOdds + 1.0f); // two in three
     EXPECT_FLOAT_EQ(opposite, 2.0f / 3.0f);
-    // After a run to the positive half: under two thirds of the roll, the negative half; the rest, the positive.
-    EXPECT_FLOAT_EQ(expanded::FightRunWay(0.5f, 0.0f, 0.5f), -cone / 2.0f);
-    EXPECT_FLOAT_EQ(expanded::FightRunWay(0.5f, opposite - 0.01f, 1.0f), -cone);
-    EXPECT_FLOAT_EQ(expanded::FightRunWay(0.5f, opposite + 0.01f, 0.25f), cone / 4.0f);
-    // After a run to the negative half, the other way round; the middle counts as the positive half.
-    EXPECT_FLOAT_EQ(expanded::FightRunWay(-0.2f, 0.1f, 0.5f), cone / 2.0f);
-    EXPECT_FLOAT_EQ(expanded::FightRunWay(-0.2f, 0.9f, 0.5f), -cone / 2.0f);
-    EXPECT_FLOAT_EQ(expanded::FightRunWay(0.0f, 0.1f, 0.5f), -cone / 2.0f);
-    // From the middle out to the edge, never past it.
-    EXPECT_FLOAT_EQ(expanded::FightRunWay(0.5f, 0.9f, 0.0f), 0.0f);
-    EXPECT_FLOAT_EQ(expanded::FightRunWay(0.5f, 0.9f, 2.0f), cone);
+    // After a run 0.5 into the positive half: under two thirds of the roll, the negative half from 30 degrees past the
+    // last way (0.5 - least) out to the edge.
+    EXPECT_NEAR(expanded::FightRunWay(0.5f, 0.0f, 0.0f), 0.5f - least, 1e-5f);
+    EXPECT_NEAR(expanded::FightRunWay(0.5f, opposite - 0.01f, 1.0f), -cone, 1e-5f);
+    EXPECT_NEAR(expanded::FightRunWay(0.5f, 0.0f, 0.5f), (0.5f - least - cone) / 2.0f, 1e-5f);
+    // The rest of the roll, the same half, all of it 30 degrees from the last way: here only past 0.5 + least.
+    EXPECT_NEAR(expanded::FightRunWay(0.5f, opposite + 0.01f, 0.0f), 0.5f + least, 1e-5f);
+    EXPECT_NEAR(expanded::FightRunWay(0.5f, 0.9f, 1.0f), cone, 1e-5f);
+    // After a run at the edge, the same half from the middle to 30 degrees short of it.
+    EXPECT_NEAR(expanded::FightRunWay(cone, 0.9f, 1.0f), cone - least, 1e-5f);
+    EXPECT_NEAR(expanded::FightRunWay(-cone, 0.9f, 0.0f), 0.0f, 1e-5f);
+    // After a run in the middle of a half (30 degrees), the same half has no room: the other half, all of it.
+    EXPECT_NEAR(expanded::FightRunWay(least, 0.9f, 0.5f), -cone / 2.0f, 1e-5f);
+    // The negative half the other way round; the middle counts as the positive half.
+    EXPECT_NEAR(expanded::FightRunWay(-0.2f, 0.1f, 1.0f), cone, 1e-5f);
+    EXPECT_LT(expanded::FightRunWay(-0.2f, 0.9f, 0.5f), 0.0f);
+    EXPECT_LT(expanded::FightRunWay(0.0f, 0.1f, 0.5f), 0.0f);
+    // Whatever the rolls, inside the cone and at least 30 degrees from the last way.
+    for (float previous = -cone; previous <= cone; previous += 0.05f) {
+        for (float half = 0.0f; half <= 1.0f; half += 0.1f) {
+            for (float within = 0.0f; within <= 1.0f; within += 0.1f) {
+                const float way = expanded::FightRunWay(previous, half, within);
+                EXPECT_LE(std::fabs(way), cone + 1e-5f) << previous << " " << half << " " << within;
+                EXPECT_GE(std::fabs(way - previous), least - 1e-5f) << previous << " " << half << " " << within;
+            }
+        }
+    }
 }
 
 TEST(FishingFightRules, TheConeKeepsTheFishSwimmingAway) {
@@ -523,12 +539,12 @@ TEST_F(FishingFight, TheFishThrashesAboutItsRunsHeading) {
     fish.target_yaw = 0.0f;
     expanded::FishFightSwim(fish);
     const float heading = fish.target_yaw;
-    // The game's thrash rolls a heading anywhere; the run keeps a third of it either side, inside the cone away from the
-    // angler (+z).
+    // The game's thrash rolls a heading anywhere; the run keeps a quarter of it (45 degrees) either side, inside the cone
+    // away from the angler (+z).
     for (float roll : {1.0f, -2.0f, 3.0f, -3.0f}) {
         fish.target_yaw = roll;
         expanded::FishFightSwim(fish);
-        EXPECT_NEAR(fish.target_yaw, expanded::FightConeYaw(0.0f, heading + roll / 3.0f), 1e-4f) << roll;
+        EXPECT_NEAR(fish.target_yaw, expanded::FightConeYaw(0.0f, heading + roll / 4.0f), 1e-4f) << roll;
         EXPECT_LE(std::fabs(std::remainder(fish.target_yaw, 2.0f * PI)), expanded::kCone + 1e-5f) << roll;
     }
 }
