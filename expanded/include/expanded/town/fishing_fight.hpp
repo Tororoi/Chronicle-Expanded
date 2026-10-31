@@ -25,9 +25,11 @@ bool FishingFightsOn();
 // The bar's frames of pulling to fill from empty, and of missing to drain from full, for every fish.
 inline constexpr int kFillFrames = 180, kDrainFrames = 300;
 
-// The bar as a fight starts; the frames it holds as a fight starts and after each switch, for the stick to follow.
-inline constexpr float kStartBar = 0.3f;
-inline constexpr int   kStartGrace = 30, kSwitchGrace = 12;
+// The bar as a fight starts (empty); the frames of the fight's opening, while the pull's tolerance narrows from the whole
+// gauge to its own and a miss holds the bar rather than draining it; and the frames the bar holds after each switch,
+// for the stick to follow.
+inline constexpr float kStartBar = 0.0f;
+inline constexpr int   kOpenFrames = 60, kSwitchGrace = 12;
 
 // The frames between a smallest fish's switches (drawn between the two), and how fast it runs.
 inline constexpr int   kShortestRun = 180, kLongestRun = 360;
@@ -75,10 +77,15 @@ bool FightLineHold(float *position, const float *rod, float reach);
 // across the gauge rather than jumping it.
 inline constexpr float kTargetEase = 0.2f, kTargetTurn = 0.10471976f;
 
-// A stick pulls when it is pushed past kPullBack (as read) and points, as the screen shows the water, within
-// kPullTolerance (15 degrees: the block's green middle) of the way to pull; pushed as far within kHoldTolerance (25
-// degrees: the block's yellow ends) it holds, the bar standing still. Its way is kept while it rests.
+// A stick pulls when it points, as the screen shows the water, within kPullTolerance (15 degrees: the block's green
+// middle) of the way to pull; within kHoldTolerance (25 degrees: the block's yellow ends) it holds, the bar standing
+// still. Pushed no further than kPullBack (as read), it is at rest and points at the gauge's middle.
 inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.26179939f, kHoldTolerance = 0.43633231f;
+
+// The pull's tolerance frames into a fight: the whole gauge (twice kCone, so the block covers the arc wherever it sits)
+// as it starts, narrowing evenly to kPullTolerance over kOpenFrames. The hold's stays kHoldTolerance - kPullTolerance
+// past it.
+float FightPullTolerance(int frames);
 
 // The fight reads the left stick with its dead zone measured from the centre: within kStickDead of it (as far out as
 // the game's own dead band) the stick reads nothing, and past it, it reads its own way, its push stretched over 0 to 1.
@@ -110,12 +117,16 @@ float FightTargetYaw(float middle, float heading);
 // target followed toward yaw a frame.
 float FightEaseTarget(float target, float yaw);
 
-// Whether a stick read at (x, y) (as GetLXf and GetLYf) with the camera looking camera_yaw pulls toward target.
-bool FightPulls(float x, float y, float camera_yaw, float target);
+// The way a stick read at (x, y) points as the fight takes it: its own way (FightStickYaw) pushed past kPullBack, and
+// at rest (no further) the gauge's middle, middle (a yaw).
+float FightStickWay(float camera_yaw, float middle, float x, float y);
 
-// Whether a stick read at (x, y) with the camera looking camera_yaw holds toward target: pushed as far, within
-// kHoldTolerance (a pull holds too).
-bool FightHolds(float x, float y, float camera_yaw, float target);
+// Whether a stick read at (x, y) (as FightStickRead reads it) with the camera looking camera_yaw and the gauge's middle
+// middle pulls toward target, its way (FightStickWay) within tolerance of it.
+bool FightPulls(float x, float y, float camera_yaw, float middle, float target, float tolerance = kPullTolerance);
+
+// Whether it holds toward target: its way within tolerance (a pull holds too).
+bool FightHolds(float x, float y, float camera_yaw, float middle, float target, float tolerance = kHoldTolerance);
 
 // A point of the gauge (x, y, z): radius out from centre across the water, along (radians) from its middle, which
 // points middle (a yaw); at centre's height.
@@ -161,10 +172,12 @@ FightPace FishFightSwim(dc::game::CFish &fish);
 void      FishFightHold(dc::game::CFish &fish, const float *start, dc::game::CCPoly *polys, int count);
 void      DrawFishingFight();
 
-// The fight's bar (0 to 1), its fish's run's way (radians from the way out from the angler) and the way to pull (a yaw,
-// as eased), while one goes on (0 for none).
+// The fight's bar (0 to 1), its fish's run's way and the next run's (radians from the way out from the angler: each run
+// picks the next one's as it starts, which the gauge shows coming) and the way to pull (a yaw, as eased), while one goes
+// on (0 for none).
 float FishingFightBar();
 float FishingFightRunWay();
+float FishingFightNextWay();
 float FishingFightTarget();
 
 } // namespace expanded
