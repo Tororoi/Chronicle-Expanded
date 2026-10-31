@@ -38,7 +38,7 @@ namespace {
 
 [[maybe_unused]] const bool kRegistered = AddToggle({.key = kFishingFights,
                                                      .label = "Fishing Fights",
-                                                     .help = "\"Fishing Fights\"\nA struck fish runs;\npoint the stick at\nthe gauge's mark. Off,\nit is always caught.",
+                                                     .help = "\"Fishing Fights\"\nA struck fish runs:\nkeep the stick's mark\nin the green. Off, it\nis always caught.",
                                                      .on = true});
 
 // A fish that got away swims off for this long before it goes back to its own swimming.
@@ -54,12 +54,9 @@ constexpr float kArrive = 3.0f, kThrashSpeed = 0.15f, kThrash = 1.0f / 3.0f;
 
 // The bar, in pixels and field rows: kBarWidth wide, centred at the top of the screen, its track kInset inside.
 constexpr int kBarWidth = 240, kBarX = 320 - kBarWidth / 2, kBarY = 12, kBarHeight = 4, kInset = 1;
-// The bar glows from kGlowFrom of the way full, its halo kGlowLayers pixels out.
-constexpr float kGlowFrom = 0.6f;
-constexpr int   kGlowLayers = 4;
 
 // The gauge's arc is drawn in kGaugeSteps pieces, a pale band with rims kGaugeRim wide so it shows on dark water and
-// light; the mark is kMarkWidth (radians) either side of the way to pull.
+// light; the mark is kMarkWidth (radians) either side of the stick's way.
 constexpr int   kGaugeSteps = 24;
 constexpr float kGaugeRim = 0.3f, kMarkWidth = 0.04f;
 
@@ -470,25 +467,16 @@ void DrawFishingFight() {
     if (fight.fish == nullptr || GameMode != ED_MODE_FISHING || chara_fishing != ED_FISHING_BATTLE) {
         return;
     }
-    // Thin at the top: a dark frame, a grey track and the bar in the dungeon's ABS blue, which glows as it nears full:
-    // from kGlowFrom of the way it brightens and gathers a pulsing halo, kGlowLayers pixels out.
-    const int   track = kBarWidth - 2 * kInset;
-    const int   filled = static_cast<int>(fight.bar * static_cast<float>(track));
-    const float near = std::clamp((fight.bar - kGlowFrom) / (1.0f - kGlowFrom), 0.0f, 1.0f);
-    const float glow = near * near * (0.8f + 0.2f * std::sin(static_cast<float>(fight.frames) * 0.2f));
-    for (int layer = kGlowLayers; layer >= 1 && filled > 0; layer--) {
-        const float fade = glow * static_cast<float>(kGlowLayers + 1 - layer) / static_cast<float>(kGlowLayers + 1);
-        Box(kBarX + kInset - layer, kBarY + 1 - layer, filled + 2 * layer, kBarHeight - 2 + 2 * layer, 0x60, 0xC8, 0xFF,
-            static_cast<u_char>(std::lround(0x60 * fade)));
-    }
+    // Thin at the top: a dark frame, a grey track and the bar in the dungeon's ABS blue.
+    const int track = kBarWidth - 2 * kInset;
+    const int filled = static_cast<int>(fight.bar * static_cast<float>(track));
     Box(kBarX, kBarY, kBarWidth, kBarHeight, 0x14, 0x14, 0x14);
     Box(kBarX + kInset, kBarY + 1, track, kBarHeight - 2, 0x40, 0x40, 0x40);
-    auto lit = [&](int from, int to) { return static_cast<u_char>(std::lround(static_cast<float>(from) + static_cast<float>(to - from) * near)); };
-    Box(kBarX + kInset, kBarY + 1, filled, kBarHeight - 2, lit(0x00, 0x90), lit(0xA2, 0xE0), 0xFF);
+    Box(kBarX + kInset, kBarY + 1, filled, kBarHeight - 2, 0x00, 0xA2, 0xFF);
 
-    // The gauge on the water, drawn over everything: its arc, the stick's block on it (a bright green middle, the pull's
-    // tolerance, between yellow ends, the hold's; cut off at the arc's ends) and the mark for the way to pull, white
-    // while the stick pulls or holds and red while it does neither.
+    // The gauge on the water, drawn over everything: its arc, the block for the way to pull on it (a bright green
+    // middle, the pull's tolerance, between yellow ends, the hold's; cut off at the arc's ends) and the mark for the
+    // stick's way, white while the stick pulls or holds and red while it does neither.
     sceVu0FVECTOR centre;
     sceVu0CopyVector(centre, fight.gauge);
     int screen[4] = {};
@@ -511,7 +499,7 @@ void DrawFishingFight() {
     Band(quads, -kCone, kCone, inner, inner + kGaugeRim, kRim);
     Band(quads, -kCone, kCone, outer - kGaugeRim, outer, kRim);
     // The block's middle reaches the arc's ends, the parts past them cut off.
-    const float block = std::clamp(std::remainder(fight.stick - fight.middle, 2.0f * PI), -kCone, kCone);
+    const float block = std::remainder(FightConeYaw(fight.middle, fight.target) - fight.middle, 2.0f * PI);
     auto        part = [&](float a, float b, const u_char *rgba) {
         a = std::max(a, -kCone);
         b = std::min(b, kCone);
@@ -522,7 +510,8 @@ void DrawFishingFight() {
     part(block - kHoldTolerance, block - kPullTolerance, kHold);
     part(block - kPullTolerance, block + kPullTolerance, kBlock);
     part(block + kPullTolerance, block + kHoldTolerance, kHold);
-    const float mark = std::remainder(FightConeYaw(fight.middle, fight.target) - fight.middle, 2.0f * PI);
+    // The mark held to the arc's ends when the stick points past them.
+    const float mark = std::clamp(std::remainder(fight.stick - fight.middle, 2.0f * PI), -kCone, kCone);
     Band(quads, mark - kMarkWidth, mark + kMarkWidth, inner - kMarkOverhang, outer + kMarkOverhang, mark_shade);
     draw2d::DrawUntextured(gfx::Primitive::Quads, quads, draw2d::SpriteState());
     draw2d::RestoreTestZbuf();

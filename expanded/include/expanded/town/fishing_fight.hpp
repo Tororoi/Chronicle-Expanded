@@ -15,7 +15,7 @@ namespace expanded {
 // into it, down toward the camera), against the way the fish swims. A pull fills the tension bar at the top of the
 // screen, a near miss holds it, anything else drains it half as fast; a full bar lands the fish the game's way, an empty
 // one lets it get away ("Bait ran out.": the bait went as it was struck). A gauge lies on the water at the float: the arc of the
-// ways a pull can go, the way to pull marked on it and the stick's way a block on it. A bigger fish switches sooner,
+// ways a pull can go, the way to pull a block on it and the stick's way marked on it. A bigger fish switches sooner,
 // swims faster and takes longer to land, a Garayan most. Off (the Fishing Fights option, config.json's
 // expanded.fishing_fights, on by default), a struck fish is landed as in the original game; debug mode always pulls, as
 // it always strikes.
@@ -83,7 +83,7 @@ FightStick FightStickRead(float x, float y);
 
 // The gauge: an arc flat on the water, its middle kGaugeRadius out from the float on the angler's side and kGaugeBand
 // wide, spanning kCone either side; it follows the float kGaugeEase of the way a frame, so it holds still while the
-// float bobs. The mark for the way to pull reaches kMarkOverhang past the band's edges.
+// float bobs. The mark for the stick's way reaches kMarkOverhang past the band's edges.
 inline constexpr float kGaugeRadius = 7.0f, kGaugeBand = 2.5f, kGaugeEase = 0.1f, kMarkOverhang = 0.75f;
 
 // The way (a yaw, as atan2(x, z)) across the water that a stick read at (x, y) (as FightStickRead reads it: right
