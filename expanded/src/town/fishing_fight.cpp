@@ -20,7 +20,6 @@
 #include "expanded/core/options.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/debug/event_log.hpp"
-#include "expanded/town/fish_kinds.hpp"
 #include "expanded/town/fishing.hpp"
 #include "fish.hpp"
 #include "fishing.hpp"
@@ -43,8 +42,9 @@ namespace {
 // A fish that got away swims off for this long before it goes back to its own swimming.
 constexpr int kGotAwayFrames = 180;
 
-// The rumble while the stick pulls and while it does not; a fish's run ends in a ripple this wide over it.
-constexpr int   kPullRumble = 70, kSlackRumble = 120, kRumbleFrames = 4;
+// The rumble while the stick pulls or holds (the line taut, the stronger) and while it does neither; a fish's run ends
+// in a ripple this wide over it.
+constexpr int   kPullRumble = 120, kSlackRumble = 70, kRumbleFrames = 4;
 constexpr float kSwitchRipple = 10.0f;
 
 // A run's fish slows within kArrive of its end, to no slower than kThrashSpeed; it thrashes kThrash of the game's
@@ -197,23 +197,25 @@ bool FishingFightsOn() {
     return OptionOn(kFishingFights);
 }
 
-float FightStrength(int kind, float size, const FishInfo &info) {
-    float range = info.max_size - info.min_size;
-    float grown = range > 0.0f ? std::clamp((size - info.min_size) / range, 0.0f, 1.0f) : 0.0f;
-    return grown + (std::ranges::contains(fish::kGarayans, kind) ? 1.0f : 0.0f);
+float FightStrength(float size) {
+    if (size <= kLargeFish) {
+        return std::max(0.0f, (size - kSmallFish) / (kLargeFish - kSmallFish));
+    }
+    return std::min(2.0f, 1.0f + (size - kLargeFish) / (kAriseFish - kLargeFish));
 }
 
-float FightFill(float strength) {
-    return 1.0f / (static_cast<float>(kFillFrames) * (1.0f + kFillPerStrength * strength));
+float FightFill() {
+    return 1.0f / static_cast<float>(kFillFrames);
 }
 
-float FightDrain(float strength) {
-    return 1.0f / (static_cast<float>(kDrainFrames) * (1.0f + kFillPerStrength * strength));
+float FightDrain() {
+    return 1.0f / static_cast<float>(kDrainFrames);
 }
 
 int FightRunFrames(float strength, float roll) {
-    float frames = static_cast<float>(kShortestRun) + std::clamp(roll, 0.0f, 1.0f) * static_cast<float>(kLongestRun - kShortestRun);
-    return std::max(1, static_cast<int>(frames * (1.0f - kRunsPerStrength * strength)));
+    const float frames = static_cast<float>(kShortestRun) + std::clamp(roll, 0.0f, 1.0f) * static_cast<float>(kLongestRun - kShortestRun);
+    const float scale = strength <= 1.0f ? 1.0f - 2.0f * strength / 3.0f : 1.0f / 3.0f - (strength - 1.0f) / 6.0f;
+    return std::max(1, static_cast<int>(std::lround(frames * scale)));
 }
 
 float FightRunSpeed(float strength) {
@@ -300,7 +302,7 @@ void FishingFightStarted(CFish &fish) {
     fight.fish = &fish;
     fish.GetPosition(fight.anchor);
     Look();
-    fight.strength = FightStrength(fish.fish_kind, fish.size, fish.info);
+    fight.strength = FightStrength(fish.size);
     fight.bar = kStartBar;
     fight.grace = kStartGrace;
     StartRun(GameFraction() < 0.5f ? -1 : 1);
@@ -380,7 +382,7 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     if (fight.grace > 0) {
         fight.grace--;
     } else if (fight.pulls || !fight.holds) {
-        fight.bar = std::clamp(fight.bar + (fight.pulls ? FightFill(fight.strength) : -FightDrain(fight.strength)), 0.0f, 1.0f);
+        fight.bar = std::clamp(fight.bar + (fight.pulls ? FightFill() : -FightDrain()), 0.0f, 1.0f);
     }
     GamePad.SetVibration(1, fight.holds ? kPullRumble : kSlackRumble, kRumbleFrames);
 
