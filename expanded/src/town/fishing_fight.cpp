@@ -88,7 +88,6 @@ struct Fight {
     float         red = 0.0f; // how far the mark has turned red, 0 to 1
     bool          pulls = false;
     bool          holds = false; // pulls, or near enough that the bar stands still
-    bool          rose = false;  // the bar has risen past kStartBar: misses drain kDrain times as fast
     bool          won = false;
 };
 
@@ -384,8 +383,7 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
         fight.grace--;
     } else if (fight.pulls || !fight.holds) {
         float fill = FightFill(fight.strength);
-        fight.bar = std::clamp(fight.bar + (fight.pulls ? fill : -(fight.rose ? kDrain : 1.0f) * fill), 0.0f, 1.0f);
-        fight.rose = fight.rose || fight.bar > kStartBar;
+        fight.bar = std::clamp(fight.bar + (fight.pulls ? fill : -fill), 0.0f, 1.0f);
     }
     GamePad.SetVibration(1, fight.holds ? kPullRumble : kSlackRumble, kRumbleFrames);
 

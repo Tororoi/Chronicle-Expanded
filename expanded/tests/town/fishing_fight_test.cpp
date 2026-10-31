@@ -381,7 +381,7 @@ TEST_F(FishingFight, PullingLandsTheFish) {
     EXPECT_EQ(Step(0.0f, 0.0f), FightStep::kLanded);
 }
 
-TEST_F(FishingFight, LettingGoLosesTheFishThreeTimesAsFast) {
+TEST_F(FishingFight, LettingGoLosesTheFish) {
     Strike();
     FightStep end = FightStep::kFighting;
     int       frames = 0;
@@ -390,7 +390,7 @@ TEST_F(FishingFight, LettingGoLosesTheFishThreeTimesAsFast) {
         frames++;
     }
     EXPECT_EQ(end, FightStep::kGotAway);
-    // The bar never rose, so it drains only as fast as a pull fills it.
+    // A miss drains the bar as fast as a pull fills it.
     const int drain = static_cast<int>(std::ceil(expanded::kStartBar * expanded::kFillFrames));
     EXPECT_GE(frames, drain + expanded::kStartGrace);
     EXPECT_LE(frames, drain + expanded::kStartGrace + expanded::kSwitchGrace + 1);
@@ -418,21 +418,21 @@ TEST_F(FishingFight, ANearMissHoldsTheBarStill) {
     }
 }
 
-TEST_F(FishingFight, AMissDrainsFasterOnceTheBarHasRisen) {
+TEST_F(FishingFight, AMissDrainsAsFastAsAPullFills) {
     Strike();
     for (int i = 0; i < expanded::kStartGrace; i++) {
         Step(0.0f, 0.0f);
     }
+    // Before the bar has risen and after.
     float bar = expanded::FishingFightBar();
     Step(0.0f, 0.0f);
-    const float gentle = bar - expanded::FishingFightBar();
-    EXPECT_GT(gentle, 0.0f);
+    EXPECT_NEAR(bar - expanded::FishingFightBar(), expanded::FightFill(0.0f), 1e-6f);
     while (expanded::FishingFightBar() <= expanded::kStartBar) {
         ASSERT_EQ(Pull(), FightStep::kFighting);
     }
     bar = expanded::FishingFightBar();
     Step(0.0f, 0.0f);
-    EXPECT_NEAR(bar - expanded::FishingFightBar(), gentle * expanded::kDrain, 1e-6f);
+    EXPECT_NEAR(bar - expanded::FishingFightBar(), expanded::FightFill(0.0f), 1e-6f);
 }
 
 TEST_F(FishingFight, TheBarHoldsAsTheFightStarts) {
