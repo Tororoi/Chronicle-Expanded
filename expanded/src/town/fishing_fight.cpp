@@ -229,25 +229,11 @@ float FightConeYaw(float away, float yaw) {
     return away + std::clamp(off, -kCone, kCone);
 }
 
-float FightRunWay(float previous, float half_roll, float within_roll) {
-    const bool opposite = half_roll < kOppositeOdds / (kOppositeOdds + 1.0f);
-    float      half = (previous >= 0.0f) != opposite ? 1.0f : -1.0f;
-    // Out from the middle along the half, what lies kMinSwitch or more from previous: up to its near side and on from
-    // its far side.
-    auto room = [&](float side, float &near, float &far) {
-        const float from = side * previous;
-        near = std::clamp(from - kMinSwitch, 0.0f, kCone);
-        far = std::clamp(from + kMinSwitch, 0.0f, kCone);
-        return near + (kCone - far);
-    };
-    float near = 0.0f, far = 0.0f;
-    if (room(half, near, far) <= 0.0f) {
-        half = -half;
-        room(half, near, far);
-    }
-    const float out = std::clamp(within_roll, 0.0f, 1.0f) * (near + kCone - far);
-    // On the near side, unless it is empty (then the far side) or the far side is (then the near side's end).
-    return half * ((out < near || far >= kCone) ? out : far + (out - near));
+float FightRunWay(float previous, float roll) {
+    const float half = previous >= 0.0f ? -1.0f : 1.0f;
+    // Out from the middle along it, past what lies within kMinSwitch of previous.
+    const float least = std::max(0.0f, kMinSwitch - std::fabs(previous));
+    return half * (least + std::clamp(roll, 0.0f, 1.0f) * (kCone - least));
 }
 
 float FightLineLength() {
@@ -383,7 +369,7 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     Follow();
     if (--fight.run <= 0) {
         const int pulled = fight.pulled;
-        StartRun(FightRunWay(fight.way, GameFraction(), GameFraction()));
+        StartRun(FightRunWay(fight.way, GameFraction()));
         fight.pulled = 0;
         fight.grace = kSwitchGrace;
         sceVu0FVECTOR ripple;

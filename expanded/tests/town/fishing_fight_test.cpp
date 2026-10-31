@@ -159,35 +159,26 @@ TEST(FishingFightRules, AStrongerFishRunsShorterAndFasterAndTheBarIsTheSame) {
     EXPECT_FLOAT_EQ(expanded::FightRunSpeed(2.0f), 0.525f * expanded::kFightPace);
 }
 
-TEST(FishingFightRules, ARunGoesAnyWayInTheConeLikelierToTheOtherHalf) {
+TEST(FishingFightRules, ARunGoesAnyWayInTheOtherHalfOfTheCone) {
     const float cone = expanded::kCone, least = expanded::kMinSwitch;
-    const float opposite = expanded::kOppositeOdds / (expanded::kOppositeOdds + 1.0f); // two in three
-    EXPECT_FLOAT_EQ(opposite, 2.0f / 3.0f);
-    // After a run 0.5 into the positive half: under two thirds of the roll, the negative half from 30 degrees past the
-    // last way (0.5 - least) out to the edge.
-    EXPECT_NEAR(expanded::FightRunWay(0.5f, 0.0f, 0.0f), 0.5f - least, 1e-5f);
-    EXPECT_NEAR(expanded::FightRunWay(0.5f, opposite - 0.01f, 1.0f), -cone, 1e-5f);
-    EXPECT_NEAR(expanded::FightRunWay(0.5f, 0.0f, 0.5f), (0.5f - least - cone) / 2.0f, 1e-5f);
-    // The rest of the roll, the same half, all of it 30 degrees from the last way: here only past 0.5 + least.
-    EXPECT_NEAR(expanded::FightRunWay(0.5f, opposite + 0.01f, 0.0f), 0.5f + least, 1e-5f);
-    EXPECT_NEAR(expanded::FightRunWay(0.5f, 0.9f, 1.0f), cone, 1e-5f);
-    // After a run at the edge, the same half from the middle to 30 degrees short of it.
-    EXPECT_NEAR(expanded::FightRunWay(cone, 0.9f, 1.0f), cone - least, 1e-5f);
-    EXPECT_NEAR(expanded::FightRunWay(-cone, 0.9f, 0.0f), 0.0f, 1e-5f);
-    // After a run in the middle of a half (30 degrees), the same half has no room: the other half, all of it.
-    EXPECT_NEAR(expanded::FightRunWay(least, 0.9f, 0.5f), -cone / 2.0f, 1e-5f);
+    // After a run 0.5 into the positive half: the negative half from 30 degrees past the last way out to the edge.
+    EXPECT_NEAR(expanded::FightRunWay(0.5f, 0.0f), 0.5f - least, 1e-5f);
+    EXPECT_NEAR(expanded::FightRunWay(0.5f, 1.0f), -cone, 1e-5f);
+    EXPECT_NEAR(expanded::FightRunWay(0.5f, 0.5f), (0.5f - least - cone) / 2.0f, 1e-5f);
+    // After a run 30 degrees or more out, the whole other half.
+    EXPECT_NEAR(expanded::FightRunWay(cone, 0.0f), 0.0f, 1e-5f);
+    EXPECT_NEAR(expanded::FightRunWay(least, 0.5f), -cone / 2.0f, 1e-5f);
     // The negative half the other way round; the middle counts as the positive half.
-    EXPECT_NEAR(expanded::FightRunWay(-0.2f, 0.1f, 1.0f), cone, 1e-5f);
-    EXPECT_LT(expanded::FightRunWay(-0.2f, 0.9f, 0.5f), 0.0f);
-    EXPECT_LT(expanded::FightRunWay(0.0f, 0.1f, 0.5f), 0.0f);
-    // Whatever the rolls, inside the cone and at least 30 degrees from the last way.
+    EXPECT_NEAR(expanded::FightRunWay(-0.2f, 1.0f), cone, 1e-5f);
+    EXPECT_NEAR(expanded::FightRunWay(-0.2f, 0.0f), least - 0.2f, 1e-5f);
+    EXPECT_NEAR(expanded::FightRunWay(0.0f, 0.0f), -least, 1e-5f);
+    // Whatever the roll, inside the cone, across its middle and at least 30 degrees from the last way.
     for (float previous = -cone; previous <= cone; previous += 0.05f) {
-        for (float half = 0.0f; half <= 1.0f; half += 0.1f) {
-            for (float within = 0.0f; within <= 1.0f; within += 0.1f) {
-                const float way = expanded::FightRunWay(previous, half, within);
-                EXPECT_LE(std::fabs(way), cone + 1e-5f) << previous << " " << half << " " << within;
-                EXPECT_GE(std::fabs(way - previous), least - 1e-5f) << previous << " " << half << " " << within;
-            }
+        for (float roll = 0.0f; roll <= 1.0f; roll += 0.1f) {
+            const float way = expanded::FightRunWay(previous, roll);
+            EXPECT_LE(std::fabs(way), cone + 1e-5f) << previous << " " << roll;
+            EXPECT_TRUE(previous >= 0.0f ? way <= 0.0f : way >= 0.0f) << previous << " " << roll;
+            EXPECT_GE(std::fabs(way - previous), least - 1e-5f) << previous << " " << roll;
         }
     }
 }
@@ -545,7 +536,8 @@ TEST_F(FishingFight, TheFishSwitchesRunsAndRunsTheirWay) {
         frames++;
     }
     EXPECT_NE(expanded::FishingFightRunWay(), first);
-    // 30 degrees or more from the last one's.
+    // Across the cone's middle from the last one's, 30 degrees or more from it.
+    EXPECT_LE(expanded::FishingFightRunWay() * first, 0.0f);
     EXPECT_GE(std::fabs(expanded::FishingFightRunWay() - first), expanded::kMinSwitch - 1e-5f);
     EXPECT_GE(frames, expanded::kShortestRun);
     EXPECT_LE(frames, expanded::kLongestRun);
