@@ -23,7 +23,7 @@ int MardanFishKind(int kind, int rare_interval);
 // the roll's smallest (half usual_size) to kAriseGrowth times at the largest, then lifted over the scaled range by
 // kAriseSmoothing * range * t^kAriseSmoothingExponent * (1 - t), t how far up it is, so the sizes ramp into the new
 // largest; never past kAriseGrowth times max_size, which only the game's largest roll reaches.
-inline constexpr float kAriseGrowth = 2.0f;
+inline constexpr float kAriseGrowth = 1.5f;
 inline constexpr float kAriseSmoothing = 0.72f;
 inline constexpr float kAriseSmoothingExponent = 2.0f;
 
