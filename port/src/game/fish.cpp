@@ -278,9 +278,9 @@ void CFish::Step() {
         turn_step *= 2.0f;
         speed_step *= 2.0f;
 #ifdef CHRONICLE_EXPANDED
-        const float pace = expanded::FishFightSwim(*this);
-        turn_step *= pace;
-        speed_step *= pace;
+        const expanded::FightPace pace = expanded::FishFightSwim(*this);
+        turn_step *= pace.turn;
+        speed_step *= pace.speed;
 #endif
     }
 

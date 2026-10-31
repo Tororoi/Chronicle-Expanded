@@ -47,9 +47,9 @@ constexpr int kGotAwayFrames = 180;
 constexpr int   kPullRumble = 120, kSlackRumble = 70, kRumbleFrames = 4;
 constexpr float kSwitchRipple = 10.0f;
 
-// A run's fish slows within kArrive of its end, to no slower than kThrashSpeed; it thrashes kThrash of the game's
-// fight thrash (a heading anywhere) either side of its run's heading, inside the cone.
-constexpr float kArrive = 3.0f, kThrashSpeed = 0.15f, kThrash = 1.0f / 3.0f;
+// A running fish thrashes kThrash of the game's fight thrash (a heading anywhere) either side of its run's heading,
+// inside the cone.
+constexpr float kThrash = 1.0f / 3.0f;
 
 // The bar, in pixels and field rows: kBarWidth wide, centred at the top of the screen, its track kInset inside.
 constexpr int kBarWidth = 240, kBarX = 320 - kBarWidth / 2, kBarY = 12, kBarHeight = 4, kInset = 1;
@@ -69,14 +69,13 @@ struct Fight {
     sceVu0FVECTOR gauge = {};     // the gauge's centre: on the water, following the float
     float         angler[2] = {}; // where the angler stands (x, z)
     float         camera = 0.0f;  // the way the camera looks across the water (a yaw)
-    float         right[2] = {};  // the angler's right across the water (x, z), as he looks at the fish: the side 1 runs to
     float         middle = 0.0f;  // the gauge's middle: the way from its centre to the angler
     float         target = 0.0f;  // the way to pull, as eased
     float         stick = 0.0f;   // the way the stick last pointed across the water
     float         push = 0.0f;    // how far it is pushed
     float         strength = 0.0f;
     float         bar = 0.0f;
-    int           side = 0;   // -1 the angler's left, 1 the right
+    float         way = 0.0f; // the run's way: radians from the way out from the angler to the fish, inside the cone
     int           run = 0;    // the frames left of the run
     int           grace = 0;  // the frames left that the bar holds
     int           frames = 0; // the fight's frames
@@ -136,12 +135,13 @@ void Follow() {
     fight.target = FightEaseTarget(fight.target, FightTargetYaw(fight.middle, heading[1]));
 }
 
-const char *SideName(int side) {
-    return side < 0 ? "left" : "right";
+// A run's way in degrees, for the log.
+float WayDegrees() {
+    return fight.way * 180.0f / PI;
 }
 
-void StartRun(int side) {
-    fight.side = side;
+void StartRun(float way) {
+    fight.way = way;
     fight.run = FightRunFrames(fight.strength, GameFraction());
 }
 
@@ -214,7 +214,7 @@ float FightDrain() {
 
 int FightRunFrames(float strength, float roll) {
     const float frames = static_cast<float>(kShortestRun) + std::clamp(roll, 0.0f, 1.0f) * static_cast<float>(kLongestRun - kShortestRun);
-    const float scale = strength <= 1.0f ? 1.0f - 2.0f * strength / 3.0f : 1.0f / 3.0f - (strength - 1.0f) / 15.0f;
+    const float scale = strength <= 1.0f ? 1.0f - 2.0f * strength / 3.0f : 1.0f / 3.0f - (strength - 1.0f) / 6.0f;
     return std::max(1, static_cast<int>(std::lround(frames * scale)));
 }
 
@@ -225,6 +225,12 @@ float FightRunSpeed(float strength) {
 float FightConeYaw(float away, float yaw) {
     float off = std::remainder(yaw - away, 2.0f * PI);
     return away + std::clamp(off, -kCone, kCone);
+}
+
+float FightRunWay(float previous, float half_roll, float within_roll) {
+    const bool  opposite = half_roll < kOppositeOdds / (kOppositeOdds + 1.0f);
+    const float half = (previous >= 0.0f) != opposite ? 1.0f : -1.0f;
+    return half * std::clamp(within_roll, 0.0f, 1.0f) * kCone;
 }
 
 float FightLineLength() {
@@ -305,20 +311,13 @@ void FishingFightStarted(CFish &fish) {
     fight.strength = FightStrength(fish.size);
     fight.bar = kStartBar;
     fight.grace = kStartGrace;
-    StartRun(GameFraction() < 0.5f ? -1 : 1);
+    StartRun((2.0f * GameFraction() - 1.0f) * kCone);
     if (Chara != nullptr) {
         sceVu0FVECTOR angler;
         Chara->GetPosition(angler);
         fight.angler[0] = angler[0];
         fight.angler[1] = angler[2];
     }
-    // The runs go square to the way from the angler to where the fish was hooked (with the camera behind him, the
-    // screen's left and right), whichever way the camera turns after.
-    const float out_x = fight.anchor[0] - fight.angler[0], out_z = fight.anchor[2] - fight.angler[1];
-    const float out_length = std::hypot(out_x, out_z);
-    const float out_yaw = out_length > 0.0f ? atan2f(out_x, out_z) : fight.camera;
-    fight.right[0] = -std::cos(out_yaw);
-    fight.right[1] = std::sin(out_yaw);
     // The gauge starts on the float, the way to pull straight back to the angler.
     FishLineGetUki(fight.gauge);
     fight.gauge[1] = FishingGetWaterLevel();
@@ -329,9 +328,9 @@ void FishingFightStarted(CFish &fish) {
     const float line = FightLineLength();
     float       dx = fight.anchor[0] - rod_top[0], dy = fight.anchor[1] - rod_top[1], dz = fight.anchor[2] - rod_top[2];
     LogFight("start", std::format("\"kind\":{},\"size\":{},\"strength\":{:.2f},\"out\":{:.0f},\"line\":{:.1f},\"reach\":{:.1f},"
-                                  "\"from_rod\":{:.1f},\"across\":{:.1f},\"side\":\"{}\",\"run\":{}",
+                                  "\"from_rod\":{:.1f},\"across\":{:.1f},\"way\":{:.0f},\"run\":{}",
                                   fish.fish_kind, static_cast<int>(fish.size * 10.0f), fight.strength, out, line, line * kLineReach,
-                                  std::sqrt(dx * dx + dy * dy + dz * dz), std::hypot(dx, dz), SideName(fight.side), fight.run));
+                                  std::sqrt(dx * dx + dy * dy + dz * dz), std::hypot(dx, dz), WayDegrees(), fight.run));
 }
 
 FightStep FishingFightStep(CCharacter &angler, float *facing) {
@@ -358,14 +357,14 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     Follow();
     if (--fight.run <= 0) {
         const int pulled = fight.pulled;
-        StartRun(-fight.side);
+        StartRun(FightRunWay(fight.way, GameFraction(), GameFraction()));
         fight.pulled = 0;
         fight.grace = kSwitchGrace;
         sceVu0FVECTOR ripple;
         fight.fish->GetPosition(ripple);
         ripple[1] = FishingGetWaterLevel();
         EffectHamon(&EdEffectGroup, ripple, kSwitchRipple);
-        LogFight("switch", std::format("\"side\":\"{}\",\"run\":{},\"pulled\":{},{}", SideName(fight.side), fight.run, pulled, Ways()));
+        LogFight("switch", std::format("\"way\":{:.0f},\"run\":{},\"pulled\":{},{}", WayDegrees(), fight.run, pulled, Ways()));
     }
 
     // The stick's way across the water, kept while it rests; it pulls pushed far enough within the tolerance, and holds
@@ -398,26 +397,21 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     return FightStep::kFighting;
 }
 
-float FishFightSwim(CFish &fish) {
+FightPace FishFightSwim(CFish &fish) {
     if (&fish != fight.fish) {
-        return 1.0f;
+        return {};
     }
-    // The run's end, kRunWidth to the angler's side of where it was hooked: the fish heads for it as far as the cone lets
-    // it, so it goes that way even where it can only slide along the line's arc.
-    float         to_x = fight.anchor[0] + static_cast<float>(fight.side) * kRunWidth * fight.right[0];
-    float         to_z = fight.anchor[2] + static_cast<float>(fight.side) * kRunWidth * fight.right[1];
+    // The run's way out from the angler, the way from him to the fish turning as it goes.
     sceVu0FVECTOR here;
     fish.GetPosition(here);
-    float dx = to_x - here[0], dz = to_z - here[2];
-    float distance = std::sqrt(dx * dx + dz * dz);
-    float away = atan2f(here[0] - fight.angler[0], here[2] - fight.angler[1]);
-    float heading = FightConeYaw(away, distance > 0.0f ? atan2f(dx, dz) : away);
+    const float away = atan2f(here[0] - fight.angler[0], here[2] - fight.angler[1]);
+    const float heading = away + fight.way;
     // The game's thrash, a new heading every frame (the battle block's roll, target_yaw), narrowed to kThrash of it either
     // side of the run's heading and kept in the cone: the fish twists and struggles as it goes, never toward the angler.
-    float thrash = std::remainder(fish.target_yaw, 2.0f * PI) * kThrash;
+    const float thrash = std::remainder(fish.target_yaw, 2.0f * PI) * kThrash;
     fish.target_yaw = AngleLimit(FightConeYaw(away, heading + thrash));
-    fish.target_speed = std::max(kThrashSpeed * kFightPace, FightRunSpeed(fight.strength) * std::min(1.0f, distance / kArrive));
-    return kFightPace;
+    fish.target_speed = FightRunSpeed(fight.strength);
+    return {.turn = kFightTurnPace, .speed = kFightPace};
 }
 
 void FishFightHold(CFish &fish, const float *start, CCPoly *polys, int count) {
@@ -517,8 +511,8 @@ float FishingFightBar() {
     return fight.fish != nullptr ? fight.bar : 0.0f;
 }
 
-int FishingFightSide() {
-    return fight.fish != nullptr ? fight.side : 0;
+float FishingFightRunWay() {
+    return fight.fish != nullptr ? fight.way : 0.0f;
 }
 
 float FishingFightTarget() {

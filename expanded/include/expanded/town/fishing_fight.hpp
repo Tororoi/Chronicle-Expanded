@@ -8,11 +8,11 @@ class CFish;
 
 namespace expanded {
 
-// Fishing fights: a struck fish runs to the left or right of where it was hooked, as the angler sees it (square to the
-// way from him to it: the screen's left and right with the camera behind him), thrashing as it goes as the game's fight
-// has it, switching sides now and then, and the left stick pulls against it: pointed, as the screen shows the water (up
+// Fishing fights: a struck fish runs a random way away from the angler, thrashing as it goes as the game's fight has
+// it, and now and then switches to a new way, likelier to the other side than the same, and the left stick pulls
+// against it: pointed, as the screen shows the water (up
 // into it, down toward the camera), against the way the fish swims. A pull fills the tension bar at the top of the
-// screen, a near miss holds it, anything else drains it half as fast; a full bar lands the fish the game's way, an empty
+// screen, a near miss holds it, anything else drains it; a full bar lands the fish the game's way, an empty
 // one lets it get away ("Bait ran out.": the bait went as it was struck). A gauge lies on the water at the float: the arc of the
 // ways a pull can go, the way to pull a block on it and the stick's way marked on it. A bigger fish switches sooner,
 // switches sooner and swims faster, by its length whatever its kind. Off (the Fishing Fights option, config.json's
@@ -29,14 +29,21 @@ inline constexpr int kFillFrames = 180, kDrainFrames = 300;
 inline constexpr float kStartBar = 0.3f;
 inline constexpr int   kStartGrace = 30, kSwitchGrace = 12;
 
-// The frames between a smallest fish's switches (drawn between the two), how far to each side of where it was hooked
-// it runs, and how fast.
+// The frames between a smallest fish's switches (drawn between the two), and how fast it runs.
 inline constexpr int   kShortestRun = 180, kLongestRun = 360;
-inline constexpr float kRunWidth = 20.0f, kRunSpeed = 0.35f;
+inline constexpr float kRunSpeed = 0.35f;
 
-// How much faster than the game's own fight a fought fish goes: its heading swings (the turn and speed steps) and it
-// swims, the run's speed and its slowest at a run's end.
-inline constexpr float kFightPace = 2.0f;
+// Each run heads a random way inside the cone (below), kOppositeOdds times as likely in the half of it away from the last
+// run's as in the same half.
+inline constexpr float kOppositeOdds = 2.0f;
+
+// How much faster than the game's own fight a fought fish turns (its turn step) and swims (its speed step and the run's
+// speed).
+inline constexpr float kFightTurnPace = 1.0f, kFightPace = 2.0f;
+
+struct FightPace {
+    float turn = 1.0f, speed = 1.0f;
+};
 
 // The fish swims away from the angler: its heading stays within kCone (60 degrees) either side of the way from him to
 // it. The line holds it across the ground to kLineReach times the line's length from the rod tip, whatever their
@@ -51,6 +58,11 @@ float FightLineLength();
 // nearer edge.
 float FightConeYaw(float away, float yaw);
 
+// A run's way (radians from away, inside the cone) after a run that went previous: with half_roll (0 to 1) under
+// kOppositeOdds / (kOppositeOdds + 1), in the half of the cone away from previous's (previous 0 counts as the
+// positive half), else in the same half; within_roll (0 to 1) from the cone's middle out to its edge.
+float FightRunWay(float previous, float half_roll, float within_roll);
+
 // position (x, y, z) held across the ground to reach from rod (x, y, z), whatever their heights; whether it was moved.
 bool FightLineHold(float *position, const float *rod, float reach);
 
@@ -58,9 +70,9 @@ bool FightLineHold(float *position, const float *rod, float reach);
 // from the float to the angler, the gauge's middle: the fish's cone about the way from the angler to it, mirrored at
 // the float. The float trails the fish along the line, so the way from the fish to it stays near that middle whatever
 // the fish does; its heading sweeps the cone as it runs. The way follows kTargetEase of the turn a frame, so the
-// fish's thrash steadies a little, and no more than kTargetTurn (3 degrees) a frame, so a switch sweeps the mark
+// fish's thrash steadies a little, and no more than kTargetTurn (6 degrees) a frame, so a switch sweeps the block
 // across the gauge rather than jumping it.
-inline constexpr float kTargetEase = 0.2f, kTargetTurn = 0.05235988f;
+inline constexpr float kTargetEase = 0.2f, kTargetTurn = 0.10471976f;
 
 // A stick pulls when it is pushed past kPullBack (as read) and points, as the screen shows the water, within
 // kPullTolerance (15 degrees: the block's green middle) of the way to pull; pushed as far within kHoldTolerance (25
@@ -111,8 +123,8 @@ void FightGaugePoint(const float *centre, float middle, float along, float radiu
 // A fish's strength by its length, whatever its kind (sizes as CFish::size, a tenth of its centimetres): 0 at
 // kSmallFish (30 cm) and under, 1 at kLargeFish (300 cm, the largest fish), 2 at kAriseFish (600 cm, the largest the
 // Arise Mardan grows) and over, straight between them. Its runs are 1 - 2/3 of a point as long up to 1 (a third at
-// 300 cm: 1 to 2 seconds) and a fifteenth less for each point past it (4/15 at 600 cm: 0.8 to 1.6 seconds); it swims
-// kSpeedPerStrength faster for each point.
+// 300 cm: 1 to 2 seconds) and a sixth less for each point past it (a sixth at 600 cm: half a second to a second); it
+// swims kSpeedPerStrength faster for each point.
 inline constexpr float kSmallFish = 3.0f, kLargeFish = 30.0f, kAriseFish = 60.0f, kSpeedPerStrength = 0.25f;
 
 float FightStrength(float size);
@@ -137,21 +149,21 @@ enum class FightStep {
 // stick read only while a fight goes on (stick_x and stick_y: as read), which turns the angler as the stick does while
 // waiting for a bite and, for a fish that got away, sends it off (BattleFish cleared) with its close-up model's read
 // dropped; CFish::Step on a fish in FISH_ACTION_BATTLE, which steers the fought fish on its run and returns the pace its
-// turn and speed steps take (kFightPace for the fought fish, 1 for any other), and once it has moved from start (after
+// turn and speed steps take (kFightTurnPace and kFightPace for the fought fish, 1 for any other), and once it has moved from start (after
 // its collision against count polys), which draws the fought fish back to the line's reach, sliding along a bank in the
 // way, and failing that ends its step no farther from the rod than it started; and the town's 2D drawing, the bar and
 // the gauge while fighting.
 void      FishingFightStarted(dc::game::CFish &fish);
 FightStep FishingFightStep(dc::game::CCharacter &angler, float *facing);
 FightStep FishingFightStep(dc::game::CCharacter &angler, float *facing, float stick_x, float stick_y);
-float     FishFightSwim(dc::game::CFish &fish);
+FightPace FishFightSwim(dc::game::CFish &fish);
 void      FishFightHold(dc::game::CFish &fish, const float *start, dc::game::CCPoly *polys, int count);
 void      DrawFishingFight();
 
-// The fight's bar (0 to 1), the side its fish runs to and the way to pull (a yaw, as eased), while one goes on (side 0
-// and way 0 for none).
+// The fight's bar (0 to 1), its fish's run's way (radians from the way out from the angler) and the way to pull (a yaw,
+// as eased), while one goes on (0 for none).
 float FishingFightBar();
-int   FishingFightSide();
+float FishingFightRunWay();
 float FishingFightTarget();
 
 } // namespace expanded
