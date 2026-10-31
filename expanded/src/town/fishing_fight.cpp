@@ -388,7 +388,9 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     GamePad.SetVibration(1, fight.holds ? kPullRumble : kSlackRumble, kRumbleFrames);
 
     if (fight.bar >= 1.0f) {
+        // The game takes the landing from here (it may not call this again), so the rod's lean lets go now.
         fight.won = true;
+        EndLean();
         LogFight("landed", std::format("\"kind\":{},{}", fight.fish->fish_kind, Ways()));
         return FightStep::kLanded;
     }
