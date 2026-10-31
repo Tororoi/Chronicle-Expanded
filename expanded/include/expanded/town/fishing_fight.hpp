@@ -9,7 +9,7 @@ class CFish;
 namespace expanded {
 
 // Fishing fights: a struck fish runs a random way away from the angler, thrashing as it goes as the game's fight has
-// it, and now and then switches to a new way, likelier to the other side than the same, and the left stick pulls
+// it, and now and then switches to a new way on the other side, and the left stick pulls
 // against it: pointed, as the screen shows the water (up
 // into it, down toward the camera), against the way the fish swims. A pull fills the tension bar at the top of the
 // screen, a near miss holds it, anything else drains it; a full bar lands the fish the game's way, an empty
@@ -35,9 +35,9 @@ inline constexpr int   kOpenFrames = 60, kSwitchGrace = 12;
 inline constexpr int   kShortestRun = 180, kLongestRun = 360;
 inline constexpr float kRunSpeed = 0.35f;
 
-// Each run heads a random way inside the cone (below), kOppositeOdds times as likely in the half of it away from the last
-// run's as in the same half, and at least kMinSwitch (30 degrees) from the last run's way.
-inline constexpr float kOppositeOdds = 2.0f, kMinSwitch = 0.52359878f;
+// Each run heads a random way inside the cone (below), in the half of it across from the last run's, and at least
+// kMinSwitch (30 degrees) from the last run's way.
+inline constexpr float kMinSwitch = 0.52359878f;
 
 // How much faster than the game's own fight a fought fish turns (its turn step) and swims (its speed step and the run's
 // speed).
@@ -60,11 +60,10 @@ float FightLineLength();
 // nearer edge.
 float FightConeYaw(float away, float yaw);
 
-// A run's way (radians from away, inside the cone) after a run that went previous: with half_roll (0 to 1) under
-// kOppositeOdds / (kOppositeOdds + 1), in the half of the cone away from previous's (previous 0 counts as the
-// positive half), else in the same half, and no nearer previous than kMinSwitch (the other half where the one chosen
-// has no room); within_roll (0 to 1) across what is left of the half, from the cone's middle out to its edge.
-float FightRunWay(float previous, float half_roll, float within_roll);
+// A run's way (radians from away, inside the cone) after a run that went previous: in the half of the cone across
+// from previous's (previous 0 counts as the positive half), no nearer previous than kMinSwitch; roll (0 to 1) across
+// what is left of the half, from the cone's middle out to its edge.
+float FightRunWay(float previous, float roll);
 
 // position (x, y, z) held across the ground to reach from rod (x, y, z), whatever their heights; whether it was moved.
 bool FightLineHold(float *position, const float *rod, float reach);
