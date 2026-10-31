@@ -141,14 +141,14 @@ TEST(FishingFightRules, AStrongerFishRunsShorterAndFasterAndTheBarIsTheSame) {
     // Three seconds to fill, five to drain, for every fish.
     EXPECT_FLOAT_EQ(expanded::FightFill(), 1.0f / 180.0f);
     EXPECT_FLOAT_EQ(expanded::FightDrain(), 1.0f / 300.0f);
-    // 3 to 6 seconds at 30 cm, 1 to 2 at 300 cm, half a second to a second at 600 cm.
+    // 3 to 6 seconds at 30 cm, 1 to 2 at 300 cm, 0.8 to 1.6 at 600 cm.
     EXPECT_EQ(expanded::FightRunFrames(0.0f, 0.0f), 180);
     EXPECT_EQ(expanded::FightRunFrames(0.0f, 1.0f), 360);
     EXPECT_EQ(expanded::FightRunFrames(1.0f, 0.0f), 60);
     EXPECT_EQ(expanded::FightRunFrames(1.0f, 1.0f), 120);
-    EXPECT_EQ(expanded::FightRunFrames(1.5f, 0.0f), 45);
-    EXPECT_EQ(expanded::FightRunFrames(2.0f, 0.0f), 30);
-    EXPECT_EQ(expanded::FightRunFrames(2.0f, 1.0f), 60);
+    EXPECT_EQ(expanded::FightRunFrames(1.5f, 0.0f), 54);
+    EXPECT_EQ(expanded::FightRunFrames(2.0f, 0.0f), 48);
+    EXPECT_EQ(expanded::FightRunFrames(2.0f, 1.0f), 96);
     EXPECT_FLOAT_EQ(expanded::FightRunSpeed(0.0f), 0.35f * expanded::kFightPace);
     EXPECT_FLOAT_EQ(expanded::FightRunSpeed(2.0f), 0.525f * expanded::kFightPace);
 }

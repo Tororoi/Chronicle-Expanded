@@ -214,7 +214,7 @@ float FightDrain() {
 
 int FightRunFrames(float strength, float roll) {
     const float frames = static_cast<float>(kShortestRun) + std::clamp(roll, 0.0f, 1.0f) * static_cast<float>(kLongestRun - kShortestRun);
-    const float scale = strength <= 1.0f ? 1.0f - 2.0f * strength / 3.0f : 1.0f / 3.0f - (strength - 1.0f) / 6.0f;
+    const float scale = strength <= 1.0f ? 1.0f - 2.0f * strength / 3.0f : 1.0f / 3.0f - (strength - 1.0f) / 15.0f;
     return std::max(1, static_cast<int>(std::lround(frames * scale)));
 }
 
