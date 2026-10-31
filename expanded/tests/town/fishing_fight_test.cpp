@@ -141,16 +141,33 @@ TEST(FishingFightRules, AStrongerFishRunsShorterAndFasterAndTheBarIsTheSame) {
     // Three seconds to fill, five to drain, for every fish.
     EXPECT_FLOAT_EQ(expanded::FightFill(), 1.0f / 180.0f);
     EXPECT_FLOAT_EQ(expanded::FightDrain(), 1.0f / 300.0f);
-    // 3 to 6 seconds at 30 cm, 1 to 2 at 300 cm, 0.8 to 1.6 at 600 cm.
+    // 3 to 6 seconds at 30 cm, 1 to 2 at 300 cm, half a second to a second at 600 cm.
     EXPECT_EQ(expanded::FightRunFrames(0.0f, 0.0f), 180);
     EXPECT_EQ(expanded::FightRunFrames(0.0f, 1.0f), 360);
     EXPECT_EQ(expanded::FightRunFrames(1.0f, 0.0f), 60);
     EXPECT_EQ(expanded::FightRunFrames(1.0f, 1.0f), 120);
-    EXPECT_EQ(expanded::FightRunFrames(1.5f, 0.0f), 54);
-    EXPECT_EQ(expanded::FightRunFrames(2.0f, 0.0f), 48);
-    EXPECT_EQ(expanded::FightRunFrames(2.0f, 1.0f), 96);
+    EXPECT_EQ(expanded::FightRunFrames(1.5f, 0.0f), 45);
+    EXPECT_EQ(expanded::FightRunFrames(2.0f, 0.0f), 30);
+    EXPECT_EQ(expanded::FightRunFrames(2.0f, 1.0f), 60);
     EXPECT_FLOAT_EQ(expanded::FightRunSpeed(0.0f), 0.35f * expanded::kFightPace);
     EXPECT_FLOAT_EQ(expanded::FightRunSpeed(2.0f), 0.525f * expanded::kFightPace);
+}
+
+TEST(FishingFightRules, ARunGoesAnyWayInTheConeLikelierToTheOtherHalf) {
+    const float cone = expanded::kCone;
+    const float opposite = expanded::kOppositeOdds / (expanded::kOppositeOdds + 1.0f); // two in three
+    EXPECT_FLOAT_EQ(opposite, 2.0f / 3.0f);
+    // After a run to the positive half: under two thirds of the roll, the negative half; the rest, the positive.
+    EXPECT_FLOAT_EQ(expanded::FightRunWay(0.5f, 0.0f, 0.5f), -cone / 2.0f);
+    EXPECT_FLOAT_EQ(expanded::FightRunWay(0.5f, opposite - 0.01f, 1.0f), -cone);
+    EXPECT_FLOAT_EQ(expanded::FightRunWay(0.5f, opposite + 0.01f, 0.25f), cone / 4.0f);
+    // After a run to the negative half, the other way round; the middle counts as the positive half.
+    EXPECT_FLOAT_EQ(expanded::FightRunWay(-0.2f, 0.1f, 0.5f), cone / 2.0f);
+    EXPECT_FLOAT_EQ(expanded::FightRunWay(-0.2f, 0.9f, 0.5f), -cone / 2.0f);
+    EXPECT_FLOAT_EQ(expanded::FightRunWay(0.0f, 0.1f, 0.5f), -cone / 2.0f);
+    // From the middle out to the edge, never past it.
+    EXPECT_FLOAT_EQ(expanded::FightRunWay(0.5f, 0.9f, 0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(expanded::FightRunWay(0.5f, 0.9f, 2.0f), cone);
 }
 
 TEST(FishingFightRules, TheConeKeepsTheFishSwimmingAway) {
@@ -324,7 +341,7 @@ TEST_F(FishingFight, AStruckFishIsFoughtFromThirtyPercentOfTheBar) {
     Strike();
     EXPECT_EQ(BattleFish, &fish_[kHooked]);
     EXPECT_FLOAT_EQ(expanded::FishingFightBar(), expanded::kStartBar);
-    EXPECT_NE(expanded::FishingFightSide(), 0);
+    EXPECT_LE(std::fabs(expanded::FishingFightRunWay()), expanded::kCone);
 }
 
 TEST_F(FishingFight, TheWayToPullStartsBackToTheAnglerAndFollowsTheFish) {
@@ -404,7 +421,7 @@ TEST_F(FishingFight, LettingGoLosesTheFish) {
     EXPECT_EQ(BattleFish, nullptr);
     EXPECT_EQ(fish_[kHooked].action, FISH_ACTION_LEAVE);
     EXPECT_EQ(fish_[kHooked].move_mode, FISH_MOVE_SWIM);
-    EXPECT_EQ(expanded::FishingFightSide(), 0);
+    EXPECT_EQ(expanded::FishingFightRunWay(), 0.0f);
     EXPECT_EQ(Step(0.0f, 0.0f), FightStep::kRetail);
 }
 
@@ -451,12 +468,12 @@ TEST_F(FishingFight, TheBarHoldsAsTheFightStarts) {
     EXPECT_LT(expanded::FishingFightBar(), expanded::kStartBar);
 }
 
-TEST_F(FishingFight, TheFishSwitchesSidesAndRunsToThem) {
+TEST_F(FishingFight, TheFishSwitchesRunsAndRunsTheirWay) {
     Strike();
-    const int first = expanded::FishingFightSide();
-    int       frames = 0;
+    const float first = expanded::FishingFightRunWay();
+    int         frames = 0;
     // Pulling three frames in eight (a pull fills 5/3 of what a miss drains), the bar stays where it is.
-    while (expanded::FishingFightSide() == first && frames < expanded::kLongestRun + 1) {
+    while (expanded::FishingFightRunWay() == first && frames < expanded::kLongestRun + 1) {
         if (frames % 8 < 3) {
             Pull();
         } else {
@@ -464,24 +481,20 @@ TEST_F(FishingFight, TheFishSwitchesSidesAndRunsToThem) {
         }
         frames++;
     }
-    EXPECT_EQ(expanded::FishingFightSide(), -first);
+    EXPECT_NE(expanded::FishingFightRunWay(), first);
     EXPECT_GE(frames, expanded::kShortestRun);
     EXPECT_LE(frames, expanded::kLongestRun);
 
-    // The angler's right as he looks at the fish (-x, the fish out along +z): the fish heads for the side it runs to,
-    // 20 out from where it was hooked, as far as the cone away from the angler (+z) lets it (the game's thrash rolled
-    // straight ahead): its cone's edge on that side.
+    // The fish out along +z from the angler: it heads the run's way from +z (the game's thrash rolled straight ahead),
+    // at the run's speed.
     CFish &fish = fish_[kHooked];
     fish.target_yaw = 0.0f;
     expanded::FishFightSwim(fish);
-    const float side = static_cast<float>(expanded::FishingFightSide());
-    EXPECT_NEAR(fish.target_yaw, expanded::FightConeYaw(0.0f, std::atan2(-side, 0.0f)), 1e-5f);
-    EXPECT_NEAR(std::fabs(fish.target_yaw), expanded::kCone, 1e-5f);
-    EXPECT_LT(side * std::sin(fish.target_yaw), 0.0f); // toward -x for the right
+    EXPECT_NEAR(fish.target_yaw, expanded::FishingFightRunWay(), 1e-5f);
     EXPECT_FLOAT_EQ(fish.target_speed, expanded::FightRunSpeed(0.0f));
 }
 
-TEST_F(FishingFight, TheRunsStaySquareToTheLineWhicheverWayTheCameraLooks) {
+TEST_F(FishingFight, TheRunsGoOutFromTheAnglerWhicheverWayTheCameraLooks) {
     // The camera looks along +x across the line (the screen's right is +z, the way out to the fish).
     CCamera camera(1.0f);
     float   eye[4] = {-30.0f, 20.0f, 0.0f, 1.0f};
@@ -493,10 +506,14 @@ TEST_F(FishingFight, TheRunsStaySquareToTheLineWhicheverWayTheCameraLooks) {
     CFish &fish = fish_[kHooked];
     fish.target_yaw = 0.0f;
     expanded::FishFightSwim(fish);
-    // The runs still go to the angler's sides, square to the line (his right -x), to the cone's edge on that side.
-    const float side = static_cast<float>(expanded::FishingFightSide());
-    EXPECT_NEAR(fish.target_yaw, expanded::FightConeYaw(0.0f, std::atan2(-side, 0.0f)), 1e-5f);
-    EXPECT_NEAR(fish.target_yaw, -side * expanded::kCone, 1e-5f);
+    // The run's way is still from the way out to the fish (+z), not the camera's.
+    EXPECT_NEAR(fish.target_yaw, expanded::FishingFightRunWay(), 1e-5f);
+    // Moved round to +x of the angler, the way out turns with it.
+    float aside[4] = {40.0f, -12.0f, 0.0f, 1.0f};
+    fish.SetPosition(aside);
+    fish.target_yaw = 0.0f;
+    expanded::FishFightSwim(fish);
+    EXPECT_NEAR(std::remainder(fish.target_yaw - (PI / 2.0f + expanded::FishingFightRunWay()), 2.0f * PI), 0.0f, 1e-5f);
     NowCamera = nullptr;
 }
 
@@ -514,12 +531,6 @@ TEST_F(FishingFight, TheFishThrashesAboutItsRunsHeading) {
         EXPECT_NEAR(fish.target_yaw, expanded::FightConeYaw(0.0f, heading + roll / 3.0f), 1e-4f) << roll;
         EXPECT_LE(std::fabs(std::remainder(fish.target_yaw, 2.0f * PI)), expanded::kCone + 1e-5f) << roll;
     }
-    // At its run's end (facing +z with no camera, its right is -x) it still struggles.
-    const float side = static_cast<float>(expanded::FishingFightSide());
-    float       end[4] = {-side * expanded::kRunWidth, -12.0f, 40.0f, 1.0f};
-    fish.SetPosition(end);
-    expanded::FishFightSwim(fish);
-    EXPECT_GT(fish.target_speed, 0.0f);
 }
 
 TEST_F(FishingFight, TheLineHoldsTheFishToItsEnd) {
@@ -634,16 +645,20 @@ TEST_F(FishingFight, OffTheStruckFishIsLandedAsInTheGame) {
     Strike();
     EXPECT_EQ(BattleFish, &fish_[kHooked]);
     EXPECT_EQ(Step(0.0f, 0.0f), FightStep::kRetail);
-    EXPECT_EQ(expanded::FishingFightSide(), 0);
+    EXPECT_EQ(expanded::FishingFightRunWay(), 0.0f);
 }
 
 TEST_F(FishingFight, OnlyTheFoughtFishIsSteered) {
     Strike();
     fish_[0].target_yaw = 9.0f;
-    EXPECT_FLOAT_EQ(expanded::FishFightSwim(fish_[0]), 1.0f);
+    const expanded::FightPace other = expanded::FishFightSwim(fish_[0]);
+    EXPECT_FLOAT_EQ(other.turn, 1.0f);
+    EXPECT_FLOAT_EQ(other.speed, 1.0f);
     EXPECT_FLOAT_EQ(fish_[0].target_yaw, 9.0f);
-    // The fought fish turns and speeds up at the fight's pace.
-    EXPECT_FLOAT_EQ(expanded::FishFightSwim(fish_[kHooked]), expanded::kFightPace);
+    // The fought fish turns at the fight's turn pace and speeds up at its swimming pace.
+    const expanded::FightPace fought = expanded::FishFightSwim(fish_[kHooked]);
+    EXPECT_FLOAT_EQ(fought.turn, expanded::kFightTurnPace);
+    EXPECT_FLOAT_EQ(fought.speed, expanded::kFightPace);
 }
 
 } // namespace
