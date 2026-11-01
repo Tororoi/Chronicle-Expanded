@@ -85,12 +85,17 @@ TEST(SandBreaker, XInTheGuardCatchesTheNextBlowAndSwingsAtOnce) {
 TEST(SandBreaker, TheWindowIsATenthOfASecond) {
     Guard guard;
     expanded::SandCounterPress();
-    for (int frame = 0; frame < expanded::kCounterWindow; frame++) {
+    for (int frame = 0; frame < expanded::kCounterWindow - 1; frame++) {
         expanded::SandCounterStep();
+        EXPECT_EQ(BtActStatus.action_on, kGuarding);
     }
-    EXPECT_EQ(guard.Blow(3), 3); // too late: the game's own guard break
-    EXPECT_EQ(BtActStatus.action_on, 0);
+    // No blow caught: the guard let go for an ordinary swing, from its wind-up.
+    expanded::SandCounterStep();
+    EXPECT_EQ(BtActStatus.action_on, 1);
+    EXPECT_EQ(BtActStatus.action_no, expanded::kToanFirstSwing);
     EXPECT_FALSE(expanded::SandCountering());
+    EXPECT_EQ(expanded::SandCounterAttack(40), 40);
+    EXPECT_EQ(guard.Blow(3), 3); // a blow now is the game's own: no counter readied
 }
 
 TEST(SandBreaker, OnlyInTheGuardAndInHand) {

@@ -4,6 +4,7 @@
 
 #include "btactstatus.hpp"
 #include "character.hpp"
+#include "charakey.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/debug/event_log.hpp"
@@ -51,8 +52,10 @@ void SandCounterPress() {
 }
 
 void SandCounterStep() {
-    if (ready > 0) {
-        ready--;
+    // No blow caught in time: the press is the swing it would have been out of the guard, wind-up and all.
+    if (ready > 0 && --ready == 0 && BtActStatus.action_on == kGuarding && SandCounterActive()) {
+        BtActStatus.action_on = 0;
+        ToanKey_On();
     }
     if (countering && (BtActStatus.action_on != 1 || BtActStatus.action_no != kToanFirstSwing)) {
         countering = false;
