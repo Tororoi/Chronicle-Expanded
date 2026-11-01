@@ -30,6 +30,11 @@ struct TownLadder {
 // frames for a party member who has none (Toan, or a ladder that can't be read).
 TownLadder TownLadderSequence(int ally, const float position[3], float yaw, const ED_EVENT_PARAM &param);
 
+// The climb out of the submarine's hatch as if a ladder went down into it: the ally's own ladder up, from the bottom of
+// the hatch to top, where the arrival stands Toan facing yaw, ending standing there. Ungaga, who takes no ladder, jumps
+// up out of it with his boarding jump.
+TownLadder TownHatchClimb(int ally, const float top[3], float yaw);
+
 // The ladder press at param: false lets Toan climb; true for an ally, who plays its sequence or is refused.
 bool TownAllyTakesLadder(const ED_EVENT_PARAM *param);
 

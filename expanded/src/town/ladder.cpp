@@ -190,11 +190,14 @@ struct Jump {
     float launch_speed = -1;
     int   launch_frames = 0; // >0: the air motion after this many frames, not at the top of the arc
     int   air_motion = kFall, air_flags = kPlayOnce;
+    float air_speed = -1;
     int   frames = 0;
     float vx = 0, vy = 0, vz = 0, gravity = 0.10f;
     // A landing played on the ground; without one the arc ends above it and the town lands the player.
     int   land_motion = 0, land_frames = 0, land_lead = 0, land_flags = kPlayOnce;
     float land_speed = -1;
+    // The upward speed solved so the arc's last frame is on the far end, with nothing left for a landing to snap.
+    bool land_on_target = false;
 };
 
 void Leap(Builder &b, const Ladder &ladder, const Jump &jump) {
@@ -213,13 +216,16 @@ void Leap(Builder &b, const Ladder &ladder, const Jump &jump) {
     }
     b.Motion(jump.launch_motion, jump.launch_speed, jump.launch_flags);
     float vy = jump.vy;
+    if (jump.land_on_target) {
+        vy = (ladder.target[1] - b.y) / jump.frames + jump.gravity * (jump.frames - 1) / 2.0f;
+    }
     for (int left = jump.frames; left > 0; left--) {
         b.x += jump.vx;
         b.y += vy;
         b.z += jump.vz;
         vy -= jump.gravity;
         if (jump.launch_frames > 0 ? left <= jump.frames - jump.launch_frames : vy < 0.0f) {
-            b.Motion(jump.air_motion, -1.0f, jump.air_flags);
+            b.Motion(jump.air_motion, jump.air_speed, jump.air_flags);
         }
         if (jump.land_motion > 0 && left <= jump.land_lead) {
             b.Motion(jump.land_motion, jump.land_speed, jump.land_flags);
@@ -238,8 +244,9 @@ int FallFrames(float vy, float gravity, float drop) {
     return std::clamp(static_cast<int>((vy + std::sqrt(vy * vy + 2.0f * gravity * drop)) / gravity), 20, 90);
 }
 
-// Xiao: the cat's leap, up after a step back and a crouch, or down off the edge.
-void XiaoLadder(Builder &b, const Ladder &ladder) {
+// Xiao: the cat's leap, up after a step back and a crouch, or down off the edge; onto lands her on the far end herself
+// (the town lands her off a ladder).
+void XiaoLadder(Builder &b, const Ladder &ladder, bool onto = false) {
     constexpr float kGravity = 0.10f;
     constexpr float kBack = 6.0f;
     constexpr float kBackSpeed = 0.20f;
@@ -266,6 +273,19 @@ void XiaoLadder(Builder &b, const Ladder &ladder) {
     }
     jump.vx = (ladder.target[0] - start_x) / jump.frames;
     jump.vz = (ladder.target[2] - start_z) / jump.frames;
+    if (onto) {
+        // The leap up, then the fall drawn out to the landing, so she is never held in a pose, and the landing begun
+        // as she comes down onto the deck.
+        constexpr int kLeapUp = 16;   // slot 12's 285-294 at 0.60
+        constexpr int kFallKeys = 9;  // slot 8's 205-214
+        constexpr int kLandLead = 16; // her landing begun as she comes down onto the deck
+        jump.land_on_target = true;
+        jump.launch_frames = kLeapUp;
+        jump.land_lead = kLandLead;
+        jump.air_speed = static_cast<float>(kFallKeys) / std::max(jump.frames - kLeapUp - kLandLead, 1);
+        jump.land_motion = kLand;
+        jump.land_frames = 30 - kLandLead;
+    }
     Leap(b, ladder, jump);
 }
 
@@ -314,8 +334,9 @@ void OsmondLadder(Builder &b, const Ladder &ladder) {
     b.Wait(116);
 }
 
-// Goro: up, four hops up the ladder, the last one onto the ledge; down, a crouch and a jump.
-void GoroLadder(Builder &b, const Ladder &ladder) {
+// Goro: up, four hops up the ladder, the last one onto the ledge; down, a crouch and a jump. onto: the last hop comes
+// down on the ledge itself.
+void GoroLadder(Builder &b, const Ladder &ladder, bool onto = false) {
     constexpr float kGravity = 0.15f;
     constexpr int   kHops = 4;
     constexpr int   kHopFrames = 31;
@@ -382,7 +403,10 @@ void GoroLadder(Builder &b, const Ladder &ladder) {
         rise += speed;
         speed -= kGravity;
     }
-    int   lead = std::min(8, count);
+    int lead = std::min(8, count);
+    if (onto) {
+        vy = (ladder.target[1] - b.y) / count + kGravity * (count - 1) / 2.0f;
+    }
     float dx = (ladder.target[0] - ladder.mount[0]) / count;
     float dz = (ladder.target[2] - ladder.mount[2]) / count;
     b.Sound(kHopSound);
@@ -435,6 +459,35 @@ void RubyLadder(Builder &b, const Ladder &ladder) {
     b.Wait(20);
 }
 
+// Ungaga's boarding jump (town_allies.cpp): its takeoff, air and landing slots.
+constexpr int kUngagaTakeoff = 11, kUngagaAir = 12, kUngagaLanding = 13;
+
+// Ungaga out of the hatch: his boarding jump's crouch and spring, up over the rim, and its landing on the deck.
+void UngagaHatchJump(Builder &b, const Ladder &ladder) {
+    constexpr float kGravity = 0.15f;
+    constexpr float kApex = 1.0f; // his air pose holds his hips high above the arc
+    Jump            jump;
+    jump.ready_motion = kUngagaTakeoff;
+    jump.ready_frames = 32; // his takeoff's crouch, at 0.25 a frame
+    jump.ready_flags = kPlayOnce;
+    // The air, Toan's loop, playing through the whole arc.
+    jump.launch_motion = kUngagaAir;
+    jump.launch_flags = 0;
+    jump.air_motion = kUngagaAir;
+    jump.air_flags = 0;
+    jump.gravity = kGravity;
+    jump.vy = std::sqrt(2.0f * kGravity * (ladder.height + kApex));
+    jump.frames = std::clamp(static_cast<int>(std::ceil(jump.vy / kGravity + std::sqrt(2.0f * kApex / kGravity))), 20, 90);
+    jump.vx = (ladder.target[0] - ladder.mount[0]) / jump.frames;
+    jump.vz = (ladder.target[2] - ladder.mount[2]) / jump.frames;
+    jump.land_motion = kUngagaLanding;
+    // Toan's landing holds the air pose its first frames: begun well before the touchdown, it drops as he lands.
+    jump.land_lead = 20;
+    jump.land_frames = 60 - 20;
+    jump.land_on_target = true;
+    Leap(b, ladder, jump);
+}
+
 // The ladder refusal in slot 7, played where the player stands.
 void Refusal(Builder &b, int ally) {
     int frames = ally == CHARA_XIAO ? 175 : ally == CHARA_GORO ? 65
@@ -474,6 +527,47 @@ TownLadder TownLadderSequence(int ally, const float position[3], float yaw, cons
     } else if (ally >= CHARA_XIAO && ally <= CHARA_UNGAGA) {
         Refusal(b, ally);
     }
+    return b.sequence;
+}
+
+TownLadder TownHatchClimb(int ally, const float top[3], float yaw) {
+    // The hatch's ladder: as far behind where it ends as Toan's climb out (KEY 203) starts him, and deep enough that an
+    // ally as tall as Ungaga starts out of sight.
+    constexpr float kDepth = 25.0f;
+    constexpr float kBack = 7.7f;
+    Ladder          ladder{};
+    float           s = std::sin(yaw);
+    float           c = std::cos(yaw);
+    ladder.mount[0] = top[0] - s * kBack;
+    ladder.mount[1] = top[1] - kDepth;
+    ladder.mount[2] = top[2] - c * kBack;
+    std::copy_n(top, 3, ladder.target);
+    ladder.x = ladder.mount[0];
+    ladder.y = ladder.mount[1];
+    ladder.z = ladder.mount[2];
+    ladder.yaw = yaw;
+    ladder.height = top[1] + kLandMargin - ladder.y;
+    ladder.yaw_ladder = yaw;
+    ladder.face = yaw;
+    ladder.align_frames = kAlignMin;
+
+    Builder b(ladder);
+    if (ally == CHARA_XIAO) {
+        XiaoLadder(b, ladder, true);
+    } else if (ally == CHARA_GORO) {
+        GoroLadder(b, ladder, true);
+    } else if (ally == CHARA_RUBY) {
+        RubyLadder(b, ladder);
+    } else if (ally == CHARA_OSMOND) {
+        OsmondLadder(b, ladder);
+    } else if (ally == CHARA_UNGAGA) {
+        UngagaHatchJump(b, ladder);
+    } else {
+        return {};
+    }
+    b.Snap(top);
+    b.Motion(kIdle, -1.0f, 0);
+    b.Frame();
     return b.sequence;
 }
 

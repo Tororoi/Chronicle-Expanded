@@ -174,12 +174,19 @@ which has neither, can't take a ladder.
 
 ## The submarine
 
-East Harbor's submarine boarding (`gedit/s09/event.stb` label 11) loads Toan's jump into the hatch
-(`gedit/s09/chara/e202.chr`, `e202c01d.cfg` KEY 200 takeoff 25-40, 201 air 45-55, 202 landing 60-75) and
-queues it, the script dropping him into the hatch over 40 frames. An ally in its built model keeps it
-(`TownAllyKeepsBody`), and the queue's 200-202 play its own motions (`kBoardingMotions`): Xiao crouch (11),
-leap (8), land (9); Goro crouch (13), fall (8), land (9); Osmond dive (11), fall (8), land (9); Ruby and
-Ungaga Toan's jump, retargeted (`retarget`). Rigs of the jump are Toan's `chara/c01d.chr`: Ungaga's is the
+The submarine runs between East Harbor (MapNo 19) and the Sunken Ship Entrance (35) through the ride (39).
+Boarding at either end (label 11 of `gedit/s09/event.stb` and `gedit/s25/event.stb`) loads Toan's jump into
+the hatch (`gedit/s09/chara/e202.chr` `e202c01d.cfg`, or `e203.chr` `e203c01d.cfg`: KEY 200 takeoff 25-40, 201
+air 45-55, 202 landing 60-75) and queues it, the script dropping him into the hatch over 40 frames. An ally in
+its built model keeps it (`TownAllyKeepsBody`), the queue's 200-202 play its own motions (`kBoardingMotions`):
+Xiao crouch (11), leap (8), land (9); Goro crouch (13), fall (8), land (9); Osmond dive (11), fall (8), land
+(9); Ruby and Ungaga Toan's jump, retargeted (`retarget`). The ally rides to the other end, the town's reset
+swapping it back in at each submarine map. Arriving (s25 label 300, s09 label 303), the script stands the
+player at the top of the ramp and plays KEY 203 (80-100), Toan's climb out of the hatch: an ally instead takes
+its own ladder up out of it (`TownHatchClimb`, the ladders below), as if one went down into the hatch, from 25
+below (out of sight) and 7.7 behind to where Toan ends; Ungaga, who takes no ladder, jumps out with his
+boarding jump. The climb plays over the player's action sequence, which `_ASQ_CHECK` holds busy until it ends.
+Rigs of the jump are Toan's `chara/c01d.chr`: Ungaga's is the
 same chain layout numbered otherwise, every joint paired; Ruby's is plainer (one spine joint, the legs off
 the hip), her legs, hips, chest and head paired and her arms borrowed.
 

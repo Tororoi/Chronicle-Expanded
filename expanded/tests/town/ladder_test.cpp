@@ -105,3 +105,44 @@ TEST(TownLadder, OnlyTheAlliesHaveSequences) {
     EXPECT_TRUE(TownLadderSequence(CHARA_OSMOND, position, 0.0f, door).frames.empty());
     EXPECT_EQ(TownLadderSequence(CHARA_XIAO, position, 0.0f, door).frames.front().motion, 7);
 }
+
+// Out of the submarine's hatch each ally takes its own ladder up (Ungaga his boarding jump): from out of sight below
+// the rim to where the arrival stands Toan, facing his way, and standing there at the end.
+TEST(TownLadder, EveryAllyClimbsOutOfTheHatchToTheTopOfTheRamp) {
+    const float top[3] = {0.48f, 29.65f, 13.52f};
+    for (int ally = 1; ally < 6; ally++) {
+        expanded::TownLadder climb = expanded::TownHatchClimb(ally, top, 0.0f);
+        ASSERT_FALSE(climb.frames.empty()) << ally;
+        EXPECT_LE(climb.frames.front().y, top[1] - 20.0f) << ally;
+        const expanded::TownLadderFrame &last = climb.frames.back();
+        EXPECT_FLOAT_EQ(last.x, top[0]) << ally;
+        EXPECT_FLOAT_EQ(last.y, top[1]) << ally;
+        EXPECT_FLOAT_EQ(last.z, top[2]) << ally;
+        EXPECT_FLOAT_EQ(last.yaw, 0.0f) << ally;
+        auto set = std::find_if(climb.frames.rbegin(), climb.frames.rend(), [](const auto &f) { return f.motion >= 0; });
+        ASSERT_NE(set, climb.frames.rend()) << ally;
+        EXPECT_EQ(set->motion, 0) << ally;
+    }
+    EXPECT_TRUE(expanded::TownHatchClimb(0, top, 0.0f).frames.empty());
+}
+
+// The climb comes down onto the deck as it falls, with no snap: no frame drops further than the one before it did by
+// more than a fall gains in a frame (a takeoff's sudden rise is a jump's own).
+TEST(TownLadder, TheHatchClimbLandsWithoutASnap) {
+    const float top[3] = {0.48f, 29.65f, 13.52f};
+    for (int ally = 1; ally < 6; ally++) {
+        expanded::TownLadder climb = expanded::TownHatchClimb(ally, top, 0.0f);
+        float                worst = 0.0f;
+        size_t               at = 0;
+        for (size_t i = 2; i < climb.frames.size(); i++) {
+            const auto &a = climb.frames[i - 2], &b = climb.frames[i - 1], &c = climb.frames[i];
+            float       before = b.y - a.y, now = c.y - b.y;
+            float       change = before - now;
+            if (change > worst) {
+                worst = change;
+                at = i;
+            }
+        }
+        EXPECT_LT(worst, 0.6f) << "ally " << ally << " drops " << worst << " more at frame " << at << " of " << climb.frames.size();
+    }
+}
