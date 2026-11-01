@@ -26,6 +26,7 @@ constexpr Built kBuilt[] = {
     {"chara/queens_trees.chr",       83520,   0x8e1dda13dad52c72ULL},
     {"chara/shadow_disc.chr",        5584,    0xd148f318c2a885c2ULL},
     {"chara/spirit_cat.chr",         437152,  0x6d1be3bc3aff86c5ULL},
+    {"disc/chara/c01d_turi.chr",     1849104, 0xb2fd8aeb3ab6c290ULL},
     {"disc/gedit/e03/e03_1.mes",     5598,    0x7f7a938dd5735e38ULL},
     {"disc/gedit/e03/e03talk_1.mes", 47122,   0xfb8f96324c158b40ULL},
     {"disc/gedit/e03/img.pak",       3111888, 0x665f33dfe67d12b8ULL},

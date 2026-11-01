@@ -23,6 +23,7 @@
 #include "expanded/core/random.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/town/fishing.hpp"
+#include "expanded/town/fishing_lean.hpp"
 #include "expanded/town/fishing_sight.hpp"
 #include "expanded/weapons/ruby/fairys_ring.hpp"
 #include "fish.hpp"
@@ -434,13 +435,15 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     if (fight.fish == nullptr) {
         return FightStep::kRetail;
     }
-    // The stick reads in the camera's frame as the frame starts; the angler turns as while waiting for a bite.
+    // The stick reads in the camera's frame as the frame starts; the angler stands where he is turned and leans the rod
+    // with the stick.
     Look();
-    facing[1] = AngleInterpolate(facing[1], facing[1] - 0.1f * stick_x, 0.01f, INTERPOLATE_STEP);
     angler.SetRotation(facing);
     if (fight.won) {
+        EndLean();
         return FightStep::kLanded;
     }
+    LeanRod(angler, fight.camera, stick_x, stick_y);
 
     Follow();
     if (fight.turning) {
@@ -493,11 +496,14 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     GamePad.SetVibration(1, fight.holds ? kPullRumble : kSlackRumble, kRumbleFrames);
 
     if (fight.bar >= 1.0f) {
+        // The game takes the landing from here (it may not call this again), so the rod's lean lets go now.
         fight.won = true;
+        EndLean();
         LogFight("landed", std::format("\"kind\":{},\"perfect\":{},{}", fight.fish->fish_kind, fight.perfect, Ways()));
         return FightStep::kLanded;
     }
     if (drained && fight.bar <= 0.0f) {
+        EndLean();
         GotAway();
         return FightStep::kGotAway;
     }

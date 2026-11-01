@@ -7,6 +7,7 @@
 
 #include "expanded/data/boss_model.hpp"
 #include "expanded/data/data_build.hpp"
+#include "expanded/data/fishing_poses.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/data/gemron_models.hpp"
 #include "expanded/data/monster_scripts.hpp"
@@ -36,6 +37,7 @@ const DataKind kDataKinds[] = {
     {"script damage", nullptr, BuildScriptDamage}, // one file from every script in a folder
     {"prop model", PropModelBuilds},
     {"fishing spot", FishingSpotBuilds},
+    {"fishing pose", FishingPoseBuilds},
     {"queens canal", QueensCanalBuilds},
 };
 

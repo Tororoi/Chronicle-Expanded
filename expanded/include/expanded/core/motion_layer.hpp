@@ -30,7 +30,7 @@ void LayMotion(tagMOTION_TYPE *motion, MotionLayer *layer);
 void LiftMotion(tagMOTION_TYPE *motion, bool restore);
 
 // Hooks: SetMotionEX, before the motion's state moves on (a key change takes the carry), and once its tracks have posed
-// frame (before the look-at and the skin).
+// frame (before the look-at and the skin), where a motion mix (motion_mix.hpp) goes first.
 void MotionPosing(tagMOTION_TYPE *motion, MOTION_STATE *state);
 void MotionPosed(CFrame *frame, tagMOTION_TYPE *motion);
 
