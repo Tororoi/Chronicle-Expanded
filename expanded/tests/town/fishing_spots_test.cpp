@@ -9,10 +9,13 @@
 #include "collision.hpp"
 #include "expanded/data/fishing_collision.hpp"
 #include "expanded/data/fishing_spots.hpp"
+#include "expanded/town/ally.hpp"
 #include "expanded/town/fishing.hpp"
 #include "fish.hpp"
 #include "fishing.hpp"
+#include "itemdata.hpp"
 #include "main.hpp"
+#include "mainselect.hpp"
 
 namespace {
 
@@ -125,9 +128,14 @@ TEST(FishingSpots, TheGamesSpotsKeepTheirFishAndLine) {
     const float retail = distp;
     for (int spot = 0; spot <= 4; spot++) {
         EXPECT_EQ(expanded::SpotFish(spot, 3, 7, kMorningInterval), 7) << spot;
-        EXPECT_EQ(expanded::SpotFishCount(spot, 4), 4) << spot;
         EXPECT_EQ(expanded::SpotLineSegment(spot), retail) << spot;
     }
+    // One more fish than the game's but at Norune: four there, six where the game has five, five at Muska Lacka.
+    EXPECT_EQ(expanded::SpotFishCount(expanded::kNoruneArea, 4), 4);
+    for (int spot = 1; spot <= 3; spot++) {
+        EXPECT_EQ(expanded::SpotFishCount(spot, 5), 6) << spot;
+    }
+    EXPECT_EQ(expanded::SpotFishCount(4, 4), 5);
     Town norune(0);
     EXPECT_EQ(expanded::FishingSpotLoad(0, 20.0f), 20.0f);
     EXPECT_EQ(expanded::SpotFishDepth(12.0f), 12.0f);
@@ -219,4 +227,19 @@ TEST(FishingSpots, YellowDropsCastPaysOutAndItsFishSwimShallow) {
     Town town(23);
     expanded::FishingSpotLoad(yellow_drops->area, yellow_drops->water);
     EXPECT_EQ(expanded::SpotFishDepth(12.0f), 8.0f);
+}
+
+TEST(FishingSpots, ToanFishesAndSoDoesAnAllyWhereTheGameDoesNot) {
+    // Toan walking: the rod check is the game's, and the sign keeps its own line.
+    expanded::TownAllyReset();
+    const int saved_map = MapNo;
+    for (int map : expanded::kToanOnlyFishing) {
+        MapNo = map;
+        EXPECT_FALSE(expanded::AllyKeptFromFishing()) << map;
+        EXPECT_EQ(expanded::FishingRodCheck(ITEM_FISHING_ROD, 3), 3) << map;
+        EXPECT_EQ(expanded::FishingRodCheck(ITEM_FISHING_ROD, -1), -1) << map;
+    }
+    // Any other item is checked as the game checks it.
+    EXPECT_EQ(expanded::FishingRodCheck(ITEM_FISHING_ROD + 1, 7), 7);
+    MapNo = saved_map;
 }

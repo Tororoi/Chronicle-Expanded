@@ -150,7 +150,8 @@ const FishingSpot kSpots[] = {
      .canal = &kQueensCasting,
      .additions = &kQueensCanal},
     // Queens' canal floor at low tide, down the ladder: fished standing in the water by the sign under the east bridge,
-    // facing east along the canal, its fish let go about the sign.
+    // facing east along the canal. Its rect is the north bank's, as the mod has it: the fish roam the whole canal, and
+    // the floor a session gathers takes in both bridges and the bank.
     {.code = "e03",
      .map_no = 2,
      .area = 8,
@@ -162,9 +163,9 @@ const FishingSpot kSpots[] = {
      .atari = "kanbanc_a.mds",
      .trigger = {0.0f, 0.0f, 6.0f},
      .label = kCanalFloorSignLabel,
-     .x1 = 600.0f,
+     .x1 = -240.0f,
      .z1 = -100.0f,
-     .x2 = 1000.0f,
+     .x2 = 900.0f,
      .z2 = 150.0f,
      .water = kLowTide,
      .ground = 0.0f,

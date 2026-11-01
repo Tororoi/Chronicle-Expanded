@@ -43,6 +43,9 @@ using TalkTextProvider = std::optional<std::string> (*)(std::string_view own);
 // leave it as it is.
 void SetTalkMessage(int message_id, TalkTextProvider provider);
 
+// The same for a town event message (the bank of the town's event window, EditEventMes1: its menus and signs' lines).
+void SetEventMessage(int message_id, TalkTextProvider provider);
+
 // The item whose picture window mes draws in place of icon code ({icon-sword}...), or 0 for the icon.
 using MessagePictureProvider = int (*)(const ClsMes &mes, int code);
 
@@ -54,12 +57,12 @@ void AddMessagePicture(MessagePictureProvider provider);
 bool MessagePicture(const ClsMes &mes, int code, const CRect_i_ &screen, int alpha);
 
 // The system messages Expanded adds, one id each past the bank's own.
-inline constexpr int kAtlaSphereMessage = 1000;   // dungeon/atla_drops: a sphere found in an atla
-inline constexpr int kWiseOwlMessage = 1001;      // weapons/toan/wise_owl_sword
-inline constexpr int kSkeletonKeyMessage = 1002;  // weapons/toan/bone_rapier
-inline constexpr int kKitchenKnifeBlessed = 1003; // weapons/toan/kitchen_knife: the spring's blessing …
-inline constexpr int kKitchenKnifeFaded = 1004;   // … faded …
-inline constexpr int kKitchenKnifeMended = 1005;  // … and the knife mended
+inline constexpr int kAtlaSphereMessage = 1000;     // dungeon/atla_drops: a sphere found in an atla
+inline constexpr int kWiseOwlMessage = 1001;        // weapons/toan/wise_owl_sword
+inline constexpr int kSkeletonKeyMessage = 1002;    // weapons/toan/bone_rapier
+inline constexpr int kKitchenKnifeBlessed = 1003;   // weapons/toan/kitchen_knife: the spring's blessing …
+inline constexpr int kKitchenKnifeFaded = 1004;     // … faded …
+inline constexpr int kKitchenKnifeMended = 1005;    // … and the knife mended
 inline constexpr int kMonstersSlowedMessage = 1006; // dungeon/magic_circles: the Secret Armlet's favoured rage circle
 inline constexpr int kPocklekulMessage = 1007;      // weapons/ruby/pocklekul: the pockle summoned
 inline constexpr int kShootingStarMessage = 1008;   // weapons/osmond/star_breaker: a shooting star coming down

@@ -112,3 +112,12 @@ TEST(TownAllyMenu, ASwapPlaysTheDungeonChangeAndARefusalLeavesThePage) {
     expanded::TownAllyReset();
     MapNo = saved_map;
 }
+
+TEST(TownAlly, ToanStandsAsTheGameHasHim) {
+    // Only Xiao's cat sits: Toan standing however long keeps the game's idle, and moving its motion.
+    expanded::TownAllyReset();
+    for (int frame = 0; frame < 2 * expanded::kTownAllySitFrames; frame++) {
+        EXPECT_EQ(expanded::TownAllyWalkMotion(0), 0) << frame;
+    }
+    EXPECT_EQ(expanded::TownAllyWalkMotion(2), 2);
+}

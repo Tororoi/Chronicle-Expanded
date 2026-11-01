@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <cstdlib>
+#include <exception>
+#include <string>
 #include <utility>
 
 #include "editloop.hpp"
@@ -195,4 +197,34 @@ TEST(QueensCanal, OnlyTheMistLeansSpray) {
     EXPECT_EQ(velocity[0], 0.1f);
     EXPECT_EQ(velocity[1], 1.2f);
     EXPECT_EQ(velocity[2], -0.5f);
+}
+
+TEST(QueensCanal, TheWaterfallsWriteDepth) {
+    // Their frames' last letter, z (no depth write), made x (no effect); the rest of the scene left as it is.
+    const std::string     scene = std::string("head obj48__a01z\0 mid taki2__a01z\0 obj48__a01z\0 tail", 54);
+    const expanded::Bytes out = expanded::WaterfallsWriteDepth(expanded::Bytes(scene.begin(), scene.end()));
+    const std::string     made(out.begin(), out.end());
+    EXPECT_EQ(made, std::string("head obj48__a01x\0 mid taki2__a01x\0 obj48__a01x\0 tail", 54));
+    // A scene without them is not Queens'.
+    const std::string other = "no falls here";
+    EXPECT_THROW(expanded::WaterfallsWriteDepth(expanded::Bytes(other.begin(), other.end())), std::exception);
+}
+
+TEST(QueensCanal, TheCanalFloorFishesTheBanksWholeCanal) {
+    // Both signs share the north bank's rect, as the mod has it: the fish roam the canal and the session's floor takes in
+    // both bridges and the bank.
+    const expanded::FishingSpot *bank = nullptr, *floor = nullptr;
+    for (const expanded::FishingSpot &spot : expanded::FishingSpots()) {
+        if (spot.map_no == 2) {
+            (bank == nullptr ? bank : floor) = &spot;
+        }
+    }
+    ASSERT_NE(bank, nullptr);
+    ASSERT_NE(floor, nullptr);
+    EXPECT_EQ(floor->x1, bank->x1);
+    EXPECT_EQ(floor->z1, bank->z1);
+    EXPECT_EQ(floor->x2, bank->x2);
+    EXPECT_EQ(floor->z2, bank->z2);
+    EXPECT_EQ(floor->x1, -240.0f);
+    EXPECT_EQ(floor->x2, 900.0f);
 }

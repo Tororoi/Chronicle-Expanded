@@ -198,6 +198,22 @@ TEST(ExpandedMenuText, ATalkMessageIsTheTalkWindowsBankOnly) {
     EditMes1.buff = own;
 }
 
+TEST(ExpandedMenuText, AnEventMessageIsTheEventWindowsBankOnly) {
+    Reset            reset;
+    std::vector<s16> bank = Bank();
+    expanded::SetEventMessage(kStatusBreakHint, Exclaimed);
+    // Not the event window's bank: its own text, and the talk window's providers do not reach it.
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.");
+    short *own = EditEventMes1.buff;
+    EditEventMes1.buff = bank.data();
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.!");
+    expanded::SetEventMessage(kStatusBreakHint, Unchanged);
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.!");
+    expanded::SetEventMessage(kStatusBreakHint, nullptr);
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.");
+    EditEventMes1.buff = own;
+}
+
 TEST(ExpandedMenuText, LanguageFilesGiveADescription) {
     Reset reset;
     fs::path dir = datafix::TempDir("menu_text");

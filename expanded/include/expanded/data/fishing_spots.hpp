@@ -112,8 +112,9 @@ struct FloorDropZone {
 inline constexpr float kCastStart = 0.9f;
 inline constexpr float kLowestFishingCamera = 12.0f;
 
-// The fish at a spot of Expanded's.
-inline constexpr int kSpotFishCount = 6;
+// The fish at a spot of Expanded's; at the game's own, as the mod has them, one more than the game's (FishNum: five,
+// four at Muska Lacka) but at Norune (kNoruneArea, four).
+inline constexpr int kSpotFishCount = 6, kNoruneArea = 0;
 
 // A spot's rare_one_in for FishingLoadFish's rare_interval (1 in 50 by day, 20 at dusk, 35 at night, 25 in the
 // morning); and the Garayans that are Barons, one in kBaronOneIn.

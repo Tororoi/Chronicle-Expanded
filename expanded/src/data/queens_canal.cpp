@@ -605,7 +605,7 @@ Bytes QueensCanalScene(std::span<const unsigned char> scene, const std::vector<B
     Bytes        ladder = CarveCanalLadder(factory);
     Bytes        floor = scene::TriangleCollision(std::string(kLadderPart) + "_a", CanalFloorCollision());
     Bytes        camera = scene::TriangleCollision(std::string(kLadderPart) + "_c", CanalCameraWalls());
-    Bytes        out = scene::AppendPart(CapCanalWestEnd(scene), kLadderPart, header, ladder, LadderEvents(), floor, false, camera);
+    Bytes        out = scene::AppendPart(CapCanalWestEnd(WaterfallsWriteDepth(scene)), kLadderPart, header, ladder, LadderEvents(), floor, false, camera);
     out = scene::AppendPart(out, kWadingRipple, header, RippleDecal(norune, kRippleHalf), {}, {}, true, {}, true);
     Bytes rail = RippleDecal(norune, kRippleHalf / 2.0f);
     for (const char *part : kRailRipples) {
@@ -645,6 +645,21 @@ std::string Rebuilt(std::string_view path) {
 }
 
 } // namespace
+
+Bytes WaterfallsWriteDepth(std::span<const unsigned char> scene) {
+    Bytes out(scene.begin(), scene.end());
+    int   made = 0;
+    for (std::string_view frame : {std::string_view("obj48__a01z"), std::string_view("taki2__a01z")}) {
+        for (std::size_t at = FindText(out, frame, 0); at != std::string_view::npos; at = FindText(out, frame, at + 1)) {
+            out[at + frame.size() - 1] = 'x';
+            made++;
+        }
+    }
+    if (made == 0) {
+        Bad("Queens' scene has no waterfall frames");
+    }
+    return out;
+}
 
 Bytes CapCanalWestEnd(std::span<const unsigned char> scene) {
     std::vector<scene::SubFile> files = scene::SubFiles(scene);

@@ -59,6 +59,12 @@ bool TownAllySkipsCutscene(int event_no);
 // The event an interior starts with: an ally gets the plain entry, and none at a house ready to complete.
 int TownAllyInteriorStartEvent(int event_no, int house);
 
+// Hook: EdMoveChara as it sets the walking motion: the motion played, motion (0 standing, else moving) as a rule, but
+// Xiao's cat, in its built town body, sits (kTownAllySitMotion, its looping sit) once it has stood kTownAllySitFrames
+// (a second and a half) while the player walks the town, until it moves.
+inline constexpr int kTownAllySitMotion = 6, kTownAllySitFrames = 90;
+int                  TownAllyWalkMotion(int motion);
+
 // Height added to the "!" over the player.
 float TownAllyMarkLift();
 

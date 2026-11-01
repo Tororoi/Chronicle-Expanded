@@ -47,6 +47,7 @@
     "expanded.kitchen_knife.faded": "Der Segen der Quelle weicht vom Küchenmesser...",
     "expanded.kitchen_knife.mended": "Die Quelle repariert das Küchenmesser.",
     "expanded.magic_circles.slowed": "Die Monster wurden verlangsamt.",
+    "expanded.fishing.only_toan": "Nur {name1} kann hier angeln.",
     "expanded.fishing_fight.perfect_catch": "Perfekter Fang +{value4}",
     "expanded.pocklekul.summoned": "[monster] herbeigerufen",
     "expanded.seven_branch.break_confirm": "{alert}77% d. Waffen-\nstärke abspeichern.\n(Ohne Erweiterung.)\n Status ändern OK?",
