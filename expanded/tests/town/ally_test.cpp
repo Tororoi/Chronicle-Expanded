@@ -138,10 +138,12 @@ TEST(TownAlly, BoardsInMotionsOfItsOwnModel) {
     }
 }
 
-// Toan boards as the game has him: his jump loads and plays as it is.
+// Toan boards and leaves the submarine as the game has him: his jump and climb load and play as they are.
 TEST(TownAlly, ToanBoardsAsTheGameHasHim) {
     expanded::TownAllyReset();
-    EXPECT_FALSE(expanded::TownAllyKeepsBody(expanded::kBoardingCfg));
+    for (const char *cfg : expanded::kBoardingCfgs) {
+        EXPECT_FALSE(expanded::TownAllyKeepsBody(cfg)) << cfg;
+    }
     int   motion = expanded::kBoardingFirstMotion;
     float speed = 0.8f;
     expanded::TownAllyEventMotion(motion, speed);

@@ -115,7 +115,7 @@ Base `gedit/e03/chara/c05a.chr`, with root motion and the shadow of `gedit/e03/c
 | 9 | 10-20 | 0.15 | land: the idle | base |
 | 11 | 200-230 | 0.20 | ladder jump | `gedit/e03/chara/e228c05a.chr` 285-315, travel frozen at 200 |
 | 12 | 235-245 | 0.10 | ladder jump, held | `gedit/e03/chara/e228c05a.chr` 320-330, travel frozen at 175 |
-| 13-15 | 400-415, 420-430, 435-450 | 0.25, 0.80, 0.25 | the submarine jump | Toan's (below), hips ×0.9; her arms her float (slot 12) from the push-off, at rest again as she lands |
+| 13-16 | 400-415, 420-430, 435-450, 455-475 | 0.25, 0.80, 0.25, 0.20 | the submarine jump and climb out | Toan's (below), hips ×0.9; her arms her float (slot 12) from the push-off, at rest again as she lands |
 
 ## Ungaga
 
@@ -132,7 +132,7 @@ Base `gedit/e04/chara/e323_2c10a.chr`, with root motion; its cfg is `e323_2c10a.
 | 7 | 270-310 | 0.22 | ladder refusal | `dun/mainchara/c10b.chr` 490-530, `kon_1` and `r_handa` held at 15 |
 | 8 | 315 | 0 | fall: one pose | `dun/mainchara/c10b.chr` 296 |
 | 9 | 357-358 | 0.20 | land | `dun/mainchara/c10b.chr` 295-296, reversed |
-| 11-13 | 400-415, 420-430, 435-450 | 0.25, 0.80, 0.25 | the submarine jump | Toan's (below), hips ×1.05, every joint |
+| 11-14 | 400-415, 420-430, 435-450, 455-475 | 0.25, 0.80, 0.25, 0.20 | the submarine jump and climb out | Toan's (below), hips ×1.05, every joint |
 
 ## Osmond
 
@@ -174,12 +174,16 @@ which has neither, can't take a ladder.
 
 ## The submarine
 
-East Harbor's submarine boarding (`gedit/s09/event.stb` label 11) loads Toan's jump into the hatch
-(`gedit/s09/chara/e202.chr`, `e202c01d.cfg` KEY 200 takeoff 25-40, 201 air 45-55, 202 landing 60-75) and
-queues it, the script dropping him into the hatch over 40 frames. An ally in its built model keeps it
-(`TownAllyKeepsBody`), and the queue's 200-202 play its own motions (`kBoardingMotions`): Xiao crouch (11),
-leap (8), land (9); Goro crouch (13), fall (8), land (9); Osmond dive (11), fall (8), land (9); Ruby and
-Ungaga Toan's jump, retargeted (`retarget`). Rigs of the jump are Toan's `chara/c01d.chr`: Ungaga's is the
+The submarine runs between East Harbor (MapNo 19) and the Sunken Ship Entrance (35) through the ride (39).
+Boarding at either end (label 11 of `gedit/s09/event.stb` and `gedit/s25/event.stb`) loads Toan's jump into
+the hatch (`gedit/s09/chara/e202.chr` `e202c01d.cfg`, or `e203.chr` `e203c01d.cfg`: KEY 200 takeoff 25-40, 201
+air 45-55, 202 landing 60-75) and queues it, the script dropping him into the hatch over 40 frames; arriving
+(s25 label 300, s09 label 303) loads it again and plays KEY 203 (80-100), his climb out of the hatch. An ally
+in its built model keeps it (`TownAllyKeepsBody`), the queue's 200-203 play its own motions
+(`kBoardingMotions`), and it rides to the other end, the town's reset swapping it back in at each submarine
+map: Xiao crouch (11), leap (8), land (9), out with the leap up (12); Goro crouch (13), fall (8), land (9),
+out with a hop (11); Osmond dive (11), fall (8), land (9), out with the landing (9); Ruby and Ungaga Toan's
+jump and climb, retargeted (`retarget`). Rigs of the jump are Toan's `chara/c01d.chr`: Ungaga's is the
 same chain layout numbered otherwise, every joint paired; Ruby's is plainer (one spine joint, the legs off
 the hip), her legs, hips, chest and head paired and her arms borrowed.
 

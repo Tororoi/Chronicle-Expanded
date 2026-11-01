@@ -43,6 +43,9 @@ bool stand_in;
 // Whether the ally boards the submarine in its own body, playing its own jump.
 bool boarding;
 
+// The ally riding the submarine to its other end, or 0.
+int riding;
+
 // Frames the town body has stood still while walking the town.
 int standing_frames;
 
@@ -124,13 +127,23 @@ int TownAllyLoaded() {
 }
 
 void TownAllyReset() {
+    int ally = std::ranges::contains(kSubmarineMaps, MapNo) ? riding : 0;
     stand_in = false;
     boarding = false;
+    if (MapNo != kSubmarineRide) {
+        riding = 0;
+    }
     current_ally = 0;
     pending_ally = -1;
     loaded_body = 0;
     TownAllyLadderCancel();
     FindModels();
+    // Off the submarine in its own body, ready for the arrival's climb out.
+    if (ally > 0 && has_model[ally]) {
+        current_ally = ally;
+        riding = ally;
+        SwapBody(ally);
+    }
 }
 
 bool TownAllyCommit(int chara, int party_size) {
@@ -158,6 +171,9 @@ void TownAllyMenuCommit(int chara, int party_size) {
 
 void TownAllyWalk() {
     boarding = false;
+    if (MapNo != kSubmarineRide) {
+        riding = 0;
+    }
     if (stand_in && pending_ally < 0) {
         pending_ally = current_ally;
     }
@@ -180,13 +196,17 @@ void TownAllyEventBody() {
 }
 
 bool TownAllyKeepsBody(const char *cfg) {
-    boarding = loaded_body > 0 && has_model[loaded_body] && std::strcmp(cfg, kBoardingCfg) == 0;
+    boarding = loaded_body > 0 && has_model[loaded_body] &&
+               std::ranges::any_of(kBoardingCfgs, [cfg](const char *own) { return std::strcmp(cfg, own) == 0; });
+    if (boarding) {
+        riding = loaded_body;
+    }
     return boarding;
 }
 
 void TownAllyEventMotion(int &motion, float &speed) {
     int key = motion - kBoardingFirstMotion;
-    if (!boarding || key < 0 || key >= 3) {
+    if (!boarding || key < 0 || key >= 4) {
         return;
     }
     const BoardingMotion &own = kBoardingMotions[loaded_body][key];

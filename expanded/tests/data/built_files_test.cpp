@@ -75,8 +75,8 @@ constexpr Built kBuilt[] = {
     {"monstor/e86a.stb",             23936,   0x479b69e5dfaa9912ULL},
     {"town/goro.chr",                749872,  0x5becc581c0882fbfULL},
     {"town/osmond.chr",              802656,  0xbe9fdd77fd5b663dULL},
-    {"town/ruby.chr",                911616,  0x9a83793a899bf0d0ULL},
-    {"town/ungaga.chr",              913968,  0x04948f095257d9a8ULL},
+    {"town/ruby.chr",                974048,  0xd7a1a73cfc1c6c00ULL},
+    {"town/ungaga.chr",              971600,  0x945178db5d795ab1ULL},
     {"town/xiao.chr",                710128,  0xd1f9fe06cb7888a2ULL},
 };
 

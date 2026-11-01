@@ -35,7 +35,8 @@ int TownAllyCurrent();
 // Party member whose town body the main character has, or -1 for another body (fishing, events).
 int TownAllyLoaded();
 
-// Starts a town at Toan, as the town loads him, and looks for the built models in the data.
+// Starts a town at Toan, as the town loads him, and looks for the built models in the data; an ally riding the submarine
+// stays the one walking it at the submarine's maps.
 void TownAllyReset();
 
 // Party-menu commit in a town: queues the swap to party member chara; false refuses it.
@@ -50,10 +51,14 @@ void TownAllyWalk();
 // Before an event poses the player with Toan's motions: Toan stands in for the party member.
 void TownAllyEventBody();
 
-// East Harbor's submarine boarding loads Toan's jump (kBoardingCfg) for the player: an ally in a built body keeps it, and
-// the event's KEYs 200-202 (takeoff, air, landing) play the ally's own (kBoardingMotions: slot and speed, or -1 for the
-// event's), its own ladder-down leap or Toan's jump retargeted onto it.
-inline constexpr const char *kBoardingCfg = "e202c01d.cfg";
+// The submarine between East Harbor and the Sunken Ship: each end's boarding and arrival load Toan's jump into the hatch
+// and climb out of it (kBoardingCfgs) for the player. An ally in a built body keeps it, and the event's KEYs 200-203
+// (takeoff, air, landing, the climb out) play the ally's own (kBoardingMotions: slot and speed, or -1 for the event's):
+// its ladder leaps, or Toan's jump retargeted onto it. The ally rides the submarine to the other end (kSubmarineMaps).
+inline constexpr const char *kBoardingCfgs[] = {"e202c01d.cfg", "e203c01d.cfg"};
+inline constexpr const char *kBoardingCfg = kBoardingCfgs[0];
+inline constexpr int         kSubmarineRide = 39;                         // the ride between, its script all the map does
+inline constexpr int         kSubmarineMaps[] = {19, 35, kSubmarineRide}; // East Harbor, the Sunken Ship Entrance, the ride
 inline constexpr int         kBoardingFirstMotion = 200;
 
 struct BoardingMotion {
@@ -61,13 +66,13 @@ struct BoardingMotion {
     float speed;
 };
 
-inline constexpr BoardingMotion kBoardingMotions[6][3] = {
+inline constexpr BoardingMotion kBoardingMotions[6][4] = {
     {},
-    {{11, -1.0f}, {8, -1.0f}, {9, -1.0f}}, // Xiao: the crouch, the leap, the landing
-    {{13, -1.0f}, {8, -1.0f}, {9, -1.0f}}, // Goro: down into the crouch, the fall, the landing
-    {{13, -1.0f}, {14, -1.0f}, {15, -1.0f}}, // Ruby: Toan's jump
-    {{11, -1.0f}, {12, -1.0f}, {13, -1.0f}}, // Ungaga: Toan's jump
-    {{11, -1.0f}, {8, -1.0f}, {9, 0.30f}}, // Osmond: the dive, the fall, the landing
+    {{11, -1.0f}, {8, -1.0f}, {9, -1.0f}, {12, -1.0f}}, // Xiao: the crouch, the leap, the landing; out, the leap up
+    {{13, -1.0f}, {8, -1.0f}, {9, -1.0f}, {11, -1.0f}}, // Goro: down into the crouch, the fall, the landing; out, a hop
+    {{13, -1.0f}, {14, -1.0f}, {15, -1.0f}, {16, -1.0f}}, // Ruby: Toan's jump and climb
+    {{11, -1.0f}, {12, -1.0f}, {13, -1.0f}, {14, -1.0f}}, // Ungaga: Toan's jump and climb
+    {{11, -1.0f}, {8, -1.0f}, {9, 0.30f}, {9, 0.30f}}, // Osmond: the dive, the fall, the landing; out, the landing
 };
 
 // _LOAD_CHARA of cfg for the player: true when the ally keeps its body (the boarding), which skips the load.
