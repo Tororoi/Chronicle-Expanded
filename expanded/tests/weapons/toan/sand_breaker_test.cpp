@@ -7,6 +7,7 @@
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/toan/sand_breaker.hpp"
+#include "expanded/weapons/toan/small_sword.hpp"
 #include "expanded/weapons/toan/swings.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -66,6 +67,8 @@ TEST(SandBreaker, XInTheGuardCatchesTheNextBlowAndSwingsAtOnce) {
     EXPECT_EQ(guard.Blow(3), 2); // a guard-breaking blow is blocked
     EXPECT_EQ(BtActStatus.action_on, 1);
     EXPECT_EQ(BtActStatus.action_no, expanded::kToanFirstSwing);
+    CharaMain.motion_type.state.time = 821.0f; // past the step-in, as the swing's motion starts
+    expanded::QuickDrawSwing(CharaMain);
     EXPECT_FLOAT_EQ(CharaMain.motion_type.state.time, expanded::kToanFirstSwingTrail);
     EXPECT_TRUE(expanded::SandCountering());
     EXPECT_EQ(expanded::SandCounterAttack(40), 80);

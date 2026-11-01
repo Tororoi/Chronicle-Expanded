@@ -16,7 +16,7 @@ bool QuickDrawSword();
 bool QuickDrawSphere();
 
 // Hook: ToanKey_Play, before it reads the motion time: past the opening swing's step-in, jumps to just before its
-// trail and hit.
+// trail and hit; the Sand Breaker's counter swing jumps from its start.
 void QuickDrawSwing(CCharacter &chara);
 
 // Hook: BattleActionPlay_Jinn, before it reads the motion time (XiaoShotPlaying): a draw or hold let go jumps to the shot.

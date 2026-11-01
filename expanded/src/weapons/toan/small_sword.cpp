@@ -5,6 +5,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/toan/sand_breaker.hpp"
 #include "expanded/weapons/toan/swings.hpp"
 #include "gamepad.hpp"
 #include "itemdata.hpp"
@@ -37,7 +38,11 @@ bool QuickDrawSphere() {
 
 void QuickDrawSwing(CCharacter &chara) {
     float &time = chara.motion_type.state.time;
-    if (BtActStatus.action_no == kToanFirstSwing && time >= kSwingSteppedIn && time < kToanFirstSwingTrail && QuickDrawSword()) {
+    if (BtActStatus.action_no != kToanFirstSwing || time >= kToanFirstSwingTrail) {
+        return;
+    }
+    // The Sand Breaker's counter (sand_breaker.hpp) comes back at once, without even the step-in.
+    if ((time >= kSwingSteppedIn && QuickDrawSword()) || (time >= kToanCombo[0].start && SandCountering())) {
         time = kToanFirstSwingTrail;
     }
 }

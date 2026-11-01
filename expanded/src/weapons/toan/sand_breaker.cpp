@@ -90,7 +90,7 @@ void SandCounterBlocked(bool blocked, const COLLISION_HIT &hit) {
         KickMonster(*NowMonstorUnit, attacker, her, kCounterKick);
     }
 
-    // The opening swing from its trail, as Quick Draw plays it.
+    // The opening swing, skipping its wind-up as Quick Draw plays it.
     sceVu0FVECTOR rotation;
     CharaMain.GetRotation(rotation);
     BtActStatus.action_on = 1;
@@ -105,8 +105,7 @@ void SandCounterBlocked(bool blocked, const COLLISION_HIT &hit) {
     BtActStatus.refill_frames = 0;
     BtActStatus.swing_heading = rotation[1];
     driveNoInterpolate = 1;
-    CharaMain.motion_type.state.time = kToanFirstSwingTrail;
-    countering = true;
+    countering = true; // Quick Draw's jump past the wind-up (small_sword.hpp)
 }
 
 int SandCounterAttack(int attack) {

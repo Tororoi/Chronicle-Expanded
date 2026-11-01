@@ -451,6 +451,33 @@ void NoteShotHit(const CSHOT_EFFECT &effect, int slot, const COLLISION_HIT &hit)
     planted_next = (planted_next + 1) % kPlantedKept;
 }
 
+namespace {
+
+// A shot that bursts as it meets the player has set its blast off by the time the hit is caught: the blasts on the player
+// within kDefuseReach of where it met are put out, their puffs and their hits.
+constexpr float kDefuseReach = 40.0f;
+constexpr int   kBlastPhase = 10; // a bomb's hit (SetBombEffect)
+
+void Defuse(const float *at) {
+    if (NowColData != nullptr) {
+        for (int i = 0; i < 96; i++) {
+            const COLLISION_HIT &blast = NowColData->hit[i];
+            if (NowColData->active[i] != 0 && blast.target_mask == kHitsPlayer && blast.phase == kBlastPhase && Dist2(blast.pos, at) < kDefuseReach * kDefuseReach) {
+                NowColData->active[i] = 0;
+            }
+        }
+    }
+    if (NowBombEffect != nullptr) {
+        for (int b = 0; b < 3; b++) {
+            if (NowBombEffect[b].CheckBomb() != 0 && Dist2(NowBombEffect[b].positions[0], at) < kDefuseReach * kDefuseReach) {
+                NowBombEffect[b].Initialize();
+            }
+        }
+    }
+}
+
+} // namespace
+
 bool ReturnShotHit(const COLLISION_HIT &hit, const float *her, const float *muzzle, int shooter) {
     for (Planted &note : planted) {
         if (note.hit != &hit) {
@@ -461,6 +488,7 @@ bool ReturnShotHit(const COLLISION_HIT &hit, const float *her, const float *muzz
         if (Live(note.claim.shot) && !Returned(note.claim.shot)) {
             Effect(note.claim.shot.effect)->active[note.claim.shot.slot] = 0;
         }
+        Defuse(hit.pos);
         float target[4];
         bool  aimed = MonsterAim(shooter, target) || NearestAim(muzzle, target);
         return Fire(note.claim, her, muzzle, aimed ? target : nullptr);
