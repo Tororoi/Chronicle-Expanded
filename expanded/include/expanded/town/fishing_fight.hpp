@@ -129,7 +129,7 @@ void FightGaugePoint(const float *centre, float middle, float along, float radiu
 // A fish's strength by its length, whatever its kind (sizes as CFish::size, a tenth of its centimetres): 0 at
 // kSmallFish (30 cm) and under, 1 at kLargeFish (300 cm, the largest fish), 2 at kAriseFish (450 cm, the largest the
 // Arise Mardan grows) and over, straight between them. Its runs are 1 - 2/3 of a point as long up to 1 (a third at
-// 300 cm: 1 to 2 seconds) and a sixth less for each point past it (a sixth at 450 cm: half a second to a second); it
+// 300 cm: 1 to 2 seconds) and a tenth less for each point past it (7/30 at 450 cm: 0.7 to 1.4 seconds); it
 // swims kSpeedPerStrength faster for each point.
 inline constexpr float kSmallFish = 3.0f, kLargeFish = 30.0f, kAriseFish = 45.0f, kSpeedPerStrength = 0.25f;
 
