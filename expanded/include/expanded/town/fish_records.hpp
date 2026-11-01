@@ -10,18 +10,15 @@ struct SV_FISH_DATA;
 namespace expanded {
 
 // Fishing records feed Arise Mardan. The records list keeps each kind of fish's best catch alone, largest first, and
-// each kind's best grants Arise Mardan Max Magic: none below the kind's largest size in the game's fish_info, 1 at it,
-// rising to kRecordMagic (kGarayanRecordMagic for the Garayans) at kAriseGrowth times it (the top, in whole
-// centimetres), a size only Arise Mardan's fish reach: max(1, round(most / (1 + kRecordCurve * d^kRecordCurveExponent))).
-// Over the top kRecordKeptShare of the centimetres from the largest to the top, d is the centimetres short of the top over
-// the largest's (as the curve read when the top was twice the largest); below them it rises straight to 1 at the largest.
-// Every record at its top takes Arise Mardan from its own 120 to kMagicMost. With the Weapon Abilities off, Arise
-// Mardan keeps its own Max Magic.
-inline constexpr int    kRecordMagic = 43;
-inline constexpr int    kGarayanRecordMagic = 117;
-inline constexpr double kRecordCurve = 116.0;
+// each kind's best grants Arise Mardan Max Magic: none below the kind's largest size in the game's fish_info, and from
+// it, by the centimetres s short of kAriseGrowth times it (the top, in whole centimetres, a size only Arise Mardan's
+// fish reach), the same for every kind: max(1, round(most / (1 + k * s^kRecordCurveExponent))), k = step / (most - step),
+// so most at the top and step less a centimetre short of it; most and step kRecordMagic and kRecordTopStep, or for the
+// Garayans kGarayanRecordMagic and kGarayanRecordTopStep. Every record at its top takes Arise Mardan from its own 120
+// to kMagicMost. With the Weapon Abilities off, Arise Mardan keeps its own Max Magic.
+inline constexpr int    kRecordMagic = 43, kRecordTopStep = 10;
+inline constexpr int    kGarayanRecordMagic = 117, kGarayanRecordTopStep = 20;
 inline constexpr double kRecordCurveExponent = 0.954;
-inline constexpr double kRecordKeptShare = 1.0 / 3.0;
 inline constexpr int    kMagicMost = 999;
 
 // The Max Magic a kind's best catch of record_cm centimetres grants.
