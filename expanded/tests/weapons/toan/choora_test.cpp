@@ -51,6 +51,15 @@ TEST(Choora, ArmorPiercerDoublesDamageAndAbsOnArmoredMonsters) {
     EXPECT_FLOAT_EQ(floor.Hit(0, 30.0f, false), 30.0f); // not a weapon hit (an item, a monster)
 }
 
+// The Stone and Metal monsters left out have no armor to pierce.
+TEST(Choora, NotEveryStoneOrMetalMonster) {
+    Floor                    floor({Monster::BLIZZARD, Monster::DUNE, Monster::VULCAN, Monster::ROCKANOFF});
+    expanded::test::Wielding choora(ITEM_WEAPON_CHOORA);
+    for (int monster = 0; monster < 4; monster++) {
+        EXPECT_FLOAT_EQ(floor.Hit(monster, 30.0f), 30.0f) << monster;
+    }
+}
+
 TEST(Choora, OnlyInHand) {
     Floor                    floor({Monster::LIVING_ARMOR});
     expanded::test::Wielding dagger(ITEM_WEAPON_DAGGER);
