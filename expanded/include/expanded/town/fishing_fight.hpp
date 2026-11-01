@@ -77,9 +77,9 @@ bool FightLineHold(float *position, const float *rod, float reach);
 inline constexpr float kTargetEase = 0.2f, kTargetTurn = 0.10471976f;
 
 // A stick pulls when it points, as the screen shows the water, within kPullTolerance (15 degrees: the block's green
-// middle) of the way to pull; within kHoldTolerance (35 degrees: the block's yellow ends) it holds, the bar standing
+// middle) of the way to pull; within kHoldTolerance (25 degrees: the block's yellow ends) it holds, the bar standing
 // still. Pushed no further than kPullBack (as read), it is at rest and points at the gauge's middle.
-inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.26179939f, kHoldTolerance = 0.61086524f;
+inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.26179939f, kHoldTolerance = 0.43633231f;
 
 // The fight reads the left stick with its dead zone measured from the centre: within kStickDead of it (as far out as
 // the game's own dead band) the stick reads nothing, and past it, it reads its own way, its push stretched over 0 to 1.
