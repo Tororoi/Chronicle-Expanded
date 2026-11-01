@@ -11,6 +11,7 @@
 #include "expanded/town/fish_kinds.hpp"
 #include "expanded/weapons/ruby/fairys_ring.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/toan/mardan.hpp"
 #include "fish.hpp"
 #include "itemdata.hpp"
 #include "savedata.hpp"
@@ -54,11 +55,16 @@ int RecordMagic(int fish_kind, int record_cm) {
         return 0;
     }
     const int most = std::ranges::contains(fish::kGarayans, fish_kind) ? kGarayanRecordMagic : kRecordMagic;
-    if (record_cm >= 2 * largest) {
+    const int top = static_cast<int>(std::floor(kAriseGrowth * static_cast<float>(largest)));
+    if (record_cm >= top) {
         return most;
     }
-    const double short_by = static_cast<double>(2 * largest - record_cm) / largest;
-    const double magic = most / (1.0 + kRecordCurve * std::pow(short_by, kRecordCurveExponent));
+    const double span = top - largest, short_cm = top - record_cm, foot = kRecordTopShare * span;
+    const double share = kRecordTopMagicShare * most, last = (1.0 - kRecordLastShare) * most;
+    const double magic =
+        short_cm <= foot
+            ? last - (last - share) * (short_cm - 1.0) / (foot - 1.0)
+            : 1.0 + (share - 1.0) * std::pow(1.0 - (short_cm / span - kRecordTopShare) / (1.0 - kRecordTopShare), kRecordCurveExponent);
     return std::max(1, static_cast<int>(std::round(magic)));
 }
 

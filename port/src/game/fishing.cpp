@@ -31,6 +31,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/town/baits.hpp"
 #include "expanded/town/fishing.hpp"
+#include "expanded/town/fishing_fight.hpp"
 #include "expanded/weapons/ruby/fairys_ring.hpp"
 #endif
 
@@ -542,6 +543,9 @@ void FishingBattleFish(int fish_no) {
         if (fish->action == FISH_ACTION_BITE_HOOK) {
             BattleFish = fish;
             fish->SetBattleMode();
+#ifdef CHRONICLE_EXPANDED
+            expanded::FishingFightStarted(*fish);
+#endif
         }
     }
 }

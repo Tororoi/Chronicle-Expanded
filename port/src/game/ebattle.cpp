@@ -47,6 +47,7 @@
 #include "expanded/debug/event_log.hpp"
 #include "expanded/town/ally.hpp"
 #include "expanded/town/fishing.hpp"
+#include "expanded/town/fishing_fight.hpp"
 #include "expanded/town/ladder.hpp"
 #include "expanded/weapons/osmond/blessing_gun.hpp"
 #endif
@@ -2340,10 +2341,24 @@ void EdMoveChara() {
 
                 break;
             }
-            case ED_FISHING_BATTLE:
+            case ED_FISHING_BATTLE: {
                 FishingDeleteEsa();
+#ifdef CHRONICLE_EXPANDED
+                const expanded::FightStep fight = expanded::FishingFightStep(*chara, facing);
 
+                if (fight == expanded::FightStep::kGotAway) {
+                    chara_fishing = ED_FISHING_REEL_IN;
+                    chara->SetMotion(7, 6);
+                    st_cnt = 0;
+                    break;
+                }
+
+                const bool landed = fight == expanded::FightStep::kRetail ? st_cnt > 120 : fight == expanded::FightStep::kLanded;
+
+                if (landed && ReadBGSync() == 0) {
+#else
                 if (st_cnt > 120 && ReadBGSync() == 0) {
+#endif
                     BG_READ_INFO  *read_info = GetReadBGFile(0);
                     u_int         *fish_data = nullptr;
                     CDataAlloc2<1> arena(-1);
@@ -2362,9 +2377,16 @@ void EdMoveChara() {
                     SndSePlay(SE_FISHING_BITE, -1, 0);
                 }
 
+#ifdef CHRONICLE_EXPANDED
+                if (fight == expanded::FightStep::kRetail) {
+                    GamePad.SetVibration(1, rand() % 40 + 80, 10);
+                }
+#else
                 GamePad.SetVibration(1, rand() % 40 + 80, 10);
+#endif
                 follow_line = 1;
                 break;
+            }
             case ED_FISHING_LANDED:
                 chara_fishing = ED_FISHING_RESULT;
                 chara->SetMotion(10, 6);
@@ -2416,7 +2438,12 @@ void EdMoveChara() {
                                     SetFishMardanGarayanNum(1);
                                 }
 
+#ifdef CHRONICLE_EXPANDED
+                                const int perfect_points = expanded::PerfectCatchPoints(size);
+                                SaveData->AddFishingPoint(fish_points + perfect_points);
+#else
                                 SaveData->AddFishingPoint(fish_points);
+#endif
                                 SaveData->SetFishingRank(fish_kind, static_cast<float>(size));
 #ifdef CHRONICLE_EXPANDED
                                 expanded::EventLogCaught(fish_kind, size, fish_points);
@@ -2426,6 +2453,9 @@ void EdMoveChara() {
                                 EditMes1.values[0] = size;
                                 EditMes1.values[1] = fish_points;
                                 EditMes1.values[2] = SaveData->GetFishingPoint();
+#ifdef CHRONICLE_EXPANDED
+                                EditMes1.values[3] = perfect_points;
+#endif
                                 EditMes1.tail_on = false;
                                 EditMes1.auto_pos = MES_POS_TOP_LEFT;
                                 EditMes1.MakeMesWin(2000);

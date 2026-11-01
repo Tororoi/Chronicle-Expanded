@@ -37,7 +37,7 @@ struct Registry {
     std::map<int, WeaponTextProvider>                        weapons;
     std::map<int, std::vector<MenuTextProvider>>             messages;
     std::map<int, MenuTextProvider>                          system;
-    std::map<int, TalkTextProvider>                          talk;
+    std::map<int, std::vector<TalkTextProvider>>             talk;
     std::vector<MessagePictureProvider>                      pictures;
     std::map<std::pair<const void *, int>, std::vector<s16>> built;
     // The providers the features registered as the program started, kept by the first reset.
@@ -45,7 +45,7 @@ struct Registry {
     std::map<int, WeaponTextProvider>            own_weapons;
     std::map<int, std::vector<MenuTextProvider>> own_messages;
     std::map<int, MenuTextProvider>              own_system;
-    std::map<int, TalkTextProvider>              own_talk;
+    std::map<int, std::vector<TalkTextProvider>> own_talk;
     std::vector<MessagePictureProvider>          own_pictures;
 };
 
@@ -131,10 +131,13 @@ void SetSystemMessage(int message_id, MenuTextProvider provider) {
 }
 
 void SetTalkMessage(int message_id, TalkTextProvider provider) {
-    if (provider != nullptr) {
-        Text().talk[message_id] = provider;
-    } else {
+    if (provider == nullptr) {
         Text().talk.erase(message_id);
+        return;
+    }
+    std::vector<TalkTextProvider> &providers = Text().talk[message_id];
+    if (std::ranges::find(providers, provider) == providers.end()) {
+        providers.push_back(provider);
     }
 }
 
@@ -180,8 +183,17 @@ short *MenuText(const short *buff, int id) {
         return kept.data();
     }
     if (auto message = Text().talk.find(id); buff != nullptr && buff == EditMes1.buff && message != Text().talk.end()) {
-        const s16                 *own = Find(buff, id);
-        std::optional<std::string> text = own != nullptr ? message->second(GameTextDecode(own)) : std::nullopt;
+        const s16 *own = Find(buff, id);
+        if (own == nullptr) {
+            return nullptr;
+        }
+        // Each provider works on the text as the ones before it left it.
+        std::optional<std::string> text;
+        for (TalkTextProvider provider : message->second) {
+            if (std::optional<std::string> made = provider(text ? *text : GameTextDecode(own))) {
+                text = std::move(made);
+            }
+        }
         if (!text) {
             return nullptr;
         }

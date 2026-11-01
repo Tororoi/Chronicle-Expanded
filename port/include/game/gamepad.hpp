@@ -245,6 +245,16 @@ public:
     float GetLYf();
 
     /**
+     * Gets the first-controller left stick horizontal position from its centre (-1 to 1), with no dead zone.
+     */
+    float GetLXRaw();
+
+    /**
+     * Gets the first-controller left stick vertical position from its centre (-1 to 1), with no dead zone.
+     */
+    float GetLYRaw();
+
+    /**
      * Gets the normalized second-controller left stick horizontal position.
      */
     float GetLXf2();

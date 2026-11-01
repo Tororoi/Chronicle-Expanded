@@ -94,6 +94,7 @@
 #include "expanded/debug/stage.hpp"
 #include "expanded/town/ally.hpp"
 #include "expanded/town/fishing.hpp"
+#include "expanded/town/fishing_fight.hpp"
 #include "expanded/town/queens_canal.hpp"
 #endif
 
@@ -2769,6 +2770,9 @@ void EditMainDraw() {
 
         EdSystemMesStep();
         EdSystemMesDraw();
+#ifdef CHRONICLE_EXPANDED
+        expanded::DrawFishingFight();
+#endif
 
         if (GameMode == ED_MODE_GEORAMA && (EditMenuStatus.mode == EDIT_MENU_MODE_PLACE || EditMenuStatus.mode == EDIT_MENU_MODE_REPLACE)) {
             EDITPARTS_INFO *info = EditPartsInfo.GetPartsInfo(NowSelectParts);
