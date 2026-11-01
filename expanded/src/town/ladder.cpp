@@ -195,6 +195,8 @@ struct Jump {
     // A landing played on the ground; without one the arc ends above it and the town lands the player.
     int   land_motion = 0, land_frames = 0, land_lead = 0, land_flags = kPlayOnce;
     float land_speed = -1;
+    // The upward speed solved so the arc's last frame is on the far end, with nothing left for a landing to snap.
+    bool land_on_target = false;
 };
 
 void Leap(Builder &b, const Ladder &ladder, const Jump &jump) {
@@ -213,6 +215,9 @@ void Leap(Builder &b, const Ladder &ladder, const Jump &jump) {
     }
     b.Motion(jump.launch_motion, jump.launch_speed, jump.launch_flags);
     float vy = jump.vy;
+    if (jump.land_on_target) {
+        vy = (ladder.target[1] - b.y) / jump.frames + jump.gravity * (jump.frames - 1) / 2.0f;
+    }
     for (int left = jump.frames; left > 0; left--) {
         b.x += jump.vx;
         b.y += vy;
@@ -238,8 +243,9 @@ int FallFrames(float vy, float gravity, float drop) {
     return std::clamp(static_cast<int>((vy + std::sqrt(vy * vy + 2.0f * gravity * drop)) / gravity), 20, 90);
 }
 
-// Xiao: the cat's leap, up after a step back and a crouch, or down off the edge.
-void XiaoLadder(Builder &b, const Ladder &ladder) {
+// Xiao: the cat's leap, up after a step back and a crouch, or down off the edge; onto lands her on the far end herself
+// (the town lands her off a ladder).
+void XiaoLadder(Builder &b, const Ladder &ladder, bool onto = false) {
     constexpr float kGravity = 0.10f;
     constexpr float kBack = 6.0f;
     constexpr float kBackSpeed = 0.20f;
@@ -266,6 +272,12 @@ void XiaoLadder(Builder &b, const Ladder &ladder) {
     }
     jump.vx = (ladder.target[0] - start_x) / jump.frames;
     jump.vz = (ladder.target[2] - start_z) / jump.frames;
+    if (onto) {
+        jump.land_on_target = true;
+        jump.land_motion = kLand;
+        jump.land_lead = 4;
+        jump.land_frames = 30;
+    }
     Leap(b, ladder, jump);
 }
 
@@ -314,8 +326,9 @@ void OsmondLadder(Builder &b, const Ladder &ladder) {
     b.Wait(116);
 }
 
-// Goro: up, four hops up the ladder, the last one onto the ledge; down, a crouch and a jump.
-void GoroLadder(Builder &b, const Ladder &ladder) {
+// Goro: up, four hops up the ladder, the last one onto the ledge; down, a crouch and a jump. onto: the last hop comes
+// down on the ledge itself.
+void GoroLadder(Builder &b, const Ladder &ladder, bool onto = false) {
     constexpr float kGravity = 0.15f;
     constexpr int   kHops = 4;
     constexpr int   kHopFrames = 31;
@@ -382,7 +395,10 @@ void GoroLadder(Builder &b, const Ladder &ladder) {
         rise += speed;
         speed -= kGravity;
     }
-    int   lead = std::min(8, count);
+    int lead = std::min(8, count);
+    if (onto) {
+        vy = (ladder.target[1] - b.y) / count + kGravity * (count - 1) / 2.0f;
+    }
     float dx = (ladder.target[0] - ladder.mount[0]) / count;
     float dz = (ladder.target[2] - ladder.mount[2]) / count;
     b.Sound(kHopSound);
@@ -456,6 +472,7 @@ void UngagaHatchJump(Builder &b, const Ladder &ladder) {
     jump.land_motion = kUngagaLanding;
     jump.land_lead = 4;
     jump.land_frames = 60;
+    jump.land_on_target = true;
     Leap(b, ladder, jump);
 }
 
@@ -524,9 +541,9 @@ TownLadder TownHatchClimb(int ally, const float top[3], float yaw) {
 
     Builder b(ladder);
     if (ally == CHARA_XIAO) {
-        XiaoLadder(b, ladder);
+        XiaoLadder(b, ladder, true);
     } else if (ally == CHARA_GORO) {
-        GoroLadder(b, ladder);
+        GoroLadder(b, ladder, true);
     } else if (ally == CHARA_RUBY) {
         RubyLadder(b, ladder);
     } else if (ally == CHARA_OSMOND) {
@@ -536,12 +553,7 @@ TownLadder TownHatchClimb(int ally, const float top[3], float yaw) {
     } else {
         return {};
     }
-    // Where the town would land the player, which no event does: down onto the deck.
-    if (b.y != top[1]) {
-        b.Snap(top);
-        b.Motion(kLand);
-        b.Wait(30);
-    }
+    b.Snap(top);
     b.Motion(kIdle, -1.0f, 0);
     b.Frame();
     return b.sequence;
