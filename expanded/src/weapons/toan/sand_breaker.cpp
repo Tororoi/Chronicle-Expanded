@@ -31,10 +31,24 @@ int  ready = 0;
 bool caught = false; // the hit reaching him now is the one the counter caught
 bool countering = false;
 
+// X out of the guard: Toan's swing, or Xiao's draw.
+void Attack() {
+    if (Playing(CHARA_XIAO)) {
+        BattleActionOn_Jinn();
+    } else {
+        ToanKey_On();
+    }
+}
+
+// The actions a counter plays: Toan's opening swing, or Xiao's draw, hold and shot.
+bool CounterAction(int action) {
+    return action == kToanFirstSwing || action == kXiaoDraw || action == kXiaoHold || action == kXiaoShot;
+}
+
 } // namespace
 
 bool SandCounterActive() {
-    return Playing(CHARA_TOAN) && WeaponWielded(ITEM_WEAPON_SAND_BREAKER);
+    return (Playing(CHARA_TOAN) || Playing(CHARA_XIAO)) && WeaponActive(ITEM_WEAPON_SAND_BREAKER);
 }
 
 int SandCounterReady() {
@@ -55,9 +69,9 @@ void SandCounterStep() {
     // No blow caught in time: the press is the swing it would have been out of the guard, wind-up and all.
     if (ready > 0 && --ready == 0 && BtActStatus.action_on == kGuarding && SandCounterActive()) {
         BtActStatus.action_on = 0;
-        ToanKey_On();
+        Attack();
     }
-    if (countering && (BtActStatus.action_on != 1 || BtActStatus.action_no != kToanFirstSwing)) {
+    if (countering && (BtActStatus.action_on != 1 || !CounterAction(BtActStatus.action_no))) {
         countering = false;
     }
 }
@@ -88,6 +102,14 @@ void SandCounterBlocked(bool blocked, const COLLISION_HIT &hit) {
     LogEvent("counter", std::format("\"monster\":{},\"returned\":{}", attacker, returned));
     if (!returned && attacker >= 0 && NowMonstorUnit != nullptr) {
         KickMonster(*NowMonstorUnit, attacker, her, kCounterKick);
+    }
+
+    if (Playing(CHARA_XIAO)) {
+        // Super Steve's shot, fired at once as Quick Draw fires it (small_sword.hpp).
+        BtActStatus.action_on = 0;
+        BattleActionOn_Jinn();
+        countering = BtActStatus.action_on == 1;
+        return;
     }
 
     // The opening swing, skipping its wind-up as Quick Draw plays it.

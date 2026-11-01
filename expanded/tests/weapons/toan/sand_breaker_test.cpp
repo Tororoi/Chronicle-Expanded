@@ -113,3 +113,23 @@ TEST(SandBreaker, OnlyInTheGuardAndInHand) {
     EXPECT_EQ(expanded::SandCounterReady(), 0);
     EXPECT_EQ(guard.Blow(3), 3);
 }
+
+TEST(SandBreaker, SuperStevesCounterIsAShotAtOnce) {
+    Guard                    guard(ITEM_WEAPON_SUPER_STEVE);
+    expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_SAND_BREAKER);
+    guard.floor.status().cur_chara = CHARA_XIAO;
+    expanded::SandCounterPress();
+    EXPECT_EQ(expanded::SandCounterReady(), expanded::kCounterWindow);
+    BtActStatus.action_gauge = 100.0f;
+    EXPECT_EQ(guard.Blow(3), 2);
+    EXPECT_EQ(BtActStatus.action_on, 1);
+    EXPECT_EQ(BtActStatus.action_no, expanded::kXiaoDraw);
+    EXPECT_TRUE(expanded::SandCountering());
+    EXPECT_EQ(expanded::SandCounterAttack(30), 60);
+
+    // Quick Draw's jump: the draw goes straight to the shot.
+    expanded::QuickDrawShot(CharaMain, 0);
+    EXPECT_EQ(BtActStatus.action_no, expanded::kXiaoShot);
+    BtActStatus = {};
+    expanded::SandCounterStep();
+}

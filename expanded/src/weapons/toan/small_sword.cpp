@@ -48,7 +48,10 @@ void QuickDrawSwing(CCharacter &chara) {
 }
 
 void QuickDrawShot(CCharacter &chara, int aimed) {
-    if (aimed != 0 || (BtActStatus.action_no != kXiaoDraw && BtActStatus.action_no != kXiaoHold) || GamePad.On(PadInput_OK) != 0 || !QuickDrawSphere()) {
+    // The Sand Breaker's counter shot fires so too, the button held or not.
+    bool counter = SandCountering();
+    if (aimed != 0 || (BtActStatus.action_no != kXiaoDraw && BtActStatus.action_no != kXiaoHold) || (GamePad.On(PadInput_OK) != 0 && !counter) ||
+        !(QuickDrawSphere() || counter)) {
         return;
     }
 
