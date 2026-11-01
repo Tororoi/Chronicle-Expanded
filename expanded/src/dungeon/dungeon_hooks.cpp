@@ -179,7 +179,7 @@ void DungeonShotsDrawn() {
 }
 
 bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
-    return PlayerHitSkipped(hit);
+    return PlayerHitSkipped(hit) || SandCounterPassesBy(hit);
 }
 
 void PlayerHitReached(COLLISION_HIT &hit) {

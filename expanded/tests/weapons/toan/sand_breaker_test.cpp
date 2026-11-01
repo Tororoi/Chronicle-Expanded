@@ -64,7 +64,10 @@ TEST(SandBreaker, XInTheGuardCatchesTheNextBlowAndSwingsAtOnce) {
     EXPECT_EQ(expanded::SandCounterReady(), expanded::kCounterWindow);
     expanded::SandCounterStep();
 
-    EXPECT_EQ(guard.Blow(3), 2); // a guard-breaking blow is blocked
+    velo__2[0] = velo__2[2] = 3.0f;    // the block's push back
+    EXPECT_EQ(guard.Blow(3), 2);       // a guard-breaking blow is blocked
+    EXPECT_FLOAT_EQ(velo__2[0], 0.0f); // and he stands his ground
+    EXPECT_FLOAT_EQ(velo__2[2], 0.0f);
     EXPECT_EQ(BtActStatus.action_on, 1);
     EXPECT_EQ(BtActStatus.action_no, expanded::kToanFirstSwing);
     CharaMain.motion_type.state.time = 821.0f; // past the step-in, as the swing's motion starts
@@ -78,11 +81,18 @@ TEST(SandBreaker, XInTheGuardCatchesTheNextBlowAndSwingsAtOnce) {
     EXPECT_FLOAT_EQ(wolf.knockback[0], expanded::kCounterKick.speed);
     EXPECT_FLOAT_EQ(wolf.knockback[1], expanded::kCounterKick.decay);
 
+    // The Werewolf's blow, still in reach the frame after, passes him by while the counter plays.
+    COLLISION_HIT again = {};
+    again.owner = 200;
+    again.monster_no = -1;
+    EXPECT_TRUE(expanded::SandCounterPassesBy(again));
+
     // The swing over, his hits are his own again.
     BtActStatus.action_on = 0;
     expanded::SandCounterStep();
     EXPECT_FALSE(expanded::SandCountering());
     EXPECT_EQ(expanded::SandCounterAttack(40), 40);
+    EXPECT_FALSE(expanded::SandCounterPassesBy(again));
 }
 
 TEST(SandBreaker, TheWindowIsATenthOfASecond) {

@@ -30,6 +30,7 @@ constexpr float kMuzzleLift = 10.0f;
 int  ready = 0;
 bool caught = false; // the hit reaching him now is the one the counter caught
 bool countering = false;
+int  countered = -1; // the monster whose blow the counter caught
 
 // X out of the guard: Toan's swing, or Xiao's draw.
 void Attack() {
@@ -95,7 +96,11 @@ void SandCounterBlocked(bool blocked, const COLLISION_HIT &hit) {
         return;
     }
 
-    int   attacker = confuse::Attacker(hit);
+    // A counter stands its ground: none of the block's push back.
+    velo__2[0] = velo__2[2] = 0.0f;
+
+    int attacker = confuse::Attacker(hit);
+    countered = attacker;
     float her[4] = {CharaMain.pos[0], CharaMain.pos[1], CharaMain.pos[2], 1.0f};
     float muzzle[4] = {her[0], her[1] + kMuzzleLift, her[2], 1.0f};
     bool  returned = angel_gear::ReturnShotHit(hit, her, muzzle, attacker);
@@ -128,6 +133,10 @@ void SandCounterBlocked(bool blocked, const COLLISION_HIT &hit) {
     BtActStatus.swing_heading = rotation[1];
     driveNoInterpolate = 1;
     countering = true; // Quick Draw's jump past the wind-up (small_sword.hpp)
+}
+
+bool SandCounterPassesBy(const COLLISION_HIT &hit) {
+    return countering && countered >= 0 && confuse::Attacker(hit) == countered;
 }
 
 int SandCounterAttack(int attack) {
