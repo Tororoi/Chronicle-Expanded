@@ -70,7 +70,7 @@ protected:
 
 } // namespace
 
-TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestAndTheMostAtTheTop) {
+TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestOneAtItAndTheMostAtTheTop) {
     for (int kind = 0; kind < kFishKinds; kind++) {
         if (kind == kCutFish) {
             EXPECT_EQ(expanded::RecordMagic(kind, 1000), 0);
@@ -80,7 +80,8 @@ TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestAndTheMostAtTheTop) {
         const bool garayan = kind == expanded::fish::kMardanGarayan || kind == expanded::fish::kBaronGarayan;
         const int  most = garayan ? expanded::kGarayanRecordMagic : expanded::kRecordMagic;
         EXPECT_EQ(expanded::RecordMagic(kind, largest - 1), 0) << kind;
-        EXPECT_GE(expanded::RecordMagic(kind, largest), 1) << kind;
+        EXPECT_EQ(expanded::RecordMagic(kind, largest), 1) << kind;
+        EXPECT_NEAR(expanded::RecordMagic(kind, top - 10), most / 2.0, 0.5) << kind; // half, 10 cm short
         EXPECT_EQ(expanded::RecordMagic(kind, top), most) << kind;
         EXPECT_EQ(expanded::RecordMagic(kind, 3 * largest), most) << kind;
         int previous = 0;
@@ -90,27 +91,22 @@ TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestAndTheMostAtTheTop) {
             EXPECT_LE(magic, most);
             previous = magic;
         }
-        EXPECT_LT(expanded::RecordMagic(kind, top - 1), most) << kind;
+        EXPECT_LT(expanded::RecordMagic(kind, top - 5), most) << kind;
     }
     EXPECT_EQ(expanded::RecordMagic(-1, 100), 0);
     EXPECT_EQ(expanded::RecordMagic(kFishKinds, 100), 0);
 }
 
-TEST_F(FishRecords, TheCurveIsTheSameFromEveryKindsTop) {
-    // A centimetre short of the top, 10 less (20 for the Garayans); then the same by the centimetres short for every kind.
-    for (int kind : {0, 7, 10, 16}) {
-        EXPECT_EQ(expanded::RecordMagic(kind, Top(kind) - 1), expanded::kRecordMagic - expanded::kRecordTopStep) << kind;
-        EXPECT_EQ(expanded::RecordMagic(kind, Top(kind) - 10), 12) << kind;
-        EXPECT_EQ(expanded::RecordMagic(kind, Top(kind) - 50), 3) << kind;
-    }
-    for (int kind : expanded::fish::kGarayans) {
-        EXPECT_EQ(expanded::RecordMagic(kind, Top(kind) - 1), expanded::kGarayanRecordMagic - expanded::kGarayanRecordTopStep) << kind;
-        EXPECT_EQ(expanded::RecordMagic(kind, Top(kind) - 10), 41) << kind;
-    }
-    // Baron Garayan, 300 cm at most in the game and 450 with Arise Mardan: 5 at 300, nothing under it.
+TEST_F(FishRecords, TheCurveFollowsEachKindsSize) {
+    // Baron Garayan, 300 cm at most in the game and 450 with Arise Mardan: 59 at 440, 115 a centimetre short, 27 at 430.
     EXPECT_EQ(Top(expanded::fish::kBaronGarayan), 450);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 300), 5);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 299), 0);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 440), 59);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 449), 115);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 430), 27);
+    // Bobo, 200 cm and 300: 21 at 290; Niler, 100 and 150, steeper over its shorter range: 7 at 20 cm short to Bobo's 11.
+    EXPECT_EQ(expanded::RecordMagic(0, 290), 21);
+    EXPECT_EQ(expanded::RecordMagic(0, 280), 11);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kNiler, 130), 7);
 }
 
 TEST_F(FishRecords, EveryRecordAtTheTopTakesAriseMardanTo999) {
@@ -120,14 +116,9 @@ TEST_F(FishRecords, EveryRecordAtTheTopTakesAriseMardanTo999) {
     EXPECT_EQ(Arise().magic_max, expanded::kMagicMost);
 }
 
-TEST_F(FishRecords, EachKindAtTheLargestGivesItsShare) {
+TEST_F(FishRecords, EachKindAtTheLargestGivesOne) {
     CatchEveryKind(Largest);
-    int at_largest = 0;
-    for (int kind = 0; kind < kFishKinds; kind++) {
-        at_largest += expanded::RecordMagic(kind, Largest(kind));
-    }
-    EXPECT_GT(at_largest, 17);
-    EXPECT_EQ(Arise().magic_max, kAriseOwnMagic + at_largest);
+    EXPECT_EQ(Arise().magic_max, kAriseOwnMagic + 17);
     // Under the largest, nothing.
     expanded::KeepBestRecords(Records());
     for (SV_FISH_DATA &record : Records()) {

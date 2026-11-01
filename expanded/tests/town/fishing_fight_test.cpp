@@ -364,6 +364,16 @@ TEST_F(FishingFight, AStruckFishIsFoughtFromAnEmptyBar) {
 
 TEST_F(FishingFight, TheOpeningRunGoesStraightOutForASecond) {
     Strike();
+    // Struck, the fish (out along +z from the angler) turns straight out, and the game's thrash leaves it so.
+    CFish &fish = fish_[kHooked];
+    float  heading[4];
+    fish.GetRotation(heading);
+    EXPECT_NEAR(std::remainder(heading[1], 2.0f * PI), 0.0f, 1e-5f);
+    for (float roll : {1.0f, -2.0f, 3.0f}) {
+        fish.target_yaw = roll;
+        expanded::FishFightSwim(fish);
+        EXPECT_NEAR(std::remainder(fish.target_yaw, 2.0f * PI), 0.0f, 1e-5f) << roll;
+    }
     for (int i = 1; i < expanded::kOpenFrames; i++) {
         Pull();
         EXPECT_EQ(expanded::FishingFightRunWay(), 0.0f) << i;
@@ -591,6 +601,9 @@ TEST_F(FishingFight, TheRunsGoOutFromTheAnglerWhicheverWayTheCameraLooks) {
 
 TEST_F(FishingFight, TheFishThrashesAboutItsRunsHeading) {
     Strike();
+    for (int i = 0; i < expanded::kOpenFrames; i++) {
+        Pull();
+    }
     CFish &fish = fish_[kHooked];
     fish.target_yaw = 0.0f;
     expanded::FishFightSwim(fish);
