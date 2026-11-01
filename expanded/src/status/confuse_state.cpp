@@ -1,6 +1,7 @@
 #include "expanded/status/confuse_state.hpp"
 
 #include "collisiondata.hpp"
+#include "expanded/weapons/toan/lambs_sword.hpp"
 #include "monstorunit.hpp"
 
 namespace expanded::confuse {
@@ -19,15 +20,19 @@ bool Confused(const CMonstorUnit &unit, int slot) {
     return slot >= 0 && slot < kFloorMonsters && State().until[slot] != 0 && InPlay(unit, slot);
 }
 
+bool Turned(const CMonstorUnit &unit, int slot) {
+    return Confused(unit, slot) || (PackWolf(unit, slot) && InPlay(unit, slot));
+}
+
 int Provoker(const CMonstorUnit &unit, int slot) {
-    if (Confused(unit, slot)) {
+    if (Turned(unit, slot)) {
         return -1;
     }
     for (int attacker : State().hit_by[slot]) {
         if (attacker < 0) {
             break;
         }
-        if (Confused(unit, attacker)) {
+        if (Turned(unit, attacker)) {
             return attacker;
         }
     }

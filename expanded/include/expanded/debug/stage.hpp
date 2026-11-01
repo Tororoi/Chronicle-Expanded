@@ -21,6 +21,7 @@ struct Stage {
     int         character = -1;     // character: the member out (toan, xiao, goro, ruby, ungaga, osmond or 0-5); in a town, the one walking it
     int         weapon = -1;        // weapon: that member's weapon (item number), at its maximum attack
     int         attack = -1;        // attack: that weapon's attack instead
+    int         whp = -1;           // whp: that weapon's WHP left instead of its full WHP
     int         sphere = -1;        // sphere: Xiao's Super Steve, carrying a synthesis sphere of this weapon
     long        seed = -1;          // seed: Expanded's random numbers
     int         place = 0;          // place: monsters in play set out in front of the member, the others sent away

@@ -71,6 +71,7 @@ need a `town`.
 | `character` | the member brought out once the floor is in play, or in a town the one walking it: `toan`, `xiao`, `goro`, `ruby`, `ungaga`, `osmond` or 0-5 |
 | `weapon` | that member's weapon (item number, `ps2/include/itemdata.hpp`), at its maximum attack |
 | `attack` | that weapon's attack instead |
+| `whp` | that weapon's WHP left, instead of its full WHP (the Lamb's Sword's wolf form at half or below) |
 | `sphere` | Xiao's Super Steve, carrying a SynthSphere of this weapon |
 | `seed` | Expanded's random numbers (the game's own are the same run to run already) |
 | `place` | how many monsters in play are set out in front of the member; the rest are sent 2000 away |

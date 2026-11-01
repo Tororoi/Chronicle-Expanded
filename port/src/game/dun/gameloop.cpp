@@ -4250,7 +4250,8 @@ int BtCheckDamageProc() {
             }
 
 #ifdef CHRONICLE_EXPANDED
-            expanded::PlayerHitReacted(blown != 0 && (hit->kind == 2 || hit->kind == 4), *hit);
+            // Blocked: a knockback by the guard, or a guard-breaking hit by its hold.
+            expanded::PlayerHitReacted((blown != 0 && (hit->kind == 2 || hit->kind == 4)) || (hit->kind == 3 && BtActStatus.action_no == 9), *hit);
 #endif
         }
     }
