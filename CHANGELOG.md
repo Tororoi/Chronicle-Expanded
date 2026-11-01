@@ -442,6 +442,7 @@ Blessing Gun → Skunk ★
 - Play as any ally in town: commit them in the party menu with the dungeon's change sequence, and they walk with full animations. [#9](https://github.com/Tororoi/Chronicle-Expanded/pull/9), [#10](https://github.com/Tororoi/Chronicle-Expanded/pull/10), [#11](https://github.com/Tororoi/Chronicle-Expanded/pull/11), [#12](https://github.com/Tororoi/Chronicle-Expanded/pull/12), [#13](https://github.com/Tororoi/Chronicle-Expanded/pull/13)
 - Each ally takes ladders their own way: Xiao leaps, Goro hops, Ruby floats, Osmond flies and Ungaga refuses. [#14](https://github.com/Tororoi/Chronicle-Expanded/pull/14)
 - Xiao's cat sits when she stands still in town, and gets up as soon as she moves. [#295](https://github.com/Tororoi/Chronicle-Expanded/pull/295)
+- Every ally can board East Harbor's submarine, each with a jump of their own: Xiao, Goro and Osmond leap in as they jump down ladders, and Ruby and Ungaga jump in as Toan does. [#296](https://github.com/Tororoi/Chronicle-Expanded/pull/296)
 
 ## Fishing
 
