@@ -85,6 +85,7 @@ struct Fight {
     bool          pulls = false;
     bool          holds = false; // pulls, or near enough that the bar stands still
     bool          won = false;
+    bool          turning = false; // struck, still turning straight out: the fight not yet started
 };
 
 Fight fight;
@@ -328,21 +329,33 @@ void FishingFightStarted(CFish &fish) {
         fight.angler[0] = angler[0];
         fight.angler[1] = angler[2];
     }
-    // The fish turns straight out from the angler as it is struck, and runs that way through the opening.
-    sceVu0FVECTOR heading;
-    fish.GetRotation(heading);
-    heading[1] = AngleLimit(atan2f(fight.anchor[0] - fight.angler[0], fight.anchor[2] - fight.angler[1]));
-    fish.SetRotation(heading);
-    fish.target_yaw = heading[1];
+    // The fish turns straight out from the angler before the fight starts.
+    fight.turning = true;
     // The gauge starts on the float, the way to pull straight back to the angler.
     FishLineGetUki(fight.gauge);
     fight.gauge[1] = FishingGetWaterLevel();
     fight.middle = atan2f(fight.angler[0] - fight.gauge[0], fight.angler[1] - fight.gauge[2]);
     fight.target = fight.middle;
     fight.stick = fight.middle;
-    const float out = std::hypot(fight.anchor[0] - fight.angler[0], fight.anchor[2] - fight.angler[1]);
+    LogFight("strike", std::format("\"kind\":{},\"size\":{}", fish.fish_kind, static_cast<int>(fish.size * 10.0f)));
+}
+
+// The way straight out from the angler to the fish (a yaw).
+float OutYaw(CFish &fish) {
+    sceVu0FVECTOR here;
+    fish.GetPosition(here);
+    return atan2f(here[0] - fight.angler[0], here[2] - fight.angler[1]);
+}
+
+// The fight starts: the fish has turned straight out.
+void Begin() {
+    fight.turning = false;
+    CFish &fish = *fight.fish;
+    sceVu0FVECTOR here;
+    fish.GetPosition(here);
+    const float out = std::hypot(here[0] - fight.angler[0], here[2] - fight.angler[1]);
     const float line = FightLineLength();
-    float       dx = fight.anchor[0] - rod_top[0], dy = fight.anchor[1] - rod_top[1], dz = fight.anchor[2] - rod_top[2];
+    float       dx = here[0] - rod_top[0], dy = here[1] - rod_top[1], dz = here[2] - rod_top[2];
     LogFight("start", std::format("\"kind\":{},\"size\":{},\"strength\":{:.2f},\"out\":{:.0f},\"line\":{:.1f},\"reach\":{:.1f},"
                                   "\"from_rod\":{:.1f},\"across\":{:.1f},\"way\":{:.0f},\"run\":{}",
                                   fish.fish_kind, static_cast<int>(fish.size * 10.0f), fight.strength, out, line, line * kLineReach,
@@ -371,8 +384,16 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     }
     LeanRod(angler, fight.camera, stick_x, stick_y);
 
-    fight.frames++;
     Follow();
+    if (fight.turning) {
+        sceVu0FVECTOR heading;
+        fight.fish->GetRotation(heading);
+        if (std::fabs(std::remainder(heading[1] - OutYaw(*fight.fish), 2.0f * PI)) > kTurned) {
+            return FightStep::kFighting;
+        }
+        Begin();
+    }
+    fight.frames++;
     if (--fight.run <= 0) {
         const int pulled = fight.pulled;
         // The opening's run goes straight out; the first after it goes either side at random.
@@ -429,9 +450,12 @@ FightPace FishFightSwim(CFish &fish) {
         return {};
     }
     // The run's way out from the angler, the way from him to the fish turning as it goes.
-    sceVu0FVECTOR here;
-    fish.GetPosition(here);
-    const float away = atan2f(here[0] - fight.angler[0], here[2] - fight.angler[1]);
+    const float away = OutYaw(fish);
+    if (fight.turning) {
+        fish.target_yaw = AngleLimit(away);
+        fish.target_speed = FightRunSpeed(fight.strength);
+        return {.turn = kOpenTurnPace, .speed = kFightPace};
+    }
     const float heading = away + fight.way;
     // The game's thrash, a new heading every frame (the battle block's roll, target_yaw), narrowed to kThrash of it either
     // side of the run's heading and kept in the cone: the fish twists and struggles as it goes, never toward the angler.

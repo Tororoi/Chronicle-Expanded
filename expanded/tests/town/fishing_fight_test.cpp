@@ -362,19 +362,33 @@ TEST_F(FishingFight, AStruckFishIsFoughtFromAnEmptyBar) {
     EXPECT_EQ(expanded::FishingFightRunWay(), 0.0f);
 }
 
-TEST_F(FishingFight, TheOpeningRunGoesStraightOutForASecond) {
-    Strike();
-    // Struck, the fish (out along +z from the angler) turns straight out, and the game's thrash leaves it so.
+TEST_F(FishingFight, TheFishTurnsStraightOutBeforeTheFightStarts) {
+    // Struck heading square across the line, the fish (out along +z from the angler) turns straight out at the opening's
+    // pace, the game's thrash left out.
     CFish &fish = fish_[kHooked];
-    float  heading[4];
+    float  heading[4] = {0.0f, PI / 2.0f, 0.0f, 0.0f};
+    fish.SetRotation(heading);
+    Strike();
     fish.GetRotation(heading);
-    EXPECT_NEAR(std::remainder(heading[1], 2.0f * PI), 0.0f, 1e-5f);
+    EXPECT_FLOAT_EQ(heading[1], PI / 2.0f);
     for (float roll : {1.0f, -2.0f, 3.0f}) {
         fish.target_yaw = roll;
-        expanded::FishFightSwim(fish);
+        const expanded::FightPace pace = expanded::FishFightSwim(fish);
         EXPECT_NEAR(std::remainder(fish.target_yaw, 2.0f * PI), 0.0f, 1e-5f) << roll;
+        EXPECT_FLOAT_EQ(pace.turn, expanded::kOpenTurnPace);
     }
-    for (int i = 1; i < expanded::kOpenFrames; i++) {
+    // Until it has turned, pulling neither fills the bar nor counts toward the opening.
+    for (int i = 0; i < 20; i++) {
+        EXPECT_EQ(Pull(), FightStep::kFighting);
+        EXPECT_FLOAT_EQ(expanded::FishingFightBar(), 0.0f);
+    }
+    // Turned to within kTurned, it starts: the opening's second straight out from then.
+    heading[1] = expanded::kTurned / 2.0f;
+    fish.SetRotation(heading);
+    Pull();
+    EXPECT_GT(expanded::FishingFightBar(), 0.0f);
+    EXPECT_FLOAT_EQ(expanded::FishFightSwim(fish).turn, expanded::kFightTurnPace);
+    for (int i = 2; i < expanded::kOpenFrames; i++) {
         Pull();
         EXPECT_EQ(expanded::FishingFightRunWay(), 0.0f) << i;
     }
@@ -734,7 +748,9 @@ TEST_F(FishingFight, OffTheStruckFishIsLandedAsInTheGame) {
 }
 
 TEST_F(FishingFight, OnlyTheFoughtFishIsSteered) {
+    // Struck already heading straight out, the fight starts on its first frame.
     Strike();
+    Step(0.0f, 0.0f);
     fish_[0].target_yaw = 9.0f;
     const expanded::FightPace other = expanded::FishFightSwim(fish_[0]);
     EXPECT_FLOAT_EQ(other.turn, 1.0f);
