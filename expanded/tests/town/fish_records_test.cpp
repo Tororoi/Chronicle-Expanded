@@ -81,7 +81,9 @@ TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestOneAtItAndTheMostAtTheTop
         const int  most = garayan ? expanded::kGarayanRecordMagic : expanded::kRecordMagic;
         EXPECT_EQ(expanded::RecordMagic(kind, largest - 1), 0) << kind;
         EXPECT_EQ(expanded::RecordMagic(kind, largest), 1) << kind;
-        EXPECT_NEAR(expanded::RecordMagic(kind, top - 10), most / 2.0, 0.5) << kind; // half, 10 cm short
+        // Half, kRecordHalfShare of the way down from the top.
+        const int half_short = static_cast<int>(std::lround(expanded::kRecordHalfShare * (top - largest)));
+        EXPECT_NEAR(expanded::RecordMagic(kind, top - half_short), most / 2.0, 1.0) << kind;
         EXPECT_EQ(expanded::RecordMagic(kind, top), most) << kind;
         EXPECT_EQ(expanded::RecordMagic(kind, 3 * largest), most) << kind;
         int previous = 0;
@@ -91,22 +93,24 @@ TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestOneAtItAndTheMostAtTheTop
             EXPECT_LE(magic, most);
             previous = magic;
         }
-        EXPECT_LT(expanded::RecordMagic(kind, top - 5), most) << kind;
+        EXPECT_LT(expanded::RecordMagic(kind, top - (top - largest) / 10), most) << kind;
     }
     EXPECT_EQ(expanded::RecordMagic(-1, 100), 0);
     EXPECT_EQ(expanded::RecordMagic(kFishKinds, 100), 0);
 }
 
 TEST_F(FishRecords, TheCurveFollowsEachKindsSize) {
-    // Baron Garayan, 300 cm at most in the game and 450 with Arise Mardan: 59 at 440, 115 a centimetre short, 27 at 430.
+    // Baron Garayan, 300 cm at most in the game and 450 with Arise Mardan: half at 405 cm (45 short of 150), still most of
+    // it at 430 and some well down the range.
     EXPECT_EQ(Top(expanded::fish::kBaronGarayan), 450);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 440), 59);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 449), 115);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 430), 27);
-    // Bobo, 200 cm and 300: 21 at 290; Niler, 100 and 150, steeper over its shorter range: 7 at 20 cm short to Bobo's 11.
-    EXPECT_EQ(expanded::RecordMagic(0, 290), 21);
-    EXPECT_EQ(expanded::RecordMagic(0, 280), 11);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kNiler, 130), 7);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 405), 58);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 430), 112);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 375), 14);
+    // Bobo (200 cm, 300) and Niler (100, 150) alike over their own ranges: 22 at 30% short, 7 at half.
+    EXPECT_EQ(expanded::RecordMagic(0, 270), 22);
+    EXPECT_EQ(expanded::RecordMagic(0, 250), 7);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kNiler, 135), 22);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kNiler, 125), 7);
 }
 
 TEST_F(FishRecords, EveryRecordAtTheTopTakesAriseMardanTo999) {
