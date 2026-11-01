@@ -274,15 +274,17 @@ void XiaoLadder(Builder &b, const Ladder &ladder, bool onto = false) {
     jump.vx = (ladder.target[0] - start_x) / jump.frames;
     jump.vz = (ladder.target[2] - start_z) / jump.frames;
     if (onto) {
-        // The leap up, then the fall drawn out to the touchdown, so she is never held in a pose; the landing as she
-        // lands.
-        constexpr int kLeapUp = 16;  // slot 12's 285-294 at 0.60
-        constexpr int kFallKeys = 9; // slot 8's 205-214
+        // The leap up, then the fall drawn out to the landing, so she is never held in a pose, and the landing begun
+        // as she comes down onto the deck.
+        constexpr int kLeapUp = 16;   // slot 12's 285-294 at 0.60
+        constexpr int kFallKeys = 9;  // slot 8's 205-214
+        constexpr int kLandLead = 12; // her landing begun as she comes down onto the deck
         jump.land_on_target = true;
         jump.launch_frames = kLeapUp;
-        jump.air_speed = static_cast<float>(kFallKeys) / std::max(jump.frames - kLeapUp, 1);
+        jump.land_lead = kLandLead;
+        jump.air_speed = static_cast<float>(kFallKeys) / std::max(jump.frames - kLeapUp - kLandLead, 1);
         jump.land_motion = kLand;
-        jump.land_frames = 30;
+        jump.land_frames = 30 - kLandLead;
     }
     Leap(b, ladder, jump);
 }
@@ -479,9 +481,9 @@ void UngagaHatchJump(Builder &b, const Ladder &ladder) {
     jump.vx = (ladder.target[0] - ladder.mount[0]) / jump.frames;
     jump.vz = (ladder.target[2] - ladder.mount[2]) / jump.frames;
     jump.land_motion = kUngagaLanding;
-    // Toan's landing holds the air pose its first 12 frames: begun before the touchdown, it drops as he lands.
-    jump.land_lead = 12;
-    jump.land_frames = 60 - 12;
+    // Toan's landing holds the air pose its first frames: begun well before the touchdown, it drops as he lands.
+    jump.land_lead = 20;
+    jump.land_frames = 60 - 20;
     jump.land_on_target = true;
     Leap(b, ladder, jump);
 }
