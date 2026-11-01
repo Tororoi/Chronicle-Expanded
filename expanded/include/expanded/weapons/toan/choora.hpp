@@ -11,7 +11,7 @@ namespace expanded {
 // armored monster deal kArmorPiercerDamage times their damage, and an armored monster it kills gives kArmorPiercerAbs
 // times its ABS. Armored: the Crabby Hermit, the Living Armor, the Black Knight and his mount, Arthur, Alexander, the
 // Steel Giant, the Pirate's Chariot, the Moon Bug, the Statue, the Statue Dog, the Golem, the Titan, Gol, Sil,
-// Blizzard and Nikapous, each with its Enhanced form.
+// Rockanoff, Blizzard and Nikapous, each with its Enhanced form.
 inline constexpr float kArmorPiercerDamage = 2.0f;
 inline constexpr int   kArmorPiercerAbs = 2;
 

@@ -42,6 +42,8 @@ constexpr Monster kArmored[] = {
     Monster::SIL,
     Monster::SIL_ENHANCED,
     Monster::BLIZZARD,
+    Monster::ROCKANOFF,
+    Monster::ROCKANOFF_ENHANCED,
     Monster::NIKAPOUS,
 };
 
