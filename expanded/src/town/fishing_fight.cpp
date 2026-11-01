@@ -17,14 +17,17 @@
 #include "editloop.hpp"
 #include "editmapscript.hpp"
 #include "effectmacro.hpp"
+#include "expanded/core/menu_text.hpp"
 #include "expanded/core/options.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/town/fishing.hpp"
 #include "expanded/town/fishing_lean.hpp"
+#include "expanded/weapons/ruby/fairys_ring.hpp"
 #include "fish.hpp"
 #include "fishing.hpp"
 #include "gamepad.hpp"
+#include "localize/localize.hpp"
 #include "mainselect.hpp"
 #include "mathutil.hpp"
 #include "mglib.hpp"
@@ -34,6 +37,8 @@
 namespace expanded {
 
 namespace {
+
+[[maybe_unused]] const bool kPerfectCatchRegistered = (SetTalkMessage(kCatchMessage, PerfectCatchText), true);
 
 [[maybe_unused]] const bool kRegistered = AddToggle({.key = kFishingFights,
                                                      .label = "Fishing Fights",
@@ -86,9 +91,13 @@ struct Fight {
     bool          holds = false; // pulls, or near enough that the bar stands still
     bool          won = false;
     bool          turning = false; // struck, still turning straight out: the fight not yet started
+    bool          perfect = true;  // the stick not yet out of the block
+    float         tolerance = kPullTolerance; // the pull's, for the fish's size
 };
 
 Fight fight;
+
+int g_perfect_points = 0; // the last catch's perfect-catch bonus
 
 void LogFight(std::string_view step, std::string_view fields = {}) {
     if (EventLogOn()) {
@@ -305,6 +314,31 @@ bool FightHolds(float x, float y, float camera_yaw, float middle, float target, 
     return Within(x, y, camera_yaw, middle, target, tolerance);
 }
 
+float FightPullTolerance(float size) {
+    return kPullTolerance + std::max(0.0f, kAriseFish - size) / 3.0f * kPullWidening;
+}
+
+int PerfectCatchPoints(int size_cm) {
+    g_perfect_points = fight.won && fight.perfect ? (size_cm + kPerfectCatchShare - 1) / kPerfectCatchShare : 0;
+    if (g_perfect_points > 0) {
+        LogFight("perfect", std::format("\"size\":{},\"points\":{}", size_cm, g_perfect_points));
+    }
+    return g_perfect_points;
+}
+
+std::optional<std::string> PerfectCatchText(std::string_view own) {
+    const std::size_t points = own.find("{value2}");
+    if (g_perfect_points <= 0 || points == std::string_view::npos) {
+        return std::nullopt;
+    }
+    const std::size_t end = std::min(own.find('\n', points), own.size());
+    std::string       text(own.substr(0, end));
+    text += '\n';
+    text += LocalizeText(kPerfectCatchKey, "Perfect Catch  +{value4}");
+    text += own.substr(end);
+    return text;
+}
+
 void FightGaugePoint(const float *centre, float middle, float along, float radius, float *point) {
     point[0] = centre[0] + radius * std::sin(middle + along);
     point[1] = centre[1];
@@ -321,6 +355,7 @@ void FishingFightStarted(CFish &fish) {
     fish.GetPosition(fight.anchor);
     Look();
     fight.strength = FightStrength(fish.size);
+    fight.tolerance = FightPullTolerance(fish.size);
     fight.bar = kStartBar;
     StartRun(0.0f, kOpenFrames);
     if (Chara != nullptr) {
@@ -412,7 +447,7 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     // within the hold's.
     fight.push = std::hypot(stick_x, stick_y);
     fight.stick = FightStickWay(fight.camera, fight.middle, stick_x, stick_y);
-    fight.pulls = DebugMode != 0 || FightPulls(stick_x, stick_y, fight.camera, fight.middle, fight.target);
+    fight.pulls = DebugMode != 0 || FightPulls(stick_x, stick_y, fight.camera, fight.middle, fight.target, fight.tolerance);
     fight.holds = fight.pulls || FightHolds(stick_x, stick_y, fight.camera, fight.middle, fight.target);
     fight.pulled += fight.pulls ? 1 : 0;
     const float fade = 1.0f / static_cast<float>(kMarkFade);
@@ -424,9 +459,13 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
         fight.grace--;
     } else if (fight.pulls) {
         fight.bar = std::min(1.0f, fight.bar + FightFill());
-    } else if (!fight.holds && !opening) {
-        fight.bar = std::max(0.0f, fight.bar - FightDrain());
-        drained = true;
+    } else if (!fight.holds) {
+        // Out of the block: no perfect catch, and after the opening the bar drains.
+        fight.perfect = false;
+        if (!opening) {
+            fight.bar = std::max(0.0f, fight.bar - FightDrain());
+            drained = true;
+        }
     }
     GamePad.SetVibration(1, fight.holds ? kPullRumble : kSlackRumble, kRumbleFrames);
 
@@ -434,7 +473,7 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
         // The game takes the landing from here (it may not call this again), so the rod's lean lets go now.
         fight.won = true;
         EndLean();
-        LogFight("landed", std::format("\"kind\":{},{}", fight.fish->fish_kind, Ways()));
+        LogFight("landed", std::format("\"kind\":{},\"perfect\":{},{}", fight.fish->fish_kind, fight.perfect, Ways()));
         return FightStep::kLanded;
     }
     if (drained && fight.bar <= 0.0f) {
@@ -549,7 +588,7 @@ void DrawFishingFight() {
             Band(quads, a, b, inner, outer, rgba);
         }
     };
-    const float pull = kPullTolerance, hold = kHoldTolerance;
+    const float pull = fight.tolerance, hold = kHoldTolerance;
     part(block - hold, block - pull, kHold);
     part(block - pull, block + pull, kBlock);
     part(block + pull, block + hold, kHold);
