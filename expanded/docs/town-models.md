@@ -7,6 +7,13 @@ loads one as it loads Toan's `chara/c01d.chr`: `EdLoadMainChara("expanded/town/x
 The town ally swap (`kTownAllyBodies` in `town/ally.hpp`) loads an ally's built model when the data has
 it, and otherwise the ally's disc model, which lacks most motions, logging once which models are missing.
 
+The party member chosen stays the one played (`PartyCharacter`, `party.character` in the save's
+`expanded.json`): chosen in a town's party menu, or the one out as the player leaves a dungeon, unless a
+floor's character limit zone or script put it out. Each town loads with it, Toan standing in for any
+event or story cutscene that poses the player as him and the member back once the player walks (Yellow
+Drops, where only Toan walks, keeps Toan), and each dungeon begins with it, switched in after Toan loads as
+the party menu switches members.
+
 The code is `expanded/src/data/`: `chr_pack.cpp` reads and rebuilds `.chr` packs and their `.mot`
 motions, `town_model.cpp` assembles a model from `town_rig.cpp`'s cfg text and rig math,
 `town_motion_graft.cpp`'s motion grafts and window edits and `town_mesh_graft.cpp`'s mesh-node graft,

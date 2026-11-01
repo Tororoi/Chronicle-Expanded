@@ -15,11 +15,14 @@
 #include "editground.hpp"
 #include "editloop.hpp"
 #include "editpartsinfo.hpp"
+#include "expanded/core/save.hpp"
 #include "expanded/town/ladder.hpp"
 #include "main.hpp"
 #include "menu_draw.hpp"
 #include "platform/paths.hpp"
+#include "savedata.hpp"
 #include "snd.hpp"
+#include "userstatus.hpp"
 
 namespace expanded {
 
@@ -45,8 +48,9 @@ bool stand_in;
 // Whether the ally boards the submarine in its own body, playing its own jump.
 bool boarding;
 
-// The ally riding the submarine to its other end, or 0.
-int riding;
+// The party member the player chose last, kept with the save: in a town's party menu, or the one out as they left a
+// dungeon.
+const SaveValue<int> kChosen{"party.character", 0};
 
 // The climb out of the hatch: asked for and waiting for the sequence to stand at the hatch, and its frames as they play.
 bool       climb_asked;
@@ -134,12 +138,8 @@ int TownAllyLoaded() {
 }
 
 void TownAllyReset() {
-    int ally = std::ranges::contains(kSubmarineMaps, MapNo) ? riding : 0;
     stand_in = false;
     boarding = false;
-    if (MapNo != kSubmarineRide) {
-        riding = 0;
-    }
     current_ally = 0;
     pending_ally = -1;
     loaded_body = 0;
@@ -148,12 +148,37 @@ void TownAllyReset() {
     climb = {};
     climb_frame = 0;
     FindModels();
-    // Off the submarine in its own body, ready for the arrival's climb out.
-    if (ally > 0 && has_model[ally]) {
-        current_ally = ally;
-        riding = ally;
-        SwapBody(ally);
+    // The party member chosen walks this town too, where an ally may walk it.
+    int chosen = PartyCharacter();
+    if (chosen > 0 && has_model[chosen] && MapNo != TOWN_YELLOW_DROPS) {
+        current_ally = chosen;
+        SwapBody(chosen);
     }
+}
+
+int PartyCharacter() {
+    int chosen = kChosen.Get();
+    int party = SaveData != nullptr ? SaveData->GetDngStatus()->party_size : 1;
+    return chosen > 0 && chosen < kAllyCount && chosen < party ? chosen : 0;
+}
+
+void PartyChoose(int chara) {
+    if (chara > 0) {
+        kChosen.Set(chara);
+    } else {
+        kChosen.Reset();
+    }
+}
+
+void PartyLeavesDungeon(int chara, int limit_zone, int script_chara) {
+    // A floor's limit zone or script put that member out, not the player.
+    if (limit_zone >= RES_LIMIT_ZONE_TOAN && limit_zone <= RES_LIMIT_ZONE_OSMOND) {
+        return;
+    }
+    if (script_chara >= 0) {
+        return;
+    }
+    PartyChoose(chara);
 }
 
 bool TownAllyCommit(int chara, int party_size) {
@@ -181,9 +206,6 @@ void TownAllyMenuCommit(int chara, int party_size) {
 
 void TownAllyWalk() {
     boarding = false;
-    if (MapNo != kSubmarineRide) {
-        riding = 0;
-    }
     if (stand_in && pending_ally < 0) {
         pending_ally = current_ally;
     }
@@ -192,6 +214,10 @@ void TownAllyWalk() {
         return;
     }
 
+    // A member swapped in from the menu, not back in after an event, is the one chosen.
+    if (!stand_in) {
+        PartyChoose(pending_ally);
+    }
     current_ally = pending_ally;
     pending_ally = -1;
     stand_in = false;
@@ -208,9 +234,6 @@ void TownAllyEventBody() {
 bool TownAllyKeepsBody(const char *cfg) {
     boarding = loaded_body > 0 && has_model[loaded_body] &&
                std::ranges::any_of(kBoardingCfgs, [cfg](const char *own) { return std::strcmp(cfg, own) == 0; });
-    if (boarding) {
-        riding = loaded_body;
-    }
     return boarding;
 }
 
@@ -279,8 +302,10 @@ void TownAllyMainCharaPack(char **pack, char **info, CDataAlloc2<1> *arena) {
     stand_in = false;
 }
 
-bool TownAllySkipsCutscene(int event_no) {
-    return current_ally != 0 && event_no > 0;
+void TownAllyCutsceneBody(int event_no) {
+    if (event_no > 0) {
+        TownAllyEventBody();
+    }
 }
 
 int TownAllyInteriorStartEvent(int event_no, int house) {
