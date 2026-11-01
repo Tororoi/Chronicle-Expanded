@@ -32,9 +32,18 @@ bool Playing(int chara);
 // The way the player faces: CharaMain's yaw.
 float PlayerYaw();
 
-// BtActStatus.guard_mode while the guard is up.
+// The guard (movechara's BtActStatus): the guarding action (action_on), its hold (action and motion 9), and the mode
+// (guard_mode) the hold sets while the guard is up.
+inline constexpr int kGuardAction = 6;
+inline constexpr int kGuardHold = 9;
 inline constexpr int kGuardUp = 5;
 bool                 Guarding();
+
+// A monster's hit kind (COLLISION_HIT::kind): a guard-breaking one, which the game lets through all but the guard's hold
+// and knocks the player down with, and a knockback, which any guard stops and an unguarded one throws the player back
+// with.
+inline constexpr int kGuardBreakingHit = 3;
+inline constexpr int kKnockbackHit = 2;
 
 // The monster the player is locked on to while it is on the floor and alive, or -1.
 int LockedTarget();

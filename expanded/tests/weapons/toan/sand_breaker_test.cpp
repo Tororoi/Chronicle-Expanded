@@ -17,8 +17,6 @@ using expanded::Monster;
 
 namespace {
 
-constexpr int kGuarding = 6;
-
 // Toan guarding a Werewolf's blows (slot 0), the Sand Breaker in hand unless another weapon is given.
 struct Guard {
     expanded::test::TestFloor floor;
@@ -30,12 +28,12 @@ struct Guard {
         floor.unit().monster[0].knockback[2] = 1.0f;
         floor.status().cur_chara = CHARA_TOAN;
         BtActStatus = {};
-        BtActStatus.action_on = kGuarding;
+        BtActStatus.action_on = expanded::kGuardAction;
         BtActStatus.action_no = 9;
         while (expanded::SandCounterReady() > 0 || expanded::SandCountering()) {
             BtActStatus.action_on = 0;
             expanded::SandCounterStep();
-            BtActStatus.action_on = kGuarding;
+            BtActStatus.action_on = expanded::kGuardAction;
         }
     }
 
@@ -48,7 +46,7 @@ struct Guard {
         hit.owner = 200;
         hit.monster_no = -1;
         // Any hit takes him out of his action before the game reacts to its kind.
-        bool guarding = BtActStatus.action_on == kGuarding;
+        bool guarding = BtActStatus.action_on == expanded::kGuardAction;
         BtActStatus.action_on = 0;
         expanded::PlayerHitReached(hit);
         expanded::PlayerHitReacted(guarding && (hit.kind == 2 || hit.kind == 4), hit);
@@ -100,7 +98,7 @@ TEST(SandBreaker, TheWindowIsATenthOfASecond) {
     expanded::SandCounterPress();
     for (int frame = 0; frame < expanded::kCounterWindow - 1; frame++) {
         expanded::SandCounterStep();
-        EXPECT_EQ(BtActStatus.action_on, kGuarding);
+        EXPECT_EQ(BtActStatus.action_on, expanded::kGuardAction);
     }
     // No blow caught: the guard let go for an ordinary swing, from its wind-up.
     expanded::SandCounterStep();

@@ -20,10 +20,6 @@ namespace expanded {
 
 namespace {
 
-// The guard (movechara's BtActStatus.action_on) and the hit kind that breaks it, which a counter blocks as a knockback.
-constexpr int kGuarding = 6;
-constexpr int kGuardBreaking = 3, kKnockback = 2;
-
 // A returned shot leaves from Toan's chest.
 constexpr float kMuzzleLift = 10.0f;
 
@@ -61,14 +57,14 @@ bool SandCountering() {
 }
 
 void SandCounterPress() {
-    if (BtActStatus.action_on == kGuarding && SandCounterActive()) {
+    if (BtActStatus.action_on == kGuardAction && SandCounterActive()) {
         ready = kCounterWindow;
     }
 }
 
 void SandCounterStep() {
     // No blow caught in time: the press is the swing it would have been out of the guard, wind-up and all.
-    if (ready > 0 && --ready == 0 && BtActStatus.action_on == kGuarding && SandCounterActive()) {
+    if (ready > 0 && --ready == 0 && BtActStatus.action_on == kGuardAction && SandCounterActive()) {
         BtActStatus.action_on = 0;
         Attack();
     }
@@ -81,8 +77,8 @@ void SandCounterHit(COLLISION_HIT &hit) {
     // The game has taken him out of his guard by now; a counter is readied only in it, and the reaction says whether the
     // guard stopped the blow.
     caught = ready > 0 && SandCounterActive();
-    if (caught && hit.kind == kGuardBreaking) {
-        hit.kind = kKnockback;
+    if (caught && hit.kind == kGuardBreakingHit) {
+        hit.kind = kKnockbackHit;
     }
 }
 
