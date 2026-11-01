@@ -100,6 +100,7 @@
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
+#include "expanded/town/ally.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/stats.hpp"
@@ -1755,6 +1756,12 @@ void GameInit() {
     BtBattleMusic_Init();
 
     LoadData();
+#ifdef CHRONICLE_EXPANDED
+    // The party member chosen goes in in place of Toan, switched in as the party menu switches.
+    if (int chosen = expanded::PartyCharacter(); chosen != UserStatus->cur_chara) {
+        selectChrUnit(chosen, 0);
+    }
+#endif
     LoadStartLogo(selectMapNo);
     initBlendCnt(8, 1.0f);
     atraGetStatus = 0;
@@ -1955,6 +1962,9 @@ int GameLoop() {
         EdGetFadeColor(fade.data());
         MGSetBGColor(fade.data());
         static_cast<CDngStatusData *>(UserStatus)->LostGateKey();
+#ifdef CHRONICLE_EXPANDED
+        expanded::PartyLeavesDungeon(UserStatus->cur_chara, UserStatus->res_limit_zone_current, BtEventInfo.script_main_chr);
+#endif
 
         if (BtEventInfo.no_status_recover == 0) {
             CUserStatus *status = UserStatus;

@@ -7,13 +7,16 @@
 #include "character.hpp"
 #include "editground.hpp"
 #include "editloop.hpp"
+#include "expanded/core/save.hpp"
 #include "expanded/data/town_model.hpp"
 #include "expanded/town/ally.hpp"
 #include "main.hpp"
 #include "platform/paths.hpp"
+#include "savedata.hpp"
 #include "test_support.hpp"
+#include "userstatus.hpp"
 
-TEST(TownAlly, CommitsOnlyPartyMembersOutsideYellowDrops) {
+TEST(TownAlly, CommitsOnlyPartyMembersEverywhere) {
     int saved_map = MapNo;
 
     MapNo = TOWN_NORUNE;
@@ -24,7 +27,7 @@ TEST(TownAlly, CommitsOnlyPartyMembersOutsideYellowDrops) {
     EXPECT_FALSE(expanded::TownAllyCommit(6, 6));
 
     MapNo = TOWN_YELLOW_DROPS;
-    EXPECT_FALSE(expanded::TownAllyCommit(1, 6));
+    EXPECT_TRUE(expanded::TownAllyCommit(1, 6));
 
     expanded::TownAllyReset();
     EXPECT_EQ(expanded::TownAllyCurrent(), 0);
@@ -61,8 +64,6 @@ TEST(TownAlly, OtherBodiesLeaveTheTownBody) {
 
 TEST(TownAlly, ToanKeepsRetailEvents) {
     expanded::TownAllyReset();
-    EXPECT_FALSE(expanded::TownAllySkipsCutscene(0x83));
-    EXPECT_EQ(expanded::TownAllyInteriorStartEvent(205, 3), 205);
     EXPECT_EQ(expanded::TownAllyMarkLift(), 0.0f);
 }
 
@@ -149,4 +150,63 @@ TEST(TownAlly, ToanBoardsAsTheGameHasHim) {
     expanded::TownAllyEventMotion(motion, speed);
     EXPECT_EQ(motion, expanded::kBoardingFirstMotion);
     EXPECT_EQ(speed, 0.8f);
+}
+
+namespace {
+
+// A save of a party this size for a test, Expanded's state cleared after.
+struct PartyOf {
+    explicit PartyOf(int size) {
+        expanded::SaveClear();
+        SaveData->GetDngStatus()->party_size = size;
+    }
+
+    ~PartyOf() { expanded::SaveClear(); }
+
+    expanded::test::TestSave save;
+};
+
+} // namespace
+
+// The member chosen is kept with the save; Toan is kept as none, so a Toan-only save writes nothing.
+TEST(PartyCharacter, IsTheMemberChosenKeptWithTheSave) {
+    PartyOf party(6);
+    expanded::SaveClear();
+    EXPECT_EQ(expanded::PartyCharacter(), 0);
+    expanded::PartyChoose(3);
+    EXPECT_EQ(expanded::PartyCharacter(), 3);
+    expanded::PartyChoose(0);
+    EXPECT_EQ(expanded::PartyCharacter(), 0);
+    EXPECT_TRUE(expanded::SaveEmpty());
+}
+
+// A member the party does not have (yet) is Toan.
+TEST(PartyCharacter, IsToanForOneThePartyLacks) {
+    PartyOf party(3);
+    expanded::PartyChoose(4);
+    EXPECT_EQ(expanded::PartyCharacter(), 0);
+}
+
+// Leaving a dungeon chooses the member out, unless a floor's limit zone or script put it out.
+TEST(PartyCharacter, LeavingADungeonChoosesTheMemberOutUnlessAFloorPutItOut) {
+    PartyOf party(6);
+    expanded::PartyChoose(2);
+    expanded::PartyLeavesDungeon(5, RES_LIMIT_ZONE_OSMOND, -1);
+    EXPECT_EQ(expanded::PartyCharacter(), 2);
+    expanded::PartyLeavesDungeon(5, RES_LIMIT_ZONE_NONE, 5);
+    EXPECT_EQ(expanded::PartyCharacter(), 2);
+    expanded::PartyLeavesDungeon(5, RES_LIMIT_ZONE_THIRST, -1);
+    EXPECT_EQ(expanded::PartyCharacter(), 5);
+    expanded::PartyLeavesDungeon(0, RES_LIMIT_ZONE_NONE, -1);
+    EXPECT_EQ(expanded::PartyCharacter(), 0);
+}
+
+// A cutscene, an event posing the player as Toan, switches to Toan, who stays the one chosen.
+TEST(PartyCharacter, ACutsceneSwitchesToToan) {
+    PartyOf party(6);
+    expanded::TownAllyReset();
+    expanded::PartyChoose(4);
+    expanded::TownAllyEventBody();
+    EXPECT_EQ(expanded::PartyCharacter(), 0);
+    EXPECT_EQ(expanded::TownAllyCurrent(), 0);
 }

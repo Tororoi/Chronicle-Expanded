@@ -1572,18 +1572,14 @@ int EditLoop() {
             if (goto_cmp_event != 0) {
                 goto_return_menu = 0;
 
-#ifdef CHRONICLE_EXPANDED
-                if (expanded::TownAllySkipsCutscene(goto_cmp_event) || EdFadeOutCheck() != 0) {
-#else
                 if (EdFadeOutCheck() != 0) {
-#endif
                     if (goto_cmp_event < 0) {
                         EdExitLoop();
                     } else {
 #ifdef CHRONICLE_EXPANDED
-                        if (!expanded::TownAllySkipsCutscene(goto_cmp_event))
+                        expanded::TownAllyCutsceneBody(goto_cmp_event);
 #endif
-                            RunEvent(goto_cmp_event, nullptr);
+                        RunEvent(goto_cmp_event, nullptr);
                         EdFadeIn(60, 0.0f, 0.0f, 0.0f);
                     }
 
@@ -3890,10 +3886,6 @@ int GotoInterior(char *name, int entrance, int direction, ED_EVENT_PARAM *param,
     if (start_event < 0) {
         EdInteriorStartEvent = 128;
     }
-
-#ifdef CHRONICLE_EXPANDED
-    EdInteriorStartEvent = expanded::TownAllyInteriorStartEvent(EdInteriorStartEvent, entrance);
-#endif
 
     return 1;
 }

@@ -39,9 +39,19 @@ int TownAllyCurrent();
 // Party member whose town body the main character has, or -1 for another body (fishing, events).
 int TownAllyLoaded();
 
-// Starts a town at Toan, as the town loads him, and looks for the built models in the data; an ally riding the submarine
-// stays the one walking it at the submarine's maps.
+// Starts a town at the party member chosen (PartyCharacter), and looks for the built models in the data.
 void TownAllyReset();
+
+// The party member the player chose last, kept with the save across towns and dungeons: in a town's party menu, or the
+// one out as they left a dungeon. 0 (Toan) when none, or one the party does not have. A dungeon begins with it.
+int PartyCharacter();
+
+// The party member chosen.
+void PartyChoose(int chara);
+
+// Hook: a dungeon left with chara out: the one chosen, unless a floor's limit zone (limit_zone) or script (script_chara,
+// -1 for none) put that member out.
+void PartyLeavesDungeon(int chara, int limit_zone, int script_chara);
 
 // Party-menu commit in a town: queues the swap to party member chara; false refuses it.
 bool TownAllyCommit(int chara, int party_size);
@@ -49,21 +59,20 @@ bool TownAllyCommit(int chara, int party_size);
 // Party-menu commit in a town: the dungeon's confirm, spread and close for a swap; the reject beep for a refusal.
 void TownAllyMenuCommit(int chara, int party_size);
 
-// Each walking frame: swaps in the committed party member, or back from Toan after an event.
+// Each walking frame: swaps in the party member committed in the menu, the one chosen from then on.
 void TownAllyWalk();
 
-// Before an event poses the player with Toan's motions: Toan stands in for the party member.
+// Before an event poses the player with Toan's motions, a cutscene: the player switches to Toan, who stays the one
+// chosen after it.
 void TownAllyEventBody();
 
 // The submarine between East Harbor and the Sunken Ship: each end's boarding and arrival load Toan's jump into the hatch
 // and climb out of it (kBoardingCfgs) for the player. An ally in a built body keeps it, rides the submarine to the other
-// end (kSubmarineMaps), and plays its own: for the jump in, KEYs 200-202 (takeoff, air, landing) become the ally's
+// end, and plays its own: for the jump in, KEYs 200-202 (takeoff, air, landing) become the ally's
 // (kBoardingMotions: slot and speed, or -1 for the event's), its ladder leap or Toan's jump retargeted onto it; for the
 // climb out, KEY 203, the ally takes a ladder up out of the hatch to where Toan would stand (TownHatchClimb).
 inline constexpr const char *kBoardingCfgs[] = {"e202c01d.cfg", "e203c01d.cfg"};
 inline constexpr const char *kBoardingCfg = kBoardingCfgs[0];
-inline constexpr int         kSubmarineRide = 39;                         // the ride between, its script all the map does
-inline constexpr int         kSubmarineMaps[] = {19, 35, kSubmarineRide}; // East Harbor, the Sunken Ship Entrance, the ride
 inline constexpr int         kBoardingFirstMotion = 200;
 inline constexpr int         kClimbOutMotion = 203;
 
@@ -98,11 +107,8 @@ bool TownAllyClimbing(const dc::game::CActionSeq &sequence);
 // Points a script's load of Toan's town body at the current party member's.
 void TownAllyMainCharaPack(char **pack, char **info, CDataAlloc2<1> *arena);
 
-// Whether a story cutscene the town fades into is skipped, as it is while an ally walks the town.
-bool TownAllySkipsCutscene(int event_no);
-
-// The event an interior starts with: an ally gets the plain entry, and none at a house ready to complete.
-int TownAllyInteriorStartEvent(int event_no, int house);
+// Before a story cutscene the town fades into (event_no): the player switches to Toan, as for any cutscene.
+void TownAllyCutsceneBody(int event_no);
 
 // Hook: EdMoveChara as it sets the walking motion: the motion played, motion (0 standing, else moving) as a rule, but
 // Xiao's cat, in its built town body, sits (kTownAllySitMotion, its looping sit) once it has stood kTownAllySitFrames
