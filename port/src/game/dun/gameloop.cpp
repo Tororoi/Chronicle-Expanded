@@ -104,6 +104,7 @@
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/stats.hpp"
+#include "expanded/weapons/toan/sand_breaker.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 #endif
 
@@ -4249,7 +4250,7 @@ int BtCheckDamageProc() {
             }
 
 #ifdef CHRONICLE_EXPANDED
-            expanded::PlayerHitReacted(blown != 0 && (hit->kind == 2 || hit->kind == 4));
+            expanded::PlayerHitReacted(blown != 0 && (hit->kind == 2 || hit->kind == 4), *hit);
 #endif
         }
     }
@@ -4511,6 +4512,9 @@ void SpawnShot(sceVu0FVECTOR world, sceVu0FVECTOR vector, int damage) {
 } // namespace
 
 void BattleActionOn_Jinn() {
+#ifdef CHRONICLE_EXPANDED
+    expanded::RoughCounterPress();
+#endif
     if (BtActStatus.action_on == 0 && static_cast<s32>(BtActStatus.action_gauge) == 100) {
         BtActStatus.action_step = 0;
         BtActStatus.charge_time = 0.0f;
@@ -4530,7 +4534,11 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
     }
 #endif
     float now = chara->motion_type.state.time;
+#ifdef CHRONICLE_EXPANDED
+    int damage = expanded::RoughCounterAttack(NowWeaponHave->attack);
+#else
     int   damage = NowWeaponHave->attack;
+#endif
 
     // A poisoned weapon hits twice as hard.
     if (StatusErrCheck(AILMENT_STAMINA) != 0) {

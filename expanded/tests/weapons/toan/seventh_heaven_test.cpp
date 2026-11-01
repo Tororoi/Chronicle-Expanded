@@ -3,6 +3,7 @@
 #include "btactstatus.hpp"
 #include "collisiondata.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/toan/seventh_heaven.hpp"
 #include "itemdata.hpp"
 #include "test_support.hpp"
@@ -46,7 +47,7 @@ TEST(SeventhHeaven, ABlockedHitLeavesTheGuardHeld) {
     EXPECT_EQ(BtActStatus.action_on, expanded::kGuardAction);
     EXPECT_EQ(BtActStatus.action_no, expanded::kGuardHold);
     EXPECT_EQ(BtActStatus.motion_no, expanded::kGuardHold);
-    EXPECT_EQ(BtActStatus.guard_mode, expanded::kGuardHeld);
+    EXPECT_EQ(BtActStatus.guard_mode, expanded::kGuardUp);
 
     // An unguarded hit, or another sword, gets the game's own reaction.
     BtActStatus = {};

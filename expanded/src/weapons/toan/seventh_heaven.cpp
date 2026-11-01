@@ -2,6 +2,7 @@
 
 #include "btactstatus.hpp"
 #include "collisiondata.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 
@@ -24,7 +25,7 @@ void DivineGuardBlocked(bool blocked) {
     BtActStatus.action_on = kGuardAction;
     BtActStatus.action_no = kGuardHold;
     BtActStatus.motion_no = kGuardHold;
-    BtActStatus.guard_mode = kGuardHeld;
+    BtActStatus.guard_mode = kGuardUp;
 }
 
 } // namespace expanded

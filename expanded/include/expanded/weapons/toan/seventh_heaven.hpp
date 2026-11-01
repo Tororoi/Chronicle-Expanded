@@ -10,15 +10,6 @@ namespace expanded {
 // every monster attack and shot, the guard-breaking ones too (kind 3, which the game lets through a guard and knocks
 // the player down with): they come in as a knockback hit (kind 2), so a guard stops them and an unguarded one throws
 // the player back rather than down. It also has the Dark Cloud's Guard Crush (dark_cloud.hpp).
-inline constexpr int kGuardBreakingHit = 3;
-inline constexpr int kKnockbackHit = 2;
-
-// The player's guard (movechara's BtActStatus): the guarding action, its hold (action and motion 9) and the mode the
-// hold sets.
-inline constexpr int kGuardAction = 6;
-inline constexpr int kGuardHold = 9;
-inline constexpr int kGuardHeld = 5;
-
 bool DivineGuardActive();
 
 // A monster's hit reaching the player, before the game reacts to its kind.

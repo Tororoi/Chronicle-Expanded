@@ -5,6 +5,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/toan/sand_breaker.hpp"
 #include "expanded/weapons/toan/swings.hpp"
 #include "gamepad.hpp"
 #include "itemdata.hpp"
@@ -37,13 +38,17 @@ bool QuickDrawSphere() {
 
 void QuickDrawSwing(CCharacter &chara) {
     float &time = chara.motion_type.state.time;
-    if (BtActStatus.action_no == kToanFirstSwing && time >= kSwingSteppedIn && time < kToanFirstSwingTrail && QuickDrawSword()) {
+    // The Sand Breaker's counter swing (sand_breaker.hpp) jumps so too.
+    if (BtActStatus.action_no == kToanFirstSwing && time >= kSwingSteppedIn && time < kToanFirstSwingTrail && (QuickDrawSword() || RoughCountering())) {
         time = kToanFirstSwingTrail;
     }
 }
 
 void QuickDrawShot(CCharacter &chara, int aimed) {
-    if (aimed != 0 || (BtActStatus.action_no != kXiaoDraw && BtActStatus.action_no != kXiaoHold) || GamePad.On(PadInput_OK) != 0 || !QuickDrawSphere()) {
+    // The Sand Breaker's counter shot fires so too, the button held or not.
+    bool counter = RoughCountering();
+    if (aimed != 0 || (BtActStatus.action_no != kXiaoDraw && BtActStatus.action_no != kXiaoHold) || (GamePad.On(PadInput_OK) != 0 && !counter) ||
+        !(QuickDrawSphere() || counter)) {
         return;
     }
 

@@ -59,6 +59,7 @@
 #include "expanded/weapons/toan/heavens_cloud.hpp"
 #include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/maneater.hpp"
+#include "expanded/weapons/toan/sand_breaker.hpp"
 #include "expanded/weapons/toan/seventh_heaven.hpp"
 #include "expanded/weapons/toan/shamshir.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
@@ -178,17 +179,19 @@ void DungeonShotsDrawn() {
 }
 
 bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
-    return PlayerHitSkipped(hit);
+    return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit);
 }
 
 void PlayerHitReached(COLLISION_HIT &hit) {
     BreakFreeze(&hit);
+    RoughCounterHit(hit);
     DivineGuardHit(hit);
     HerosCourageHit(hit);
 }
 
-void PlayerHitReacted(bool blocked) {
+void PlayerHitReacted(bool blocked, const COLLISION_HIT &hit) {
     DivineGuardBlocked(blocked);
+    RoughCounterBlocked(blocked, hit);
 }
 
 void DungeonMonstersCleared(bool drop_stars) {
@@ -208,6 +211,8 @@ void DungeonMonstersCleared(bool drop_stars) {
 
 void DungeonMonstersTick() {
     MonsterStepClockAdvance();
+    angel_gear::TrackReturns();
+    RoughCounterStep();
     OwnSoundsStep();
     ConfuseTick();
     CurseStep();
@@ -372,6 +377,7 @@ void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
 
 void ShotEffectHitSet(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
     DragonShotHit(effect, slot, hit);
+    angel_gear::NoteShotHit(effect, slot, hit);
 }
 
 void PelletStepping(CSHOT &shots, int slot) {

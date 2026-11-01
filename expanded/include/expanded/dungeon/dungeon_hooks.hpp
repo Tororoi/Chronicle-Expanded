@@ -57,7 +57,7 @@ void DungeonShotsDrawn();
 // worked out, and the reaction it gave (blocked: his guard took it).
 bool PlayerHitPassesBy(const COLLISION_HIT &hit);
 void PlayerHitReached(COLLISION_HIT &hit);
-void PlayerHitReacted(bool blocked);
+void PlayerHitReacted(bool blocked, const COLLISION_HIT &hit);
 
 // The floor's monsters put back (after CleanViewMonstor), as the floor fades out to change or an event takes its memory;
 // drop_stars when confusion's stars go with them.

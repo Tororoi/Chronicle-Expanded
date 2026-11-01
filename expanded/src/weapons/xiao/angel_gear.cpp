@@ -170,7 +170,6 @@ void GuardianReflectorStep() {
     }
 
     FollowGuard(guarding);
-    TrackReturns();
     bool shield_up = guarding && PropUp() && !reflector.dispelling;
     if (shield_up) {
         ClaimShots(her);
