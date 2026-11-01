@@ -190,6 +190,7 @@ struct Jump {
     float launch_speed = -1;
     int   launch_frames = 0; // >0: the air motion after this many frames, not at the top of the arc
     int   air_motion = kFall, air_flags = kPlayOnce;
+    float air_speed = -1;
     int   frames = 0;
     float vx = 0, vy = 0, vz = 0, gravity = 0.10f;
     // A landing played on the ground; without one the arc ends above it and the town lands the player.
@@ -224,7 +225,7 @@ void Leap(Builder &b, const Ladder &ladder, const Jump &jump) {
         b.z += jump.vz;
         vy -= jump.gravity;
         if (jump.launch_frames > 0 ? left <= jump.frames - jump.launch_frames : vy < 0.0f) {
-            b.Motion(jump.air_motion, -1.0f, jump.air_flags);
+            b.Motion(jump.air_motion, jump.air_speed, jump.air_flags);
         }
         if (jump.land_motion > 0 && left <= jump.land_lead) {
             b.Motion(jump.land_motion, jump.land_speed, jump.land_flags);
@@ -273,9 +274,14 @@ void XiaoLadder(Builder &b, const Ladder &ladder, bool onto = false) {
     jump.vx = (ladder.target[0] - start_x) / jump.frames;
     jump.vz = (ladder.target[2] - start_z) / jump.frames;
     if (onto) {
+        // The leap up, then the fall drawn out to the touchdown, so she is never held in a pose; the landing as she
+        // lands.
+        constexpr int kLeapUp = 16;  // slot 12's 285-294 at 0.60
+        constexpr int kFallKeys = 9; // slot 8's 205-214
         jump.land_on_target = true;
+        jump.launch_frames = kLeapUp;
+        jump.air_speed = static_cast<float>(kFallKeys) / std::max(jump.frames - kLeapUp, 1);
         jump.land_motion = kLand;
-        jump.land_lead = 4;
         jump.land_frames = 30;
     }
     Leap(b, ladder, jump);
@@ -456,22 +462,26 @@ constexpr int kUngagaTakeoff = 11, kUngagaAir = 12, kUngagaLanding = 13;
 
 // Ungaga out of the hatch: his boarding jump's crouch and spring, up over the rim, and its landing on the deck.
 void UngagaHatchJump(Builder &b, const Ladder &ladder) {
-    constexpr float kGravity = 0.10f;
-    constexpr float kApex = 4.0f;
+    constexpr float kGravity = 0.15f;
+    constexpr float kApex = 1.0f; // his air pose holds his hips high above the arc
     Jump            jump;
     jump.ready_motion = kUngagaTakeoff;
     jump.ready_frames = 32; // his takeoff's crouch, at 0.25 a frame
     jump.ready_flags = kPlayOnce;
+    // The air, Toan's loop, playing through the whole arc.
     jump.launch_motion = kUngagaAir;
+    jump.launch_flags = 0;
     jump.air_motion = kUngagaAir;
+    jump.air_flags = 0;
     jump.gravity = kGravity;
     jump.vy = std::sqrt(2.0f * kGravity * (ladder.height + kApex));
     jump.frames = std::clamp(static_cast<int>(std::ceil(jump.vy / kGravity + std::sqrt(2.0f * kApex / kGravity))), 20, 90);
     jump.vx = (ladder.target[0] - ladder.mount[0]) / jump.frames;
     jump.vz = (ladder.target[2] - ladder.mount[2]) / jump.frames;
     jump.land_motion = kUngagaLanding;
-    jump.land_lead = 4;
-    jump.land_frames = 60;
+    // Toan's landing holds the air pose its first 12 frames: begun before the touchdown, it drops as he lands.
+    jump.land_lead = 12;
+    jump.land_frames = 60 - 12;
     jump.land_on_target = true;
     Leap(b, ladder, jump);
 }
