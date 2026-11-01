@@ -15,6 +15,7 @@
 #include "expanded/weapons/weapon_hit.hpp"
 #include "expanded/weapons/xiao/angel_gear/shield_prop.hpp"
 #include "frame.hpp"
+#include "itembombeffect.hpp"
 #include "mathutil.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -61,8 +62,18 @@ bool Present(const MONSTOR &live, const float *at) {
 std::vector<Claim>  claims;
 std::vector<Claim>  pending;
 std::vector<Flying> flying;
-Shot                faced;           // the claim the slingshot faces
-bool                testing = false; // a returned shot's collision test under way
+
+// The shots whose hits are on the floor: the last few hits a monster's shot planted, each with the shot as it flew.
+struct Planted {
+    const COLLISION_HIT *hit = nullptr;
+    Claim                claim;
+};
+
+constexpr int kPlantedKept = 8;
+Planted       planted[kPlantedKept];
+int           planted_next = 0;
+Shot          faced;           // the claim the slingshot faces
+bool          testing = false; // a returned shot's collision test under way
 
 CSHOT_EFFECT *Effect(int index) {
     return LoadedShotEffect(index);
@@ -108,14 +119,27 @@ void Face(CSHOT_EFFECT &effect, int slot, const float *direction) {
     effect.chara[slot].frame->SetTransMatrix(rotation);
 }
 
+// A returned shot's damage: the weapon's attack times (the dungeon's number + 1) / kTierDivisor.
+int ReturnDamage() {
+    int   dungeon = std::clamp(selectMapNo, static_cast<s32>(DUNGEON_DIVINE_BEAST_CAVE), static_cast<s32>(DUNGEON_DEMON_SHAFT));
+    float base = static_cast<float>(NowWeaponHave->attack) * static_cast<float>(dungeon + 1) / kTierDivisor;
+    return std::max(1, static_cast<int>(std::nearbyint(base))); // halves to even, as the mod rounds
+}
+
+// A returned bomb's flight ended at point: it bursts there on the monsters, not on whoever sent it back.
+void Burst(CSHOT_EFFECT &effect, int slot, float *point) {
+    effect.active[slot] = 0;
+    if (NowColData != nullptr && NowWeaponHave != nullptr) {
+        SetBombEffect(point, kHitsMonsters, ReturnDamage(), effect.effect_data->bomb_scale);
+    }
+}
+
 // A returned shot met monster at point, reaching radius: the hit planted there, and the shot's ailments given.
 void Land(const CSHOT_EFFECT &effect, const float *point, float radius, int monster) {
     if (NowColData == nullptr || NowWeaponHave == nullptr || UserStatus == nullptr) {
         return;
     }
-    int   dungeon = std::clamp(selectMapNo, static_cast<s32>(DUNGEON_DIVINE_BEAST_CAVE), static_cast<s32>(DUNGEON_DEMON_SHAFT));
-    float base = static_cast<float>(NowWeaponHave->attack) * static_cast<float>(dungeon + 1) / kTierDivisor;
-    int   damage = std::max(1, static_cast<int>(std::nearbyint(base))); // halves to even, as the mod rounds
+    int   damage = ReturnDamage();
     int   flags = effect.effect_data->hit_flags;
     int   element = (flags & kElements) != 0 && (flags & kAilments) == 0 ? flags & kElements : 0;
     float at[4] = {point[0], point[1], point[2], 1.0f};
@@ -215,6 +239,93 @@ Fate FateOf(Claim &claim, bool solid, const float *her, const float *pouch) {
     return Fate::kFlying;
 }
 
+// What fires a shot back: the shot in the slot as it flies now.
+Claim ClaimOf(const CSHOT_EFFECT &effect, Shot shot) {
+    const float *v = effect.velocity[shot.slot];
+    Claim        claim;
+    claim.shot = shot;
+    claim.speed = std::max(1.0f, std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]));
+    float at[4];
+    const_cast<CSHOT_EFFECT &>(effect).chara[shot.slot].GetPosition(at);
+    for (int c = 0; c < 3; c++) {
+        claim.back[c] = -v[c] / claim.speed;
+        claim.last[c] = at[c];
+    }
+    claim.damage = effect.damage[shot.slot];
+    claim.owner = effect.user_id[shot.slot];
+    claim.source = effect.source_id[shot.slot];
+    claim.quiet = effect.no_sound[shot.slot];
+    claim.rearm = effect.wait[shot.slot];
+    claim.last_delay = effect.phase_delay[shot.slot];
+    return claim;
+}
+
+// The claim fired from muzzle at target (its arrival line reversed with none), clear of her; false when it must wait for a
+// free shot of its kind.
+bool Fire(const Claim &claim, const float *her, const float *muzzle, const float *target) {
+    CSHOT_EFFECT *effect = Effect(claim.shot.effect);
+    if (effect == nullptr || effect->effect_data == nullptr) {
+        return true;
+    }
+    float aim[3] = {claim.back[0], claim.back[1], claim.back[2]};
+    if (target != nullptr) {
+        float d[3] = {target[0] - muzzle[0], target[1] - muzzle[1], target[2] - muzzle[2]};
+        float length = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+        if (length >= 1.0f) {
+            for (int c = 0; c < 3; c++) {
+                aim[c] = d[c] / length;
+            }
+        }
+    }
+    // Clear of her: a shot born where she would meet it ends at once. From the muzzle down the aim, or past her body when
+    // the aim runs back through her.
+    float to_her[3] = {her[0] - muzzle[0], her[1] - muzzle[1], her[2] - muzzle[2]};
+    float along = to_her[0] * aim[0] + to_her[1] * aim[1] + to_her[2] * aim[2];
+    float off2 = to_her[0] * to_her[0] + to_her[1] * to_her[1] + to_her[2] * to_her[2] - along * along;
+    float lead = along > 0.0f && off2 < (kAbsorbNear + 4.0f) * (kAbsorbNear + 4.0f) ? along + kPastHer : kClearLead;
+    float from[4] = {muzzle[0] + aim[0] * lead, muzzle[1] + aim[1] * lead, muzzle[2] + aim[2] * lead, 1.0f};
+    float to[4] = {from[0] + aim[0], from[1] + aim[1], from[2] + aim[2], 1.0f};
+    s32   status = effect->status; // the pack's, which the mod's spawn left alone
+    int   slot = effect->Set(from, to, claim.owner, -1, claim.source, nullptr, 1);
+    effect->status = status;
+    if (slot < 0) {
+        return false; // every shot of its kind is out: it waits
+    }
+    float speed = claim.speed * kReturnBoost;
+    for (int c = 0; c < 3; c++) {
+        effect->velocity[slot][c] = aim[c] * speed;
+    }
+    effect->damage[slot] = claim.damage;
+    effect->phase_delay[slot] = kReturnFrames;
+    effect->no_sound[slot] = claim.quiet;
+    effect->wait[slot] = claim.rearm;
+    effect->wait_state[slot] = kHeld;
+    Face(*effect, slot, aim);
+    flying.push_back({
+        Shot{claim.shot.effect, slot},
+        0
+    });
+    return true;
+}
+
+// The aim point of the monster in slot: its lock-on point, or over its feet; false when it has no life.
+bool MonsterAim(int monster, float *aim) {
+    if (NowMonstorUnit == nullptr || monster < 0 || monster >= kFloorMonsters) {
+        return false;
+    }
+    const MONSTOR &live = NowMonstorUnit->monster[monster];
+    float          at[4];
+    NowMonstorUnit->chara[monster][0].GetPosition(at);
+    if (!Present(live, at)) {
+        return false;
+    }
+    aim[0] = at[0], aim[1] = at[1] + kAimLift, aim[2] = at[2];
+    if (live.lockon_frame != nullptr && std::fabs(live.lockon_position[1] - at[1]) < kLockOnReach) {
+        std::copy(live.lockon_position, live.lockon_position + 3, aim);
+    }
+    return true;
+}
+
 } // namespace
 
 void ClaimShots(const float *her) {
@@ -242,20 +353,7 @@ void ClaimShots(const float *her) {
                 continue; // it would end short of the pouch (or flies for good)
             }
             effect->wait_state[i] = kHeld;
-            Claim claim;
-            claim.shot = shot;
-            claim.speed = speed;
-            for (int c = 0; c < 3; c++) {
-                claim.back[c] = -v[c] / speed;
-                claim.last[c] = at[c];
-            }
-            claim.damage = effect->damage[i];
-            claim.owner = effect->user_id[i];
-            claim.source = effect->source_id[i];
-            claim.quiet = effect->no_sound[i];
-            claim.rearm = effect->wait[i];
-            claim.last_delay = delay;
-            claims.push_back(claim);
+            claims.push_back(ClaimOf(*effect, shot));
         }
     }
 }
@@ -325,53 +423,49 @@ bool FireReturn(const float *her, const float *muzzle) {
     if (pending.empty()) {
         return true;
     }
-    const Claim   claim = pending.front();
-    CSHOT_EFFECT *effect = Effect(claim.shot.effect);
-    if (effect == nullptr || effect->effect_data == nullptr) {
-        pending.erase(pending.begin());
-        return true;
-    }
-    float aim[3] = {claim.back[0], claim.back[1], claim.back[2]};
     float target[4];
-    if (NearestAim(muzzle, target)) {
-        float d[3] = {target[0] - muzzle[0], target[1] - muzzle[1], target[2] - muzzle[2]};
-        float length = std::sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
-        if (length >= 1.0f) {
-            for (int c = 0; c < 3; c++) {
-                aim[c] = d[c] / length;
-            }
-        }
+    if (!Fire(pending.front(), her, muzzle, NearestAim(muzzle, target) ? target : nullptr)) {
+        return false;
     }
-    // Clear of her: a shot born where she would meet it ends at once. From the muzzle down the aim, or past her body when
-    // the aim runs back through her.
-    float to_her[3] = {her[0] - muzzle[0], her[1] - muzzle[1], her[2] - muzzle[2]};
-    float along = to_her[0] * aim[0] + to_her[1] * aim[1] + to_her[2] * aim[2];
-    float off2 = to_her[0] * to_her[0] + to_her[1] * to_her[1] + to_her[2] * to_her[2] - along * along;
-    float lead = along > 0.0f && off2 < (kAbsorbNear + 4.0f) * (kAbsorbNear + 4.0f) ? along + kPastHer : kClearLead;
-    float from[4] = {muzzle[0] + aim[0] * lead, muzzle[1] + aim[1] * lead, muzzle[2] + aim[2] * lead, 1.0f};
-    float to[4] = {from[0] + aim[0], from[1] + aim[1], from[2] + aim[2], 1.0f};
-    s32   status = effect->status; // the pack's, which the mod's spawn left alone
-    int   slot = effect->Set(from, to, claim.owner, -1, claim.source, nullptr, 1);
-    effect->status = status;
-    if (slot < 0) {
-        return false; // every shot of its kind is out: it waits
-    }
-    float speed = claim.speed * kReturnBoost;
-    for (int c = 0; c < 3; c++) {
-        effect->velocity[slot][c] = aim[c] * speed;
-    }
-    effect->damage[slot] = claim.damage;
-    effect->phase_delay[slot] = kReturnFrames;
-    effect->no_sound[slot] = claim.quiet;
-    effect->wait[slot] = claim.rearm;
-    effect->wait_state[slot] = kHeld;
-    Face(*effect, slot, aim);
-    flying.push_back({
-        Shot{claim.shot.effect, slot},
-        0
-    });
     pending.erase(pending.begin());
     return true;
+}
+
+void NoteShotHit(const CSHOT_EFFECT &effect, int slot, const COLLISION_HIT &hit) {
+    if (effect.effect_data == nullptr || effect.effect_data->target == kHitsMonsters) {
+        return;
+    }
+    int index = IndexOf(effect);
+    if (index < 0) {
+        return;
+    }
+    // A hit record is reused: the shot that set it last is the one it is now.
+    Planted note = {&hit, ClaimOf(effect, Shot{index, slot})};
+    for (Planted &kept : planted) {
+        if (kept.hit == &hit) {
+            kept = note;
+            return;
+        }
+    }
+    planted[planted_next] = note;
+    planted_next = (planted_next + 1) % kPlantedKept;
+}
+
+bool ReturnShotHit(const COLLISION_HIT &hit, const float *her, const float *muzzle, int shooter) {
+    for (Planted &note : planted) {
+        if (note.hit != &hit) {
+            continue;
+        }
+        note.hit = nullptr;
+        // The shot ends where it met the player, without its burst: it is the one going back.
+        if (Live(note.claim.shot) && !Returned(note.claim.shot)) {
+            Effect(note.claim.shot.effect)->active[note.claim.shot.slot] = 0;
+        }
+        float target[4];
+        bool  aimed = MonsterAim(shooter, target) || NearestAim(muzzle, target);
+        return Fire(note.claim, her, muzzle, aimed ? target : nullptr);
+    }
+    return false;
 }
 
 void TrackReturns() {
@@ -425,6 +519,9 @@ bool NearestAim(const float *from, float *aim) {
 }
 
 void ReflectReset() {
+    for (Planted &note : planted) {
+        note.hit = nullptr;
+    }
     claims.clear(); // their holds run out on their own
     pending.clear();
     flying.clear();
@@ -440,11 +537,21 @@ SHOT_COLLISION_RESULT ReflectCollision(CSHOT_EFFECT &effect, int slot, float *hi
     effect.wait_state[slot] = kHeld;
     int                   monster = -1;
     SHOT_COLLISION_RESULT result = ReturnTest(effect, slot, hit_position, position, &monster);
+    bool                  bomb = effect.effect_data->end_effect == SHOT_END_EFFECT_BOMB;
     if (result != SHOT_COLLISION_MONSTER) {
+        if (result != SHOT_COLLISION_NONE && bomb) {
+            Burst(effect, slot, hit_position);
+            flying.erase(ours);
+            return SHOT_COLLISION_NONE;
+        }
         return result;
     }
     Land(effect, hit_position, std::max(0.5f, effect.effect_data->radius[1]) + kHitMargin, monster);
-    effect.phase_delay[slot] = 0; // its flight ends with its burst, as the mod ends it
+    if (bomb) {
+        Burst(effect, slot, hit_position);
+    } else {
+        effect.phase_delay[slot] = 0; // its flight ends with its burst, as the mod ends it
+    }
     flying.erase(ours);
     return SHOT_COLLISION_NONE;
 }

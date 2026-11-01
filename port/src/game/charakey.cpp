@@ -30,6 +30,7 @@
 #include "expanded/weapons/toan/claymore.hpp"
 #include "expanded/weapons/toan/heavens_cloud.hpp"
 #include "expanded/weapons/toan/kitchen_knife.hpp"
+#include "expanded/weapons/toan/sand_breaker.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
@@ -59,6 +60,9 @@ void basic_damage(int kind, int owner) {
 } // namespace
 
 void ToanKey_On() {
+#ifdef CHRONICLE_EXPANDED
+    expanded::SandCounterPress();
+#endif
     if (BtActStatus.special_cooldown > 0) {
         return;
     }
@@ -108,7 +112,7 @@ void ToanKey_Play() {
 #endif
     float time = CharaMain.motion_type.state.time;
 #ifdef CHRONICLE_EXPANDED
-    int damage = expanded::SpringsBlessingAttack(NowWeaponHave->attack);
+    int damage = expanded::SandCounterAttack(expanded::SpringsBlessingAttack(NowWeaponHave->attack));
 #else
     int   damage = NowWeaponHave->attack;
 #endif

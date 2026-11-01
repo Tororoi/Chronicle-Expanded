@@ -4,6 +4,7 @@
 
 namespace dc::game {
 class CSHOT_EFFECT;
+struct COLLISION_HIT;
 } // namespace dc::game
 
 namespace expanded::angel_gear {
@@ -53,6 +54,12 @@ bool ChooseBearing(const float *her, float yaw, bool firing, float *bearing);
 bool FireReturn(const float *her, const float *muzzle);
 // The returned shots in flight: each kept from landing its own hit.
 void TrackReturns();
+// Hook: a monster's shot planting its hit (ShotEffectHitSet): the shot kept with the hit, as it flew.
+void NoteShotHit(const CSHOT_EFFECT &effect, int slot, const COLLISION_HIT &hit);
+// The shot whose hit is hit, when a shot planted it: ended where it met the player, without its burst, and fired back from
+// muzzle at the monster in slot shooter (the nearest monster when it is gone) as a returned shot, clear of the player at
+// her. False when no shot planted the hit, or every shot of its kind is out.
+bool ReturnShotHit(const COLLISION_HIT &hit, const float *her, const float *muzzle, int shooter);
 int  ClaimCount();
 int  PendingCount();
 void DropPending();
