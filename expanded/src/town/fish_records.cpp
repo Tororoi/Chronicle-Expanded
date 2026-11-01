@@ -59,11 +59,12 @@ int RecordMagic(int fish_kind, int record_cm) {
     if (record_cm >= top) {
         return most;
     }
-    const double short_by = static_cast<double>(top - record_cm) / (top - largest);
-    const double share = kRecordTopMagicShare * most;
-    const double magic = short_by <= kRecordTopShare
-                             ? most - (most - share) * short_by / kRecordTopShare
-                             : 1.0 + (share - 1.0) * std::pow(1.0 - (short_by - kRecordTopShare) / (1.0 - kRecordTopShare), kRecordCurveExponent);
+    const double span = top - largest, short_cm = top - record_cm, foot = kRecordTopShare * span;
+    const double share = kRecordTopMagicShare * most, last = (1.0 - kRecordLastShare) * most;
+    const double magic =
+        short_cm <= foot
+            ? last - (last - share) * (short_cm - 1.0) / (foot - 1.0)
+            : 1.0 + (share - 1.0) * std::pow(1.0 - (short_cm / span - kRecordTopShare) / (1.0 - kRecordTopShare), kRecordCurveExponent);
     return std::max(1, static_cast<int>(std::round(magic)));
 }
 

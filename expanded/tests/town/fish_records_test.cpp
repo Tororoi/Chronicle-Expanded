@@ -81,7 +81,8 @@ TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestOneAtItAndTheMostAtTheTop
         const int  most = garayan ? expanded::kGarayanRecordMagic : expanded::kRecordMagic;
         EXPECT_EQ(expanded::RecordMagic(kind, largest - 1), 0) << kind;
         EXPECT_EQ(expanded::RecordMagic(kind, largest), 1) << kind;
-        // Every centimetre of the top tenth of the range counts, and its foot is half the most.
+        // Every centimetre of the top tenth of the range counts, the last a fifth of the most; its foot is half the most.
+        EXPECT_NEAR(expanded::RecordMagic(kind, top) - expanded::RecordMagic(kind, top - 1), most / 5.0, 1.0) << kind;
         const int foot = top - static_cast<int>(std::lround(expanded::kRecordTopShare * (top - largest)));
         for (int cm = foot + 1; cm <= top; cm++) {
             EXPECT_GT(expanded::RecordMagic(kind, cm), expanded::RecordMagic(kind, cm - 1)) << kind << " " << cm;
@@ -103,19 +104,19 @@ TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestOneAtItAndTheMostAtTheTop
 }
 
 TEST_F(FishRecords, TheTopTenthClimbsStraightAndTheRestSpreads) {
-    // Baron Garayan, 300 cm at most in the game and 450 with Arise Mardan: from 59 at 435 cm up about 4 a centimetre to
-    // 117; below, 46 at 420, 19 at 375, 4 at 330.
+    // Baron Garayan, 300 cm at most in the game and 450 with Arise Mardan: from 59 at 435 cm up about 2.5 a centimetre to
+    // 94 a centimetre short, then 117; below, 46 at 420, 19 at 375, 4 at 330.
     EXPECT_EQ(Top(expanded::fish::kBaronGarayan), 450);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 449), 113);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 449), 94);
     EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 435), 59);
     EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 420), 46);
     EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 375), 19);
     EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 330), 4);
     // Bobo (200 cm, 300) and Niler (100, 150) alike over their own ranges: 22 at the top tenth's foot, 7 halfway.
-    EXPECT_EQ(expanded::RecordMagic(0, 299), 41);
+    EXPECT_EQ(expanded::RecordMagic(0, 299), 34);
     EXPECT_EQ(expanded::RecordMagic(0, 290), 22);
     EXPECT_EQ(expanded::RecordMagic(0, 250), 7);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kNiler, 149), 39);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kNiler, 149), 34);
     EXPECT_EQ(expanded::RecordMagic(expanded::fish::kNiler, 125), 7);
 }
 
