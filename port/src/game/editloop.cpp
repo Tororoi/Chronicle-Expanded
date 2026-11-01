@@ -3887,10 +3887,6 @@ int GotoInterior(char *name, int entrance, int direction, ED_EVENT_PARAM *param,
         EdInteriorStartEvent = 128;
     }
 
-#ifdef CHRONICLE_EXPANDED
-    EdInteriorStartEvent = expanded::TownAllyInteriorStartEvent(EdInteriorStartEvent, entrance);
-#endif
-
     return 1;
 }
 

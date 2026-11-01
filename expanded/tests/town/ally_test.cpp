@@ -16,7 +16,7 @@
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
-TEST(TownAlly, CommitsOnlyPartyMembersOutsideYellowDrops) {
+TEST(TownAlly, CommitsOnlyPartyMembersEverywhere) {
     int saved_map = MapNo;
 
     MapNo = TOWN_NORUNE;
@@ -27,7 +27,7 @@ TEST(TownAlly, CommitsOnlyPartyMembersOutsideYellowDrops) {
     EXPECT_FALSE(expanded::TownAllyCommit(6, 6));
 
     MapNo = TOWN_YELLOW_DROPS;
-    EXPECT_FALSE(expanded::TownAllyCommit(1, 6));
+    EXPECT_TRUE(expanded::TownAllyCommit(1, 6));
 
     expanded::TownAllyReset();
     EXPECT_EQ(expanded::TownAllyCurrent(), 0);
@@ -64,7 +64,6 @@ TEST(TownAlly, OtherBodiesLeaveTheTownBody) {
 
 TEST(TownAlly, ToanKeepsRetailEvents) {
     expanded::TownAllyReset();
-    EXPECT_EQ(expanded::TownAllyInteriorStartEvent(205, 3), 205);
     EXPECT_EQ(expanded::TownAllyMarkLift(), 0.0f);
 }
 
@@ -200,4 +199,14 @@ TEST(PartyCharacter, LeavingADungeonChoosesTheMemberOutUnlessAFloorPutItOut) {
     EXPECT_EQ(expanded::PartyCharacter(), 5);
     expanded::PartyLeavesDungeon(0, RES_LIMIT_ZONE_NONE, -1);
     EXPECT_EQ(expanded::PartyCharacter(), 0);
+}
+
+// A cutscene, an event posing the player as Toan, switches to Toan, who stays the one chosen.
+TEST(PartyCharacter, ACutsceneSwitchesToToan) {
+    PartyOf party(6);
+    expanded::TownAllyReset();
+    expanded::PartyChoose(4);
+    expanded::TownAllyEventBody();
+    EXPECT_EQ(expanded::PartyCharacter(), 0);
+    EXPECT_EQ(expanded::TownAllyCurrent(), 0);
 }

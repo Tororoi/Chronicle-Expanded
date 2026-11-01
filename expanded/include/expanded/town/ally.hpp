@@ -39,8 +39,7 @@ int TownAllyCurrent();
 // Party member whose town body the main character has, or -1 for another body (fishing, events).
 int TownAllyLoaded();
 
-// Starts a town at the party member chosen (PartyCharacter), Toan where an ally may not walk it, and looks for the built
-// models in the data.
+// Starts a town at the party member chosen (PartyCharacter), and looks for the built models in the data.
 void TownAllyReset();
 
 // The party member the player chose last, kept with the save across towns and dungeons: in a town's party menu, or the
@@ -60,10 +59,11 @@ bool TownAllyCommit(int chara, int party_size);
 // Party-menu commit in a town: the dungeon's confirm, spread and close for a swap; the reject beep for a refusal.
 void TownAllyMenuCommit(int chara, int party_size);
 
-// Each walking frame: swaps in the committed party member, or back from Toan after an event.
+// Each walking frame: swaps in the party member committed in the menu, the one chosen from then on.
 void TownAllyWalk();
 
-// Before an event poses the player with Toan's motions: Toan stands in for the party member.
+// Before an event poses the player with Toan's motions, a cutscene: the player switches to Toan, who stays the one
+// chosen after it.
 void TownAllyEventBody();
 
 // The submarine between East Harbor and the Sunken Ship: each end's boarding and arrival load Toan's jump into the hatch
@@ -107,11 +107,8 @@ bool TownAllyClimbing(const dc::game::CActionSeq &sequence);
 // Points a script's load of Toan's town body at the current party member's.
 void TownAllyMainCharaPack(char **pack, char **info, CDataAlloc2<1> *arena);
 
-// Before a story cutscene the town fades into (event_no): Toan stands in for the party member through it.
+// Before a story cutscene the town fades into (event_no): the player switches to Toan, as for any cutscene.
 void TownAllyCutsceneBody(int event_no);
-
-// The event an interior starts with: an ally gets the plain entry, and none at a house ready to complete.
-int TownAllyInteriorStartEvent(int event_no, int house);
 
 // Hook: EdMoveChara as it sets the walking motion: the motion played, motion (0 standing, else moving) as a rule, but
 // Xiao's cat, in its built town body, sits (kTownAllySitMotion, its looping sit) once it has stood kTownAllySitFrames

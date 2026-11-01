@@ -30,9 +30,6 @@ namespace {
 
 constexpr int kAllyCount = static_cast<int>(std::size(kTownAllyBodies));
 
-// The town's plain entry event, which an interior starts with when its door names none.
-constexpr int kInteriorEntryEvent = 128;
-
 // Party member the player walks the town as.
 int current_ally;
 
@@ -41,9 +38,6 @@ int pending_ally = -1;
 
 // Party member whose town body is loaded, or -1 for another body.
 int loaded_body;
-
-// Whether Toan stands in for the party member through an event that poses him.
-bool stand_in;
 
 // Whether the ally boards the submarine in its own body, playing its own jump.
 bool boarding;
@@ -138,7 +132,6 @@ int TownAllyLoaded() {
 }
 
 void TownAllyReset() {
-    stand_in = false;
     boarding = false;
     current_ally = 0;
     pending_ally = -1;
@@ -150,7 +143,7 @@ void TownAllyReset() {
     FindModels();
     // The party member chosen walks this town too, where an ally may walk it.
     int chosen = PartyCharacter();
-    if (chosen > 0 && has_model[chosen] && MapNo != TOWN_YELLOW_DROPS) {
+    if (chosen > 0 && has_model[chosen]) {
         current_ally = chosen;
         SwapBody(chosen);
     }
@@ -182,7 +175,7 @@ void PartyLeavesDungeon(int chara, int limit_zone, int script_chara) {
 }
 
 bool TownAllyCommit(int chara, int party_size) {
-    if (chara < 0 || chara >= kAllyCount || chara > party_size - 1 || MapNo == TOWN_YELLOW_DROPS) {
+    if (chara < 0 || chara >= kAllyCount || chara > party_size - 1) {
         return false;
     }
 
@@ -206,29 +199,23 @@ void TownAllyMenuCommit(int chara, int party_size) {
 
 void TownAllyWalk() {
     boarding = false;
-    if (stand_in && pending_ally < 0) {
-        pending_ally = current_ally;
-    }
-
     if (pending_ally < 0) {
         return;
     }
 
-    // A member swapped in from the menu, not back in after an event, is the one chosen.
-    if (!stand_in) {
-        PartyChoose(pending_ally);
-    }
+    PartyChoose(pending_ally);
     current_ally = pending_ally;
     pending_ally = -1;
-    stand_in = false;
     SwapBody(current_ally);
 }
 
 void TownAllyEventBody() {
     if (loaded_body > 0) {
         SwapBody(0);
-        stand_in = true;
     }
+    current_ally = 0;
+    pending_ally = -1;
+    PartyChoose(0);
 }
 
 bool TownAllyKeepsBody(const char *cfg) {
@@ -299,27 +286,12 @@ void TownAllyMainCharaPack(char **pack, char **info, CDataAlloc2<1> *arena) {
     *pack = const_cast<char *>(ally_pack);
     *info = const_cast<char *>(ally_info);
     loaded_body = current_ally;
-    stand_in = false;
 }
 
 void TownAllyCutsceneBody(int event_no) {
     if (event_no > 0) {
         TownAllyEventBody();
     }
-}
-
-int TownAllyInteriorStartEvent(int event_no, int house) {
-    if (current_ally == 0) {
-        return event_no;
-    }
-
-    EDITPARTS_INFO *info = house >= 0 ? EditPartsInfo.GetPartsInfo(house) : nullptr;
-
-    if (info != nullptr && !(info->completion_flags & 1) && EditPartsInfo.CheckComplete(house) != 0) {
-        return 0;
-    }
-
-    return kInteriorEntryEvent;
 }
 
 int TownAllyWalkMotion(int motion) {
