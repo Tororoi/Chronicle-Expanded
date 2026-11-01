@@ -50,6 +50,32 @@ void TownAllyWalk();
 // Before an event poses the player with Toan's motions: Toan stands in for the party member.
 void TownAllyEventBody();
 
+// East Harbor's submarine boarding loads Toan's jump (kBoardingCfg) for the player: an ally in a built body keeps it, and
+// the event's KEYs 200-202 (takeoff, air, landing) play the ally's own (kBoardingMotions: slot and speed, or -1 for the
+// event's), its own ladder-down leap or Toan's jump retargeted onto it.
+inline constexpr const char *kBoardingCfg = "e202c01d.cfg";
+inline constexpr int         kBoardingFirstMotion = 200;
+
+struct BoardingMotion {
+    int   motion;
+    float speed;
+};
+
+inline constexpr BoardingMotion kBoardingMotions[6][3] = {
+    {},
+    {{11, -1.0f}, {8, -1.0f}, {9, -1.0f}}, // Xiao: the crouch, the leap, the landing
+    {{13, -1.0f}, {8, -1.0f}, {9, -1.0f}}, // Goro: down into the crouch, the fall, the landing
+    {{13, -1.0f}, {14, -1.0f}, {15, -1.0f}}, // Ruby: Toan's jump
+    {{11, -1.0f}, {12, -1.0f}, {13, -1.0f}}, // Ungaga: Toan's jump
+    {{11, -1.0f}, {8, -1.0f}, {9, 0.30f}}, // Osmond: the dive, the fall, the landing
+};
+
+// _LOAD_CHARA of cfg for the player: true when the ally keeps its body (the boarding), which skips the load.
+bool TownAllyKeepsBody(const char *cfg);
+
+// An event's motion for the player through the boarding: the ally's own, its speed set where the table gives one.
+void TownAllyEventMotion(int &motion, float &speed);
+
 // Points a script's load of Toan's town body at the current party member's.
 void TownAllyMainCharaPack(char **pack, char **info, CDataAlloc2<1> *arena);
 

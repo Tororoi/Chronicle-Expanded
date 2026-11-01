@@ -7,6 +7,7 @@
 #include "character.hpp"
 #include "editground.hpp"
 #include "editloop.hpp"
+#include "expanded/data/town_model.hpp"
 #include "expanded/town/ally.hpp"
 #include "main.hpp"
 #include "platform/paths.hpp"
@@ -120,4 +121,30 @@ TEST(TownAlly, ToanStandsAsTheGameHasHim) {
         EXPECT_EQ(expanded::TownAllyWalkMotion(0), 0) << frame;
     }
     EXPECT_EQ(expanded::TownAllyWalkMotion(2), 2);
+}
+
+// Each ally's boarding motions are slots of its built model.
+TEST(TownAlly, BoardsInMotionsOfItsOwnModel) {
+    const auto &allies = expanded::TownAllies();
+    for (int ally = 1; ally < 6; ally++) {
+        const expanded::TownAlly &model = allies[std::size_t(ally - 1)];
+        for (const expanded::BoardingMotion &own : expanded::kBoardingMotions[ally]) {
+            bool found = false;
+            for (const expanded::TownSlot &slot : model.slots) {
+                found = found || slot.idx == own.motion;
+            }
+            EXPECT_TRUE(found) << model.name << " motion " << own.motion;
+        }
+    }
+}
+
+// Toan boards as the game has him: his jump loads and plays as it is.
+TEST(TownAlly, ToanBoardsAsTheGameHasHim) {
+    expanded::TownAllyReset();
+    EXPECT_FALSE(expanded::TownAllyKeepsBody(expanded::kBoardingCfg));
+    int   motion = expanded::kBoardingFirstMotion;
+    float speed = 0.8f;
+    expanded::TownAllyEventMotion(motion, speed);
+    EXPECT_EQ(motion, expanded::kBoardingFirstMotion);
+    EXPECT_EQ(speed, 0.8f);
 }

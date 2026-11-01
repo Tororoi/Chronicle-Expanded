@@ -111,6 +111,9 @@ Bytes BuildTownModel(const TownAlly &ally, const DiscReader &read) {
             PinNodes(base, body, slot.pin_nodes, slot.pin_frame, dlo, dhi);
         }
     }
+    if (ally.retarget) {
+        RetargetMotion(base, cfg, *ally.retarget, ally.borrowed, source(ally.retarget->rig), source(ally.retarget->src));
+    }
     if (graft && graft->spin) {
         ApplySpin(base, *graft);
     }

@@ -414,6 +414,19 @@ TEST(StageFile, TheTownKeysAreRead) {
     EXPECT_EQ(stage.give, "310,197");
 }
 
+// An event point by its label, with the member walking the town; only in a town, and not with a fishing sign.
+TEST(StageFile, AnEventPointIsStoodAtInATown) {
+    Stage       stage;
+    std::string why;
+    ASSERT_TRUE(expanded::ParseStage("town = east_harbor\ncharacter = ungaga\nevent_point = 11\n", stage, &why)) << why;
+    EXPECT_EQ(stage.event_point, 11);
+    EXPECT_EQ(stage.character, CHARA_UNGAGA);
+    EXPECT_FALSE(expanded::ParseStage("event_point = 11\n", stage, &why));
+    EXPECT_EQ(why, "an event_point with no town");
+    EXPECT_FALSE(expanded::ParseStage("town = east_harbor\nfishing_spot = 0\nevent_point = 11\n", stage, &why));
+    EXPECT_EQ(why, "a fishing_spot and an event_point");
+}
+
 TEST(StageFile, TownsByNameOrMapNo) {
     constexpr std::pair<const char *, int> kTowns[] = {
         {"norune",       TOWN_NORUNE      },

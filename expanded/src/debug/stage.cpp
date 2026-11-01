@@ -7,6 +7,7 @@
 #include <cstring>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <numbers>
 #include <optional>
@@ -33,6 +34,7 @@
 #include "expanded/debug/event_log.hpp"
 #include "expanded/dungeon/floor_grid.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/town/ally.hpp"
 #include "expanded/town/baits.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "fishing.hpp"
@@ -255,6 +257,7 @@ constexpr Key kKeys[] = {
     {"circle",       [](std::string_view v, Stage &s) { return Within(v, s.circle, 0, 9); }                  },
     {"town",         [](std::string_view v, Stage &s) { return Town(v, s.town); }                            },
     {"fishing_spot", [](std::string_view v, Stage &s) { return Count(v, s.fishing_spot); }                   },
+    {"event_point",  [](std::string_view v, Stage &s) { return Count(v, s.event_point); }                    },
     {"bait",         [](std::string_view v, Stage &s) { return Bait(v, s.bait); }                            },
     {"time",         [](std::string_view v, Stage &s) { return Time(v, s.time); }                            },
     {"give",         [](std::string_view v, Stage &s) { return Items(v, s.give); }                           },
@@ -404,12 +407,12 @@ bool LoadsFishing(int label) {
     return false;
 }
 
-// Where the town's spot-th fishing sign is, in its event points' order: the event point the player triggers it from.
-bool FishingSign(int spot, float *position) {
+// Where the town's nth event point whose label matches is, in its event points' order: where the player triggers it.
+bool EventPoint(const std::function<bool(int)> &matches, int nth, float *position) {
     const ED_MOVE_CHARA_INFO &info = EdMoveCharaInfo;
     for (int i = 0, found = 0; i < info.point_count; i++) {
         ED_EVENT_POINT &point = info.points[i];
-        if (point.enabled == 0 || point.event_type != ED_EVENT_POINT_EVENT || !LoadsFishing(point.side) || found++ < spot) {
+        if (point.enabled == 0 || point.event_type != ED_EVENT_POINT_EVENT || !matches(point.side) || found++ < nth) {
             continue;
         }
         sceVu0FVECTOR rotation;
@@ -423,10 +426,10 @@ bool FishingSign(int spot, float *position) {
     return false;
 }
 
-// The player stood on the sign's event point, facing the way they came from the town's entrance, the camera behind.
-bool StandAtSign(int spot) {
+// The player stood on the event point, facing the way they came from the town's entrance, the camera behind.
+bool StandAt(const std::function<bool(int)> &matches, int nth) {
     sceVu0FVECTOR sign;
-    if (!FishingSign(spot, sign)) {
+    if (!EventPoint(matches, nth, sign)) {
         return false;
     }
     sceVu0FVECTOR position = {sign[0], sign[1], sign[2], 1.0f};
@@ -487,6 +490,10 @@ bool ParseStage(std::string_view text, Stage &stage, std::string *why) {
         mixed = "a dungeon and a town";
     } else if (parsed.town < 0 && parsed.fishing_spot >= 0) {
         mixed = "a fishing_spot with no town";
+    } else if (parsed.town < 0 && parsed.event_point >= 0) {
+        mixed = "an event_point with no town";
+    } else if (parsed.fishing_spot >= 0 && parsed.event_point >= 0) {
+        mixed = "a fishing_spot and an event_point";
     } else if (parsed.town < 0 && parsed.bait >= 0) {
         mixed = "a bait with no town";
     }
@@ -636,18 +643,25 @@ void StageTownStep() {
     }
     if (!run.arrived) {
         run.arrived = true;
-        run.at_sign = active->fishing_spot < 0;
+        run.at_sign = active->fishing_spot < 0 && active->event_point < 0;
         if (active->bait >= 0) {
             GiveBait(active->bait);
+        }
+        // The member walks the town from the next walking frame, as the party menu's commit has it.
+        if (active->character >= 0 && !TownAllyCommit(active->character, SaveData->GetDngStatus()->party_size)) {
+            std::fprintf(stderr, "stage: character %d cannot walk map %d\n", active->character, MapNo);
         }
         LogEvent("stage", "\"step\":\"town\"");
     }
     if (!run.at_sign) {
         run.at_sign = true;
-        if (StandAtSign(active->fishing_spot)) {
+        if (active->event_point >= 0 && StandAt([](int label) { return label == active->event_point; }, 0)) {
+            LogEvent("stage", "\"step\":\"at_point\"");
+        } else if (active->fishing_spot >= 0 && StandAt(LoadsFishing, active->fishing_spot)) {
             LogEvent("stage", "\"step\":\"at_sign\"");
         } else {
-            std::fprintf(stderr, "stage: map %d has no fishing sign %d\n", MapNo, active->fishing_spot);
+            std::fprintf(stderr, "stage: map %d has no fishing sign %d or event point %d\n", MapNo, active->fishing_spot,
+                         active->event_point);
         }
     }
     ED_MOVE_CHARA_INFO &info = EdMoveCharaInfo;

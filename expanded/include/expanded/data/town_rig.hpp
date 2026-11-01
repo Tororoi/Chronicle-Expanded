@@ -105,6 +105,11 @@ void FreezeRoots(ChrPack &pack, std::string_view mot_name, int frame, int dlo, i
 // The named nodes' tracks held in [dlo, dhi] at their values at frame.
 void PinNodes(ChrPack &pack, const Model &model, const std::vector<std::string_view> &nodes, int frame, int dlo, int dhi);
 
+// Writes the retarget's frames into the base's body motion, then its shadow's by joint name (TownRetarget); rig is Toan's
+// model's pack, src his motion's.
+void RetargetMotion(ChrPack &base, const CfgMotions &cfg, const TownRetarget &retarget,
+                    const std::optional<TownBorrowedJoints> &borrowed, const ChrPack &rig, const ChrPack &src);
+
 // Copies the donor's shadow records in and declares them in the cfg.
 void InjectShadow(ChrPack &base, const ChrPack &donor, const TownShadowInject &inject);
 

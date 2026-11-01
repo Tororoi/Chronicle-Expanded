@@ -50,7 +50,12 @@ Last, the cfg's KEY lines are replaced with one per slot. An ally can also:
 - `shadow_inject`: copy a shadow model, motion and weights from another model into a base without one,
   and declare them in the cfg;
 - `mesh_graft`: append frame nodes the base lacks, with their meshes and bind rows, held at one pose
-  outside their source's windows, and with `spin` turn a hub of them.
+  outside their source's windows, and with `spin` turn a hub of them;
+- `retarget`: play a motion of Toan's, though the rigs differ (`town_retarget.cpp`). Each pair of joints
+  turns the ally's joint from its idle the way Toan's turns in the world from his first frame, the other
+  joints keep their idle under their parent, and the hips move by Toan's hip travel times a scale fitted
+  so the planted foot does not slide; the shadow takes the body's joints by name. With `borrowed`, some
+  joints play one of the ally's own clips instead, eased in and back out to rest.
 
 A pack's records follow one another by their strides, which stay multiples of 16: a `.mds` after a
 record grown to another length would otherwise be read out of alignment.
@@ -110,6 +115,7 @@ Base `gedit/e03/chara/c05a.chr`, with root motion and the shadow of `gedit/e03/c
 | 9 | 10-20 | 0.15 | land: the idle | base |
 | 11 | 200-230 | 0.20 | ladder jump | `gedit/e03/chara/e228c05a.chr` 285-315, travel frozen at 200 |
 | 12 | 235-245 | 0.10 | ladder jump, held | `gedit/e03/chara/e228c05a.chr` 320-330, travel frozen at 175 |
+| 13-15 | 400-415, 420-430, 435-450 | 0.25, 0.80, 0.25 | the submarine jump | Toan's (below), hips ×0.9; her arms her float (slot 12) from the push-off, at rest again as she lands |
 
 ## Ungaga
 
@@ -126,6 +132,7 @@ Base `gedit/e04/chara/e323_2c10a.chr`, with root motion; its cfg is `e323_2c10a.
 | 7 | 270-310 | 0.22 | ladder refusal | `dun/mainchara/c10b.chr` 490-530, `kon_1` and `r_handa` held at 15 |
 | 8 | 315 | 0 | fall: one pose | `dun/mainchara/c10b.chr` 296 |
 | 9 | 357-358 | 0.20 | land | `dun/mainchara/c10b.chr` 295-296, reversed |
+| 11-13 | 400-415, 420-430, 435-450 | 0.25, 0.80, 0.25 | the submarine jump | Toan's (below), hips ×1.05, every joint |
 
 ## Osmond
 
@@ -164,6 +171,17 @@ camera following at the ladder's angle as Toan's climb has it.
 
 A ladder whose ends can't be read gets the refusal (none for Osmond), and an ally in its disc model,
 which has neither, can't take a ladder.
+
+## The submarine
+
+East Harbor's submarine boarding (`gedit/s09/event.stb` label 11) loads Toan's jump into the hatch
+(`gedit/s09/chara/e202.chr`, `e202c01d.cfg` KEY 200 takeoff 25-40, 201 air 45-55, 202 landing 60-75) and
+queues it, the script dropping him into the hatch over 40 frames. An ally in its built model keeps it
+(`TownAllyKeepsBody`), and the queue's 200-202 play its own motions (`kBoardingMotions`): Xiao crouch (11),
+leap (8), land (9); Goro crouch (13), fall (8), land (9); Osmond dive (11), fall (8), land (9); Ruby and
+Ungaga Toan's jump, retargeted (`retarget`). Rigs of the jump are Toan's `chara/c01d.chr`: Ungaga's is the
+same chain layout numbered otherwise, every joint paired; Ruby's is plainer (one spine joint, the legs off
+the hip), her legs, hips, chest and head paired and her arms borrowed.
 
 ## Adding an ally
 

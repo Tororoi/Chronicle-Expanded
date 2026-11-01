@@ -27,6 +27,32 @@ constexpr std::string_view kRubyFloat = "gedit/e03/chara/e228c05a.chr";
 constexpr std::string_view kUngagaBase = "gedit/e04/chara/e323_2c10a.chr";
 constexpr std::string_view kUngagaDungeon = "dun/mainchara/c10b.chr";
 
+// East Harbor's submarine: Toan's jump into its hatch (e202c01d.cfg KEY 200-202: takeoff, air, landing), which Ruby and
+// Ungaga play retargeted in a window of their own.
+constexpr std::string_view kToanTown = "chara/c01d.chr";
+constexpr std::string_view kToanBoarding = "gedit/s09/chara/e202.chr";
+
+TownRetarget BoardingJump(double hip_scale, std::string_view hip,
+                          std::vector<std::pair<std::string_view, std::string_view>> joints) {
+    return {.rig = kToanTown, .rig_mds = "c01d.mds", .src = kToanBoarding, .src_mot = "e202c01d.mot", .src_lo = 25, .src_hi = 75, .src_ref = 25, .dest_lo = 400, .ref = 10, .hip_scale = hip_scale, .src_hip = "ctr", .hip = hip, .joints = std::move(joints)};
+}
+
+// The jump's KEYs in the window: Toan's 25-40, 45-55, 60-75 at 400 on.
+std::vector<TownSlot> BoardingSlots(int first) {
+    return {
+        {.idx = first,     .lo = 400, .hi = 415, .speed = 0.25, .name = "sub-takeoff"},
+        {.idx = first + 1, .lo = 420, .hi = 430, .speed = 0.80, .name = "sub-air"    },
+        {.idx = first + 2, .lo = 435, .hi = 450, .speed = 0.25, .name = "sub-landing"}
+    };
+}
+
+std::vector<TownSlot> WithBoarding(std::vector<TownSlot> slots, int first) {
+    for (TownSlot &slot : BoardingSlots(first)) {
+        slots.push_back(slot);
+    }
+    return slots;
+}
+
 constexpr std::string_view kOsmondBase = "gedit/e05/chara/c18p.chr";
 constexpr std::string_view kOsmondDive = "gedit/e05/chara/e403c18a.chr";
 constexpr std::string_view kOsmondFlight = "gedit/s13/chara/e402c18a.chr";
@@ -99,7 +125,7 @@ const std::vector<TownAlly> &TownAllies() {
             .root_motion = true,
             .shadow_inject = TownShadowInject{.src = kRubyPat, .model = "e223c05s.mds", .mot = "e223c05s.mot",
                                               .bbp = "e223c05s.bbp", .wgt = "e223c05s.wgt"},
-            .slots = {
+            .slots = WithBoarding({
                 {.idx = 0, .lo = 10, .hi = 20, .speed = 0.15, .name = "idle", .src = kRubyDungeon, .win = {10, 20}},
                 {.idx = 1, .lo = 60, .hi = 80, .speed = 0.55, .name = "run", .src = kRubyDungeon, .win = {60, 80}},
                 {.idx = 2, .lo = 30, .hi = 50, .speed = 0.25, .name = "walk", .src = kRubyDungeon, .win = {30, 50}},
@@ -117,14 +143,22 @@ const std::vector<TownAlly> &TownAllies() {
                  .root_freeze = 200},
                 {.idx = 12, .lo = 235, .hi = 245, .speed = 0.10, .name = "jump-loop", .src = kRubyFloat, .win = {320, 330},
                  .root_freeze = 175},
-            },
+            }, 13),
+            // Her legs, hips, chest and head jump as Toan's; her arms float, as on a ladder: her float loop from the push-off,
+            // back to rest as she lands.
+            .retarget = BoardingJump(0.9, "hip", {{"jnt1_1", "hip"}, {"jnt22_1", "r_upleg"}, {"jnt22_2", "r_leg"}, {"jnt23_1", "r_foot"},
+                                                  {"jnt24_1", "r_toe"}, {"jnt5_1", "l_upleg"}, {"jnt5_2", "l_leg"}, {"jnt6_1", "l_foot"},
+                                                  {"jnt7_1", "l_toe"}, {"jnt2_1", "spine"}, {"jnt11_1", "neck"}, {"jnt12_1", "face"}}),
+            .borrowed = TownBorrowedJoints{.nodes = {"r_sdr", "r_arm", "r_farm", "r_hand", "l_sdr", "l_arm", "l_farm", "l_hand"},
+                                           .lo = 235, .hi = 245, .speed = 0.10, .ease = {33, 39}, .rest = {60, 70},
+                                           .queue = {{25, 40, 0.25}, {45, 55, 0.8}, {60, 75, 0.25}}},
         },
         {
             .name = "Ungaga",
             .file = "expanded/town/ungaga.chr",
             .base = kUngagaBase,
             .root_motion = true,
-            .slots = {
+            .slots = WithBoarding({
                 {.idx = 0, .lo = 10, .hi = 20, .speed = 0.10, .name = "idle"},
                 {.idx = 1, .lo = 60, .hi = 80, .speed = 0.55, .name = "run", .src = kUngagaDungeon, .win = {60, 80}},
                 {.idx = 2, .lo = 30, .hi = 50, .speed = 0.27, .name = "walk"},
@@ -141,7 +175,22 @@ const std::vector<TownAlly> &TownAllies() {
                 {.idx = 9, .lo = 357, .hi = 358, .speed = 0.20, .name = "land(rev)", .src = kUngagaDungeon, .win = {295, 296},
                  .reverse = true},
                 {.idx = 10, .lo = 115, .hi = 131, .speed = 0.20, .name = "door3"},
-            },
+            }, 11),
+            // Toan's rig under other numbers: every joint jumps as his does.
+            .retarget = BoardingJump(1.05, "null84",
+                                     {{"ctr", "null84"}, {"chn1", "chn1"}, {"jnt1_1", "jnt1_1"}, {"eff1", "eff1"}, {"chn22", "chn22"},
+                                      {"jnt22_1", "jnt22_1"}, {"jnt22_2", "jnt22_2"}, {"eff22", "eff22"}, {"chn23", "chn24"},
+                                      {"jnt23_1", "jnt24_1"}, {"eff23", "eff24"}, {"chn24", "chn26"}, {"jnt24_1", "jnt26_1"},
+                                      {"eff24", "eff26"}, {"chn5", "chn12"}, {"jnt5_1", "jnt12_1"}, {"jnt5_2", "jnt12_2"},
+                                      {"eff5", "eff12"}, {"chn6", "chn13"}, {"jnt6_1", "jnt13_1"}, {"eff6", "eff13"},
+                                      {"chn7", "chn14"}, {"jnt7_1", "jnt14_1"}, {"eff7", "eff14"}, {"chn2", "chn27"},
+                                      {"jnt2_1", "jnt27_1"}, {"eff2", "eff27"}, {"chn8", "chn16"}, {"jnt8_1", "jnt16_1"},
+                                      {"eff8", "eff16"}, {"chn9", "chn32"}, {"jnt9_1", "jnt32_1"}, {"jnt9_2", "jnt32_2"},
+                                      {"eff9", "eff32"}, {"chn10", "chn29"}, {"jnt10_1", "jnt29_1"}, {"eff10", "eff29"},
+                                      {"chn11", "chn3"}, {"jnt11_1", "jnt3_1"}, {"eff11", "eff3"}, {"chn12", "chn4"},
+                                      {"jnt12_1", "jnt4_1"}, {"eff12", "eff4"}, {"chn16", "chn38"}, {"jnt16_1", "jnt38_1"},
+                                      {"eff16", "eff38"}, {"chn17", "chn39"}, {"jnt17_1", "jnt39_1"}, {"jnt17_2", "jnt39_2"},
+                                      {"eff17", "eff39"}, {"chn18", "chn40"}, {"jnt18_1", "jnt40_1"}, {"eff18", "eff40"}}),
         },
         {
             .name = "Osmond",

@@ -59,8 +59,8 @@ a kept folder or a log anywhere in the repository that git does not ignore, so a
 `--stage FILE` (or `DC_STAGE`) reads `key = value` lines (`#` starts a comment). With a `dungeon` the run starts in
 it at once, as `--jump dungeon:<n>` does, with the game of the `--save` folder's save `slot`: no title, town or
 menus. With a `town` it starts in that town with the save's game, as the title's Continue goes on there, with debug
-mode off. Every key is optional; `roster` to `keep_alive` act only in a dungeon, and `fishing_spot` and `bait` need a
-`town`.
+mode off. Every key is optional; `roster` to `keep_alive` act only in a dungeon, and `fishing_spot`, `event_point` and `bait`
+need a `town`.
 
 | Key | Value |
 |---|---|
@@ -68,7 +68,7 @@ mode off. Every key is optional; `roster` to `keep_alive` act only in a dungeon,
 | `slot` | the save loaded, 1 for `saves/1` (default 1) |
 | `dungeon` | 0-6: start in this dungeon |
 | `floor` | the floor its entrance takes, by the floor menu's index (0 is floor 1) |
-| `character` | the member brought out once the floor is in play: `toan`, `xiao`, `goro`, `ruby`, `ungaga`, `osmond` or 0-5 |
+| `character` | the member brought out once the floor is in play, or in a town the one walking it: `toan`, `xiao`, `goro`, `ruby`, `ungaga`, `osmond` or 0-5 |
 | `weapon` | that member's weapon (item number, `ps2/include/itemdata.hpp`), at its maximum attack |
 | `attack` | that weapon's attack instead |
 | `sphere` | Xiao's Super Steve, carrying a SynthSphere of this weapon |
@@ -82,6 +82,7 @@ mode off. Every key is optional; `roster` to `keep_alive` act only in a dungeon,
 | `keep_alive` | `yes`: the party's life kept full |
 | `town` | start in this map: `norune`, `matataki`, `queens`, `muska_lacka`, `yellow_drops` (4, the georama; the pond's west bank is the dome, 23), `brownboo` (14), `east_harbor` (19), or its MapNo: 0-4 the towns (`gedit/e01`-`e05`), 11-52 the other maps (`s01`-`s42`) |
 | `fishing_spot` | stand at the town's fishing sign of this number (0 its first), ready to read it |
+| `event_point` | stand at the town's event point whose script is this label, ready to press cross (East Harbor's submarine: 11) |
 | `bait` | this bait (item number) given when the bag lacks it, and put on the hook as fishing starts |
 | `time` | the time of day the save starts at: `morning`, `day` (or `afternoon`), `evening` (or `dusk`), `night`, or the game's clock, 0 to 12 |
 | `give` | item and weapon numbers given as the town or dungeon starts, as `--give` takes them (which takes their place) |
@@ -89,7 +90,7 @@ mode off. Every key is optional; `roster` to `keep_alive` act only in a dungeon,
 A run is the same every time for the same stage, inputs and build. Time the input script from the stage's own
 events: a dry run (`darkcloud --headless --frames 700 --data D --save S --fast-load --stage F --event-log dry.jsonl`)
 logs `stage` events for when the member is out, has walked and the monsters and the circle are placed, or, in a
-town, for when it is in play, the player stands at the sign and the bait is on. The game's frame numbers count the
+town, for when it is in play, the player stands at the sign (`at_sign`) or event point (`at_point`) and the bait is on. The game's frame numbers count the
 main loop, as `--input`, `--record` and `--from` do.
 
 ## Fishing
@@ -175,7 +176,7 @@ false}` in the save copy's `config.json` lands every struck fish as the original
 |---|---|
 | `floor` | `dungeon`, `floor` as a floor's monsters load |
 | `character` | `chara`, the member out, as it changes |
-| `stage` | `step`: `out`, `walked`, `placed`, `circle`; in a town `town` (in play), `at_sign` and `bait` (`item`, on the hook) |
+| `stage` | `step`: `out`, `walked`, `placed`, `circle`; in a town `town` (in play), `at_sign`, `at_point` and `bait` (`item`, on the hook) |
 | `fishing` | `step`: `start` (fishing, with its `bait`, -1 for none), `ready` (the rod ready to cast again), `cast`, `float` (in the water), `reeled` (in again), each with the `bait`; `bite` (a nibble), `let_go`, `hooked`, `escaped` (unstruck), `missed` (struck in a nibble), `fight` (struck when hooked), `got_away` (lost in a fight) and `landed`, each with the `fish` (0-5) and its `kind`, `bite` and `hooked` also with its `affinity` for the bait (0-1, as its roll saw it: the game's `food_affinity`, as the weapons change it); `caught` (`kind`, `size` in cm, `points`, the `total` FP); `bait` (`bait`, put on), `bait_lost` (`bait`); `quit` |
 | `fishing_fight` | `step`: `start` (the fish's `kind`, `size` in cm as `caught` gives it, `strength` 0-2, `out`, its distance from the angler, the `line`'s length from the rod tip to the hook, the `reach` (twice it) the line holds it to across the ground, and its distance `from_rod` (the rod tip) and `across` the ground from it, the `way` it runs first, in degrees from the way out from the angler to it (inside ±60), and that `run`'s frames), `switch` (`way`, `run`, and the frames of the run just ended that `pulled`), `landed` (the bar full) and `got_away` (the bar empty), each with the fight's `frames` so far and its `bar` (0-1), and all but `start` with the way to pull, `target`, and the stick's last way, `stick`, in screen degrees (0 up, 90 right, 180 down, -90 left), and how far the stick is pushed, `push` (as the game reads it) |
 | `damage` | `monster`, `kind`, `amount`, `life` left, for a weapon's hit, and the hit's `owner` (the member) and `attack` (which of theirs) |
