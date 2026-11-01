@@ -755,6 +755,9 @@ void CDungeonMap::DrawMiniMap(float *pos, float angle) {
             box_dst.width = 8;
             box_dst.height = 8;
             set2DSprite(Vif1Packet, symbol_texture, box_dst, box_src, blue);
+#ifdef CHRONICLE_EXPANDED
+            expanded::TreasureSenseMark(*this, i, box_dst.x, box_dst.y);
+#endif
         }
     }
 

@@ -638,6 +638,19 @@ s16 GetItemMoney(int item_no, int sell) {
 #endif
 }
 
+#ifdef CHRONICLE_EXPANDED
+/**
+ * Returns the SynthSphere's weapon of the attachment under the cursor on the player's attachment page, or 0.
+ */
+int CursorSphereWeapon() {
+    if (ShopMenu.board.page != BOARD_PAGE_ATTACH) {
+        return 0;
+    }
+
+    return reinterpret_cast<ATTACH_LIST *>(ShopUserStatusPt->consumable_items)[ShopMenu.board.cursor].sphere_weapon_no;
+}
+#endif
+
 } // namespace
 
 int ShopNoInput(int *tex_block, int shop_no, int mode) {
@@ -2525,7 +2538,12 @@ int WeaponCalMoney(WEAPON_HAVE *weapon, int sell) {
         ATTACH_LIST *attach = &weapon->attach[i];
 
         if (attach != nullptr && attach->item_no >= ITEM_ATTACH_START) {
+#ifdef CHRONICLE_EXPANDED
+            int money = CalItemMoney(attach->item_no, sell);
+            total += sell != 0 ? expanded::SphereSellPrice(attach->item_no, attach->sphere_weapon_no, money) : money;
+#else
             total += CalItemMoney(attach->item_no, sell);
+#endif
         }
     }
 
@@ -2581,6 +2599,9 @@ int SellMoneyCheck2() {
 
             if (item_no >= ITEM_ATTACH_START) {
                 int money = CalItemMoney(item_no, 1);
+#ifdef CHRONICLE_EXPANDED
+                money = expanded::SphereSellPrice(item_no, ShopListPt[i].data.attach.sphere_weapon_no, money);
+#endif
 
                 if (item_no >= ITEM_WEAPON_START) {
                     money += WeaponCalMoney(&ShopListPt[i].data.weapon, 1);
@@ -4202,6 +4223,9 @@ int ItemShopKey2() {
                     int          money;
                     s32         *info;
                     WEAPON_HAVE *weapon;
+#ifdef CHRONICLE_EXPANDED
+                    int sphere_weapon = 0;
+#endif
 
                     switch (ShopMenu.board.page) {
                         case BOARD_PAGE_ITEM: {
@@ -4215,6 +4239,9 @@ int ItemShopKey2() {
                         case BOARD_PAGE_ATTACH: {
                             ATTACH_LIST *list = &(reinterpret_cast<ATTACH_LIST *>(ShopUserStatusPt->consumable_items))[cursor];
                             item_no = list->item_no;
+#ifdef CHRONICLE_EXPANDED
+                            sphere_weapon = list->sphere_weapon_no;
+#endif
                             memset(list, 0, sizeof(ATTACH_LIST));
                             info = AttachBoardInfo;
                             break;
@@ -4230,6 +4257,9 @@ int ItemShopKey2() {
                     }
 
                     money = CalItemMoney(item_no, 1);
+#ifdef CHRONICLE_EXPANDED
+                    money = expanded::SphereSellPrice(item_no, sphere_weapon, money);
+#endif
 
                     if (item_no >= ITEM_WEAPON_START) {
                         money += WeaponCalMoney(weapon, 1);
@@ -4581,6 +4611,9 @@ int ItemShopKey2() {
                                 int money;
                                 int wallet = ShopUserStatusPt->money;
                                 money = CalItemMoney(target, 1);
+#ifdef CHRONICLE_EXPANDED
+                                money = expanded::SphereSellPrice(target, CursorSphereWeapon(), money);
+#endif
 
                                 if (target >= ITEM_WEAPON_START) {
                                     money += WeaponCalMoney(&ShopWeaponRow(ShopUserStatusPt, ShopMenu.board.cursor / 10)[ShopMenu.board.cursor % 10], 1);
@@ -5012,6 +5045,11 @@ void ItemShopDraw2() {
                     }
 
                     int money = CalItemMoney(item_no, selling);
+#ifdef CHRONICLE_EXPANDED
+                    if (selling != 0) {
+                        money = expanded::SphereSellPrice(item_no, ShopListPt[cursor].data.attach.sphere_weapon_no, money);
+                    }
+#endif
 
                     if (item_no >= ITEM_WEAPON_START) {
                         money += WeaponCalMoney(&ShopListPt[cursor].data.weapon, selling);
@@ -5056,6 +5094,9 @@ void ItemShopDraw2() {
 
                     int ticket_y = static_cast<int>(6.0f + ShopMenu.board.y);
                     int money = CalItemMoney(item_no, 1);
+#ifdef CHRONICLE_EXPANDED
+                    money = expanded::SphereSellPrice(item_no, CursorSphereWeapon(), money);
+#endif
 
                     if (item_no >= ITEM_WEAPON_START) {
                         int          chara_no = ShopMenu.board.cursor / 10;
