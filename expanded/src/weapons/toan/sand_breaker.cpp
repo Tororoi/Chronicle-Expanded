@@ -113,7 +113,7 @@ void SandCounterBlocked(bool blocked, const COLLISION_HIT &hit) {
         return;
     }
 
-    // The opening swing, skipping its wind-up as Quick Draw plays it.
+    // The opening swing, as Quick Draw plays it.
     sceVu0FVECTOR rotation;
     CharaMain.GetRotation(rotation);
     BtActStatus.action_on = 1;

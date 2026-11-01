@@ -38,11 +38,8 @@ bool QuickDrawSphere() {
 
 void QuickDrawSwing(CCharacter &chara) {
     float &time = chara.motion_type.state.time;
-    if (BtActStatus.action_no != kToanFirstSwing || time >= kToanFirstSwingTrail) {
-        return;
-    }
-    // The Sand Breaker's counter (sand_breaker.hpp) comes back at once, without even the step-in.
-    if ((time >= kSwingSteppedIn && QuickDrawSword()) || (time >= kToanCombo[0].start && SandCountering())) {
+    // The Sand Breaker's counter swing (sand_breaker.hpp) jumps so too.
+    if (BtActStatus.action_no == kToanFirstSwing && time >= kSwingSteppedIn && time < kToanFirstSwingTrail && (QuickDrawSword() || SandCountering())) {
         time = kToanFirstSwingTrail;
     }
 }
