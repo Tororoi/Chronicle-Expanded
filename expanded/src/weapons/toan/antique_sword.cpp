@@ -14,8 +14,8 @@ namespace expanded {
 namespace {
 
 // A real chest's mark: its circle's rim and centre.
-constexpr spRGBA kRim = {0xF0, 0xC8, 0x30, 0x80};
-constexpr spRGBA kCentre = {0xFF, 0xF4, 0xA8, 0x80};
+constexpr spRGBA kRim = {0xC8, 0xA4, 0x40, 0x80};
+constexpr spRGBA kCentre = {0xE0, 0xD2, 0x96, 0x80};
 
 void Fill(int x, int y, int width, int height, spRGBA colour) {
     set2DSpriteC4(Vif1Packet, CRect_i_(x, y, width, height), &colour, &colour, &colour, &colour);
