@@ -155,6 +155,12 @@ TEST(FishingFightRules, AStrongerFishRunsShorterAndFasterAndTheBarIsTheSame) {
     EXPECT_EQ(expanded::FightRunFrames(1.5f, 0.0f), 51);
     EXPECT_EQ(expanded::FightRunFrames(2.0f, 0.0f), 42);
     EXPECT_EQ(expanded::FightRunFrames(2.0f, 1.0f), 84);
+    // Tiring: ten seconds in, a 450 cm fish's runs are partway longer; twenty seconds in, 1 to 2 seconds; no longer after.
+    EXPECT_EQ(expanded::FightRunFrames(2.0f, 0.0f, 600), 51);
+    EXPECT_EQ(expanded::FightRunFrames(2.0f, 0.0f, 1200), 60);
+    EXPECT_EQ(expanded::FightRunFrames(2.0f, 1.0f, 1200), 120);
+    EXPECT_EQ(expanded::FightRunFrames(2.0f, 1.0f, 100000), 120);
+    EXPECT_EQ(expanded::FightRunFrames(0.0f, 0.0f, expanded::kTiredLimit), 257);
     EXPECT_FLOAT_EQ(expanded::FightRunSpeed(0.0f), 0.35f * expanded::kFightPace);
     EXPECT_FLOAT_EQ(expanded::FightRunSpeed(2.0f), 0.525f * expanded::kFightPace);
 }
@@ -322,7 +328,7 @@ TEST(FishingFightRules, OnlyAPushWithinTheToleranceOfTheWayPulls) {
 TEST(FishingFightRules, ANearMissHolds) {
     // Between the pull's tolerance and the hold's, pushed far enough: it holds and does not pull.
     const float slant = 3.0f * PI / 4.0f;
-    const float between = (expanded::FightPullTolerance(expanded::kSmallFish) + expanded::kHoldTolerance) / 2.0f;
+    const float between = expanded::kPullTolerance + expanded::kHoldPadding / 2.0f;
     for (float off : {between, -between}) {
         const auto stick = StickToward(0.0f, slant + off, 1.0f);
         EXPECT_TRUE(expanded::FightHolds(stick[0], stick[1], 0.0f, PI, slant));
@@ -331,7 +337,7 @@ TEST(FishingFightRules, ANearMissHolds) {
     // A pull holds too; past the hold's tolerance, or let go, it does neither.
     const auto on = StickToward(0.0f, slant, 1.0f);
     EXPECT_TRUE(expanded::FightHolds(on[0], on[1], 0.0f, PI, slant));
-    const auto off = StickToward(0.0f, slant + expanded::kHoldTolerance + 0.01f, 1.0f);
+    const auto off = StickToward(0.0f, slant + expanded::kPullTolerance + expanded::kHoldPadding + 0.01f, 1.0f);
     EXPECT_FALSE(expanded::FightHolds(off[0], off[1], 0.0f, PI, slant));
     EXPECT_FALSE(expanded::FightHolds(0.0f, 0.0f, 0.0f, PI, slant));
 }
@@ -460,7 +466,7 @@ TEST_F(FishingFight, PullingLandsTheFish) {
     EXPECT_EQ(Step(0.0f, 0.0f), FightStep::kLanded);
 }
 
-TEST(FishingFightRules, TheGreenWidensForSmallerFish) {
+TEST(FishingFightRules, TheGreenWidensForSmallerFishAndTheYellowWithIt) {
     constexpr float kDegree = PI / 180.0f;
     // 10 degrees either side at 450 cm and over, half a degree more for each 30 cm under it.
     EXPECT_NEAR(expanded::FightPullTolerance(expanded::kAriseFish), 10.0f * kDegree, 1e-6f);
@@ -468,8 +474,10 @@ TEST(FishingFightRules, TheGreenWidensForSmallerFish) {
     EXPECT_NEAR(expanded::FightPullTolerance(expanded::kLargeFish), 12.5f * kDegree, 1e-6f);
     EXPECT_NEAR(expanded::FightPullTolerance(15.0f), 15.0f * kDegree, 1e-6f);
     EXPECT_NEAR(expanded::FightPullTolerance(expanded::kSmallFish), 17.0f * kDegree, 1e-6f);
-    // Always inside the yellow.
-    EXPECT_LT(expanded::FightPullTolerance(expanded::kSmallFish), expanded::kHoldTolerance);
+    // The yellow 10 degrees past the green either side, whatever the size.
+    for (float size : {expanded::kSmallFish, expanded::kLargeFish, expanded::kAriseFish}) {
+        EXPECT_NEAR(expanded::FightHoldTolerance(size) - expanded::FightPullTolerance(size), 10.0f * kDegree, 1e-6f) << size;
+    }
 }
 
 TEST_F(FishingFight, ASmallFishPullsWithinItsWiderGreen) {
@@ -503,7 +511,7 @@ TEST_F(FishingFight, ANearMissKeepsThePerfectCatch) {
     // A near miss now and then keeps it.
     Strike();
     FightStep   end = FightStep::kFighting;
-    const float off = (expanded::FightPullTolerance(expanded::kSmallFish) + expanded::kHoldTolerance) / 2.0f;
+    const float off = (expanded::FightPullTolerance(expanded::kSmallFish) + expanded::FightHoldTolerance(expanded::kSmallFish)) / 2.0f;
     for (int i = 0; i < 2000 && end == FightStep::kFighting; i++) {
         const auto stick = StickToward(CameraYaw(), expanded::FishingFightTarget() + (i % 3 == 0 ? off : 0.0f), 1.0f);
         end = Step(stick[0], stick[1]);
@@ -603,7 +611,7 @@ TEST_F(FishingFight, ANearMissHoldsTheBarStill) {
     }
     // Halfway between the two tolerances off the way to pull (which moves no more than kTargetTurn a frame), either
     // side, the bar neither fills nor drains.
-    const float off = (expanded::FightPullTolerance(expanded::kSmallFish) + expanded::kHoldTolerance) / 2.0f;
+    const float off = (expanded::FightPullTolerance(expanded::kSmallFish) + expanded::FightHoldTolerance(expanded::kSmallFish)) / 2.0f;
     for (int i = 0; i < 30; i++) {
         const float bar = expanded::FishingFightBar();
         const auto  stick = StickToward(CameraYaw(), expanded::FishingFightTarget() + (i % 2 == 0 ? off : -off), 1.0f);
@@ -666,7 +674,7 @@ TEST_F(FishingFight, TheOpeningHoldsAMissAndTheStickAtRestPulls) {
         Miss();
     }
     // Past it (and the switch's grace, counted from the switch's own frame), a near miss holds the bar and a miss drains it.
-    const float off = (expanded::FightPullTolerance(expanded::kSmallFish) + expanded::kHoldTolerance) / 2.0f;
+    const float off = (expanded::FightPullTolerance(expanded::kSmallFish) + expanded::FightHoldTolerance(expanded::kSmallFish)) / 2.0f;
     const auto  near = StickToward(CameraYaw(), expanded::FishingFightTarget() + off, 1.0f);
     EXPECT_EQ(Step(near[0], near[1]), FightStep::kFighting);
     EXPECT_NEAR(expanded::FishingFightBar(), expanded::FightFill(), 1e-6f);

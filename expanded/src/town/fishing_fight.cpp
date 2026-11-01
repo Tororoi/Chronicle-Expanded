@@ -3,6 +3,7 @@
 #include <libvu0.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <format>
 #include <string>
@@ -22,6 +23,7 @@
 #include "expanded/core/random.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/town/fishing.hpp"
+#include "expanded/town/fishing_sight.hpp"
 #include "expanded/weapons/ruby/fairys_ring.hpp"
 #include "fish.hpp"
 #include "fishing.hpp"
@@ -68,6 +70,20 @@ constexpr float kGaugeRim = 0.3f, kMarkWidth = 0.04f;
 // way, so a frame or two off the mark never flickers it.
 constexpr int kMarkFade = 6;
 
+// The sight at the float, the water's surface through its middle, drawn over everything: two thin white rings
+// kSightRingDistance out the way to pull, kRingTube thick, the inner as wide as the pull's tolerance there and the outer
+// the hold's (so the pointer's tip inside the inner pulls and inside the outer holds), the space between them the
+// tension bar (from the left at the water's surface, up and round; kRingStagger below); the pointer from the float the stick's way, drawn
+// out kPointerStretch long and kPointerWidth wide, its tip kPointerReach past the rings.
+constexpr float kSightRingDistance = 5.0f, kRingTube = 0.075f, kPointerStretch = 1.875f, kPointerWidth = 0.25f, kPointerReach = 0.625f;
+
+// The outer ring stands kRingStagger nearer the float (toward the fish) than the inner, each as wide as its tolerance at
+// its own distance, so the bar between them is a cone that shows when the fish runs to the side.
+constexpr float kRingStagger = 0.625f;
+
+// The rings' and the bar's pieces: around a ring, round its tube.
+constexpr int kRingSteps = 48, kTubeSteps = 8;
+
 struct Fight {
     CFish        *fish = nullptr; // null: no fight going on
     sceVu0FVECTOR anchor = {};    // where it was hooked
@@ -89,9 +105,10 @@ struct Fight {
     bool          pulls = false;
     bool          holds = false; // pulls, or near enough that the bar stands still
     bool          won = false;
-    bool          turning = false; // struck, still turning straight out: the fight not yet started
-    bool          perfect = true;  // the stick not yet out of the block
-    float         tolerance = kPullTolerance; // the pull's, for the fish's size
+    bool          turning = false;                                // struck, still turning straight out: the fight not yet started
+    bool          perfect = true;                                 // the stick not yet out of the block
+    float         tolerance = kPullTolerance;                     // the pull's, for the fish's size
+    float         hold_tolerance = kPullTolerance + kHoldPadding; // the hold's
 };
 
 Fight fight;
@@ -158,7 +175,7 @@ bool Opening() {
 // A run starts the way given, for frames (0: as long as the fish's strength has its runs).
 void StartRun(float way, int frames = 0) {
     fight.way = way;
-    fight.run = frames > 0 ? frames : FightRunFrames(fight.strength, GameFraction());
+    fight.run = frames > 0 ? frames : FightRunFrames(fight.strength, GameFraction(), fight.frames);
 }
 
 // The fish lets go of the hook and swims off from it, then swims as any fish; its close-up model is not wanted.
@@ -207,6 +224,9 @@ void Band(std::vector<gfx::Vertex2D> &quads, float a, float b, float inner, floa
     }
 }
 
+// The sight (below).
+void DrawFightSight();
+
 } // namespace
 
 bool FishingFightsOn() {
@@ -228,10 +248,11 @@ float FightDrain() {
     return 1.0f / static_cast<float>(kDrainFrames);
 }
 
-int FightRunFrames(float strength, float roll) {
+int FightRunFrames(float strength, float roll, int fought) {
     const float frames = static_cast<float>(kShortestRun) + std::clamp(roll, 0.0f, 1.0f) * static_cast<float>(kLongestRun - kShortestRun);
     const float scale = strength <= 1.0f ? 1.0f - 2.0f * strength / 3.0f : 1.0f / 3.0f - (strength - 1.0f) / 10.0f;
-    return std::max(1, static_cast<int>(std::lround(frames * scale)));
+    const float tired = 1.0f + static_cast<float>(std::clamp(fought, 0, kTiredLimit)) / static_cast<float>(kTiredFrames);
+    return std::max(1, static_cast<int>(std::lround(frames * scale * tired)));
 }
 
 float FightRunSpeed(float strength) {
@@ -317,6 +338,10 @@ float FightPullTolerance(float size) {
     return kPullTolerance + std::max(0.0f, kAriseFish - size) / 3.0f * kPullWidening;
 }
 
+float FightHoldTolerance(float size) {
+    return FightPullTolerance(size) + kHoldPadding;
+}
+
 int PerfectCatchPoints(int size_cm) {
     g_perfect_points = fight.won && fight.perfect ? (size_cm + kPerfectCatchShare - 1) / kPerfectCatchShare : 0;
     if (g_perfect_points > 0) {
@@ -355,6 +380,7 @@ void FishingFightStarted(CFish &fish) {
     Look();
     fight.strength = FightStrength(fish.size);
     fight.tolerance = FightPullTolerance(fish.size);
+    fight.hold_tolerance = FightHoldTolerance(fish.size);
     fight.bar = kStartBar;
     StartRun(0.0f, kOpenFrames);
     if (Chara != nullptr) {
@@ -384,7 +410,7 @@ float OutYaw(CFish &fish) {
 // The fight starts: the fish has turned straight out.
 void Begin() {
     fight.turning = false;
-    CFish &fish = *fight.fish;
+    CFish        &fish = *fight.fish;
     sceVu0FVECTOR here;
     fish.GetPosition(here);
     const float out = std::hypot(here[0] - fight.angler[0], here[2] - fight.angler[1]);
@@ -445,7 +471,7 @@ FightStep FishingFightStep(CCharacter &angler, float *facing, float stick_x, flo
     fight.push = std::hypot(stick_x, stick_y);
     fight.stick = FightStickWay(fight.camera, fight.middle, stick_x, stick_y);
     fight.pulls = DebugMode != 0 || FightPulls(stick_x, stick_y, fight.camera, fight.middle, fight.target, fight.tolerance);
-    fight.holds = fight.pulls || FightHolds(stick_x, stick_y, fight.camera, fight.middle, fight.target);
+    fight.holds = fight.pulls || FightHolds(stick_x, stick_y, fight.camera, fight.middle, fight.target, fight.hold_tolerance);
     fight.pulled += fight.pulls ? 1 : 0;
     const float fade = 1.0f / static_cast<float>(kMarkFade);
     fight.red = std::clamp(fight.red + (fight.holds ? -fade : fade), 0.0f, 1.0f);
@@ -542,6 +568,11 @@ void DrawFishingFight() {
     if (fight.fish == nullptr || GameMode != ED_MODE_FISHING || chara_fishing != ED_FISHING_BATTLE) {
         return;
     }
+    // With the sight, the bar is in it and there is no gauge.
+    if (LoadedFishingSight() != nullptr) {
+        DrawFightSight();
+        return;
+    }
     // Thin at the top: a dark frame, a grey track and the bar in the dungeon's ABS blue.
     const int track = kBarWidth - 2 * kInset;
     const int filled = static_cast<int>(fight.bar * static_cast<float>(track));
@@ -582,7 +613,7 @@ void DrawFishingFight() {
             Band(quads, a, b, inner, outer, rgba);
         }
     };
-    const float pull = fight.tolerance, hold = kHoldTolerance;
+    const float pull = fight.tolerance, hold = fight.hold_tolerance;
     part(block - hold, block - pull, kHold);
     part(block - pull, block + pull, kBlock);
     part(block + pull, block + hold, kHold);
@@ -604,5 +635,174 @@ float FishingFightRunWay() {
 float FishingFightTarget() {
     return fight.fish != nullptr ? fight.target : 0.0f;
 }
+
+namespace {
+
+using World = std::array<float, 3>;
+
+// A triangle of the sight in the world and its colour.
+struct SightTriangle {
+    std::array<World, 3>  corners;
+    std::array<u_char, 4> rgba;
+};
+
+World Plus(const World &a, const World &b, float scale) {
+    return {a[0] + b[0] * scale, a[1] + b[1] * scale, a[2] + b[2] * scale};
+}
+
+// A quad as two triangles.
+void SightQuad(std::vector<SightTriangle> &into, const World &a, const World &b, const World &c, const World &d,
+               const std::array<u_char, 4> &rgba) {
+    into.push_back({
+        {a, b, c},
+        rgba
+    });
+    into.push_back({
+        {a, c, d},
+        rgba
+    });
+}
+
+// The pointer's triangles: along yaw from origin, its along scaled by kPointerStretch and shifted by start.
+void SightPointer(std::vector<SightTriangle> &into, const std::vector<SightPoint> &part, const float *origin, float yaw, float start,
+                  const std::array<u_char, 4> &rgba) {
+    const World ahead = {std::sin(yaw), 0.0f, std::cos(yaw)}, side = {std::cos(yaw), 0.0f, -std::sin(yaw)};
+    const World from = {origin[0], origin[1], origin[2]};
+    for (std::size_t i = 0; i + 2 < part.size(); i += 3) {
+        SightTriangle t{.rgba = rgba};
+        for (std::size_t c = 0; c < 3; c++) {
+            const SightPoint &p = part[i + c];
+            t.corners[c] = Plus(Plus(Plus(from, ahead, start + p[0] * kPointerStretch), {0.0f, 1.0f, 0.0f}, p[1] * kPointerWidth), side,
+                                p[2] * kPointerWidth);
+        }
+        into.push_back(t);
+    }
+}
+
+// A thin white ring radius round centre, square to facing, lit from above and in front of it.
+void SightRing(std::vector<SightTriangle> &into, const World &centre, const World &facing, const World &left, float radius) {
+    constexpr World up = {0.0f, 1.0f, 0.0f};
+    auto            corner = [&](int around, int round, World &normal) {
+        const float a = 2.0f * PI * static_cast<float>(around) / kRingSteps, b = 2.0f * PI * static_cast<float>(round) / kTubeSteps;
+        const World out = Plus(Plus({0.0f, 0.0f, 0.0f}, left, std::cos(a)), up, std::sin(a));
+        normal = Plus(Plus({0.0f, 0.0f, 0.0f}, out, std::cos(b)), facing, std::sin(b));
+        return Plus(Plus(centre, out, radius + kRingTube * std::cos(b)), facing, kRingTube * std::sin(b));
+    };
+    auto shade = [&](const World &normal) {
+        const float light = std::max(0.0f, 0.6f * normal[1] + 0.8f * (normal[0] * facing[0] + normal[2] * facing[2]));
+        const auto  level = static_cast<u_char>(std::lround(0xA0 + 0x50 * light));
+        return std::array<u_char, 4>{level, level, level, 0xFF};
+    };
+    for (int i = 0; i < kRingSteps; i++) {
+        for (int j = 0; j < kTubeSteps; j++) {
+            // Each quad shaded by its corners' normals between them.
+            World       na, nb, nc, nd;
+            const World a = corner(i, j, na), b = corner(i + 1, j, nb), c = corner(i + 1, j + 1, nc), d = corner(i, j + 1, nd);
+            const World normal = {(na[0] + nb[0] + nc[0] + nd[0]) / 4.0f, (na[1] + nb[1] + nc[1] + nd[1]) / 4.0f,
+                                  (na[2] + nb[2] + nc[2] + nd[2]) / 4.0f};
+            SightQuad(into, a, b, c, d, shade(normal));
+        }
+    }
+}
+
+// The band between the rings, from the inner (round inner_centre) to the outer (round outer_centre), both square to the
+// way to pull: the bar's share of it from the left at the water's surface, up and round, in the bar's blue; the rest
+// its track.
+void SightBar(std::vector<SightTriangle> &into, const World &inner_centre, const World &outer_centre, const World &left, float inner,
+              float outer, float bar) {
+    constexpr World                 up = {0.0f, 1.0f, 0.0f};
+    constexpr std::array<u_char, 4> kFill = {0x00, 0xA2, 0xFF, 0xFF};
+    constexpr std::array<u_char, 4> kTrack = {0x20, 0x20, 0x20, 0x90};
+    auto                            at = [&](const World &centre, float angle, float radius) {
+        return Plus(Plus(centre, left, radius * std::cos(angle)), up, radius * std::sin(angle));
+    };
+    // The angle runs from the left (0) through up (a quarter turn).
+    for (int i = 0; i < kRingSteps; i++) {
+        const float from = 2.0f * PI * static_cast<float>(i) / kRingSteps, to = 2.0f * PI * static_cast<float>(i + 1) / kRingSteps;
+        const float split = std::clamp(bar * 2.0f * PI, from, to);
+        if (split > from) {
+            SightQuad(into, at(inner_centre, from, inner), at(outer_centre, from, outer), at(outer_centre, split, outer),
+                      at(inner_centre, split, inner), kFill);
+        }
+        if (split < to) {
+            SightQuad(into, at(inner_centre, split, inner), at(outer_centre, split, outer), at(outer_centre, to, outer),
+                      at(inner_centre, to, inner), kTrack);
+        }
+    }
+}
+
+// Triangles drawn farthest from the camera first, so the pointer passes through the rings.
+void DrawSightTriangles(std::vector<SightTriangle> &triangles) {
+    auto depth = [](const SightTriangle &t) {
+        float sum = 0.0f;
+        for (const auto &c : t.corners) {
+            sceVu0FVECTOR point;
+            sceVu0FVECTOR at = {c[0], c[1], c[2], 1.0f};
+            sceVu0ApplyMatrix(point, mgRenderInfo.view_scaled, at);
+            sum += point[2];
+        }
+        return sum;
+    };
+    std::ranges::sort(triangles, std::greater<>{}, depth);
+    std::vector<gfx::Vertex2D> tris;
+    for (const SightTriangle &t : triangles) {
+        gfx::Vertex2D corners[3];
+        bool          shown = true;
+        for (std::size_t c = 0; c < 3; c++) {
+            sceVu0FVECTOR at = {t.corners[c][0], t.corners[c][1], t.corners[c][2], 1.0f};
+            int           screen[4] = {};
+            shown = shown && MGRotTransPers2D(screen, at, 0) != 0;
+            corners[c] = draw2d::Vertex(static_cast<float>(screen[0]), static_cast<float>(screen[1]), 0.0f, 0.0f, 0.0f, t.rgba[0], t.rgba[1],
+                                        t.rgba[2], t.rgba[3]);
+        }
+        if (shown) {
+            tris.insert(tris.end(), corners, corners + 3);
+        }
+    }
+    draw2d::DrawUntextured(gfx::Primitive::Triangles, tris, draw2d::SpriteState());
+    draw2d::RestoreTestZbuf();
+}
+
+// The sight, drawn after the water (clear of its ripple).
+void DrawFightSight() {
+    const FishingSight *sight = LoadedFishingSight();
+    if (sight == nullptr) {
+        return;
+    }
+    constexpr std::array<u_char, 4> kWhite = {0xF0, 0xF0, 0xF0, 0xE0};
+    constexpr std::array<u_char, 4> kRed = {0xFF, 0x20, 0x20, 0xE0};
+    std::array<u_char, 4>           pointer{};
+    for (std::size_t i = 0; i < 4; i++) {
+        pointer[i] = static_cast<u_char>(std::lround(kWhite[i] + (kRed[i] - kWhite[i]) * fight.red));
+    }
+    const float pull = fight.middle + std::remainder(FightConeYaw(fight.middle, fight.target) - fight.middle, 2.0f * PI);
+    const World facing = {std::sin(pull), 0.0f, std::cos(pull)};
+    const float origin[3] = {fight.gauge[0], FishingGetWaterLevel(), fight.gauge[2]};
+    const World centre = Plus({origin[0], origin[1], origin[2]}, facing, kSightRingDistance);
+    // The rings' left as the screen shows them: whichever side of them is further left.
+    World left = {std::cos(pull), 0.0f, -std::sin(pull)};
+    {
+        sceVu0FVECTOR one = {centre[0] + left[0], centre[1], centre[2] + left[2], 1.0f};
+        sceVu0FVECTOR two = {centre[0] - left[0], centre[1], centre[2] - left[2], 1.0f};
+        int           a[4] = {}, b[4] = {};
+        MGRotTransPers2D(a, one, 0);
+        MGRotTransPers2D(b, two, 0);
+        if (b[0] < a[0]) {
+            left = {-left[0], 0.0f, -left[2]};
+        }
+    }
+    const World                outer_centre = Plus(centre, facing, -kRingStagger);
+    const float                inner = kSightRingDistance * std::tan(fight.tolerance);
+    const float                outer = (kSightRingDistance - kRingStagger) * std::tan(fight.hold_tolerance);
+    std::vector<SightTriangle> triangles;
+    SightRing(triangles, centre, facing, left, inner);
+    SightRing(triangles, outer_centre, facing, left, outer);
+    SightBar(triangles, centre, outer_centre, left, inner + kRingTube, outer - kRingTube, fight.bar);
+    const float reach = kSightRingDistance + kPointerReach;
+    SightPointer(triangles, sight->pointer, origin, fight.stick, reach - kSightPointerLength * kPointerStretch, pointer);
+    DrawSightTriangles(triangles);
+}
+
+} // namespace
 
 } // namespace expanded

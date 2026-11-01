@@ -13,15 +13,14 @@ class CFish;
 namespace expanded {
 
 // Fishing fights: a struck fish runs a random way away from the angler, thrashing as it goes as the game's fight has
-// it, and now and then switches to a new way on the other side, and the left stick pulls
-// against it: pointed, as the screen shows the water (up
-// into it, down toward the camera), against the way the fish swims. A pull fills the tension bar at the top of the
-// screen, a near miss holds it, anything else drains it; a full bar lands the fish the game's way, an empty
-// one lets it get away ("Bait ran out.": the bait went as it was struck). A gauge lies on the water at the float: the arc of the
-// ways a pull can go, the way to pull a block on it and the stick's way marked on it. A bigger fish switches sooner,
-// switches sooner and swims faster, by its length whatever its kind. Off (the Fishing Fights option, config.json's
-// expanded.fishing_fights, on by default), a struck fish is landed as in the original game; debug mode always pulls, as
-// it always strikes.
+// it, and now and then switches to a new way on the other side, and the left stick pulls against it: pointed, as the
+// screen shows the water (up into it, down toward the camera), against the way the fish swims. A pull fills the tension
+// bar, a near miss holds it, anything else drains it; a full bar lands the fish the game's way, an empty one lets it get
+// away ("Bait ran out.": the bait went as it was struck). The sight stands at the float (fishing_sight.hpp): two rings
+// the way to pull, the bar filling the space between them, and a pointer the stick's way. A bigger fish switches sooner
+// and swims faster, by its length whatever its kind, and every fish's runs lengthen as it tires. Off (the Fishing
+// Fights option, config.json's expanded.fishing_fights, on by default), a struck fish is landed as in the original
+// game; debug mode always pulls, as it always strikes.
 inline constexpr const char *kFishingFights = "fishing_fights";
 
 bool FishingFightsOn();
@@ -86,9 +85,10 @@ bool FightLineHold(float *position, const float *rod, float reach);
 inline constexpr float kTargetEase = 0.2f, kTargetTurn = 0.10471976f;
 
 // A stick pulls when it points, as the screen shows the water, within its fish's pull tolerance (FightPullTolerance:
-// the block's green middle) of the way to pull; within kHoldTolerance (20 degrees: the block's yellow ends) it holds, the bar standing
-// still. Pushed no further than kPullBack (as read), it is at rest and points at the gauge's middle.
-inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.17453293f, kHoldTolerance = 0.34906585f;
+// the block's green middle) of the way to pull; within kHoldPadding (10 degrees) more (FightHoldTolerance: the block's
+// yellow ends) it holds, the bar standing still. Pushed no further than kPullBack (as read), it is at rest and points at
+// the gauge's middle.
+inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.17453293f, kHoldPadding = 0.17453293f;
 
 // The fight reads the left stick with its dead zone measured from the centre: within kStickDead of it (as far out as
 // the game's own dead band) the stick reads nothing, and past it, it reads its own way, its push stretched over 0 to 1.
@@ -129,7 +129,7 @@ float FightStickWay(float camera_yaw, float middle, float x, float y);
 bool FightPulls(float x, float y, float camera_yaw, float middle, float target, float tolerance = kPullTolerance);
 
 // Whether it holds toward target: its way within tolerance (a pull holds too).
-bool FightHolds(float x, float y, float camera_yaw, float middle, float target, float tolerance = kHoldTolerance);
+bool FightHolds(float x, float y, float camera_yaw, float middle, float target, float tolerance = kPullTolerance + kHoldPadding);
 
 // A point of the gauge (x, y, z): radius out from centre across the water, along (radians) from its middle, which
 // points middle (a yaw); at centre's height.
@@ -148,13 +148,16 @@ float FightStrength(float size);
 // (450 cm) and over, kPullWidening (half a degree either side, a degree in all) wider for each 30 cm under it: 17
 // degrees at 30 cm.
 inline constexpr float kPullWidening = 0.0087266463f;
-float FightPullTolerance(float size);
+float                  FightPullTolerance(float size);
+
+// The hold's tolerance for a fish of size: its pull's and kHoldPadding.
+float FightHoldTolerance(float size);
 
 // A perfect catch: a fish landed with the stick never out of the block (outside the holds after each switch). Its
 // bonus fishing points are its length in centimetres over kPerfectCatchShare, rounded up (3: 10 for 30 cm, 47 for
 // 139 cm, 150 for 450 cm), on a line of the catch message of their own ("expanded.fishing_fight.perfect_catch", value
 // 4) above the total.
-inline constexpr int        kPerfectCatchShare = 3;
+inline constexpr int         kPerfectCatchShare = 3;
 inline constexpr const char *kPerfectCatchKey = "expanded.fishing_fight.perfect_catch";
 
 // Hook: the catch's evaluation (ED_FISHING_MES_EVALUATE), for a fish of size_cm: the bonus for a perfect catch of the
@@ -165,11 +168,17 @@ int PerfectCatchPoints(int size_cm);
 // fishing points' line, or std::nullopt with no perfect catch.
 std::optional<std::string> PerfectCatchText(std::string_view own);
 
+// A fish tires as the fight goes on: its runs grow by their fresh length every kTiredFrames of the fight (46 2/3
+// seconds), for the fight's first kTiredLimit frames (20 seconds) only: a 450 cm fish's 0.7 to 1.4 seconds are 1 to 2
+// from then on.
+inline constexpr int kTiredFrames = 2800, kTiredLimit = 1200;
+
 // The bar's fill a frame of pulling and drain a frame of missing; what a strength makes of a fight: a run's frames
-// (roll, 0 to 1, between the shortest and longest) and its speed (kRunSpeed at kFightPace).
+// (roll, 0 to 1, between the shortest and longest, fought frames into the fight) and its speed (kRunSpeed at
+// kFightPace).
 float FightFill();
 float FightDrain();
-int   FightRunFrames(float strength, float roll);
+int   FightRunFrames(float strength, float roll, int fought = 0);
 float FightRunSpeed(float strength);
 
 // What EdMoveChara's ED_FISHING_BATTLE does this frame: the game's own fight (none started), the fight going on, the
@@ -187,8 +196,9 @@ enum class FightStep {
 // dropped; CFish::Step on a fish in FISH_ACTION_BATTLE, which steers the fought fish on its run and returns the pace its
 // turn and speed steps take (kFightTurnPace and kFightPace for the fought fish, 1 for any other), and once it has moved
 // from start (after its collision against count polys), which draws the fought fish back to the line's reach, sliding
-// along a bank in the way, and failing that ends its step no farther from the rod than it started; and the town's 2D
-// drawing, the bar and the gauge while fighting.
+// along a bank in the way, and failing that ends its step no farther from the rod than it started; the town's 2D
+// drawing, while fighting, the sight (fishing_sight.hpp: its rings the way to pull with the bar between them, its pointer
+// the stick's; without it the bar at the top and the gauge).
 void      FishingFightStarted(dc::game::CFish &fish);
 FightStep FishingFightStep(dc::game::CCharacter &angler, float *facing);
 FightStep FishingFightStep(dc::game::CCharacter &angler, float *facing, float stick_x, float stick_y);
