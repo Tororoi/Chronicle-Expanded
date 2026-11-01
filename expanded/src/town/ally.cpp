@@ -40,6 +40,9 @@ int loaded_body;
 // Whether Toan stands in for the party member through an event that poses him.
 bool stand_in;
 
+// Whether the ally boards the submarine in its own body, playing its own jump.
+bool boarding;
+
 // Frames the town body has stood still while walking the town.
 int standing_frames;
 
@@ -122,6 +125,7 @@ int TownAllyLoaded() {
 
 void TownAllyReset() {
     stand_in = false;
+    boarding = false;
     current_ally = 0;
     pending_ally = -1;
     loaded_body = 0;
@@ -153,6 +157,7 @@ void TownAllyMenuCommit(int chara, int party_size) {
 }
 
 void TownAllyWalk() {
+    boarding = false;
     if (stand_in && pending_ally < 0) {
         pending_ally = current_ally;
     }
@@ -171,6 +176,23 @@ void TownAllyEventBody() {
     if (loaded_body > 0) {
         SwapBody(0);
         stand_in = true;
+    }
+}
+
+bool TownAllyKeepsBody(const char *cfg) {
+    boarding = loaded_body > 0 && has_model[loaded_body] && std::strcmp(cfg, kBoardingCfg) == 0;
+    return boarding;
+}
+
+void TownAllyEventMotion(int &motion, float &speed) {
+    int key = motion - kBoardingFirstMotion;
+    if (!boarding || key < 0 || key >= 3) {
+        return;
+    }
+    const BoardingMotion &own = kBoardingMotions[loaded_body][key];
+    motion = own.motion;
+    if (own.speed > 0.0f) {
+        speed = own.speed;
     }
 }
 

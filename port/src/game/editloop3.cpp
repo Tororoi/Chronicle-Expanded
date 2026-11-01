@@ -3877,6 +3877,9 @@ int _LOAD_CHARA(RS_STACKDATA *stack, int argument_count) {
         }
 
 #ifdef CHRONICLE_EXPANDED
+        if (expanded::TownAllyKeepsBody(name)) {
+            return 1;
+        }
         expanded::TownAllyEventBody();
 #endif
         CDataAlloc2<1> *first = get_buffer();
@@ -7224,6 +7227,11 @@ int asq_motion_play(int mode, RS_STACKDATA *stack, int argument_count) {
     }
 
     flags &= 4;
+#ifdef CHRONICLE_EXPANDED
+    if (sequence->character == EdEventInfo.main_character) {
+        expanded::TownAllyEventMotion(motion, speed);
+    }
+#endif
     sequence->MotionSeq(motion, mode, speed, flags);
     return 1;
 }

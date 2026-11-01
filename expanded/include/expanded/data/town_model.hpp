@@ -7,6 +7,7 @@
 #include <functional>
 #include <optional>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -68,6 +69,41 @@ struct TownShadowInject {
     std::string_view wgt;
 };
 
+// A motion of Toan's played by the ally: frames [src_lo, src_hi] of src's src_mot written into the ally's body and shadow
+// motions at dest_lo on. Each joint pair turns the ally's joint from its idle (its frame ref) the way Toan's turns in the
+// world from his frame src_ref; the other joints keep their idle under their parent. The hips move by Toan's hip travel
+// times hip_scale.
+struct TownRetarget {
+    // Toan's model and his motion.
+    std::string_view rig;
+    std::string_view rig_mds;
+    std::string_view src;
+    std::string_view src_mot;
+    int              src_lo = 0;
+    int              src_hi = 0;
+    int              src_ref = 0;
+    int              dest_lo = 0;
+    int              ref = 0;
+    double           hip_scale = 1.0;
+    std::string_view src_hip;
+    std::string_view hip;
+    // Toan's joint, then the ally's.
+    std::vector<std::pair<std::string_view, std::string_view>> joints;
+};
+
+// Joints borrowed from one of the ally's own clips across a retarget: their idle, eased into the loop [lo, hi] at speed over
+// Toan's frames ease, the loop on, then eased back to idle over rest. queue: the KEYs (lo, hi, speed) the game plays Toan's
+// frames through, which set how fast the loop runs.
+struct TownBorrowedJoints {
+    std::vector<std::string_view>             nodes;
+    int                                       lo = 0;
+    int                                       hi = 0;
+    double                                    speed = 0;
+    std::pair<int, int>                       ease{};
+    std::pair<int, int>                       rest{};
+    std::vector<std::tuple<int, int, double>> queue;
+};
+
 struct TownAlly {
     std::string_view name;
     // The built model's file under the data directory.
@@ -78,6 +114,9 @@ struct TownAlly {
     std::optional<TownMeshGraft>    mesh_graft;
     std::optional<TownShadowInject> shadow_inject;
     std::vector<TownSlot>           slots;
+    // Motions of Toan's written in after the slots, each with joints borrowed back from the ally's own clips.
+    std::optional<TownRetarget>       retarget;
+    std::optional<TownBorrowedJoints> borrowed;
 };
 
 // The allies built, in order.

@@ -18,7 +18,7 @@ struct Stage {
     int         slot = 1;           // slot: the --save folder's save loaded (1 = saves/1)
     int         dungeon = -1;       // dungeon: 0-6, started in at once with that save's game
     int         floor = -1;         // floor: the floor its entrance takes, by the floor menu's index
-    int         character = -1;     // character: the member out (toan, xiao, goro, ruby, ungaga, osmond or 0-5)
+    int         character = -1;     // character: the member out (toan, xiao, goro, ruby, ungaga, osmond or 0-5); in a town, the one walking it
     int         weapon = -1;        // weapon: that member's weapon (item number), at its maximum attack
     int         attack = -1;        // attack: that weapon's attack instead
     int         sphere = -1;        // sphere: Xiao's Super Steve, carrying a synthesis sphere of this weapon
@@ -34,6 +34,7 @@ struct Stage {
     int         circle = -1;        // circle: a magic circle of this kind (0-9) set out in front of the member
     int         town = -1;          // town: the map (MapNo) started in with that save's game, debug mode off
     int         fishing_spot = -1;  // fishing_spot: the town's fishing sign stood at (0 its first)
+    int         event_point = -1;   // event_point: the town's event point stood at, by its script's label
     int         bait = -1;          // bait: put on the hook as fishing starts (an item number, given if the bag lacks it)
     float       time = -1.0f;       // time: the game's clock (0-12) the save starts at
     std::string give;               // give: item and weapon numbers given, as --give takes them
@@ -52,8 +53,8 @@ const Stage *ActiveStage();
 // cannot be loaded). The floor the dungeon's entrance takes: the stage's the first time, else otherwise. The party's
 // status taken up as a dungeon visit begins: the stage's weapon put in the member's hand. The top of a dungeon frame:
 // the member brought out once the floor is in play. A step the monsters take: the member walked to a big room, the
-// monsters and the magic circle set out, the party kept alive. A town step of the player: the bait given, the player
-// stood at the fishing sign, the bait change asked for once fishing starts. The bait picker opening: true, with the
+// monsters and the magic circle set out, the party kept alive. A town step of the player: the bait given, the member
+// walking it committed, the player stood at the fishing sign or event point, the bait change asked for once fishing starts. The bait picker opening: true, with the
 // stage's bait taken from the bag and chosen, when the stage asked for it.
 bool StageLoadSave();
 int  StageEntranceFloor(int otherwise);
