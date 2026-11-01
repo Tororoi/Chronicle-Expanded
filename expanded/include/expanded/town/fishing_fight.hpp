@@ -1,5 +1,9 @@
 #pragma once
 
+#include <optional>
+#include <string>
+#include <string_view>
+
 namespace dc::game {
 class CCharacter;
 class CCPoly;
@@ -81,8 +85,8 @@ bool FightLineHold(float *position, const float *rod, float reach);
 // across the gauge rather than jumping it.
 inline constexpr float kTargetEase = 0.2f, kTargetTurn = 0.10471976f;
 
-// A stick pulls when it points, as the screen shows the water, within kPullTolerance (10 degrees: the block's green
-// middle) of the way to pull; within kHoldTolerance (20 degrees: the block's yellow ends) it holds, the bar standing
+// A stick pulls when it points, as the screen shows the water, within its fish's pull tolerance (FightPullTolerance:
+// the block's green middle) of the way to pull; within kHoldTolerance (20 degrees: the block's yellow ends) it holds, the bar standing
 // still. Pushed no further than kPullBack (as read), it is at rest and points at the gauge's middle.
 inline constexpr float kPullBack = 0.3f, kPullTolerance = 0.17453293f, kHoldTolerance = 0.34906585f;
 
@@ -139,6 +143,27 @@ void FightGaugePoint(const float *centre, float middle, float along, float radiu
 inline constexpr float kSmallFish = 3.0f, kLargeFish = 30.0f, kAriseFish = 45.0f, kSpeedPerStrength = 0.25f;
 
 float FightStrength(float size);
+
+// The pull's tolerance for a fish of size (as CFish::size): kPullTolerance (10 degrees either side) at kAriseFish
+// (450 cm) and over, kPullWidening (half a degree either side, a degree in all) wider for each 30 cm under it: 17
+// degrees at 30 cm.
+inline constexpr float kPullWidening = 0.0087266463f;
+float FightPullTolerance(float size);
+
+// A perfect catch: a fish landed with the stick never out of the block (outside the holds after each switch). Its
+// bonus fishing points are its length in centimetres over kPerfectCatchShare, rounded up (3: 10 for 30 cm, 47 for
+// 139 cm, 150 for 450 cm), on a line of the catch message of their own ("expanded.fishing_fight.perfect_catch", value
+// 4) above the total.
+inline constexpr int        kPerfectCatchShare = 3;
+inline constexpr const char *kPerfectCatchKey = "expanded.fishing_fight.perfect_catch";
+
+// Hook: the catch's evaluation (ED_FISHING_MES_EVALUATE), for a fish of size_cm: the bonus for a perfect catch of the
+// fight just landed, else 0. The catch message shows the last one asked for.
+int PerfectCatchPoints(int size_cm);
+
+// The catch message (own, as the bank has it, or as other features made it) with the perfect catch's line under the
+// fishing points' line, or std::nullopt with no perfect catch.
+std::optional<std::string> PerfectCatchText(std::string_view own);
 
 // The bar's fill a frame of pulling and drain a frame of missing; what a strength makes of a fight: a run's frames
 // (roll, 0 to 1, between the shortest and longest) and its speed (kRunSpeed at kFightPace).

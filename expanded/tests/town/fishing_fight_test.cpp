@@ -322,7 +322,7 @@ TEST(FishingFightRules, OnlyAPushWithinTheToleranceOfTheWayPulls) {
 TEST(FishingFightRules, ANearMissHolds) {
     // Between the pull's tolerance and the hold's, pushed far enough: it holds and does not pull.
     const float slant = 3.0f * PI / 4.0f;
-    const float between = (expanded::kPullTolerance + expanded::kHoldTolerance) / 2.0f;
+    const float between = (expanded::FightPullTolerance(expanded::kSmallFish) + expanded::kHoldTolerance) / 2.0f;
     for (float off : {between, -between}) {
         const auto stick = StickToward(0.0f, slant + off, 1.0f);
         EXPECT_TRUE(expanded::FightHolds(stick[0], stick[1], 0.0f, PI, slant));
@@ -460,6 +460,122 @@ TEST_F(FishingFight, PullingLandsTheFish) {
     EXPECT_EQ(Step(0.0f, 0.0f), FightStep::kLanded);
 }
 
+TEST(FishingFightRules, TheGreenWidensForSmallerFish) {
+    constexpr float kDegree = PI / 180.0f;
+    // 10 degrees either side at 450 cm and over, half a degree more for each 30 cm under it.
+    EXPECT_NEAR(expanded::FightPullTolerance(expanded::kAriseFish), 10.0f * kDegree, 1e-6f);
+    EXPECT_NEAR(expanded::FightPullTolerance(60.0f), 10.0f * kDegree, 1e-6f);
+    EXPECT_NEAR(expanded::FightPullTolerance(expanded::kLargeFish), 12.5f * kDegree, 1e-6f);
+    EXPECT_NEAR(expanded::FightPullTolerance(15.0f), 15.0f * kDegree, 1e-6f);
+    EXPECT_NEAR(expanded::FightPullTolerance(expanded::kSmallFish), 17.0f * kDegree, 1e-6f);
+    // Always inside the yellow.
+    EXPECT_LT(expanded::FightPullTolerance(expanded::kSmallFish), expanded::kHoldTolerance);
+}
+
+TEST_F(FishingFight, ASmallFishPullsWithinItsWiderGreen) {
+    Strike();
+    for (int i = 0; i < expanded::kOpenFrames + expanded::kSwitchGrace; i++) {
+        Pull();
+    }
+    // 16 degrees off pulls a 30 cm fish (17 either side), where a 450 cm one would only hold.
+    const float bar = expanded::FishingFightBar();
+    const auto  off = StickToward(CameraYaw(), expanded::FishingFightTarget() + 16.0f * PI / 180.0f, 1.0f);
+    Step(off[0], off[1]);
+    EXPECT_NEAR(expanded::FishingFightBar() - bar, expanded::FightFill(), 1e-6f);
+}
+
+TEST_F(FishingFight, AFightNeverOutOfTheBlockIsAPerfectCatch) {
+    Strike();
+    FightStep end = FightStep::kFighting;
+    PullUntilOver(end);
+    ASSERT_EQ(end, FightStep::kLanded);
+    // A third of its centimetres in bonus points.
+    EXPECT_EQ(expanded::PerfectCatchPoints(30), 10);
+    EXPECT_EQ(expanded::PerfectCatchPoints(150), 50);
+    // Rounded up.
+    EXPECT_EQ(expanded::PerfectCatchPoints(139), 47);
+    EXPECT_EQ(expanded::PerfectCatchPoints(140), 47);
+    EXPECT_EQ(expanded::PerfectCatchPoints(141), 47);
+    EXPECT_EQ(expanded::PerfectCatchPoints(450), 150);
+}
+
+TEST_F(FishingFight, ANearMissKeepsThePerfectCatch) {
+    // A near miss now and then keeps it.
+    Strike();
+    FightStep   end = FightStep::kFighting;
+    const float off = (expanded::FightPullTolerance(expanded::kSmallFish) + expanded::kHoldTolerance) / 2.0f;
+    for (int i = 0; i < 2000 && end == FightStep::kFighting; i++) {
+        const auto stick = StickToward(CameraYaw(), expanded::FishingFightTarget() + (i % 3 == 0 ? off : 0.0f), 1.0f);
+        end = Step(stick[0], stick[1]);
+    }
+    ASSERT_EQ(end, FightStep::kLanded);
+    EXPECT_EQ(expanded::PerfectCatchPoints(30), 10);
+}
+
+TEST_F(FishingFight, AMissInTheOpeningLosesThePerfectCatch) {
+    // The bar holds, but the stick was out of the block.
+    Strike();
+    Miss();
+    FightStep end = FightStep::kFighting;
+    PullUntilOver(end);
+    ASSERT_EQ(end, FightStep::kLanded);
+    EXPECT_EQ(expanded::PerfectCatchPoints(30), 0);
+}
+
+TEST_F(FishingFight, AMissInASwitchsGraceKeepsThePerfectCatch) {
+    Strike();
+    for (int i = 0; i < expanded::kOpenFrames; i++) {
+        Pull();
+    }
+    // The switch's grace: the stick has yet to follow.
+    for (int i = 1; i < expanded::kSwitchGrace; i++) {
+        Miss();
+    }
+    FightStep end = FightStep::kFighting;
+    PullUntilOver(end);
+    ASSERT_EQ(end, FightStep::kLanded);
+    EXPECT_EQ(expanded::PerfectCatchPoints(30), 10);
+}
+
+TEST_F(FishingFight, ALostFishIsNoPerfectCatch) {
+    Strike();
+    FightStep end = FightStep::kFighting;
+    while (end == FightStep::kFighting) {
+        end = Miss();
+    }
+    EXPECT_EQ(expanded::PerfectCatchPoints(30), 0);
+}
+
+TEST_F(FishingFight, OffThereIsNoPerfectCatch) {
+    ASSERT_TRUE(options_.Set(expanded::kFishingFights, false));
+    Strike();
+    EXPECT_EQ(expanded::PerfectCatchPoints(30), 0);
+}
+
+TEST_F(FishingFight, APerfectCatchHasItsOwnLineAboveTheTotal) {
+    constexpr std::string_view kCatch =
+        "{insert1} ({value1}cm)\ncaught!!{page}Fishing Points +{value2}\nTotal Points   {value3}\nRecord {insert1} {value1}cm";
+    Strike();
+    FightStep end = FightStep::kFighting;
+    PullUntilOver(end);
+    expanded::PerfectCatchPoints(30);
+    EXPECT_EQ(expanded::PerfectCatchText(kCatch),
+              "{insert1} ({value1}cm)\ncaught!!{page}Fishing Points +{value2}\nPerfect Catch  +{value4}\nTotal Points   "
+              "{value3}\nRecord {insert1} {value1}cm");
+    // After the Fairy's Ring's red points and icon, too.
+    EXPECT_EQ(expanded::PerfectCatchText("Fishing Points {highlight}+{value2}{/color} {icon-sword}\nTotal Points   {value3}"),
+              "Fishing Points {highlight}+{value2}{/color} {icon-sword}\nPerfect Catch  +{value4}\nTotal Points   {value3}");
+}
+
+TEST_F(FishingFight, WithoutAPerfectCatchTheMessageIsTheGames) {
+    Strike();
+    Miss();
+    FightStep end = FightStep::kFighting;
+    PullUntilOver(end);
+    expanded::PerfectCatchPoints(30);
+    EXPECT_EQ(expanded::PerfectCatchText("Fishing Points +{value2}\nTotal Points   {value3}"), std::nullopt);
+}
+
 TEST_F(FishingFight, MissingLosesTheFish) {
     Strike();
     FightStep end = FightStep::kFighting;
@@ -487,7 +603,7 @@ TEST_F(FishingFight, ANearMissHoldsTheBarStill) {
     }
     // Halfway between the two tolerances off the way to pull (which moves no more than kTargetTurn a frame), either
     // side, the bar neither fills nor drains.
-    const float off = (expanded::kPullTolerance + expanded::kHoldTolerance) / 2.0f;
+    const float off = (expanded::FightPullTolerance(expanded::kSmallFish) + expanded::kHoldTolerance) / 2.0f;
     for (int i = 0; i < 30; i++) {
         const float bar = expanded::FishingFightBar();
         const auto  stick = StickToward(CameraYaw(), expanded::FishingFightTarget() + (i % 2 == 0 ? off : -off), 1.0f);
@@ -550,7 +666,7 @@ TEST_F(FishingFight, TheOpeningHoldsAMissAndTheStickAtRestPulls) {
         Miss();
     }
     // Past it (and the switch's grace, counted from the switch's own frame), a near miss holds the bar and a miss drains it.
-    const float off = (expanded::kPullTolerance + expanded::kHoldTolerance) / 2.0f;
+    const float off = (expanded::FightPullTolerance(expanded::kSmallFish) + expanded::kHoldTolerance) / 2.0f;
     const auto  near = StickToward(CameraYaw(), expanded::FishingFightTarget() + off, 1.0f);
     EXPECT_EQ(Step(near[0], near[1]), FightStep::kFighting);
     EXPECT_NEAR(expanded::FishingFightBar(), expanded::FightFill(), 1e-6f);

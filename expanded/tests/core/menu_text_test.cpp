@@ -71,6 +71,14 @@ std::optional<std::string> Exclaimed(std::string_view own) {
     return std::string(own) + "!";
 }
 
+std::optional<std::string> Questioned(std::string_view own) {
+    return std::string(own) + "?";
+}
+
+std::optional<std::string> Unchanged(std::string_view) {
+    return std::nullopt;
+}
+
 std::optional<std::string> SphereLine() {
     return "{icon-orb}\"{insert1}\" SynthSphere acquired.";
 }
@@ -181,6 +189,10 @@ TEST(ExpandedMenuText, ATalkMessageIsTheTalkWindowsBankOnly) {
     EXPECT_EQ(Text(bank, DescriptionOf(ITEM_WEAPON_DAGGER)), "\"Dagger{value}\"\nFairly easy to use.\ndefault weapon.");
     // A message the bank does not have stays missing.
     EXPECT_EQ(Text(bank, 1000), "<none>");
+    // A second provider works on the first's text, and one with nothing to give leaves it.
+    expanded::SetTalkMessage(kStatusBreakHint, Unchanged);
+    expanded::SetTalkMessage(kStatusBreakHint, Questioned);
+    EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.!?");
     expanded::SetTalkMessage(kStatusBreakHint, nullptr);
     EXPECT_EQ(Text(bank, kStatusBreakHint), "{alert}Seal 60% weapon\nability to sphere.");
     EditMes1.buff = own;

@@ -2438,7 +2438,12 @@ void EdMoveChara() {
                                     SetFishMardanGarayanNum(1);
                                 }
 
+#ifdef CHRONICLE_EXPANDED
+                                const int perfect_points = expanded::PerfectCatchPoints(size);
+                                SaveData->AddFishingPoint(fish_points + perfect_points);
+#else
                                 SaveData->AddFishingPoint(fish_points);
+#endif
                                 SaveData->SetFishingRank(fish_kind, static_cast<float>(size));
 #ifdef CHRONICLE_EXPANDED
                                 expanded::EventLogCaught(fish_kind, size, fish_points);
@@ -2448,6 +2453,9 @@ void EdMoveChara() {
                                 EditMes1.values[0] = size;
                                 EditMes1.values[1] = fish_points;
                                 EditMes1.values[2] = SaveData->GetFishingPoint();
+#ifdef CHRONICLE_EXPANDED
+                                EditMes1.values[3] = perfect_points;
+#endif
                                 EditMes1.tail_on = false;
                                 EditMes1.auto_pos = MES_POS_TOP_LEFT;
                                 EditMes1.MakeMesWin(2000);

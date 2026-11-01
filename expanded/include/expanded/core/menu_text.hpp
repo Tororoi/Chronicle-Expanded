@@ -38,7 +38,9 @@ void SetSystemMessage(int message_id, MenuTextProvider provider);
 // the same form, or std::nullopt for the bank's own. Asked each time the window lays the message out.
 using TalkTextProvider = std::optional<std::string> (*)(std::string_view own);
 
-// Registers or, with nullptr, removes the provider of a town talk message.
+// Adds a provider of a town talk message or, with nullptr, removes the message's providers. A message may have several:
+// each is given the text as the ones before it made it (the bank's own for the first), and those giving std::nullopt
+// leave it as it is.
 void SetTalkMessage(int message_id, TalkTextProvider provider);
 
 // The item whose picture window mes draws in place of icon code ({icon-sword}...), or 0 for the icon.
