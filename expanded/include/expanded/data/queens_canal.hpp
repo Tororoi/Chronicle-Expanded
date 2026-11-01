@@ -67,6 +67,11 @@ std::vector<scene::Triangle> CanalCameraWalls();
 // The scene with the canal's west end closed over its floor (the walkway's ledge carried on to its end wall).
 Bytes CapCanalWestEnd(std::span<const unsigned char> scene);
 
+// The scene with its waterfalls (the frames obj48__a01z and taki2__a01z) writing depth, as the mod bakes them: their
+// name's last letter, z (no depth write, CFrameAttr::depth_write), made x (no effect), so the angler behind a fall is
+// hidden by it rather than drawn over it.
+Bytes WaterfallsWriteDepth(std::span<const unsigned char> scene);
+
 // The canal water's grid, 48 by 16 cells, made 64 by 14: square cells over the camera-following surface.
 Bytes TuneCanalWater(std::span<const unsigned char> cfg);
 

@@ -1518,6 +1518,9 @@ void EdMoveChara() {
     }
 
     if ((chara_mode & 6) == 0 && chara_fishing < ED_FISHING_CAST_START) {
+#ifdef CHRONICLE_EXPANDED
+        motion = expanded::TownAllyWalkMotion(motion);
+#endif
         chara->SetMotion(motion, 0);
         chara->SetMotionSpeed(motion_speed);
     }

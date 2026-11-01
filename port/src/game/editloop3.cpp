@@ -7450,7 +7450,11 @@ int _GET_WORK_FLAG(RS_STACKDATA *stack, int argument_count) {
 int _SITEM_CHECK(RS_STACKDATA *stack, int argument_count) {
     RS_STACKDATA *result = (0, stack + 1);
     int           item = GetStackInt(stack);
+#ifdef CHRONICLE_EXPANDED
+    SetStack(result, expanded::FishingRodCheck(item, EdCheckItem(item)));
+#else
     SetStack(result, EdCheckItem(item));
+#endif
     return 1;
 }
 

@@ -51,7 +51,7 @@ int PoolFish(int spot, int kind);
 void FishInfoLoaded(FishInfo &info, int kind);
 
 // FishingLoadFish at Expanded's spots (expanded/data/fishing_spots.hpp): the kind of a fish from the slot's roll and
-// rare_interval, kind elsewhere; the fish count, count elsewhere; and the length of the line's segments from the rod to
+// rare_interval, kind elsewhere; the fish count (elsewhere count, and one more but at Norune); and the length of the line's segments from the rod to
 // the float (distp) as a cast starts, retail's elsewhere.
 int   SpotFish(int spot, int roll, int kind, int rare_interval);
 int   SpotFishCount(int spot, int count);
@@ -104,5 +104,19 @@ int AddCollision(dc::game::CCPoly *polys, int count, int capacity, std::span<con
 
 // The fishing sign's picture, entered with the fixed textures of a town with a spot.
 void EnterFishingSign();
+
+// The game's own fishing towns, where only Toan fishes, as the mod has it (MapNo): Norune, Matataki, Muska Lacka and
+// East Harbor. Their signs check for the rod (_SITEM_CHECK of ITEM_FISHING_ROD) and without it say their event
+// message kNoPoleMessage; an ally walking one has none, and the message says only Toan fishes there
+// ("expanded.fishing.only_toan").
+inline constexpr int         kToanOnlyFishing[] = {0, 1, 3, 19};
+inline constexpr int         kNoPoleMessage = 21;
+inline constexpr const char *kOnlyToanKey = "expanded.fishing.only_toan";
+
+// Whether only Toan may fish where the player walks now, and he is not the one walking.
+bool AllyKeptFromFishing();
+
+// Hook: _SITEM_CHECK of item, owned its inventory index (or -1): -1 for the rod while AllyKeptFromFishing.
+int FishingRodCheck(int item, int owned);
 
 } // namespace expanded

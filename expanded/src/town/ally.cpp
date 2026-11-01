@@ -1,5 +1,6 @@
 #include "expanded/town/ally.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -9,6 +10,7 @@
 #include "battlemenu.hpp"
 #include "character.hpp"
 #include "dataread.hpp"
+#include "ebattle.hpp"
 #include "editground.hpp"
 #include "editloop.hpp"
 #include "editpartsinfo.hpp"
@@ -37,6 +39,9 @@ int loaded_body;
 
 // Whether Toan stands in for the party member through an event that poses him.
 bool stand_in;
+
+// Frames the town body has stood still while walking the town.
+int standing_frames;
 
 // Whether the data has each party member's built model.
 bool has_model[kAllyCount];
@@ -198,6 +203,16 @@ int TownAllyInteriorStartEvent(int event_no, int house) {
     }
 
     return kInteriorEntryEvent;
+}
+
+int TownAllyWalkMotion(int motion) {
+    constexpr int kXiao = 1;
+    if (motion != 0 || loaded_body != kXiao || !has_model[kXiao] || EdMoveCharaInfo.fishing != 0) {
+        standing_frames = 0;
+        return motion;
+    }
+    standing_frames = std::min(standing_frames + 1, kTownAllySitFrames);
+    return standing_frames >= kTownAllySitFrames ? kTownAllySitMotion : motion;
 }
 
 float TownAllyMarkLift() {

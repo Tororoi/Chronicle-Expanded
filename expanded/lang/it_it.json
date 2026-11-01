@@ -47,6 +47,7 @@
     "expanded.kitchen_knife.faded": "La benedizione della fonte abbandona il Coltello da cucina...",
     "expanded.kitchen_knife.mended": "La fonte ripara il Coltello da cucina.",
     "expanded.magic_circles.slowed": "I mostri sono stati rallentati.",
+    "expanded.fishing.only_toan": "Solo {name1} può pescare qui.",
     "expanded.fishing_fight.perfect_catch": "Cattura perfetta +{value4}",
     "expanded.pocklekul.summoned": "[monster] evocato",
     "expanded.seven_branch.break_confirm": "{alert} Sigilla nella sfera \n77% delle caratt. arma.\n(Da fare senza accessorio.)\nCambia stato?",

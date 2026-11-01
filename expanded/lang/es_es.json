@@ -47,6 +47,7 @@
     "expanded.kitchen_knife.faded": "La bendición del manantial abandona el Cuchillo de cocina...",
     "expanded.kitchen_knife.mended": "El manantial repara el Cuchillo de cocina.",
     "expanded.magic_circles.slowed": "Los monstruos se han ralentizado.",
+    "expanded.fishing.only_toan": "Solo {name1} puede pescar aquí.",
     "expanded.fishing_fight.perfect_catch": "Captura perfecta +{value4}",
     "expanded.pocklekul.summoned": "[monster] invocado",
     "expanded.seven_branch.break_confirm": "{alert}Sellar 77% habilidad\ndel arma en esfera.\n(Hacer sin accesorio.)\n ¿Cambio de estado?",

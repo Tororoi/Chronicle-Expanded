@@ -6,6 +6,9 @@
 #include <cstdlib>
 #include <format>
 #include <map>
+#include <optional>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "camerafollow.hpp"
@@ -14,9 +17,11 @@
 #include "ebattle.hpp"
 #include "edit.hpp"
 #include "editloop.hpp"
+#include "expanded/core/menu_text.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/data/queens_canal.hpp"
 #include "expanded/debug/event_log.hpp"
+#include "expanded/town/ally.hpp"
 #include "expanded/town/baits.hpp"
 #include "expanded/town/fish_kinds.hpp"
 #include "expanded/town/fish_steering.hpp"
@@ -27,6 +32,8 @@
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "fish.hpp"
 #include "fishing.hpp"
+#include "itemdata.hpp"
+#include "localize/localize.hpp"
 #include "main.hpp"
 #include "texture.hpp"
 
@@ -303,8 +310,33 @@ int SpotFish(int spot, int roll, int kind, int rare_interval) {
     return fishing->fish[static_cast<std::size_t>(roll) % fishing->fish.size()];
 }
 
+namespace {
+
+// The sign's line when an ally has no rod.
+std::optional<std::string> OnlyToanText(std::string_view) {
+    if (!AllyKeptFromFishing()) {
+        return std::nullopt;
+    }
+    return LocalizeText(kOnlyToanKey, "Only {name1} is able to fish here.");
+}
+
+[[maybe_unused]] const bool kOnlyToanRegistered = (SetEventMessage(kNoPoleMessage, OnlyToanText), true);
+
+} // namespace
+
+bool AllyKeptFromFishing() {
+    return TownAllyCurrent() > 0 && std::ranges::contains(kToanOnlyFishing, MapNo);
+}
+
+int FishingRodCheck(int item, int owned) {
+    return item == ITEM_FISHING_ROD && AllyKeptFromFishing() ? -1 : owned;
+}
+
 int SpotFishCount(int spot, int count) {
-    return FishingSpotOfArea(spot) != nullptr ? kSpotFishCount : count;
+    if (FishingSpotOfArea(spot) != nullptr) {
+        return kSpotFishCount;
+    }
+    return spot == kNoruneArea ? count : std::min(count + 1, kSpotFishCount);
 }
 
 float SpotLineSegment(int spot) {

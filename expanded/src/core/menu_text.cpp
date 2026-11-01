@@ -38,6 +38,7 @@ struct Registry {
     std::map<int, std::vector<MenuTextProvider>>             messages;
     std::map<int, MenuTextProvider>                          system;
     std::map<int, std::vector<TalkTextProvider>>             talk;
+    std::map<int, std::vector<TalkTextProvider>>             event;
     std::vector<MessagePictureProvider>                      pictures;
     std::map<std::pair<const void *, int>, std::vector<s16>> built;
     // The providers the features registered as the program started, kept by the first reset.
@@ -46,6 +47,7 @@ struct Registry {
     std::map<int, std::vector<MenuTextProvider>> own_messages;
     std::map<int, MenuTextProvider>              own_system;
     std::map<int, std::vector<TalkTextProvider>> own_talk;
+    std::map<int, std::vector<TalkTextProvider>> own_event;
     std::vector<MessagePictureProvider>          own_pictures;
 };
 
@@ -130,15 +132,49 @@ void SetSystemMessage(int message_id, MenuTextProvider provider) {
     }
 }
 
-void SetTalkMessage(int message_id, TalkTextProvider provider) {
+namespace {
+
+void AddTextProvider(std::map<int, std::vector<TalkTextProvider>> &bank, int message_id, TalkTextProvider provider) {
     if (provider == nullptr) {
-        Text().talk.erase(message_id);
+        bank.erase(message_id);
         return;
     }
-    std::vector<TalkTextProvider> &providers = Text().talk[message_id];
+    std::vector<TalkTextProvider> &providers = bank[message_id];
     if (std::ranges::find(providers, provider) == providers.end()) {
         providers.push_back(provider);
     }
+}
+
+// A town window's message from its bank's own text through providers, each working on the text as the ones before it
+// left it; null for the bank's own.
+short *ProvidedText(const short *buff, int id, const std::vector<TalkTextProvider> &providers) {
+    const s16 *own = Find(buff, id);
+    if (own == nullptr) {
+        return nullptr;
+    }
+    std::optional<std::string> text;
+    for (TalkTextProvider provider : providers) {
+        if (std::optional<std::string> made = provider(text ? *text : GameTextDecode(own))) {
+            text = std::move(made);
+        }
+    }
+    if (!text) {
+        return nullptr;
+    }
+    std::vector<s16> &kept = Text().built[{buff, id}];
+    kept.clear();
+    GameTextEncode(*text, kept);
+    return kept.data();
+}
+
+} // namespace
+
+void SetTalkMessage(int message_id, TalkTextProvider provider) {
+    AddTextProvider(Text().talk, message_id, provider);
+}
+
+void SetEventMessage(int message_id, TalkTextProvider provider) {
+    AddTextProvider(Text().event, message_id, provider);
 }
 
 void AddMessagePicture(MessagePictureProvider provider) {
@@ -183,24 +219,10 @@ short *MenuText(const short *buff, int id) {
         return kept.data();
     }
     if (auto message = Text().talk.find(id); buff != nullptr && buff == EditMes1.buff && message != Text().talk.end()) {
-        const s16 *own = Find(buff, id);
-        if (own == nullptr) {
-            return nullptr;
-        }
-        // Each provider works on the text as the ones before it left it.
-        std::optional<std::string> text;
-        for (TalkTextProvider provider : message->second) {
-            if (std::optional<std::string> made = provider(text ? *text : GameTextDecode(own))) {
-                text = std::move(made);
-            }
-        }
-        if (!text) {
-            return nullptr;
-        }
-        std::vector<s16> &kept = Text().built[{buff, id}];
-        kept.clear();
-        GameTextEncode(*text, kept);
-        return kept.data();
+        return ProvidedText(buff, id, message->second);
+    }
+    if (auto message = Text().event.find(id); buff != nullptr && buff == EditEventMes1.buff && message != Text().event.end()) {
+        return ProvidedText(buff, id, message->second);
     }
     auto bank = buff != nullptr ? Text().banks.find(buff) : Text().banks.end();
     if (bank == Text().banks.end() || bank->second.count != buff[0]) {
@@ -216,8 +238,8 @@ short *MenuText(const short *buff, int id) {
         }
     }
     if (codes.empty() && id > kDescriptionBase) {
-        const int  item = WeaponOf(id);
-        const s16 *retail = item != 0 ? Find(buff, id) : nullptr;
+        const int                  item = WeaponOf(id);
+        const s16                 *retail = item != 0 ? Find(buff, id) : nullptr;
         std::optional<std::string> lines = retail != nullptr ? WeaponLines(item) : std::nullopt;
         if (lines) {
             // The disc's name line, then the Expanded lines.
@@ -244,6 +266,7 @@ void MenuTextReset() {
         text.own_messages = text.messages;
         text.own_system = text.system;
         text.own_talk = text.talk;
+        text.own_event = text.event;
         text.own_pictures = text.pictures;
     }
     text.banks.clear();
@@ -252,6 +275,7 @@ void MenuTextReset() {
     text.messages = text.own_messages;
     text.system = text.own_system;
     text.talk = text.own_talk;
+    text.event = text.own_event;
     text.pictures = text.own_pictures;
 }
 
