@@ -60,7 +60,7 @@ int RecordMagic(int fish_kind, int record_cm) {
         return most;
     }
     const double span = top - largest;
-    const double power = std::log(most - 1.0) / std::log(span / kRecordHalfShort);
+    const double power = std::log(most - 1.0) / std::log(1.0 / kRecordHalfShare);
     const double magic = most / (1.0 + (most - 1.0) * std::pow((top - record_cm) / span, power));
     return std::max(1, static_cast<int>(std::round(magic)));
 }
