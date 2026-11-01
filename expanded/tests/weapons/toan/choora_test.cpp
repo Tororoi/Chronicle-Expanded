@@ -39,23 +39,23 @@ struct Floor {
 } // namespace
 
 TEST(Choora, ArmorPiercerDoublesDamageAndAbsOnArmoredMonsters) {
-    Floor                    floor({Monster::CRABBY_HERMIT, Monster::CRABBY_HERMIT_ENHANCED, Monster::LIVING_ARMOR,
-                                    Monster::LIVING_ARMOR_ENHANCED, Monster::BLACK_KNIGHT, Monster::WEREWOLF});
+    Floor                    floor({Monster::CRABBY_HERMIT, Monster::LIVING_ARMOR_ENHANCED, Monster::BLACK_KNIGHT, Monster::BLACK_KNIGHT_MOUNT,
+                                    Monster::ARTHUR, Monster::GOL_ENHANCED, Monster::BLIZZARD, Monster::NIKAPOUS, Monster::WEREWOLF});
     expanded::test::Wielding choora(ITEM_WEAPON_CHOORA);
-    for (int armored = 0; armored < 5; armored++) {
+    for (int armored = 0; armored < 8; armored++) {
         EXPECT_FLOAT_EQ(floor.Hit(armored, 30.0f), 60.0f) << armored;
         EXPECT_EQ(floor.Abs(armored, 7), 14) << armored;
     }
-    EXPECT_FLOAT_EQ(floor.Hit(5, 30.0f), 30.0f);
-    EXPECT_EQ(floor.Abs(5, 7), 7);
+    EXPECT_FLOAT_EQ(floor.Hit(8, 30.0f), 30.0f);
+    EXPECT_EQ(floor.Abs(8, 7), 7);
     EXPECT_FLOAT_EQ(floor.Hit(0, 30.0f, false), 30.0f); // not a weapon hit (an item, a monster)
 }
 
-// The Stone and Metal monsters left out have no armor to pierce.
-TEST(Choora, NotEveryStoneOrMetalMonster) {
-    Floor                    floor({Monster::BLIZZARD, Monster::DUNE, Monster::VULCAN, Monster::ROCKANOFF});
+// The Stone monsters left out have no armor to pierce.
+TEST(Choora, NotEveryStoneMonster) {
+    Floor                    floor({Monster::DUNE, Monster::VULCAN, Monster::ROCKANOFF});
     expanded::test::Wielding choora(ITEM_WEAPON_CHOORA);
-    for (int monster = 0; monster < 4; monster++) {
+    for (int monster = 0; monster < 3; monster++) {
         EXPECT_FLOAT_EQ(floor.Hit(monster, 30.0f), 30.0f) << monster;
     }
 }
