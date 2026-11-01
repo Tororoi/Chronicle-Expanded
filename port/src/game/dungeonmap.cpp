@@ -32,6 +32,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/atla_drops.hpp"
+#include "expanded/weapons/toan/antique_sword.hpp"
 #endif
 
 namespace dc::game {
@@ -737,6 +738,12 @@ void CDungeonMap::DrawMiniMap(float *pos, float angle) {
         if (BtEquipMasuisyou == 1) {
             show = 1;
         }
+#ifdef CHRONICLE_EXPANDED
+        // The Antique Sword's Treasure Sense shows every chest.
+        if (expanded::TreasureSenseActive()) {
+            show = 1;
+        }
+#endif
 
         if (this->cells[cell].parts_no != MAP_PARTS_NONE && show == 1) {
             box_src.x = 80;
@@ -748,6 +755,9 @@ void CDungeonMap::DrawMiniMap(float *pos, float angle) {
             box_dst.width = 8;
             box_dst.height = 8;
             set2DSprite(Vif1Packet, symbol_texture, box_dst, box_src, blue);
+#ifdef CHRONICLE_EXPANDED
+            expanded::TreasureSenseMark(*this, i, box_dst.x, box_dst.y);
+#endif
         }
     }
 
