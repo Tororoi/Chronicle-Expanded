@@ -141,6 +141,11 @@ float WayDegrees() {
     return fight.way * 180.0f / PI;
 }
 
+// The fight's first run, straight out from the angler.
+bool Opening() {
+    return fight.frames <= kOpenFrames && fight.way == 0.0f;
+}
+
 // A run starts the way given, for frames (0: as long as the fish's strength has its runs).
 void StartRun(float way, int frames = 0) {
     fight.way = way;
@@ -323,6 +328,12 @@ void FishingFightStarted(CFish &fish) {
         fight.angler[0] = angler[0];
         fight.angler[1] = angler[2];
     }
+    // The fish turns straight out from the angler as it is struck, and runs that way through the opening.
+    sceVu0FVECTOR heading;
+    fish.GetRotation(heading);
+    heading[1] = AngleLimit(atan2f(fight.anchor[0] - fight.angler[0], fight.anchor[2] - fight.angler[1]));
+    fish.SetRotation(heading);
+    fish.target_yaw = heading[1];
     // The gauge starts on the float, the way to pull straight back to the angler.
     FishLineGetUki(fight.gauge);
     fight.gauge[1] = FishingGetWaterLevel();
@@ -424,7 +435,8 @@ FightPace FishFightSwim(CFish &fish) {
     const float heading = away + fight.way;
     // The game's thrash, a new heading every frame (the battle block's roll, target_yaw), narrowed to kThrash of it either
     // side of the run's heading and kept in the cone: the fish twists and struggles as it goes, never toward the angler.
-    const float thrash = std::remainder(fish.target_yaw, 2.0f * PI) * kThrash;
+    // Through the opening it runs straight.
+    const float thrash = Opening() ? 0.0f : std::remainder(fish.target_yaw, 2.0f * PI) * kThrash;
     fish.target_yaw = AngleLimit(FightConeYaw(away, heading + thrash));
     fish.target_speed = FightRunSpeed(fight.strength);
     return {.turn = kFightTurnPace, .speed = kFightPace};

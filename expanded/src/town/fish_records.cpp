@@ -54,15 +54,14 @@ int RecordMagic(int fish_kind, int record_cm) {
     if (largest <= 0 || record_cm < largest) {
         return 0;
     }
-    const bool   garayan = std::ranges::contains(fish::kGarayans, fish_kind);
-    const int    most = garayan ? kGarayanRecordMagic : kRecordMagic;
-    const int    step = garayan ? kGarayanRecordTopStep : kRecordTopStep;
-    const int    top = static_cast<int>(std::floor(kAriseGrowth * static_cast<float>(largest)));
-    const double short_cm = top - record_cm;
-    if (short_cm <= 0) {
+    const int most = std::ranges::contains(fish::kGarayans, fish_kind) ? kGarayanRecordMagic : kRecordMagic;
+    const int top = static_cast<int>(std::floor(kAriseGrowth * static_cast<float>(largest)));
+    if (record_cm >= top) {
         return most;
     }
-    const double magic = most / (1.0 + static_cast<double>(step) / (most - step) * std::pow(short_cm, kRecordCurveExponent));
+    const double span = top - largest;
+    const double power = std::log(most - 1.0) / std::log(span / kRecordHalfShort);
+    const double magic = most / (1.0 + (most - 1.0) * std::pow((top - record_cm) / span, power));
     return std::max(1, static_cast<int>(std::round(magic)));
 }
 
