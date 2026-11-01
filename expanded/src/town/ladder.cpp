@@ -278,7 +278,7 @@ void XiaoLadder(Builder &b, const Ladder &ladder, bool onto = false) {
         // as she comes down onto the deck.
         constexpr int kLeapUp = 16;   // slot 12's 285-294 at 0.60
         constexpr int kFallKeys = 9;  // slot 8's 205-214
-        constexpr int kLandLead = 12; // her landing begun as she comes down onto the deck
+        constexpr int kLandLead = 16; // her landing begun as she comes down onto the deck
         jump.land_on_target = true;
         jump.launch_frames = kLeapUp;
         jump.land_lead = kLandLead;
