@@ -38,6 +38,10 @@
 #include "userstatus.hpp"
 #include "weaponlevelup.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/toan/antique_sword.hpp"
+#endif
+
 namespace dc::game {
 
 using namespace dc::quest;
@@ -622,11 +626,16 @@ namespace {
  * Returns an item's price, buying or selling, from the item table.
  */
 s16 GetItemMoney(int item_no, int sell) {
+#ifdef CHRONICLE_EXPANDED
+    const ITEM_MONEY_ENTRY &entry = PriceList[item_no - ITEM_ATTACH_START];
+    return static_cast<s16>(expanded::AntiqueSwordPrice(item_no, sell, sell != 0 ? entry.sell_price : entry.buy_price));
+#else
     if (sell != 0) {
         return PriceList[item_no - ITEM_ATTACH_START].sell_price;
     }
 
     return PriceList[item_no - ITEM_ATTACH_START].buy_price;
+#endif
 }
 
 } // namespace
