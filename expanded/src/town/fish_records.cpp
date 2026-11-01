@@ -54,17 +54,15 @@ int RecordMagic(int fish_kind, int record_cm) {
     if (largest <= 0 || record_cm < largest) {
         return 0;
     }
-    const int most = std::ranges::contains(fish::kGarayans, fish_kind) ? kGarayanRecordMagic : kRecordMagic;
-    const int top = static_cast<int>(std::floor(kAriseGrowth * static_cast<float>(largest)));
-    if (record_cm >= top) {
+    const bool   garayan = std::ranges::contains(fish::kGarayans, fish_kind);
+    const int    most = garayan ? kGarayanRecordMagic : kRecordMagic;
+    const int    step = garayan ? kGarayanRecordTopStep : kRecordTopStep;
+    const int    top = static_cast<int>(std::floor(kAriseGrowth * static_cast<float>(largest)));
+    const double short_cm = top - record_cm;
+    if (short_cm <= 0) {
         return most;
     }
-    // The top kRecordKeptShare of the centimetres reads the curve as many centimetres short of the largest as the record
-    // is of the top; the rest of the curve stretches over the rest of them.
-    const double span = top - largest, kept = kRecordKeptShare * span, short_cm = top - record_cm;
-    const double kept_by = kept / largest;
-    const double short_by = short_cm <= kept ? short_cm / largest : kept_by + (short_cm - kept) * (1.0 - kept_by) / (span - kept);
-    const double magic = most / (1.0 + kRecordCurve * std::pow(short_by, kRecordCurveExponent));
+    const double magic = most / (1.0 + static_cast<double>(step) / (most - step) * std::pow(short_cm, kRecordCurveExponent));
     return std::max(1, static_cast<int>(std::round(magic)));
 }
 

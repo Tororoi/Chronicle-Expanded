@@ -70,7 +70,7 @@ protected:
 
 } // namespace
 
-TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestOneAtItAndTheMostAtTheTop) {
+TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestAndTheMostAtTheTop) {
     for (int kind = 0; kind < kFishKinds; kind++) {
         if (kind == kCutFish) {
             EXPECT_EQ(expanded::RecordMagic(kind, 1000), 0);
@@ -80,7 +80,7 @@ TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestOneAtItAndTheMostAtTheTop
         const bool garayan = kind == expanded::fish::kMardanGarayan || kind == expanded::fish::kBaronGarayan;
         const int  most = garayan ? expanded::kGarayanRecordMagic : expanded::kRecordMagic;
         EXPECT_EQ(expanded::RecordMagic(kind, largest - 1), 0) << kind;
-        EXPECT_EQ(expanded::RecordMagic(kind, largest), 1) << kind;
+        EXPECT_GE(expanded::RecordMagic(kind, largest), 1) << kind;
         EXPECT_EQ(expanded::RecordMagic(kind, top), most) << kind;
         EXPECT_EQ(expanded::RecordMagic(kind, 3 * largest), most) << kind;
         int previous = 0;
@@ -96,19 +96,21 @@ TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestOneAtItAndTheMostAtTheTop
     EXPECT_EQ(expanded::RecordMagic(kFishKinds, 100), 0);
 }
 
-TEST_F(FishRecords, TheTopThirdKeepsTheCurvesCentimetres) {
-    // Baron Garayan, 300 cm at most in the game and 450 with Arise Mardan. Over its top 50 cm the curve reads as many
-    // centimetres short as it did when the top was 600: 12 at 430 cm as at 580 (as the mod's curve was fit), 78 a
-    // centimetre short as at 599.
-    EXPECT_EQ(Largest(expanded::fish::kBaronGarayan), 300);
+TEST_F(FishRecords, TheCurveIsTheSameFromEveryKindsTop) {
+    // A centimetre short of the top, 10 less (20 for the Garayans); then the same by the centimetres short for every kind.
+    for (int kind : {0, 7, 10, 16}) {
+        EXPECT_EQ(expanded::RecordMagic(kind, Top(kind) - 1), expanded::kRecordMagic - expanded::kRecordTopStep) << kind;
+        EXPECT_EQ(expanded::RecordMagic(kind, Top(kind) - 10), 12) << kind;
+        EXPECT_EQ(expanded::RecordMagic(kind, Top(kind) - 50), 3) << kind;
+    }
+    for (int kind : expanded::fish::kGarayans) {
+        EXPECT_EQ(expanded::RecordMagic(kind, Top(kind) - 1), expanded::kGarayanRecordMagic - expanded::kGarayanRecordTopStep) << kind;
+        EXPECT_EQ(expanded::RecordMagic(kind, Top(kind) - 10), 41) << kind;
+    }
+    // Baron Garayan, 300 cm at most in the game and 450 with Arise Mardan: 5 at 300, nothing under it.
     EXPECT_EQ(Top(expanded::fish::kBaronGarayan), 450);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 430), 12);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 449), 78);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 400), 5);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 360), 2);
-    // Bobo, 200 cm: 25 a centimetre short of 300, as of 400 before.
-    EXPECT_EQ(expanded::RecordMagic(0, 299), 25);
-    EXPECT_EQ(expanded::RecordMagic(0, 260), 1);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 300), 5);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 299), 0);
 }
 
 TEST_F(FishRecords, EveryRecordAtTheTopTakesAriseMardanTo999) {
@@ -118,9 +120,14 @@ TEST_F(FishRecords, EveryRecordAtTheTopTakesAriseMardanTo999) {
     EXPECT_EQ(Arise().magic_max, expanded::kMagicMost);
 }
 
-TEST_F(FishRecords, EachKindAtTheLargestGivesOne) {
+TEST_F(FishRecords, EachKindAtTheLargestGivesItsShare) {
     CatchEveryKind(Largest);
-    EXPECT_EQ(Arise().magic_max, kAriseOwnMagic + 17);
+    int at_largest = 0;
+    for (int kind = 0; kind < kFishKinds; kind++) {
+        at_largest += expanded::RecordMagic(kind, Largest(kind));
+    }
+    EXPECT_GT(at_largest, 17);
+    EXPECT_EQ(Arise().magic_max, kAriseOwnMagic + at_largest);
     // Under the largest, nothing.
     expanded::KeepBestRecords(Records());
     for (SV_FISH_DATA &record : Records()) {
@@ -142,8 +149,9 @@ TEST_F(FishRecords, TheListKeepsEachKindsBestLargestFirst) {
                             {1,                             170},
                             {expanded::fish::kBaronGarayan, 120}
     }));
-    // Bobo's 210 cm is past its 200 and Gobbler's 170 past its 160: 1 each; the Baron Garayan's 120 is short of 300.
-    EXPECT_EQ(Arise().magic_max, kAriseOwnMagic + 2);
+    // Bobo's 210 cm is past its 200 and Gobbler's 170 past its 160; the Baron Garayan's 120 is short of 300.
+    EXPECT_EQ(Arise().magic_max, kAriseOwnMagic + expanded::RecordMagic(0, 210) + expanded::RecordMagic(1, 170));
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 120), 0);
 }
 
 TEST_F(FishRecords, ALoadedListIsKeptToTheBestKeepingEachEntrysOwnData) {
