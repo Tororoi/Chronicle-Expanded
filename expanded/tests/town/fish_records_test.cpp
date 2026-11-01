@@ -96,17 +96,19 @@ TEST_F(FishRecords, ARecordGrantsNothingBelowTheLargestOneAtItAndTheMostAtTheTop
     EXPECT_EQ(expanded::RecordMagic(kFishKinds, 100), 0);
 }
 
-TEST_F(FishRecords, TheCurveRisesSteeplyNearTheTop) {
-    // Baron Garayan, 300 cm at most in the game and 450 with Arise Mardan: 12 at 440 cm (a fifteenth of the way short,
-    // as the mod's curve was fit), 59 a centimetre short.
+TEST_F(FishRecords, TheTopThirdKeepsTheCurvesCentimetres) {
+    // Baron Garayan, 300 cm at most in the game and 450 with Arise Mardan. Over its top 50 cm the curve reads as many
+    // centimetres short as it did when the top was 600: 12 at 430 cm as at 580 (as the mod's curve was fit), 78 a
+    // centimetre short as at 599.
     EXPECT_EQ(Largest(expanded::fish::kBaronGarayan), 300);
     EXPECT_EQ(Top(expanded::fish::kBaronGarayan), 450);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 440), 12);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 375), 2);
-    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 449), 59);
-    // Bobo, 200 cm: 43 at 300.
-    EXPECT_EQ(expanded::RecordMagic(0, 299), 18);
-    EXPECT_EQ(expanded::RecordMagic(0, 250), 1);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 430), 12);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 449), 78);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 400), 5);
+    EXPECT_EQ(expanded::RecordMagic(expanded::fish::kBaronGarayan, 360), 2);
+    // Bobo, 200 cm: 25 a centimetre short of 300, as of 400 before.
+    EXPECT_EQ(expanded::RecordMagic(0, 299), 25);
+    EXPECT_EQ(expanded::RecordMagic(0, 260), 1);
 }
 
 TEST_F(FishRecords, EveryRecordAtTheTopTakesAriseMardanTo999) {

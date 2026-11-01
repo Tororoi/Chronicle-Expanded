@@ -12,13 +12,16 @@ namespace expanded {
 // Fishing records feed Arise Mardan. The records list keeps each kind of fish's best catch alone, largest first, and
 // each kind's best grants Arise Mardan Max Magic: none below the kind's largest size in the game's fish_info, 1 at it,
 // rising to kRecordMagic (kGarayanRecordMagic for the Garayans) at kAriseGrowth times it (the top, in whole
-// centimetres), a size only Arise Mardan's fish reach: max(1, round(most / (1 + kRecordCurve * d^kRecordCurveExponent))),
-// d the centimetres short of the top over the centimetres from the largest to it. Every record at its top takes Arise
-// Mardan from its own 120 to kMagicMost. With the Weapon Abilities off, Arise Mardan keeps its own Max Magic.
+// centimetres), a size only Arise Mardan's fish reach: max(1, round(most / (1 + kRecordCurve * d^kRecordCurveExponent))).
+// Over the top kRecordKeptShare of the centimetres from the largest to the top, d is the centimetres short of the top over
+// the largest's (as the curve read when the top was twice the largest); below them it rises straight to 1 at the largest.
+// Every record at its top takes Arise Mardan from its own 120 to kMagicMost. With the Weapon Abilities off, Arise
+// Mardan keeps its own Max Magic.
 inline constexpr int    kRecordMagic = 43;
 inline constexpr int    kGarayanRecordMagic = 117;
 inline constexpr double kRecordCurve = 116.0;
 inline constexpr double kRecordCurveExponent = 0.954;
+inline constexpr double kRecordKeptShare = 1.0 / 3.0;
 inline constexpr int    kMagicMost = 999;
 
 // The Max Magic a kind's best catch of record_cm centimetres grants.
