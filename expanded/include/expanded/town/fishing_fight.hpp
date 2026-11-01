@@ -39,9 +39,9 @@ inline constexpr float kRunSpeed = 0.35f;
 // kMinSwitch (30 degrees) from the last run's way.
 inline constexpr float kMinSwitch = 0.52359878f;
 
-// How much faster than the game's own fight a fought fish turns (its turn step) and swims (its speed step and the run's
-// speed).
-inline constexpr float kFightTurnPace = 1.0f, kFightPace = 2.0f;
+// How much faster than the game's own fight a fought fish turns (its turn step: 0.7 of the game's 0.1 radians a frame,
+// about 4 degrees) and swims (its speed step and the run's speed).
+inline constexpr float kFightTurnPace = 0.7f, kFightPace = 2.0f;
 
 struct FightPace {
     float turn = 1.0f, speed = 1.0f;
