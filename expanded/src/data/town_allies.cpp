@@ -27,23 +27,22 @@ constexpr std::string_view kRubyFloat = "gedit/e03/chara/e228c05a.chr";
 constexpr std::string_view kUngagaBase = "gedit/e04/chara/e323_2c10a.chr";
 constexpr std::string_view kUngagaDungeon = "dun/mainchara/c10b.chr";
 
-// East Harbor's submarine: Toan's jump into its hatch and his climb out of it (e202c01d.cfg KEY 200-202: takeoff, air,
-// landing; 203 the climb), which Ruby and Ungaga play retargeted in a window of their own.
+// East Harbor's submarine: Toan's jump into its hatch (e202c01d.cfg KEY 200-202: takeoff, air, landing), which Ruby and
+// Ungaga play retargeted in a window of their own.
 constexpr std::string_view kToanTown = "chara/c01d.chr";
 constexpr std::string_view kToanBoarding = "gedit/s09/chara/e202.chr";
 
 TownRetarget BoardingJump(double hip_scale, std::string_view hip,
                           std::vector<std::pair<std::string_view, std::string_view>> joints) {
-    return {.rig = kToanTown, .rig_mds = "c01d.mds", .src = kToanBoarding, .src_mot = "e202c01d.mot", .src_lo = 25, .src_hi = 100, .src_ref = 25, .dest_lo = 400, .ref = 10, .hip_scale = hip_scale, .src_hip = "ctr", .hip = hip, .joints = std::move(joints)};
+    return {.rig = kToanTown, .rig_mds = "c01d.mds", .src = kToanBoarding, .src_mot = "e202c01d.mot", .src_lo = 25, .src_hi = 75, .src_ref = 25, .dest_lo = 400, .ref = 10, .hip_scale = hip_scale, .src_hip = "ctr", .hip = hip, .joints = std::move(joints)};
 }
 
-// The jump's KEYs in the window: Toan's 25-40, 45-55, 60-75 and 80-100 at 400 on.
+// The jump's KEYs in the window: Toan's 25-40, 45-55, 60-75 at 400 on.
 std::vector<TownSlot> BoardingSlots(int first) {
     return {
         {.idx = first,     .lo = 400, .hi = 415, .speed = 0.25, .name = "sub-takeoff"},
         {.idx = first + 1, .lo = 420, .hi = 430, .speed = 0.80, .name = "sub-air"    },
-        {.idx = first + 2, .lo = 435, .hi = 450, .speed = 0.25, .name = "sub-landing"},
-        {.idx = first + 3, .lo = 455, .hi = 475, .speed = 0.20, .name = "sub-climb"  },
+        {.idx = first + 2, .lo = 435, .hi = 450, .speed = 0.25, .name = "sub-landing"}
     };
 }
 

@@ -443,7 +443,7 @@ Blessing Gun → Skunk ★
 - Each ally takes ladders their own way: Xiao leaps, Goro hops, Ruby floats, Osmond flies and Ungaga refuses. [#14](https://github.com/Tororoi/Chronicle-Expanded/pull/14)
 - Xiao's cat sits when she stands still in town, and gets up as soon as she moves. [#295](https://github.com/Tororoi/Chronicle-Expanded/pull/295)
 - Every ally can board East Harbor's submarine, each with a jump of their own: Xiao, Goro and Osmond leap in as they jump down ladders, and Ruby and Ungaga jump in as Toan does. [#296](https://github.com/Tororoi/Chronicle-Expanded/pull/296)
-- An ally who takes the submarine stays themselves for the trip, climbing out of its hatch their own way at the Sunken Ship and back at East Harbor. [#297](https://github.com/Tororoi/Chronicle-Expanded/pull/297)
+- An ally who takes the submarine stays themselves for the trip, and at the Sunken Ship and back at East Harbor comes up out of its hatch as they take a ladder up: Xiao leaps, Goro hops, Ruby floats, Osmond flies and Ungaga jumps. [#297](https://github.com/Tororoi/Chronicle-Expanded/pull/297)
 
 ## Fishing
 

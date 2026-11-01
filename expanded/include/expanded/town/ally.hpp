@@ -4,6 +4,10 @@
 
 #include "dataalloc_fwd.hpp"
 
+namespace dc::game {
+class CActionSeq;
+} // namespace dc::game
+
 namespace expanded {
 
 // The body a party member walks the town in, and its draw tweaks.
@@ -52,34 +56,44 @@ void TownAllyWalk();
 void TownAllyEventBody();
 
 // The submarine between East Harbor and the Sunken Ship: each end's boarding and arrival load Toan's jump into the hatch
-// and climb out of it (kBoardingCfgs) for the player. An ally in a built body keeps it, and the event's KEYs 200-203
-// (takeoff, air, landing, the climb out) play the ally's own (kBoardingMotions: slot and speed, or -1 for the event's):
-// its ladder leaps, or Toan's jump retargeted onto it. The ally rides the submarine to the other end (kSubmarineMaps).
+// and climb out of it (kBoardingCfgs) for the player. An ally in a built body keeps it, rides the submarine to the other
+// end (kSubmarineMaps), and plays its own: for the jump in, KEYs 200-202 (takeoff, air, landing) become the ally's
+// (kBoardingMotions: slot and speed, or -1 for the event's), its ladder leap or Toan's jump retargeted onto it; for the
+// climb out, KEY 203, the ally takes a ladder up out of the hatch to where Toan would stand (TownHatchClimb).
 inline constexpr const char *kBoardingCfgs[] = {"e202c01d.cfg", "e203c01d.cfg"};
 inline constexpr const char *kBoardingCfg = kBoardingCfgs[0];
 inline constexpr int         kSubmarineRide = 39;                         // the ride between, its script all the map does
 inline constexpr int         kSubmarineMaps[] = {19, 35, kSubmarineRide}; // East Harbor, the Sunken Ship Entrance, the ride
 inline constexpr int         kBoardingFirstMotion = 200;
+inline constexpr int         kClimbOutMotion = 203;
 
 struct BoardingMotion {
     int   motion;
     float speed;
 };
 
-inline constexpr BoardingMotion kBoardingMotions[6][4] = {
+inline constexpr BoardingMotion kBoardingMotions[6][3] = {
     {},
-    {{11, -1.0f}, {8, -1.0f}, {9, -1.0f}, {12, -1.0f}}, // Xiao: the crouch, the leap, the landing; out, the leap up
-    {{13, -1.0f}, {8, -1.0f}, {9, -1.0f}, {11, -1.0f}}, // Goro: down into the crouch, the fall, the landing; out, a hop
-    {{13, -1.0f}, {14, -1.0f}, {15, -1.0f}, {16, -1.0f}}, // Ruby: Toan's jump and climb
-    {{11, -1.0f}, {12, -1.0f}, {13, -1.0f}, {14, -1.0f}}, // Ungaga: Toan's jump and climb
-    {{11, -1.0f}, {8, -1.0f}, {9, 0.30f}, {9, 0.30f}}, // Osmond: the dive, the fall, the landing; out, the landing
+    {{11, -1.0f}, {8, -1.0f}, {9, -1.0f}}, // Xiao: the crouch, the leap, the landing
+    {{13, -1.0f}, {8, -1.0f}, {9, -1.0f}}, // Goro: down into the crouch, the fall, the landing
+    {{13, -1.0f}, {14, -1.0f}, {15, -1.0f}}, // Ruby: Toan's jump
+    {{11, -1.0f}, {12, -1.0f}, {13, -1.0f}}, // Ungaga: Toan's jump
+    {{11, -1.0f}, {8, -1.0f}, {9, 0.30f}}, // Osmond: the dive, the fall, the landing
 };
 
 // _LOAD_CHARA of cfg for the player: true when the ally keeps its body (the boarding), which skips the load.
 bool TownAllyKeepsBody(const char *cfg);
 
-// An event's motion for the player through the boarding: the ally's own, its speed set where the table gives one.
-void TownAllyEventMotion(int &motion, float &speed);
+// An event's motion for the player through the boarding: the ally's own, its speed set where the table gives one. True
+// for the climb out, which queues no motion: the climb starts once the sequence has taken its place at the hatch.
+bool TownAllyEventMotion(int &motion, float &speed);
+
+// Each event frame, for each action sequence after it plays: the climb out of the hatch, from the bottom of the hatch
+// to where the player's sequence stands, a frame of it a call.
+void TownAllyClimbStep(dc::game::CActionSeq &sequence);
+
+// Whether the player's sequence is still climbing out (an _ASQ_CHECK of it is not done).
+bool TownAllyClimbing(const dc::game::CActionSeq &sequence);
 
 // Points a script's load of Toan's town body at the current party member's.
 void TownAllyMainCharaPack(char **pack, char **info, CDataAlloc2<1> *arena);

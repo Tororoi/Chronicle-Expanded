@@ -7228,8 +7228,8 @@ int asq_motion_play(int mode, RS_STACKDATA *stack, int argument_count) {
 
     flags &= 4;
 #ifdef CHRONICLE_EXPANDED
-    if (sequence->character == EdEventInfo.main_character) {
-        expanded::TownAllyEventMotion(motion, speed);
+    if (sequence->character == EdEventInfo.main_character && expanded::TownAllyEventMotion(motion, speed)) {
+        return 1;
     }
 #endif
     sequence->MotionSeq(motion, mode, speed, flags);
@@ -7307,6 +7307,9 @@ int _ASQ_CHECK(RS_STACKDATA *stack, int argument_count) {
     }
 
     int end = sequence->CheckEnd();
+#ifdef CHRONICLE_EXPANDED
+    end = end && !expanded::TownAllyClimbing(*sequence);
+#endif
     SetStack(stack++, ((end != 0) ^ 1) & 0xFF);
     return 1;
 }
@@ -9095,6 +9098,9 @@ int EdEventMode(CCameraFollow *camera, int kind) {
 
     for (auto &sequence : ActSeq) {
         sequence.Play();
+#ifdef CHRONICLE_EXPANDED
+        expanded::TownAllyClimbStep(sequence);
+#endif
     }
 
     for (auto &anime : obj_anime) {

@@ -435,6 +435,30 @@ void RubyLadder(Builder &b, const Ladder &ladder) {
     b.Wait(20);
 }
 
+// Ungaga's boarding jump (town_allies.cpp): its takeoff, air and landing slots.
+constexpr int kUngagaTakeoff = 11, kUngagaAir = 12, kUngagaLanding = 13;
+
+// Ungaga out of the hatch: his boarding jump's crouch and spring, up over the rim, and its landing on the deck.
+void UngagaHatchJump(Builder &b, const Ladder &ladder) {
+    constexpr float kGravity = 0.10f;
+    constexpr float kApex = 4.0f;
+    Jump            jump;
+    jump.ready_motion = kUngagaTakeoff;
+    jump.ready_frames = 32; // his takeoff's crouch, at 0.25 a frame
+    jump.ready_flags = kPlayOnce;
+    jump.launch_motion = kUngagaAir;
+    jump.air_motion = kUngagaAir;
+    jump.gravity = kGravity;
+    jump.vy = std::sqrt(2.0f * kGravity * (ladder.height + kApex));
+    jump.frames = std::clamp(static_cast<int>(std::ceil(jump.vy / kGravity + std::sqrt(2.0f * kApex / kGravity))), 20, 90);
+    jump.vx = (ladder.target[0] - ladder.mount[0]) / jump.frames;
+    jump.vz = (ladder.target[2] - ladder.mount[2]) / jump.frames;
+    jump.land_motion = kUngagaLanding;
+    jump.land_lead = 4;
+    jump.land_frames = 60;
+    Leap(b, ladder, jump);
+}
+
 // The ladder refusal in slot 7, played where the player stands.
 void Refusal(Builder &b, int ally) {
     int frames = ally == CHARA_XIAO ? 175 : ally == CHARA_GORO ? 65
@@ -474,6 +498,52 @@ TownLadder TownLadderSequence(int ally, const float position[3], float yaw, cons
     } else if (ally >= CHARA_XIAO && ally <= CHARA_UNGAGA) {
         Refusal(b, ally);
     }
+    return b.sequence;
+}
+
+TownLadder TownHatchClimb(int ally, const float top[3], float yaw) {
+    // The hatch's ladder: as far behind where it ends as Toan's climb out (KEY 203) starts him, and deep enough that an
+    // ally as tall as Ungaga starts out of sight.
+    constexpr float kDepth = 25.0f;
+    constexpr float kBack = 7.7f;
+    Ladder          ladder{};
+    float           s = std::sin(yaw);
+    float           c = std::cos(yaw);
+    ladder.mount[0] = top[0] - s * kBack;
+    ladder.mount[1] = top[1] - kDepth;
+    ladder.mount[2] = top[2] - c * kBack;
+    std::copy_n(top, 3, ladder.target);
+    ladder.x = ladder.mount[0];
+    ladder.y = ladder.mount[1];
+    ladder.z = ladder.mount[2];
+    ladder.yaw = yaw;
+    ladder.height = top[1] + kLandMargin - ladder.y;
+    ladder.yaw_ladder = yaw;
+    ladder.face = yaw;
+    ladder.align_frames = kAlignMin;
+
+    Builder b(ladder);
+    if (ally == CHARA_XIAO) {
+        XiaoLadder(b, ladder);
+    } else if (ally == CHARA_GORO) {
+        GoroLadder(b, ladder);
+    } else if (ally == CHARA_RUBY) {
+        RubyLadder(b, ladder);
+    } else if (ally == CHARA_OSMOND) {
+        OsmondLadder(b, ladder);
+    } else if (ally == CHARA_UNGAGA) {
+        UngagaHatchJump(b, ladder);
+    } else {
+        return {};
+    }
+    // Where the town would land the player, which no event does: down onto the deck.
+    if (b.y != top[1]) {
+        b.Snap(top);
+        b.Motion(kLand);
+        b.Wait(30);
+    }
+    b.Motion(kIdle, -1.0f, 0);
+    b.Frame();
     return b.sequence;
 }
 
