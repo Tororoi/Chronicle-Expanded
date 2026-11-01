@@ -39,14 +39,14 @@ bool QuickDrawSphere() {
 void QuickDrawSwing(CCharacter &chara) {
     float &time = chara.motion_type.state.time;
     // The Sand Breaker's counter swing (sand_breaker.hpp) jumps so too.
-    if (BtActStatus.action_no == kToanFirstSwing && time >= kSwingSteppedIn && time < kToanFirstSwingTrail && (QuickDrawSword() || SandCountering())) {
+    if (BtActStatus.action_no == kToanFirstSwing && time >= kSwingSteppedIn && time < kToanFirstSwingTrail && (QuickDrawSword() || RoughCountering())) {
         time = kToanFirstSwingTrail;
     }
 }
 
 void QuickDrawShot(CCharacter &chara, int aimed) {
     // The Sand Breaker's counter shot fires so too, the button held or not.
-    bool counter = SandCountering();
+    bool counter = RoughCountering();
     if (aimed != 0 || (BtActStatus.action_no != kXiaoDraw && BtActStatus.action_no != kXiaoHold) || (GamePad.On(PadInput_OK) != 0 && !counter) ||
         !(QuickDrawSphere() || counter)) {
         return;

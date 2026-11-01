@@ -4513,7 +4513,7 @@ void SpawnShot(sceVu0FVECTOR world, sceVu0FVECTOR vector, int damage) {
 
 void BattleActionOn_Jinn() {
 #ifdef CHRONICLE_EXPANDED
-    expanded::SandCounterPress();
+    expanded::RoughCounterPress();
 #endif
     if (BtActStatus.action_on == 0 && static_cast<s32>(BtActStatus.action_gauge) == 100) {
         BtActStatus.action_step = 0;
@@ -4535,7 +4535,7 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
 #endif
     float now = chara->motion_type.state.time;
 #ifdef CHRONICLE_EXPANDED
-    int damage = expanded::SandCounterAttack(NowWeaponHave->attack);
+    int damage = expanded::RoughCounterAttack(NowWeaponHave->attack);
 #else
     int   damage = NowWeaponHave->attack;
 #endif

@@ -179,19 +179,19 @@ void DungeonShotsDrawn() {
 }
 
 bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
-    return PlayerHitSkipped(hit) || SandCounterPassesBy(hit);
+    return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit);
 }
 
 void PlayerHitReached(COLLISION_HIT &hit) {
     BreakFreeze(&hit);
-    SandCounterHit(hit);
+    RoughCounterHit(hit);
     DivineGuardHit(hit);
     HerosCourageHit(hit);
 }
 
 void PlayerHitReacted(bool blocked, const COLLISION_HIT &hit) {
     DivineGuardBlocked(blocked);
-    SandCounterBlocked(blocked, hit);
+    RoughCounterBlocked(blocked, hit);
 }
 
 void DungeonMonstersCleared(bool drop_stars) {
@@ -212,7 +212,7 @@ void DungeonMonstersCleared(bool drop_stars) {
 void DungeonMonstersTick() {
     MonsterStepClockAdvance();
     angel_gear::TrackReturns();
-    SandCounterStep();
+    RoughCounterStep();
     OwnSoundsStep();
     ConfuseTick();
     CurseStep();

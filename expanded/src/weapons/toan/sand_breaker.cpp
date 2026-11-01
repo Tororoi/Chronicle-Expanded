@@ -44,27 +44,27 @@ bool CounterAction(int action) {
 
 } // namespace
 
-bool SandCounterActive() {
+bool RoughCounterActive() {
     return (Playing(CHARA_TOAN) || Playing(CHARA_XIAO)) && WeaponActive(ITEM_WEAPON_SAND_BREAKER);
 }
 
-int SandCounterReady() {
+int RoughCounterReady() {
     return ready;
 }
 
-bool SandCountering() {
+bool RoughCountering() {
     return countering;
 }
 
-void SandCounterPress() {
-    if (BtActStatus.action_on == kGuardAction && SandCounterActive()) {
+void RoughCounterPress() {
+    if (BtActStatus.action_on == kGuardAction && RoughCounterActive()) {
         ready = kCounterWindow;
     }
 }
 
-void SandCounterStep() {
+void RoughCounterStep() {
     // No blow caught in time: the press is the swing it would have been out of the guard, wind-up and all.
-    if (ready > 0 && --ready == 0 && BtActStatus.action_on == kGuardAction && SandCounterActive()) {
+    if (ready > 0 && --ready == 0 && BtActStatus.action_on == kGuardAction && RoughCounterActive()) {
         BtActStatus.action_on = 0;
         Attack();
     }
@@ -73,16 +73,16 @@ void SandCounterStep() {
     }
 }
 
-void SandCounterHit(COLLISION_HIT &hit) {
+void RoughCounterHit(COLLISION_HIT &hit) {
     // The game has taken him out of his guard by now; a counter is readied only in it, and the reaction says whether the
     // guard stopped the blow.
-    caught = ready > 0 && SandCounterActive();
+    caught = ready > 0 && RoughCounterActive();
     if (caught && hit.kind == kGuardBreakingHit) {
         hit.kind = kKnockbackHit;
     }
 }
 
-void SandCounterBlocked(bool blocked, const COLLISION_HIT &hit) {
+void RoughCounterBlocked(bool blocked, const COLLISION_HIT &hit) {
     if (!caught) {
         return;
     }
@@ -131,11 +131,11 @@ void SandCounterBlocked(bool blocked, const COLLISION_HIT &hit) {
     countering = true; // Quick Draw's jump past the wind-up (small_sword.hpp)
 }
 
-bool SandCounterPassesBy(const COLLISION_HIT &hit) {
+bool RoughCounterPassesBy(const COLLISION_HIT &hit) {
     return countering && countered >= 0 && confuse::Attacker(hit) == countered;
 }
 
-int SandCounterAttack(int attack) {
+int RoughCounterAttack(int attack) {
     return countering ? static_cast<int>(static_cast<float>(attack) * kCounterDamage) : attack;
 }
 

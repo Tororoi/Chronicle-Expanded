@@ -61,7 +61,7 @@ void basic_damage(int kind, int owner) {
 
 void ToanKey_On() {
 #ifdef CHRONICLE_EXPANDED
-    expanded::SandCounterPress();
+    expanded::RoughCounterPress();
 #endif
     if (BtActStatus.special_cooldown > 0) {
         return;
@@ -112,7 +112,7 @@ void ToanKey_Play() {
 #endif
     float time = CharaMain.motion_type.state.time;
 #ifdef CHRONICLE_EXPANDED
-    int damage = expanded::SandCounterAttack(expanded::SpringsBlessingAttack(NowWeaponHave->attack));
+    int damage = expanded::RoughCounterAttack(expanded::SpringsBlessingAttack(NowWeaponHave->attack));
 #else
     int   damage = NowWeaponHave->attack;
 #endif
