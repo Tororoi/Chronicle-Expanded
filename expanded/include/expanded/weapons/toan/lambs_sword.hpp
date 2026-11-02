@@ -1,8 +1,10 @@
 #pragma once
 
 namespace dc::game {
+class CCharacter;
 class CMonstorUnit;
 struct COLLISION_HIT;
+struct WEAPON_HAVE;
 } // namespace dc::game
 
 namespace expanded {
@@ -35,5 +37,14 @@ bool PackHitPassesBy(const COLLISION_HIT &hit);
 
 // A monster's hit has been reacted to: in lamb form, a wolf's blow the guard stopped wears the weapon.
 void LambGuardBlocked(bool blocked, const COLLISION_HIT &hit);
+
+// Whether the weapon record is the Lamb's Sword, or Super Steve carrying its SynthSphere; and whether it is in its wolf
+// form (kLambSwordThreshold of its WHP or below).
+bool LambWeapon(const WEAPON_HAVE &weapon);
+bool LambWolfForm(const WEAPON_HAVE &weapon);
+
+// Hook: MenuWeaponSpSet, a weapon's model shown in its form: Super Steve (his pack as wolf_steve.hpp builds it) as Steve,
+// or with a Lamb's Sword SynthSphere in its wolf form as Wolf Steve. Nothing for a pack without the wolf's frames.
+void WolfSteveShow(CCharacter *chara, const WEAPON_HAVE &weapon);
 
 } // namespace expanded

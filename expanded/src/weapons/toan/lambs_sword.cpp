@@ -2,8 +2,10 @@
 
 #include <cmath>
 
+#include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/data/wolf_steve.hpp"
 #include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_queries.hpp"
@@ -12,6 +14,7 @@
 #include "expanded/weapons/stats.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/wear.hpp"
+#include "frame.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 
@@ -87,6 +90,31 @@ bool PackTarget(CMonstorUnit &unit, int slot, float *position) {
 
 bool PackHitPassesBy(const COLLISION_HIT &hit) {
     return NowMonstorUnit != nullptr && PackWolf(*NowMonstorUnit, confuse::Attacker(hit));
+}
+
+bool LambWeapon(const WEAPON_HAVE &weapon) {
+    return weapon.item_no == ITEM_WEAPON_LAMB_S_SWORD || (weapon.item_no == ITEM_WEAPON_SUPER_STEVE && CarriesWeapon(weapon, ITEM_WEAPON_LAMB_S_SWORD));
+}
+
+bool LambWolfForm(const WEAPON_HAVE &weapon) {
+    return weapon.durability_f <= kLambSwordThreshold * weapon.durability;
+}
+
+void WolfSteveShow(CCharacter *chara, const WEAPON_HAVE &weapon) {
+    if (chara == nullptr || chara->frame == nullptr || weapon.item_no != ITEM_WEAPON_SUPER_STEVE) {
+        return;
+    }
+    bool wolf = LambWeapon(weapon) && LambWolfForm(weapon);
+    for (auto [name, shown] : {
+             std::pair{kSteveParts, !wolf},
+             std::pair{kSteveHands, !wolf},
+             std::pair{kWolfParts,  wolf },
+             std::pair{kWolfHands,  wolf }
+    }) {
+        if (CFrame *frame = chara->frame->SearchFrame(const_cast<char *>(name))) {
+            frame->attr.draw_on = shown ? 1 : 2;
+        }
+    }
 }
 
 void LambGuardBlocked(bool blocked, const COLLISION_HIT &hit) {

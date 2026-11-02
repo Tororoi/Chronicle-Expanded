@@ -116,3 +116,17 @@ TEST_F(Pack, AWolfsBlowPassesThePlayerBy) {
     Whp(80.0f);
     EXPECT_FALSE(expanded::PackHitPassesBy(Blow(0))); // lamb form: the wolves are the floor's again
 }
+
+// Super Steve carrying a Lamb's Sword SynthSphere turns as the sword does, by his own WHP (Wolf Steve).
+TEST(LambsSword, SuperSteveCarryingItsSphereTurnsByHisWhp) {
+    expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_LAMB_S_SWORD);
+    steve.weapon().durability = 60;
+    steve.weapon().durability_f = 30.0f;
+    EXPECT_TRUE(expanded::LambWeapon(steve.weapon()));
+    EXPECT_TRUE(expanded::LambWolfForm(steve.weapon()));
+    EXPECT_TRUE(expanded::PackLeaderWolf());
+    steve.weapon().durability_f = 31.0f;
+    EXPECT_FALSE(expanded::LambWolfForm(steve.weapon()));
+    expanded::test::Wielding plain(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_DAGGER);
+    EXPECT_FALSE(expanded::LambWeapon(plain.weapon()));
+}
