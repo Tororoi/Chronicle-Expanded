@@ -12,6 +12,7 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/confuse_state.hpp"
+#include "expanded/weapons/toan/lambs_sword.hpp"
 #include "hitmark.hpp"
 #include "hitvalue.hpp"
 #include "mathutil.hpp"
@@ -145,8 +146,12 @@ int ConfuseFriendlyHit(CMonstorUnit &unit, int victim, const float *position, fl
         if (attacker < 0 || attacker == victim || !InPlay(unit, attacker)) {
             continue;
         }
-        // A confused monster hurts any other; a provoked one only the monster it goes after.
-        if (!Confused(unit, attacker) && Provoker(unit, attacker) != victim) {
+        // A confused monster hurts any other, a pack wolf any but another wolf of the pack; a provoked one only the
+        // monster it goes after.
+        if (!Turned(unit, attacker) && Provoker(unit, attacker) != victim) {
+            continue;
+        }
+        if (PackWolf(unit, attacker) && PackWolf(unit, victim)) {
             continue;
         }
         if (state.contact[attacker][victim] != 0 && state.tick - state.contact[attacker][victim] < kContactSteps) {
@@ -175,7 +180,7 @@ void ConfuseLanded(CMonstorUnit &unit, int hit, int victim) {
     } else {
         std::fprintf(stderr, "confuse: monster %d hits monster %d\n", attacker, victim);
     }
-    if (!Confused(unit, attacker)) {
+    if (!Turned(unit, attacker)) {
         return;
     }
     // The victim remembers it, most recent first.
@@ -191,7 +196,7 @@ void ConfuseLanded(CMonstorUnit &unit, int hit, int victim) {
         list[i] = list[i - 1];
     }
     list[0] = attacker;
-    if (!Confused(unit, victim) && Provoker(unit, victim) == attacker) {
+    if (!Turned(unit, victim) && Provoker(unit, victim) == attacker) {
         std::fprintf(stderr, "confuse: monster %d turns on monster %d\n", victim, attacker);
     }
 }

@@ -15,6 +15,7 @@
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/confuse_state.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/weapons/toan/lambs_sword.hpp"
 #include "monstorunit.hpp"
 
 namespace expanded {
@@ -184,6 +185,9 @@ bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {
     if (slot < 0 || slot >= kFloorMonsters || State().unit != &unit) {
         return false;
     }
+    if (PackTarget(unit, slot, position)) {
+        return true;
+    }
     sceVu0FVECTOR self;
     Position(unit, slot, self);
     if (Confused(unit, slot)) {
@@ -220,6 +224,9 @@ bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position) {
 int ConfuseTargetMonster(const CMonstorUnit &unit, int slot) {
     if (slot < 0 || slot >= kFloorMonsters || State().unit != &unit) {
         return -1;
+    }
+    if (PackWolf(unit, slot)) {
+        return PackPrey(const_cast<CMonstorUnit &>(unit), slot);
     }
     if (Confused(unit, slot)) {
         int target = State().target[slot];

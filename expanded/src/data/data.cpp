@@ -16,6 +16,7 @@
 #include "expanded/data/script_damage.hpp"
 #include "expanded/data/spirit_cat.hpp"
 #include "expanded/data/town_model.hpp"
+#include "expanded/data/wolf_steve.hpp"
 
 namespace expanded {
 
@@ -39,6 +40,7 @@ const DataKind kDataKinds[] = {
     {"fishing spot", FishingSpotBuilds},
     {"fishing pose", FishingPoseBuilds},
     {"queens canal", QueensCanalBuilds},
+    {"weapon model", WolfSteveBuilds},
 };
 
 } // namespace

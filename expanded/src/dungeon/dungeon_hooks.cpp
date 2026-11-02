@@ -50,13 +50,14 @@
 #include "expanded/weapons/toan/atlamillia_sword.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
-#include "expanded/weapons/toan/claymore.hpp"
 #include "expanded/weapons/toan/choora.hpp"
+#include "expanded/weapons/toan/claymore.hpp"
 #include "expanded/weapons/toan/cross_hinder.hpp"
 #include "expanded/weapons/toan/dark_cloud.hpp"
 #include "expanded/weapons/toan/dusack.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
 #include "expanded/weapons/toan/heavens_cloud.hpp"
+#include "expanded/weapons/toan/lambs_sword.hpp"
 #include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/maneater.hpp"
 #include "expanded/weapons/toan/sand_breaker.hpp"
@@ -179,7 +180,7 @@ void DungeonShotsDrawn() {
 }
 
 bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
-    return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit);
+    return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit) || PackHitPassesBy(hit);
 }
 
 void PlayerHitReached(COLLISION_HIT &hit) {
@@ -191,6 +192,7 @@ void PlayerHitReached(COLLISION_HIT &hit) {
 
 void PlayerHitReacted(bool blocked, const COLLISION_HIT &hit) {
     DivineGuardBlocked(blocked);
+    LambGuardBlocked(blocked, hit);
     RoughCounterBlocked(blocked, hit);
 }
 
@@ -248,6 +250,7 @@ void DungeonMonstersTick() {
 
 void DungeonMonstersStepped(int pause) {
     PocklekulStep(pause);
+    PackStep(pause);
     AllyStep(pause);
 }
 

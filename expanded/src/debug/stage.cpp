@@ -244,6 +244,7 @@ constexpr Key kKeys[] = {
     {"character",    [](std::string_view v, Stage &s) { return Character(v, s.character); }                  },
     {"weapon",       [](std::string_view v, Stage &s) { return Count(v, s.weapon); }                         },
     {"attack",       [](std::string_view v, Stage &s) { return Count(v, s.attack); }                         },
+    {"whp",          [](std::string_view v, Stage &s) { return Count(v, s.whp); }                            },
     {"sphere",       [](std::string_view v, Stage &s) { return Count(v, s.sphere); }                         },
     {"seed",         [](std::string_view v, Stage &s) { return Number(v, s.seed) && s.seed >= 0; }           },
     {"place",        [](std::string_view v, Stage &s) { return Count(v, s.place); }                          },
@@ -273,14 +274,17 @@ bool Set(std::string_view key, std::string_view value, Stage &stage) {
     return false;
 }
 
-// Puts weapon_no in the hand of chara at its maximum attack, or at attack.
-void Arm(int chara, int weapon_no, int attack) {
+// Puts weapon_no in the hand of chara at its maximum attack, or at attack, with whp of its WHP left (its full WHP at -1).
+void Arm(int chara, int weapon_no, int attack, int whp) {
     WEAPON_HAVE *weapon = EquippedWeapon(*UserStatus, chara);
     if (weapon == nullptr) {
         return;
     }
     WepDataListToHaveCopy(weapon_no, weapon);
     weapon->attack = attack >= 0 ? attack : GetWeaponData(weapon_no)->attack_max;
+    if (whp >= 0) {
+        weapon->durability_f = static_cast<float>(std::min(whp, static_cast<int>(weapon->durability)));
+    }
 }
 
 void SetPlayerAt(float x, float z) {
@@ -571,10 +575,10 @@ void StageStatusReady() {
     }
     int chara = active->character >= 0 ? active->character : CHARA_TOAN;
     if (active->weapon >= 0) {
-        Arm(chara, active->weapon, active->attack);
+        Arm(chara, active->weapon, active->attack, active->whp);
     }
     if (active->sphere >= 0) {
-        Arm(CHARA_XIAO, ITEM_WEAPON_SUPER_STEVE, active->attack);
+        Arm(CHARA_XIAO, ITEM_WEAPON_SUPER_STEVE, active->attack, active->whp);
         if (WEAPON_HAVE *steve = EquippedWeapon(*UserStatus, CHARA_XIAO); steve != nullptr) {
             steve->attach[0].item_no = ITEM_ATTACH_SYNTHESIS_SPHERE;
             steve->attach[0].sphere_weapon_no = static_cast<s16>(active->sphere);

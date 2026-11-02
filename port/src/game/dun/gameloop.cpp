@@ -104,6 +104,7 @@
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/stats.hpp"
+#include "expanded/weapons/toan/lambs_sword.hpp"
 #include "expanded/weapons/toan/sand_breaker.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 #endif
@@ -3528,7 +3529,12 @@ void SwordDmgCheck1(float amount, int kind) {
     int broke = BattleSubWeaponDmg(amount, kind);
 
     // The Chronicle sword says so once, as its durability crosses a fifth.
+#ifdef CHRONICLE_EXPANDED
+    // Super Steve carrying its SynthSphere turns as the Lamb's Sword does (Wolf Steve).
+    if (expanded::LambWeapon(*weapon) && weapon->durability_f <= warn && was >= warn) {
+#else
     if (weapon->item_no == ITEM_WEAPON_LAMB_S_SWORD && weapon->durability_f <= warn && was >= warn) {
+#endif
         SetWeaponAttachStatus(NowWeaponHave);
         DngMessMan.message = 0xB8;
         DngMessMan.timer = 0xF0;
@@ -4250,7 +4256,8 @@ int BtCheckDamageProc() {
             }
 
 #ifdef CHRONICLE_EXPANDED
-            expanded::PlayerHitReacted(blown != 0 && (hit->kind == 2 || hit->kind == 4), *hit);
+            // Blocked: a knockback by the guard, or a guard-breaking hit by its hold.
+            expanded::PlayerHitReacted((blown != 0 && (hit->kind == 2 || hit->kind == 4)) || (hit->kind == 3 && BtActStatus.action_no == 9), *hit);
 #endif
         }
     }

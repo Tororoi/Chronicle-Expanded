@@ -140,8 +140,13 @@ int LoadFileBG(char *name, u_long128 *buffer, int *out_size) {
     if (reinterpret_cast<std::uintptr_t>(buffer) % 64 != 0) {
         printf("/*/*/*/*/not 64byte align at %p %s\n", static_cast<void *>(buffer), name);
     }
-    int size = 0;
-    if (!DataReadLoadFile(name, buffer, &size)) {
+    int              size = 0;
+    std::string_view source = name;
+#ifdef CHRONICLE_EXPANDED
+    const std::string rebuilt = expanded::DiscFile(name);
+    source = rebuilt;
+#endif
+    if (!DataReadLoadFile(source, buffer, &size)) {
         return 0;
     }
     Localized(name, buffer, &size);

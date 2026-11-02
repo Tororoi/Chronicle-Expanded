@@ -53,6 +53,7 @@
 #include "expanded/status/confuse.hpp"
 #include "expanded/weapons/abilities.hpp"
 #include "expanded/weapons/stats.hpp"
+#include "expanded/weapons/toan/lambs_sword.hpp"
 #endif
 
 namespace dc::game {
@@ -510,6 +511,9 @@ void MenuWeaponSpSet(CCharacter *chara, WEAPON_HAVE *weapon) {
     if (chara == nullptr || weapon == nullptr) {
         return;
     }
+#ifdef CHRONICLE_EXPANDED
+    expanded::WolfSteveShow(chara, *weapon);
+#endif
 
     if (weapon->item_no != ITEM_WEAPON_LAMB_S_SWORD) {
         return;

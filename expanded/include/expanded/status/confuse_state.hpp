@@ -52,6 +52,9 @@ bool InPlay(const CMonstorUnit &unit, int slot);
 // A confused monster in play.
 bool Confused(const CMonstorUnit &unit, int slot);
 
+// A monster in play turned on the others: confused, or running with the player (the Lamb's Sword's pack).
+bool Turned(const CMonstorUnit &unit, int slot);
+
 // The last still-confused monster to hit an unconfused monster, or -1.
 int Provoker(const CMonstorUnit &unit, int slot);
 
