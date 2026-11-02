@@ -5,6 +5,7 @@
 #include "expanded/weapons/kitchen_knife_shot.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
+#include "expanded/weapons/toan/serpent_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/ungaga/babels_spear.hpp"
 #include "expanded/weapons/ungaga/hercules_wrath.hpp"
@@ -35,6 +36,7 @@ void CharacterLight(const CCharacter &character, float *ambient) {
     AirStrikeLight(character, ambient);
     BigRockLight(character, ambient);
     CurseOfBabelLight(character, ambient);
+    SnakeCharmerLight(character, ambient);
 }
 
 } // namespace expanded

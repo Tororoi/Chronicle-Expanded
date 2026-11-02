@@ -9,6 +9,7 @@
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/character_light.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/weapons/player_state.hpp"
@@ -39,7 +40,6 @@ std::vector<MOTION_INFO> g_clips = {
     {.start = 176, .end = 260, .speed = 0.2f },
 };
 constexpr int kAppearSteps = 100; // (155 - 135) / 0.2
-constexpr int kHissSteps = 60;    // (92 - 86) / 0.1
 
 CFrameVu1                g_snake_frame;
 std::vector<std::string> g_loaded;
@@ -207,42 +207,76 @@ TEST_F(SerpentSword, MonstersBackAwayUntilPastTheCalmRadius) {
     EXPECT_FLOAT_EQ(Target(0)[2], 0.0f);
 }
 
-TEST_F(SerpentSword, TheHeadAppearsIdlesAndHisses) {
+TEST_F(SerpentSword, TheHeadFadesInAndOutWithTheGuard) {
+    Put({Monster::WEREWOLF});
+    At(0, 0.0f, 200.0f);
+    Guard(true);
+    for (int step = 1; step <= expanded::kSnakeFadeSteps; step++) {
+        expanded::SnakeCharmerStep();
+        EXPECT_NEAR(expanded::SnakeCharmerShown(), static_cast<float>(step) / expanded::kSnakeFadeSteps, 1e-5f) << step;
+    }
+    // It glows white as it shows, and others do not.
+    CCharacter *head = expanded::EnterFloorCharacter(expanded::kKillerSnakeFile, expanded::kKillerSnakeCfg);
+    ASSERT_NE(head, nullptr);
+    float ambient[4] = {};
+    expanded::CharacterLight(*head, ambient);
+    EXPECT_FLOAT_EQ(ambient[0], expanded::kSnakeGlow);
+    CCharacter other;
+    float      none[4] = {};
+    expanded::CharacterLight(other, none);
+    EXPECT_FLOAT_EQ(none[0], 0.0f);
+    // Down with the guard it fades out as long, the monsters free of it at once.
+    Guard(false);
+    for (int step = expanded::kSnakeFadeSteps - 1; step >= 0; step--) {
+        expanded::SnakeCharmerStep();
+        EXPECT_FALSE(expanded::SnakeCharmerUp());
+        EXPECT_NEAR(expanded::SnakeCharmerShown(), static_cast<float>(step) / expanded::kSnakeFadeSteps, 1e-5f) << step;
+    }
+    float after[4] = {};
+    expanded::CharacterLight(*head, after);
+    EXPECT_FLOAT_EQ(after[0], 0.0f);
+}
+
+TEST_F(SerpentSword, TheHeadAppearsThenOpensItsMouthNowAndThen) {
     Put({Monster::WEREWOLF});
     At(0, 0.0f, 200.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
     CCharacter *head = expanded::EnterFloorCharacter(expanded::kKillerSnakeFile, expanded::kKillerSnakeCfg);
     ASSERT_NE(head, nullptr);
-    // Its appearance played through, then the idle.
-    for (int step = 1; step < kAppearSteps; step++) {
-        ASSERT_EQ(head->motion_no, expanded::kSnakeAppear) << step;
-        expanded::SnakeCharmerStep();
-    }
+    // The appearance, held on its last frame from then on.
     EXPECT_EQ(head->motion_no, expanded::kSnakeAppear);
+    EXPECT_NE(head->motion_flags & 2, 0);
+    for (int step = 1; step < kAppearSteps + 2 * expanded::kSnakeMouthPeriod; step++) {
+        expanded::SnakeCharmerStep();
+        ASSERT_EQ(head->motion_no, expanded::kSnakeAppear) << step;
+    }
+    // The mouth shut after the appearance until its cycle comes round, then open, held and shut again.
+    for (int step = 0; step < expanded::kSnakeMouthPeriod; step++) {
+        expanded::SnakeCharmerStep();
+        if (expanded::SnakeCharmerMouth() > 0.99f) {
+            break;
+        }
+    }
+    ASSERT_GT(expanded::SnakeCharmerMouth(), 0.99f);
+    for (int step = 0; step < expanded::kSnakeMouthHold + expanded::kSnakeMouthEase; step++) {
+        expanded::SnakeCharmerStep();
+    }
+    EXPECT_LT(expanded::SnakeCharmerMouth(), 0.01f);
+    // A monster coming near opens it at once.
     expanded::SnakeCharmerStep();
-    EXPECT_EQ(head->motion_no, expanded::kSnakeIdle);
-    // A hiss when a monster comes near, played through.
     At(0, 0.0f, 50.0f);
-    expanded::SnakeCharmerStep();
-    EXPECT_EQ(head->motion_no, expanded::kSnakeHiss);
-    for (int step = 1; step < kHissSteps; step++) {
+    for (int step = 0; step < expanded::kSnakeMouthEase; step++) {
         expanded::SnakeCharmerStep();
-        ASSERT_EQ(head->motion_no, expanded::kSnakeHiss) << step;
     }
-    expanded::SnakeCharmerStep();
-    EXPECT_EQ(head->motion_no, expanded::kSnakeIdle);
-    // And now and then: after kSnakeHissPeriod steps of the idle (the one it came back on the first).
-    for (int step = 2; step < expanded::kSnakeHissPeriod; step++) {
-        expanded::SnakeCharmerStep();
-        ASSERT_EQ(head->motion_no, expanded::kSnakeIdle) << step;
-    }
-    expanded::SnakeCharmerStep();
-    EXPECT_EQ(head->motion_no, expanded::kSnakeHiss);
-    // Down with the guard, up again with its appearance.
+    EXPECT_GT(expanded::SnakeCharmerMouth(), 0.99f);
+    // Gone with the guard, up again with its appearance.
     Guard(false);
-    expanded::SnakeCharmerStep();
+    for (int step = 0; step < expanded::kSnakeFadeSteps; step++) {
+        expanded::SnakeCharmerStep();
+    }
     Guard(true);
+    head->motion_no = 0;
     expanded::SnakeCharmerStep();
     EXPECT_EQ(head->motion_no, expanded::kSnakeAppear);
 }

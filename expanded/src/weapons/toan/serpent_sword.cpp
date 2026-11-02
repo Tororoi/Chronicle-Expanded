@@ -25,22 +25,30 @@ namespace expanded {
 
 namespace {
 
-constexpr int kFromFirstFrame = 4; // CCharacter::motion_flags
+constexpr int   kStopAtEnd = 2, kFromFirstFrame = 4; // CCharacter::motion_flags
+constexpr float kOpaque = 128.0f;                    // CCharacter::ambient_offset[3]
+constexpr float kTau = 6.2831853f;
 
 struct Snake {
     CCharacter *model = nullptr;
     bool        up = false;
-    int         motion = -1;
-    int         left = 0;  // steps left of the motion playing once (the appearance, a hiss)
-    int         quiet = 0; // steps of the idle since the last hiss
+    int         fade = 0; // steps faded in, to kSnakeFadeSteps
+    bool        appearing = false;
+    int         left = 0;    // steps left of the appearance; the idle after it
+    int         idle = 0;    // steps of the idle
+    int         mouth = 0;   // steps into the mouth's cycle
+    float       gape = 0.0f; // how far this cycle opens it (radians)
     bool        backing[kFloorMonsters] = {};
     float       upright[3][3] = {
         {1, 0, 0},
         {0, 1, 0},
         {0, 0, 1}
-    }; // turns the neck's pose at the appearance's end to its rest
-    float neck[3] = {};                         // where the neck ends the appearance
-    float angles[3] = {};                       // the model's turn (the last solved, the next guess)
+    };          // turns the neck's pose at the appearance's end to its rest
+    float neck[3] = {};            // where the neck ends the appearance
+    float jaw_axis[3] = {0, 0, 1}; // the jaw's hinge, in its parent's space
+    float jaw_open = 0.0f;         // how far open the appearance leaves it (radians)
+    float jaw_scale[3] = {1, 1, 1};
+    float angles[3] = {}; // the model's turn (the last solved, the next guess)
 };
 
 Snake snake;
@@ -89,42 +97,96 @@ int Steps(int motion) {
     return static_cast<int>(std::ceil(static_cast<float>(info->end - info->start) / info->speed));
 }
 
-void Play(int motion, bool once) {
-    snake.motion = motion;
-    snake.model->motion_no = motion;
-    snake.model->motion_flags |= kFromFirstFrame;
+// The appearance from its first frame, held on its last.
+void Appear() {
+    snake.model->motion_no = kSnakeAppear;
+    snake.model->motion_flags |= kStopAtEnd | kFromFirstFrame;
     snake.model->motion_speed = -1.0f;
-    snake.left = once ? Steps(motion) : 0;
+    snake.appearing = true;
+    snake.left = Steps(kSnakeAppear);
+    snake.idle = 0;
 }
 
-// Chooses the motion: the appearance played through, then the idle, a hiss now and then and when a monster comes near.
-void Choose(bool startled) {
-    if (snake.motion < 0) {
-        Play(kSnakeAppear, true);
+float Ease(float t) {
+    t = std::clamp(t, 0.0f, 1.0f);
+    return t * t * (3.0f - 2.0f * t);
+}
+
+// How far the mouth's cycle has it open, 0..1: easing open, held, easing shut, then shut to the cycle's end.
+float MouthCurve(int step) {
+    if (step < kSnakeMouthEase) {
+        return Ease(static_cast<float>(step) / kSnakeMouthEase);
+    }
+    step -= kSnakeMouthEase;
+    if (step < kSnakeMouthHold) {
+        return 1.0f;
+    }
+    step -= kSnakeMouthHold;
+    return 1.0f - Ease(static_cast<float>(step) / kSnakeMouthEase);
+}
+
+constexpr int kMouthShutFrom = 2 * kSnakeMouthEase + kSnakeMouthHold;
+
+// The appearance played through, then the idle: the mouth's cycle (the first shutting it from where the appearance left
+// it), opened afresh when a monster comes near while it is shut.
+void Idle(bool startled) {
+    if (snake.appearing) {
+        if (--snake.left > 0) {
+            return;
+        }
+        snake.appearing = false;
+        snake.mouth = kSnakeMouthEase + kSnakeMouthHold;
+        snake.gape = snake.jaw_open;
         return;
     }
-    if (snake.left > 0 && --snake.left > 0) {
-        return;
-    }
-    if (startled || ++snake.quiet >= kSnakeHissPeriod) {
-        snake.quiet = 0;
-        Play(kSnakeHiss, true);
-    } else if (snake.motion != kSnakeIdle) {
-        Play(kSnakeIdle, false);
+    snake.idle++;
+    if (++snake.mouth >= kSnakeMouthPeriod || (startled && snake.mouth >= kMouthShutFrom)) {
+        snake.mouth = 0;
+        snake.gape = kSnakeMouthAngle;
     }
 }
 
-// After the appearance, the neck (and j_01_1, where the event's body joins, which follows the neck's track) held where
-// the appearance left it, whatever the idle or the hiss moves it to: only the head turns and the mouth opens.
-void Pin() {
-    if (snake.motion == kSnakeAppear) {
-        return;
-    }
-    for (const char *name : {"neck", "j_01_1"}) {
-        if (CFrame *neck = FrameNamed(snake.model->frame, name)) {
-            std::copy(snake.neck, snake.neck + 3, &neck->local[3][0]);
+float MouthAngle() {
+    return snake.appearing ? snake.jaw_open : snake.gape * MouthCurve(snake.mouth);
+}
+
+// The jaw turned angle about its hinge from shut (its rest turn), at its scale.
+void SetJaw(CFrame *jaw, float angle) {
+    const float *a = snake.jaw_axis;
+    float        c = std::cos(angle), s = std::sin(angle), k = 1.0f - c;
+    float        turn[3][3] = {
+        {c + k * a[0] * a[0],        k * a[0] * a[1] + s * a[2], k * a[0] * a[2] - s * a[1]},
+        {k * a[1] * a[0] - s * a[2], c + k * a[1] * a[1],        k * a[1] * a[2] + s * a[0]},
+        {k * a[2] * a[0] + s * a[1], k * a[2] * a[1] - s * a[0], c + k * a[2] * a[2]       },
+    };
+    for (int r = 0; r < 3; r++) {
+        for (int col = 0; col < 3; col++) {
+            jaw->local[r][col] = snake.jaw_scale[r] * turn[r][col];
         }
     }
+}
+
+// The jaw's hinge and how far the appearance leaves it open, from its pose there (a turn from shut, its rest).
+void ReadJaw(const CFrame &jaw) {
+    float turn[3][3];
+    for (int r = 0; r < 3; r++) {
+        float length = std::sqrt(jaw.local[r][0] * jaw.local[r][0] + jaw.local[r][1] * jaw.local[r][1] + jaw.local[r][2] * jaw.local[r][2]);
+        snake.jaw_scale[r] = length > 0.0f ? length : 1.0f;
+        for (int c = 0; c < 3; c++) {
+            turn[r][c] = jaw.local[r][c] / snake.jaw_scale[r];
+        }
+    }
+    float axis[3] = {turn[1][2] - turn[2][1], turn[2][0] - turn[0][2], turn[0][1] - turn[1][0]};
+    float twice_sin = std::sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
+    float cos = std::clamp((turn[0][0] + turn[1][1] + turn[2][2] - 1.0f) * 0.5f, -1.0f, 1.0f);
+    if (twice_sin < 1e-4f) {
+        snake.jaw_open = 0.0f;
+        return;
+    }
+    for (int c = 0; c < 3; c++) {
+        snake.jaw_axis[c] = axis[c] / twice_sin;
+    }
+    snake.jaw_open = std::atan2(twice_sin * 0.5f, cos);
 }
 
 // The engine's turn of a frame by angles (CFrame's srt: about x, then y, then z).
@@ -212,8 +274,11 @@ void Place() {
     AnglesFor(target, snake.angles);
     snake.model->SetRotation(snake.angles[0], snake.angles[1], snake.angles[2]);
     // Where the neck ends the appearance goes kSnakeLift over the sword, the head's middle kSnakeBack ahead of it.
-    float back = kSnakeBack * kSnakeScale;
-    float spot[3] = {above[0] - std::sin(yaw) * back, above[1] + kSnakeLift, above[2] - std::cos(yaw) * back};
+    // The idle's stretch along the facing and bob, from nothing as it starts.
+    float idle = static_cast<float>(snake.idle);
+    float back = kSnakeBack * kSnakeScale - kSnakeStretch * std::sin(kTau * idle / kSnakeStretchPeriod);
+    float bob = kSnakeBob * std::sin(kTau * idle / kSnakeBobPeriod);
+    float spot[3] = {above[0] - std::sin(yaw) * back, above[1] + kSnakeLift + bob, above[2] - std::cos(yaw) * back};
     for (int c = 0; c < 3; c++) {
         spot[c] -= kSnakeScale * (snake.neck[0] * target[0][c] + snake.neck[1] * target[1][c] + snake.neck[2] * target[2][c]);
     }
@@ -238,9 +303,12 @@ void Calibrate() {
             }
         }
     }
-    Play(kSnakeAppear, true);
-    for (int step = 0; step < snake.left; step++) {
+    Appear();
+    for (int step = 0; step < snake.left + 2; step++) {
         snake.model->Step();
+    }
+    if (CFrame *jaw = FrameNamed(snake.model->frame, kSnakeJaw)) {
+        ReadJaw(*jaw);
     }
     if (neck != nullptr) {
         std::copy(&neck->local[3][0], &neck->local[3][0] + 3, snake.neck);
@@ -259,7 +327,20 @@ void Calibrate() {
             }
         }
     }
-    snake.motion = -1;
+    snake.appearing = false;
+    snake.left = 0;
+}
+
+// Everything but the model and what Calibrate read from it forgotten.
+void Forget() {
+    Snake kept = snake;
+    snake = Snake{};
+    snake.model = kept.model;
+    std::copy(&kept.upright[0][0], &kept.upright[0][0] + 9, &snake.upright[0][0]);
+    std::copy(kept.neck, kept.neck + 3, snake.neck);
+    std::copy(kept.jaw_axis, kept.jaw_axis + 3, snake.jaw_axis);
+    std::copy(kept.jaw_scale, kept.jaw_scale + 3, snake.jaw_scale);
+    snake.jaw_open = kept.jaw_open;
 }
 
 } // namespace
@@ -280,13 +361,18 @@ int SnakeSlayerAmount(const CMonstorUnit &unit, int monster, const COLLISION_HIT
 }
 
 void SnakeCharmerStep() {
-    if (!SerpentSwordActive() || !Guarding() || BtEventMode != 0) {
-        Snake kept = snake;
-        snake = Snake{};
-        snake.model = kept.model;
-        std::copy(&kept.upright[0][0], &kept.upright[0][0] + 9, &snake.upright[0][0]);
-        std::copy(kept.neck, kept.neck + 3, snake.neck);
+    if (!SerpentSwordActive() || BtEventMode != 0) {
+        Forget();
         return;
+    }
+    snake.up = Guarding();
+    if (!snake.up) {
+        snake.fade = std::max(0, snake.fade - 1);
+        std::fill(std::begin(snake.backing), std::end(snake.backing), false);
+        if (snake.fade == 0) {
+            Forget();
+            return;
+        }
     }
     if (snake.model == nullptr) {
         if ((snake.model = EnterFloorCharacter(kKillerSnakeFile, kKillerSnakeCfg)) == nullptr) {
@@ -294,30 +380,56 @@ void SnakeCharmerStep() {
         }
         Calibrate();
     }
-    snake.up = true;
     bool startled = false;
-    if (NowMonstorUnit != nullptr) {
-        startled = MarkBacking(*NowMonstorUnit);
+    if (snake.up) {
+        if (snake.fade == 0) {
+            Appear();
+        }
+        snake.fade = std::min(kSnakeFadeSteps, snake.fade + 1);
+        if (NowMonstorUnit != nullptr) {
+            startled = MarkBacking(*NowMonstorUnit);
+        }
     }
-    Choose(startled);
+    Idle(startled);
     Place();
     snake.model->Step();
 }
 
 void SnakeCharmerPosed(CFrame *frame) {
-    if (snake.model != nullptr && frame == snake.model->frame) {
-        Pin();
+    if (snake.model == nullptr || frame != snake.model->frame || snake.appearing || snake.fade == 0) {
+        return;
+    }
+    if (CFrame *jaw = FrameNamed(frame, kSnakeJaw)) {
+        SetJaw(jaw, MouthAngle());
     }
 }
 
 void SnakeCharmerDraw() {
-    if (snake.up && snake.model != nullptr && snake.model->frame != nullptr && BtEventMode == 0) {
+    if (snake.fade > 0 && snake.model != nullptr && snake.model->frame != nullptr && BtEventMode == 0) {
+        snake.model->ambient_offset[3] = kOpaque * SnakeCharmerShown();
         DrawFloorCharacter(*snake.model);
+    }
+}
+
+void SnakeCharmerLight(const CCharacter &character, float *ambient) {
+    if (snake.fade == 0 || (&character != snake.model && &character != NowWeapon)) {
+        return;
+    }
+    for (int c = 0; c < 3; c++) {
+        ambient[c] += kSnakeGlow * SnakeCharmerShown();
     }
 }
 
 bool SnakeCharmerUp() {
     return snake.up;
+}
+
+float SnakeCharmerShown() {
+    return static_cast<float>(snake.fade) / kSnakeFadeSteps;
+}
+
+float SnakeCharmerMouth() {
+    return snake.fade > 0 ? MouthAngle() / kSnakeMouthAngle : 0.0f;
 }
 
 bool SnakeCharmerTarget(int monster, float *position) {
