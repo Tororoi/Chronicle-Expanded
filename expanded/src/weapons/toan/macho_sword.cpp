@@ -7,7 +7,9 @@
 #include <map>
 #include <numbers>
 
+#include "bound.hpp"
 #include "character.hpp"
+#include "cloth.hpp"
 #include "collisiondata.hpp"
 #include "dngmessageman.hpp"
 #include "dun/gameloop.hpp"
@@ -45,6 +47,35 @@ struct Pump {
 };
 
 Pump pumps[kPartyMembers];
+
+// The cloth's upper-arm bounds as their model gave them (across the arm: up and along their span).
+std::map<CBound *, std::array<float, 2>> arm_bounds;
+
+void SetAcross(CBound &bound, float up, float span) {
+    bound.extent[1] = up;
+    bound.extent[2] = span;
+    bound.reciprocal[1] = 1.0f / up;
+    bound.reciprocal[2] = 1.0f / span;
+}
+
+// Toan's cloth: its upper-arm bounds grown across the arm by grow (0: as the model gave them).
+void FitCloth(float grow) {
+    if (CharaMain.cloth == nullptr) {
+        return;
+    }
+    for (int i = 0; i < CHARA_CLOTH_MAX; i++) {
+        CCloth *piece = CharaMain.cloth[i];
+        for (CBound *bound = piece != nullptr ? piece->bound : nullptr; bound != nullptr; bound = bound->next) {
+            if (bound->from_frame == nullptr ||
+                std::none_of(std::begin(kPumpedUpBones[kPumpedUpper]), std::end(kPumpedUpBones[kPumpedUpper]),
+                             [&](const char *name) { return std::strcmp(bound->from_frame->name, name) == 0; })) {
+                continue;
+            }
+            auto [it, fresh] = arm_bounds.try_emplace(bound, std::array<float, 2>{bound->extent[1], bound->extent[2]});
+            SetAcross(*bound, it->second[0] + grow, it->second[1] + grow);
+        }
+    }
+}
 
 // The hands' frames as their model gave them, before any swelling (by frame).
 std::map<CFrame *, sceVu0FMATRIX> hand_locals;
@@ -184,6 +215,13 @@ void PumpedUpReset() {
         pump = {};
     }
     hand_locals.clear();
+    arm_bounds.clear();
+}
+
+void PumpedUpFloorEntered() {
+    for (Pump &pump : pumps) {
+        pump = {};
+    }
 }
 
 void PumpedUpFrame() {
@@ -222,8 +260,13 @@ void PumpedUpPosed(CFrame *frame) {
             part->SetTransMatrix(local);
         }
         hand_locals.clear();
+        if (!arm_bounds.empty()) {
+            FitCloth(0.0f);
+            arm_bounds.clear();
+        }
         return;
     }
+    FitCloth(kPumpedUpArmRadius * (PumpedUpSize(kPumpedUpper) - 1.0f));
     // A frame's own local, as its model gave it.
     auto rest = [](CFrame *part) -> sceVu0FVECTOR * {
         auto [it, fresh] = hand_locals.try_emplace(part);

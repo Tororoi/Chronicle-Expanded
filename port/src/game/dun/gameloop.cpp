@@ -3377,7 +3377,7 @@ void BtCleatFreeMap() {
 void BtArrengeMonstor() {
 #ifdef CHRONICLE_EXPANDED
     expanded::MinibossFloorEntered();
-    expanded::PumpedUpReset();
+    expanded::PumpedUpFloorEntered();
 #endif
     NowMonstorUnit->CleanViewMonstor(BtUraDongeon);
     NowMonstorUnit->ArrangementPos(&MainDungeonMap, 15, -1, 0);

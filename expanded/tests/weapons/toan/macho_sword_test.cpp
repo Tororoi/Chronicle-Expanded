@@ -148,7 +148,7 @@ TEST(MachoSword, ItHoldsThroughAChangeOfMemberAndGoesWithTheWeapon) {
 TEST(MachoSword, ANewFloorStartsAfresh) {
     Pumping p;
     p.Kills(4);
-    expanded::PumpedUpReset();
+    expanded::PumpedUpFloorEntered();
     EXPECT_EQ(expanded::PumpedUpKills(CHARA_TOAN), 0);
     EXPECT_FLOAT_EQ(expanded::PumpedUpMultiplier(), 1.0f);
 }

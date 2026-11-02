@@ -55,6 +55,10 @@ inline constexpr const char *kPumpedUpHands[] = {"l_hand", "renzu__m"};
 // data/toan_grip.hpp rigs them, a knuckle each): every finger's knuckles turned kPumpedUpFingerCurl degrees about their
 // own z axis, from the one at the hand out, and the thumb's kPumpedUpThumbCurl about their own x axis, each in step
 // with the hand's growth.
+// His cloth (the poncho) keeps clear of the bigger arms: each of its bounds on an upper arm (an ellipsoid along it)
+// grows across the arm by as much as the arm's surface does, kPumpedUpArmRadius (his upper arm's own) times the upper
+// arm's growth.
+inline constexpr float       kPumpedUpArmRadius = 0.7f;
 inline constexpr const char *kPumpedUpSwordHand = "r_hand";
 inline constexpr const char *kPumpedUpHilt = "weapon";
 inline constexpr float       kPumpedUpGripPivot = 0.5f;
@@ -74,6 +78,8 @@ float PumpedUpSize(PumpedUpPart part);
 // frames); and a bone's matrix as the skin takes it (MotionProc2, after the bone passed it unchanged to its children).
 void PumpedUpKill(const CMonstorUnit &unit, int monster);
 void PumpedUpReset();
+// A new floor: the counts gone, the model put back as it next poses (it stays loaded across floors).
+void PumpedUpFloorEntered();
 void PumpedUpFrame();
 int  PumpedUpAttack(int attack);
 void PumpedUpPelletHit(COLLISION_HIT &hit);
