@@ -36,7 +36,7 @@ constexpr Ramp kRamps[] = {
     {{128, 255, 113}, {0, 86, 126}   }, // kWind
     {{211, 73, 236},  {33, 0, 175}   }, // kHoly
     {{50, 50, 50},    {160, 160, 160}}, // kNoElement
-    {{255, 222, 210}, {190, 80, 64}  }, // kSalmon
+    {{204, 204, 255}, {190, 80, 64}  }, // kSerpent
 };
 static_assert(std::size(kRamps) == static_cast<std::size_t>(GlowLook::kCount));
 

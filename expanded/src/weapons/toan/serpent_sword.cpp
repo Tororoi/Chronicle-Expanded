@@ -581,7 +581,7 @@ void SnakeCharmerDraw() {
 
 void SnakeCharmerGlowDraw() {
     if (disc.steps > 0 && BtEventMode == 0) {
-        DrawGlowDisc(GlowLook::kSalmon, disc.at, kSnakeGlowDisc * Ease(static_cast<float>(disc.steps) / kSnakeGlowSteps), kSnakeGlowPull);
+        DrawGlowDisc(GlowLook::kSerpent, disc.at, kSnakeGlowDisc * Ease(static_cast<float>(disc.steps) / kSnakeGlowSteps), kSnakeGlowPull);
     }
 }
 

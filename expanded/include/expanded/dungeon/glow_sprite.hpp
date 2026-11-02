@@ -30,7 +30,7 @@ enum class GlowLook {
     kWind,
     kHoly,
     kNoElement,
-    kSalmon, // a pale salmon-pink core out to a deep salmon edge
+    kSerpent, // a periwinkle core out to a deep salmon edge (the Serpent Sword's snake)
     kCount,
 };
 
