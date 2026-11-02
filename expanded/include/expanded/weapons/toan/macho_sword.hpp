@@ -24,16 +24,15 @@ int OvertrainingGaugeAbs(int abs, int max_abs);
 
 // Macho Sword "Pumped Up": every monster that goes down while a member has the Macho Sword in hand (or Super Steve
 // carrying its SynthSphere) pumps that member up: each one multiplies the weapon's attack by kPumpedUpRate, without
-// limit, and a monster that gets back up (a Mummy, a Gacious) counts again each time it goes down. Toan's arms swell
-// with it, bone by bone (his upper arms, forearms and wrists thicker across their length, his hands larger about the
-// wrist; the glove cuffs keep their size), evenly from nothing to kPumpedUpLook at kPumpedUpFullLook monsters, and stay
+// limit, and a monster that gets back up (a Mummy, a Gacious) counts again each time it goes down. The member's arms
+// (Toan's, or Xiao's with Super Steve) swell with it, bone by bone (upper arms, forearms and wrists thicker across their
+// length, hands larger; the glove cuffs, arm bands and bracelets keep their size), evenly from nothing to kPumpedUpLook at kPumpedUpFullLook monsters, and stay
 // there however far the attack goes on. It holds through the back floor and back and through changes of member, and is
 // gone on a new floor, a new visit, or as soon as the member's equipped weapon changes.
 inline constexpr float kPumpedUpRate = 1.1f;
 inline constexpr int   kPumpedUpFullLook = 15;
 
-// Toan's arm at its fullest: each part's size across (a hand's whole size), and the bones and frames it is drawn by
-// (right, left).
+// The arms at their fullest: each part's size across (a hand's whole size).
 enum PumpedUpPart {
     kPumpedUpper,
     kPumpedForearm,
@@ -42,16 +41,36 @@ enum PumpedUpPart {
     kPumpedParts
 };
 
-inline constexpr float       kPumpedUpLook[kPumpedParts] = {1.6f, 2.02f, 1.54f, 1.6f};
-inline constexpr const char *kPumpedUpBones[kPumpedParts - 1][2] = {
-    {"jnt17_1", "jnt9_1" },
-    {"jnt17_2", "jnt9_2" },
-    {"jnt18_1", "jnt10_1"},
+inline constexpr float kPumpedUpLook[kPumpedParts] = {1.6f, 2.02f, 1.54f, 1.6f};
+
+// A member's arms as its dungeon model draws them: each part's bones (right, left), the hand holding the weapon (whether
+// rigged to close its grip, data/toan_grip.hpp) and the frames of the other hand.
+struct PumpedUpRig {
+    int         chara;
+    const char *bones[kPumpedParts - 1][2];
+    const char *weapon_hand;
+    bool        weapon_hand_rigged;
+    const char *other_hand[2];
 };
-inline constexpr const char *kPumpedUpHands[] = {"l_hand", "renzu__m"};
-// The sword hand (r_hand) grows about a point kPumpedUpGripPivot of the way from the wrist to the sword's hilt (the
-// weapon frame's origin), so the palm stays round the hilt (the other hand about the same point mirrored across, so the
-// two stay alike), and its grip closes as it grows (its joints as
+
+inline constexpr PumpedUpRig kPumpedUpRigs[] = {
+    {0, // Toan
+     {{"jnt17_1", "jnt9_1"}, {"jnt17_2", "jnt9_2"}, {"jnt18_1", "jnt10_1"}},
+     "r_hand",
+     true,
+     {"l_hand", "renzu__m"}},
+    {1, // Xiao
+     {{"jnt20_1", "jnt10_1"}, {"jnt20_2", "jnt10_2"}, {"jnt21_1", "jnt9_1"}},
+     "l_hand",
+     false,
+     {"r_hand", nullptr}   },
+};
+
+// The member's rig, or null for one without.
+const PumpedUpRig *PumpedUpRigOf(int chara);
+// The weapon hand grows about a point kPumpedUpGripPivot of the way from the wrist to the weapon's frame (its hilt), so
+// the palm stays round it (the other hand about the same point mirrored across, so the two stay alike), and Toan's
+// grip closes as it grows (its joints as
 // data/toan_grip.hpp rigs them, a knuckle each): every finger's knuckles turned kPumpedUpFingerCurl degrees about their
 // own z axis, from the one at the hand out, and the thumb's kPumpedUpThumbCurl about their own x axis, each in step
 // with the hand's growth.
@@ -59,7 +78,6 @@ inline constexpr const char *kPumpedUpHands[] = {"l_hand", "renzu__m"};
 // grows across the arm by as much as the arm's surface does, kPumpedUpArmRadius (his upper arm's own) times the upper
 // arm's growth.
 inline constexpr float       kPumpedUpArmRadius = 0.7f;
-inline constexpr const char *kPumpedUpSwordHand = "r_hand";
 inline constexpr const char *kPumpedUpHilt = "weapon";
 inline constexpr float       kPumpedUpGripPivot = 0.5f;
 inline constexpr float       kPumpedUpFingerCurl[3] = {45.0f, 35.0f, 1.0f};
@@ -69,7 +87,7 @@ inline constexpr float       kPumpedUpThumbCurl[3] = {-20.0f, -20.0f, 0.0f};
 int PumpedUpKills(int chara);
 // The active member's attack multiplier.
 float PumpedUpMultiplier();
-// The size of a part of Toan's arm now (1 when not pumped up).
+// The size of a part of the active member's arm now (1 when not pumped up).
 float PumpedUpSize(PumpedUpPart part);
 
 // Hooks: a monster's life ran out (CheckDmg); a new floor's monsters are being placed (BtArrengeMonstor), and a new

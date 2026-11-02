@@ -58,8 +58,8 @@ void SetAcross(CBound &bound, float up, float span) {
     bound.reciprocal[2] = 1.0f / span;
 }
 
-// Toan's cloth: its upper-arm bounds grown across the arm by grow (0: as the model gave them).
-void FitCloth(float grow) {
+// The member's cloth: its upper-arm bounds grown across the arm by grow (0: as the model gave them).
+void FitCloth(const PumpedUpRig &rig, float grow) {
     if (CharaMain.cloth == nullptr) {
         return;
     }
@@ -67,7 +67,7 @@ void FitCloth(float grow) {
         CCloth *piece = CharaMain.cloth[i];
         for (CBound *bound = piece != nullptr ? piece->bound : nullptr; bound != nullptr; bound = bound->next) {
             if (bound->from_frame == nullptr ||
-                std::none_of(std::begin(kPumpedUpBones[kPumpedUpper]), std::end(kPumpedUpBones[kPumpedUpper]),
+                std::none_of(std::begin(rig.bones[kPumpedUpper]), std::end(rig.bones[kPumpedUpper]),
                              [&](const char *name) { return std::strcmp(bound->from_frame->name, name) == 0; })) {
                 continue;
             }
@@ -86,19 +86,23 @@ bool Carries(int chara) {
 }
 
 // Toan's model, out with the Macho Sword in hand and pumped up.
-bool ToanPumped(const CFrame *frame) {
-    return frame != nullptr && frame == CharaMain.frame && UserStatus != nullptr && UserStatus->cur_chara == CHARA_TOAN &&
-           PumpedUpKills(CHARA_TOAN) > 0;
+// The active member's rig when its model is out and pumped up, else null.
+const PumpedUpRig *Pumped(const CFrame *frame) {
+    if (frame == nullptr || frame != CharaMain.frame || UserStatus == nullptr || PumpedUpKills(UserStatus->cur_chara) <= 0) {
+        return nullptr;
+    }
+    return PumpedUpRigOf(UserStatus->cur_chara);
 }
 
 float LookShare() {
-    return static_cast<float>(std::min(PumpedUpKills(CHARA_TOAN), kPumpedUpFullLook)) / kPumpedUpFullLook;
+    int kills = UserStatus != nullptr ? PumpedUpKills(UserStatus->cur_chara) : 0;
+    return static_cast<float>(std::min(kills, kPumpedUpFullLook)) / kPumpedUpFullLook;
 }
 
 // The part a bone or frame of Toan's model draws, or -1.
-int BonePart(const char *name) {
+int BonePart(const PumpedUpRig &rig, const char *name) {
     for (int part = 0; part < kPumpedParts - 1; part++) {
-        for (const char *bone : kPumpedUpBones[part]) {
+        for (const char *bone : rig.bones[part]) {
             if (std::strcmp(name, bone) == 0) {
                 return part;
             }
@@ -173,6 +177,17 @@ int OvertrainingCarry(const WEAPON_HAVE &weapon, int max_abs) {
 
 int OvertrainingGaugeAbs(int abs, int max_abs) {
     return std::min(abs, max_abs);
+}
+
+static_assert(kPumpedUpRigs[0].chara == CHARA_TOAN && kPumpedUpRigs[1].chara == CHARA_XIAO);
+
+const PumpedUpRig *PumpedUpRigOf(int chara) {
+    for (const PumpedUpRig &rig : kPumpedUpRigs) {
+        if (rig.chara == chara) {
+            return &rig;
+        }
+    }
+    return nullptr;
 }
 
 int PumpedUpKills(int chara) {
@@ -254,19 +269,20 @@ void PumpedUpPosed(CFrame *frame) {
     if (frame == nullptr || frame != CharaMain.frame) {
         return;
     }
-    if (!ToanPumped(frame)) {
+    const PumpedUpRig *rig = Pumped(frame);
+    if (rig == nullptr) {
         // Back to their own size and pose, once.
         for (auto &[part, local] : hand_locals) {
             part->SetTransMatrix(local);
         }
         hand_locals.clear();
-        if (!arm_bounds.empty()) {
-            FitCloth(0.0f);
-            arm_bounds.clear();
+        for (auto &[bound, across] : arm_bounds) {
+            SetAcross(*bound, across[0], across[1]);
         }
+        arm_bounds.clear();
         return;
     }
-    FitCloth(kPumpedUpArmRadius * (PumpedUpSize(kPumpedUpper) - 1.0f));
+    FitCloth(*rig, kPumpedUpArmRadius * (PumpedUpSize(kPumpedUpper) - 1.0f));
     // A frame's own local, as its model gave it.
     auto rest = [](CFrame *part) -> sceVu0FVECTOR * {
         auto [it, fresh] = hand_locals.try_emplace(part);
@@ -275,22 +291,22 @@ void PumpedUpPosed(CFrame *frame) {
         }
         return it->second;
     };
+    // A hand about the point kPumpedUpGripPivot of the way from its wrist (its parent's origin) to the weapon's frame
+    // (in its wrist's frame), or that point mirrored across (its second axis turned round), in the hand's own frame.
     float   size = PumpedUpSize(kPumpedHand);
     CFrame *hilt = frame->SearchFrame(const_cast<char *>(kPumpedUpHilt));
-    for (const char *name : kPumpedUpHands) {
-        CFrame *hand = frame->SearchFrame(const_cast<char *>(name));
+    auto    grow = [&](const char *name, bool mirrored) {
+        CFrame *hand = name != nullptr ? frame->SearchFrame(const_cast<char *>(name)) : nullptr;
         if (hand == nullptr) {
-            continue;
+            return;
         }
         sceVu0FVECTOR *local = rest(hand);
         sceVu0FMATRIX  inverse, scaled;
         sceVu0InversMatrix(inverse, local);
-        // As the sword hand: about the point kPumpedUpGripPivot of the way from the wrist (its parent's origin) to the
-        // hilt mirrored across (the sword's in its wrist's frame, its second axis turned round), in the hand's own frame.
         float at[3] = {0.0f, 0.0f, 0.0f};
         if (hilt != nullptr) {
             at[0] = hilt->local[3][0] * kPumpedUpGripPivot;
-            at[1] = -hilt->local[3][1] * kPumpedUpGripPivot;
+            at[1] = hilt->local[3][1] * kPumpedUpGripPivot * (mirrored ? -1.0f : 1.0f);
             at[2] = hilt->local[3][2] * kPumpedUpGripPivot;
         }
         float pivot[3];
@@ -299,6 +315,15 @@ void PumpedUpPosed(CFrame *frame) {
         }
         ScaleAbout(scaled, local, pivot, size);
         hand->SetTransMatrix(scaled);
+    };
+    if (!rig->weapon_hand_rigged) {
+        grow(rig->weapon_hand, false); // a rigged hand grows in its skin (PumpedUpSkinStart)
+    }
+    for (const char *name : rig->other_hand) {
+        grow(name, true);
+    }
+    if (!rig->weapon_hand_rigged) {
+        return;
     }
     // The grip closing.
     float share = LookShare();
@@ -320,21 +345,21 @@ void PumpedUpPosed(CFrame *frame) {
 }
 
 void PumpedUpSkinStart(CFrame *frame, int mesh, float (*matrix)[4]) {
-    if (!ToanPumped(frame)) {
+    const PumpedUpRig *rig = Pumped(frame);
+    if (rig == nullptr || !rig->weapon_hand_rigged) {
         return;
     }
     CFrame *hand = &static_cast<CFrameVu1 *>(frame)[mesh];
-    if (std::strcmp(hand->name, kPumpedUpSwordHand) != 0) {
+    if (std::strcmp(hand->name, rig->weapon_hand) != 0) {
         return;
     }
     CFrame *hilt = frame->SearchFrame(const_cast<char *>(kPumpedUpHilt));
     if (hilt == nullptr || hilt->parent != hand->parent) {
         return;
     }
-    // In the parent's (the wrist's) frame, where the hilt sits at its own translation.
+    // In the parent's (the wrist's) frame, where the hilt sits at its own translation; the wrist is its origin.
     sceVu0FMATRIX unit;
     sceVu0UnitMatrix(unit);
-    // The wrist is the parent's origin.
     float pivot[3];
     for (int c = 0; c < 3; c++) {
         pivot[c] = hilt->local[3][c] * kPumpedUpGripPivot;
@@ -343,11 +368,12 @@ void PumpedUpSkinStart(CFrame *frame, int mesh, float (*matrix)[4]) {
 }
 
 void PumpedUpSkinBone(CFrame *frame, int bone, float (*matrix)[4]) {
-    if (!ToanPumped(frame)) {
+    const PumpedUpRig *rig = Pumped(frame);
+    if (rig == nullptr) {
         return;
     }
     auto *frames = static_cast<CFrameVu1 *>(frame);
-    int   part = BonePart(frames[bone].name);
+    int   part = BonePart(*rig, frames[bone].name);
     if (part < 0 || frames[bone].child == nullptr) {
         return;
     }

@@ -162,3 +162,14 @@ TEST(MachoSword, SuperStevesPelletsArePumpedUpToo) {
     expanded::PumpedUpPelletHit(hit);
     EXPECT_EQ(hit.damage, 121);
 }
+
+TEST(MachoSword, XiaosArmsSwellWithSuperSteves) {
+    Pumping p;
+    p.floor.status().cur_chara = CHARA_XIAO;
+    EXPECT_FLOAT_EQ(expanded::PumpedUpSize(expanded::kPumpedForearm), 1.0f);
+    p.Kills(15);
+    EXPECT_FLOAT_EQ(expanded::PumpedUpSize(expanded::kPumpedForearm), expanded::kPumpedUpLook[expanded::kPumpedForearm]);
+    ASSERT_NE(expanded::PumpedUpRigOf(CHARA_XIAO), nullptr);
+    EXPECT_STREQ(expanded::PumpedUpRigOf(CHARA_XIAO)->weapon_hand, "l_hand");
+    EXPECT_EQ(expanded::PumpedUpRigOf(CHARA_GORO), nullptr);
+}
