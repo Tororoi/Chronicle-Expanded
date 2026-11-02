@@ -29,7 +29,7 @@ int OvertrainingGaugeAbs(int abs, int max_abs);
 // wrist; the glove cuffs keep their size), evenly from nothing to kPumpedUpLook at kPumpedUpFullLook monsters, and stay
 // there however far the attack goes on. It holds through the back floor and back and through changes of member, and is
 // gone on a new floor, a new visit, or as soon as the member's equipped weapon changes.
-inline constexpr float kPumpedUpRate = 1.15f;
+inline constexpr float kPumpedUpRate = 1.1f;
 inline constexpr int   kPumpedUpFullLook = 15;
 
 // Toan's arm at its fullest: each part's size across (a hand's whole size), and the bones and frames it is drawn by

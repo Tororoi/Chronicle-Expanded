@@ -104,12 +104,12 @@ TEST(MachoSword, EachMonsterDownedPumpsTheAttackUp) {
     Pumping p;
     EXPECT_EQ(expanded::PumpedUpAttack(100), 100);
     p.Kills(1);
-    EXPECT_EQ(expanded::PumpedUpAttack(100), 115);
+    EXPECT_EQ(expanded::PumpedUpAttack(100), 110);
     p.Kills(1); // the same monster, back up and down again, counts again
     EXPECT_EQ(expanded::PumpedUpKills(CHARA_TOAN), 2);
-    EXPECT_EQ(expanded::PumpedUpAttack(100), 132); // 100 x 1.15^2
+    EXPECT_EQ(expanded::PumpedUpAttack(100), 121); // 100 x 1.1^2
     p.Kills(18);
-    EXPECT_NEAR(expanded::PumpedUpMultiplier(), std::pow(1.15f, 20.0f), 1e-3f); // no limit
+    EXPECT_NEAR(expanded::PumpedUpMultiplier(), std::pow(1.1f, 20.0f), 1e-3f); // no limit
 }
 
 TEST(MachoSword, ToansArmsSwellUpToTheirFullLookAtFifteen) {
@@ -160,5 +160,5 @@ TEST(MachoSword, SuperStevesPelletsArePumpedUpToo) {
     COLLISION_HIT hit = {};
     hit.damage = 100;
     expanded::PumpedUpPelletHit(hit);
-    EXPECT_EQ(hit.damage, 132);
+    EXPECT_EQ(hit.damage, 121);
 }
