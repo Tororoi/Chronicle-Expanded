@@ -52,6 +52,7 @@
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/brave_ark.hpp"
 #include "expanded/weapons/toan/choora.hpp"
+#include "expanded/weapons/toan/chopper.hpp"
 #include "expanded/weapons/toan/claymore.hpp"
 #include "expanded/weapons/toan/cross_hinder.hpp"
 #include "expanded/weapons/toan/dark_cloud.hpp"
@@ -309,7 +310,7 @@ int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs) {
         return abs;
     }
     int result = ArmorPiercerAbs(
-        unit, monster, MarineHunterAbs(unit, monster, SanctifierAbs(unit, monster, JacketHunterAbs(unit, monster, abs))));
+        unit, monster, MarineHunterAbs(unit, monster, SanctifierAbs(unit, monster, ButchersEdgeAbs(unit, monster, JacketHunterAbs(unit, monster, abs)))));
     pocklekul::PockleKillAbs(monster, result);
     return result;
 }
@@ -318,7 +319,7 @@ float MonsterWeaponDamage(const CMonstorUnit &unit, int monster, const COLLISION
     if (AllyUnit(unit)) {
         return damage;
     }
-    return ArmorPiercerDamage(unit, monster, hit, SanctifierDamage(unit, monster, hit, damage));
+    return ArmorPiercerDamage(unit, monster, hit, SanctifierDamage(unit, monster, hit, ButchersEdgeDamage(unit, monster, hit, damage)));
 }
 
 int MonsterDefense(const CMonstorUnit &unit, int monster, int defense) {
