@@ -58,7 +58,7 @@ inline constexpr const char *kPumpedUpHands[] = {"l_hand", "renzu__m"};
 inline constexpr const char *kPumpedUpSwordHand = "r_hand";
 inline constexpr const char *kPumpedUpHilt = "weapon";
 inline constexpr float       kPumpedUpGripPivot = 0.5f;
-inline constexpr float       kPumpedUpFingerCurl[3] = {35.0f, 55.0f, 55.0f};
+inline constexpr float       kPumpedUpFingerCurl[3] = {45.0f, 35.0f, 1.0f};
 inline constexpr float       kPumpedUpThumbCurl[3] = {-20.0f, -20.0f, 0.0f};
 
 // The monsters a member has downed on this floor with the weapon it holds now (0 once it changed).
