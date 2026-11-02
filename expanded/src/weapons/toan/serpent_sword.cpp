@@ -13,6 +13,7 @@
 #include "expanded/core/frames.hpp"
 #include "expanded/data/stb.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
+#include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/enemies/monsters.hpp"
@@ -559,6 +560,18 @@ void SnakeCharmerDraw() {
         MGPortSetColorWrite(true);
         snake.model->ambient_offset[3] = kOpaque * kSnakeGhost * SnakeCharmerShown();
         DrawFloorCharacter(*snake.model);
+    }
+}
+
+void SnakeCharmerGlowDraw() {
+    CFrame *face = snake.fade > 0 && snake.model != nullptr && snake.model->frame != nullptr && BtEventMode == 0
+                       ? FrameNamed(snake.model->frame, kSnakeFace)
+                       : nullptr;
+    if (face != nullptr) {
+        sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, at;
+        face->GetWorldPosition(at, origin);
+        // Growing in as the head fades in, shrinking away as it fades out.
+        DrawGlowDisc(GlowLook::kSalmon, at, kSnakeGlowDisc * Ease(SnakeCharmerShown()), kSnakeGlowPull);
     }
 }
 

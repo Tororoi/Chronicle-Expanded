@@ -31,7 +31,8 @@ namespace expanded {
 // scripts are left to them) only stop coming on. The head fades in over kSnakeFadeSteps as the guard goes up and out over as long as it comes down, the
 // head and the weapon glowing white (kSnakeGlow added to their light) as it shows. It is a ghost: drawn
 // kSnakeGhost see-through (its nearest surface only, never its inside), shimmering as the Mirage's copy does, less
-// (kSnakeHaze at kSnakeHazeGain, about its face, kSnakeFace).
+// (kSnakeHaze at kSnakeHazeGain, about its face, kSnakeFace), a salmon-pink glow disc kSnakeGlowDisc across on its face
+// (depth-tested from kSnakeGlowPull nearer) growing in and shrinking away with it.
 //
 // The appearance ends with the head turned as the event's body held it; the model takes the turn back to the head's
 // rest (the pose its skin was made in) so that it ends upright and facing ahead. Its jaw (kSnakeJaw) is shut at its
@@ -46,7 +47,8 @@ inline constexpr float            kSnakeGlow = 80.0f;
 inline constexpr float            kSnakeGhost = 0.45f;
 inline constexpr const char      *kSnakeFace = "face";
 inline constexpr float            kSnakeHazeGain = 1.0f;
-inline constexpr mirage::HazeLook kSnakeHaze = {-13.0f, 12.0f, 20.0f, 2.0f};
+inline constexpr float            kSnakeGlowDisc = 30.0f, kSnakeGlowPull = 8.0f;
+inline constexpr mirage::HazeLook kSnakeHaze = {-15.0f, 10.0f, 16.0f, 2.0f};
 inline constexpr int              kSnakeMouthPeriod = 180, kSnakeMouthEase = 40, kSnakeMouthHold = 10;
 inline constexpr float            kSnakeMouthAngle = 0.5f; // radians
 inline constexpr float            kSnakeStretch = 1.2f;
@@ -72,6 +74,8 @@ void SnakeCharmerStep();
 void SnakeCharmerPosed(CFrame *frame);
 // Hook: the monsters drawn: the snake, as faded in as it is.
 void SnakeCharmerDraw();
+// Hook: the effects drawn: the snake's glow disc.
+void SnakeCharmerGlowDraw();
 // Hook: the map's raster drawn: the snake's shimmer.
 void SnakeCharmerHazeDraw();
 // Hook: a character's light for its draw: the snake's and the weapon's white as the snake shows.

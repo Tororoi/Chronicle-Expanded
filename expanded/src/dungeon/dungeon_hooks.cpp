@@ -176,6 +176,7 @@ void DungeonEffectsDrawn() {
     ChargingBullDraw();
     SpiritBeastDraw();
     GuardianReflectorDraw();
+    SnakeCharmerGlowDraw();
 }
 
 void DungeonRasterDrawn() {
