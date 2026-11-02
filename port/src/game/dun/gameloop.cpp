@@ -105,6 +105,7 @@
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/stats.hpp"
 #include "expanded/weapons/toan/lambs_sword.hpp"
+#include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/sand_breaker.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 #endif
@@ -3376,6 +3377,7 @@ void BtCleatFreeMap() {
 void BtArrengeMonstor() {
 #ifdef CHRONICLE_EXPANDED
     expanded::MinibossFloorEntered();
+    expanded::PumpedUpReset();
 #endif
     NowMonstorUnit->CleanViewMonstor(BtUraDongeon);
     NowMonstorUnit->ArrangementPos(&MainDungeonMap, 15, -1, 0);
