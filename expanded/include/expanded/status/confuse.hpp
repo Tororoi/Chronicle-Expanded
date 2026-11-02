@@ -55,7 +55,8 @@ void ConfuseEndAll();
 // (MonsterAimPoint).
 bool ConfuseTarget(CMonstorUnit &unit, int slot, float *position);
 
-// The monster a monster's script goes after through confusion (a confused one's target, a provoked one's provoker), or
+// The monster a monster's script goes after through confusion (a confused one's target, a provoked one's provoker, a
+// Lamb's Sword pack wolf's prey), or
 // -1 (the player, or none).
 int ConfuseTargetMonster(const CMonstorUnit &unit, int slot);
 
@@ -63,7 +64,7 @@ int ConfuseTargetMonster(const CMonstorUnit &unit, int slot);
 void ConfuseScriptPlayerPosition(float *position);
 
 // The index of another monster's hit that may hurt monster victim's sphere at position, or -1.
-int  ConfuseFriendlyHit(CMonstorUnit &unit, int victim, const float *position, float radius);
+int ConfuseFriendlyHit(CMonstorUnit &unit, int victim, const float *position, float radius);
 // Records that hit landed on victim, and ends it there if it is a shot.
 void ConfuseLanded(CMonstorUnit &unit, int hit, int victim);
 

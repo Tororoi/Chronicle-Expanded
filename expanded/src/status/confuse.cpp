@@ -225,6 +225,9 @@ int ConfuseTargetMonster(const CMonstorUnit &unit, int slot) {
     if (slot < 0 || slot >= kFloorMonsters || State().unit != &unit) {
         return -1;
     }
+    if (PackWolf(unit, slot)) {
+        return PackPrey(const_cast<CMonstorUnit &>(unit), slot);
+    }
     if (Confused(unit, slot)) {
         int target = State().target[slot];
         return target >= 0 && InPlay(unit, target) ? target : -1;

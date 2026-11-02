@@ -250,6 +250,7 @@ void DungeonMonstersTick() {
 
 void DungeonMonstersStepped(int pause) {
     PocklekulStep(pause);
+    PackStep(pause);
     AllyStep(pause);
 }
 
