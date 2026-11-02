@@ -49,7 +49,7 @@ inline constexpr std::uint32_t kIntLocal = 1, kFloatLocal = 8;
 
 // Commands: an EXT's first argument.
 inline constexpr std::uint32_t kGetDistance = 10, kGetPosition = 11, kGetDirection = 31, kStatusSetMuteki = 101, kSetBodyCol = 130,
-                               kSetDmgPara = 132, kSetShot = 133, kSetBodyColPara = 134, kGetRand = 180, kSetShot2 = 229,
+                               kSetDmgPara = 132, kSetShot = 133, kSetBodyColPara = 134, kGetRand = 180, kSetMotion = 200, kSetShot2 = 229,
                                kSetGuardFrame = 244;
 
 // The code base, and a label's function header; none for a label the script lacks (the first of a repeated one).

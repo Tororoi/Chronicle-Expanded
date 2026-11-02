@@ -4,14 +4,16 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <cstring>
 
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/frames.hpp"
+#include "expanded/data/stb.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/enemies/enemy_events.hpp"
-#include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/player_state.hpp"
@@ -20,6 +22,7 @@
 #include "gameutil.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
+#include "runscript.hpp"
 #include "userstatus.hpp"
 
 namespace expanded {
@@ -39,7 +42,7 @@ struct Snake {
     int         idle = 0;    // steps of the idle
     int         mouth = 0;   // steps into the mouth's cycle
     float       gape = 0.0f; // how far this cycle opens it (radians)
-    bool        backing[kFloorMonsters] = {};
+    bool        near[kFloorMonsters] = {};
     float       upright[3][3] = {
         {1, 0, 0},
         {0, 1, 0},
@@ -54,45 +57,92 @@ struct Snake {
 
 Snake snake;
 
-// A monster backing off on its own motion, its script set aside.
+// A monster running its script's own retreat, and the steps it rests after one before it may run it again.
 struct Retreat {
-    bool held = false;    // taken from its script
-    bool playing = false; // its back-off motion started
+    bool running = false;
+    int  rest = 0;
 };
 
 Retreat retreats[kFloorMonsters];
 
-// The back-off motion of most kinds; these are the rest (-1 those with none: they only stop coming on).
-constexpr int kBackOff = 2;
-
-struct KindBackOff {
-    Monster kind;
-    int     motion;
-};
-
 // clang-format off
-constexpr KindBackOff kOtherBackOffs[] = {
-    {Monster::STATUE,               -1},
-    {Monster::HALLOWEEN,            13},
-    {Monster::CANNIBAL_PLANT,       -1},
-    {Monster::EARTH_DIGGER,         -1},
-    {Monster::AUNTIE_MEDU,          4 },
-    {Monster::MOON_BUG,             -1},
-    {Monster::CAVE_BAT,             -1},
-    {Monster::EVIL_BAT,             -1},
-    {Monster::MOON_DIGGER,          -1},
-    {Monster::DARK_FLOWER,          -1},
-    {Monster::CURSED_ROSE,          -1},
-    {Monster::WINE_KEG,             -1},
-    {Monster::NIKAPOUS,             -1},
-    {Monster::HALLOWEEN_ENHANCED,   13},
-    {Monster::AUNTIE_MEDU_ENHANCED, 4 },
-    {Monster::CAVE_BAT_ENHANCED,    -1},
-    {Monster::CURSED_ROSE_ENHANCED, -1},
-    {Monster::EVIL_BAT_ENHANCED,    -1},
-    {Monster::BOMB_GEMRON,          -1}, // the gemrons Expanded drives itself
-    {Monster::CRYSTAL_GEMRON,       -1},
-    {Monster::ATLA_GEMRON,          -1},
+constexpr SnakeRetreat kRetreats[] = {
+    {Monster::MASTER_JACKET, "e01a", 0x4498, 2, {}},
+    {Monster::SKELETON_SOLDIER, "e03a", 0x2900, 2, {}},
+    {Monster::WEREWOLF, "e07a", 0x39F4, 2, {0.36f, 1.2f}, 2},
+    {Monster::FLI_FLI, "e08a", 0x445C, 2, {}},
+    {Monster::HORNET, "e09a", 0x4850, 2, {}},
+    {Monster::SUNDAY, "e14a", 0x38C8, 2, {}},
+    {Monster::MONDAY, "e15a", 0x2FA0, 2, {}},
+    {Monster::TUESDAY, "e16a", 0x54AC, 2, {}},
+    {Monster::WEDNESDAY, "e17a", 0x2FA0, 2, {}},
+    {Monster::THURSDAY, "e18a", 0x3568, 2, {}},
+    {Monster::FRIDAY, "e19a", 0x3568, 2, {}},
+    {Monster::SATURDAY, "e20a", 0x38F4, 2, {}},
+    {Monster::GUNNY, "e23a", 0x4F3C, 2, {}},
+    {Monster::GYON, "e24a", 0x3E70, 2, {}},
+    {Monster::PIRATES_CHARIOT, "e25a", 0x26D4, 2, {}},
+    {Monster::CAPTAIN, "e27a", 0x3EA8, 2, {}},
+    {Monster::CORCEA, "e28a", 0x4278, 2, {}},
+    {Monster::MR_BLARE, "e31a", 0x2848, 2, {}},
+    {Monster::DUNE, "e32a", 0x61EC, 2, {}},
+    {Monster::ARTHUR, "e40a", 0x3680, 2, {}},
+    {Monster::GHOST, "e42a", 0x4170, 2, {}},
+    {Monster::ALEXANDER, "e43a", 0x5E9C, 2, {}},
+    {Monster::HEART, "e44a", 0x2970, 2, {}},
+    {Monster::CLUB, "e45a", 0x2970, 2, {}},
+    {Monster::DIAMOND, "e46a", 0x2970, 2, {}},
+    {Monster::SPADE, "e47a", 0x2970, 2, {}},
+    {Monster::JOKER, "e48a", 0x2970, 2, {}},
+    {Monster::BOMBER_HEAD, "e49a", 0x61C8, 2, {}},
+    {Monster::MUMMY, "e50a", 0x3BC4, 2, {}},
+    {Monster::LICH, "e51a", 0x4170, 2, {}},
+    {Monster::WHITE_FANG, "e56a", 0x39F4, 2, {0.3f, 0.37f}, 2},
+    {Monster::PHANTOM, "e58a", 0x37FC, 2, {}},
+    {Monster::DRAGON, "e59a", 0x52C0, 2, {}},
+    {Monster::HELL_POCKLE, "e62a", 0x45A8, 2, {}},
+    {Monster::BILLY, "e69a", 0x2848, 2, {}},
+    {Monster::VULCAN, "e70a", 0x60DC, 2, {}},
+    {Monster::CRABBY_HERMIT, "e71a", 0x48EC, 2, {}},
+    {Monster::SPACE_GYON, "e72a", 0x3C48, 2, {}},
+    {Monster::BLUE_DRAGON, "e73a", 0x52C0, 2, {}},
+    {Monster::BLACK_DRAGON, "e74a", 0x52C0, 2, {}},
+    {Monster::MASK_OF_PRAJNA, "e75a", 0x4170, 2, {}},
+    {Monster::CRESCENT_BARON, "e76a", 0x37F8, 2, {}},
+    {Monster::SAM, "e86a", 0x2848, 2, {}},
+    {Monster::YAMMICH, "e101a", 0x3DD0, 2, {}},
+    {Monster::HALEY_HOLEY, "e105a", 0x43AC, 2, {}},
+    {Monster::GEMRON_FIRE, "e111a", 0x44B8, 2, {}},
+    {Monster::WHITE_FANG_ENHANCED, "e125a", 0x39F4, 2, {0.3f, 0.37f}, 2},
+    {Monster::ARTHUR_ENHANCED, "e126a", 0x3784, 2, {}},
+    {Monster::MASTER_JACKET_ENHANCED, "e129a", 0x4498, 2, {}},
+    {Monster::VULCAN_ENHANCED, "e130a", 0x61E0, 2, {}},
+    {Monster::MUMMY_ENHANCED, "e131a", 0x3BC4, 2, {}},
+    {Monster::DIAMOND_ENHANCED, "e132a", 0x2970, 2, {}},
+    {Monster::GEMRON_ICE, "e112a", 0x44B8, 2, {}},
+    {Monster::HORN_HEAD, "e119a", 0x48B0, 2, {}},
+    {Monster::YAMMICH_ENHANCED, "e135a", 0x3ED4, 2, {}},
+    {Monster::CLUB_ENHANCED, "e138a", 0x2970, 2, {}},
+    {Monster::CORCEA_ENHANCED, "e139a", 0x4308, 2, {}},
+    {Monster::GEMRON_THUNDER, "e113a", 0x44B8, 2, {}},
+    {Monster::BISHOP_Q, "e116a", 0x5324, 2, {}},
+    {Monster::MASK_OF_PRAJNA_ENHANCED, "e142a", 0x4170, 2, {}},
+    {Monster::GYON_ENHANCED, "e143a", 0x3F90, 2, {}},
+    {Monster::SPADE_ENHANCED, "e144a", 0x2970, 2, {}},
+    {Monster::CAPTAIN_ENHANCED, "e146a", 0x3EA8, 2, {}},
+    {Monster::GEMRON_WIND, "e114a", 0x44B8, 2, {}},
+    {Monster::SILVER_GEAR, "e118a", 0x6358, 2, {}},
+    {Monster::ALEXANDER_ENHANCED, "e149a", 0x5E9C, 2, {}},
+    {Monster::HEART_ENHANCED, "e150a", 0x2970, 2, {}},
+    {Monster::BOMBER_HEAD_ENHANCED, "e151a", 0x62CC, 2, {}},
+    {Monster::CRABBY_HERMIT_ENHANCED, "e152a", 0x49F0, 2, {}},
+    {Monster::PIRATES_CHARIOT_ENHANCED, "e154a", 0x28F4, 2, {}},
+    {Monster::SPACE_GYON_ENHANCED, "e155a", 0x4E0C, 2, {}},
+    {Monster::GEMRON_HOLY, "e115a", 0x44B8, 2, {}},
+    {Monster::GACIOUS_ENHANCED, "e117a", 0x4498, 2, {}},
+    {Monster::CRESCENT_BARON_ENHANCED, "e159a", 0x38FC, 2, {}},
+    {Monster::JOKER_ENHANCED, "e161a", 0x2970, 2, {}},
+    {Monster::LICH_ENHANCED, "e162a", 0x4390, 2, {}},
 };
 // clang-format on
 
@@ -109,26 +159,84 @@ bool Offset(CMonstorUnit &unit, int monster, float &dx, float &dz, float &distan
     return true;
 }
 
-// A monster backing off: from coming within the retreat radius until it is out past the calm radius.
-bool Backing(CMonstorUnit &unit, int monster, float &dx, float &dz, float &distance) {
-    return Offset(unit, monster, dx, dz, distance) && snake.backing[monster];
+// A monster in play near the player: within the retreat radius.
+bool Near(CMonstorUnit &unit, int monster, float &dx, float &dz, float &distance) {
+    return Offset(unit, monster, dx, dz, distance) && snake.near[monster];
 }
 
-// Marks the monsters backing off; true when one starts to.
-bool MarkBacking(CMonstorUnit &unit) {
-    bool started = false;
+// Marks the monsters near the player; true when one comes near.
+bool MarkNear(CMonstorUnit &unit) {
+    bool came = false;
     for (int monster = 0; monster < kFloorMonsters; monster++) {
         float dx = 0.0f, dz = 0.0f, distance = 0.0f;
-        if (!Offset(unit, monster, dx, dz, distance)) {
-            snake.backing[monster] = false;
-        } else if (distance < kSnakeRetreatRadius) {
-            started = started || !snake.backing[monster];
-            snake.backing[monster] = true;
-        } else if (distance > kSnakeCalmRadius) {
-            snake.backing[monster] = false;
+        bool  near = Offset(unit, monster, dx, dz, distance) && distance < kSnakeRetreatRadius;
+        came = came || (near && !snake.near[monster]);
+        snake.near[monster] = near;
+    }
+    return came;
+}
+
+// A cell pushing the int value, and a function's last cell (its return, the padding after it).
+bool Pushes(const vmcode_t &cell, int value) {
+    return cell.op == static_cast<int>(stb::kPushConst) && cell.arg1 == static_cast<int>(stb::kInt) && cell.arg2 == value;
+}
+
+bool Ends(const vmcode_t *cell) {
+    return cell[0].op == static_cast<int>(stb::kReturn) && cell[1].op == 0;
+}
+
+// A function's record in a loaded script's code (as a CALL names it): where its code starts and its argument count.
+struct Record {
+    std::int32_t addr, name, local, arg;
+};
+
+Record RecordAt(const char *code, int record) {
+    Record found{};
+    std::memcpy(&found, code + record, sizeof(found));
+    return found;
+}
+
+// Whether the loaded script holds the retreat where the table has it: a function of as many arguments whose code (or a
+// function it calls) sets the retreat's motion (_SET_MOTION's command and the motion pushed in turn).
+bool HoldsRetreat(const char *code, const SnakeRetreat &retreat) {
+    constexpr int kCells = 4096;
+    auto          cells = [&](const Record &function) { return reinterpret_cast<const vmcode_t *>(code + function.addr); };
+    auto          sets_motion = [&](const Record &function) {
+        const vmcode_t *cell = cells(function);
+        for (int i = 0; i < kCells && !Ends(cell); i++, cell++) {
+            if (Pushes(cell[0], stb::kSetMotion) && Pushes(cell[1], retreat.motion)) {
+                return true;
+            }
+        }
+        return false;
+    };
+    Record function = RecordAt(code, retreat.record);
+    if (function.arg != retreat.argc) {
+        return false;
+    }
+    if (sets_motion(function)) {
+        return true;
+    }
+    const vmcode_t *cell = cells(function);
+    for (int i = 0; i < kCells && !Ends(cell); i++, cell++) {
+        if (cell->op == static_cast<int>(stb::kCall) && sets_motion(RecordAt(code, cell->arg2))) {
+            return true;
         }
     }
-    return started;
+    return false;
+}
+
+// The monster's retreat, when its kind has one and its loaded script holds it.
+const SnakeRetreat *RetreatOf(CMonstorUnit &unit, int monster) {
+    const MONSTOR       &live = unit.monster[monster];
+    const MONSTOR_MODEL &model = unit.model[live.base_model];
+    const SnakeRetreat  *retreat = SnakeRetreatOf(ModelKind(live.base_model));
+    CRunScript          &script = unit.interpreter[monster];
+    if (retreat == nullptr || model.kind != MONSTER_KIND_NORMAL || script.prog == nullptr ||
+        std::strcmp(model.script_name, retreat->script) != 0 || !HoldsRetreat(script.code, *retreat)) {
+        return nullptr;
+    }
+    return retreat;
 }
 
 // A motion's length in steps, from its key (its frames at its speed).
@@ -403,7 +511,7 @@ void SnakeCharmerStep() {
     snake.up = Guarding();
     if (!snake.up) {
         snake.fade = std::max(0, snake.fade - 1);
-        std::fill(std::begin(snake.backing), std::end(snake.backing), false);
+        std::fill(std::begin(snake.near), std::end(snake.near), false);
         if (snake.fade == 0) {
             Forget();
             return;
@@ -422,7 +530,7 @@ void SnakeCharmerStep() {
         }
         snake.fade = std::min(kSnakeFadeSteps, snake.fade + 1);
         if (NowMonstorUnit != nullptr) {
-            startled = MarkBacking(*NowMonstorUnit);
+            startled = MarkNear(*NowMonstorUnit);
         }
     }
     Idle(startled);
@@ -467,65 +575,54 @@ float SnakeCharmerMouth() {
     return snake.fade > 0 ? MouthAngle() / kSnakeMouthAngle : 0.0f;
 }
 
-int SnakeBackOffMotion(const CMonstorUnit &unit, int monster) {
-    const MONSTOR &live = unit.monster[monster];
-    int            kind = ModelKind(live.base_model);
-    // Ordinary monsters only: the bosses' and the mimics' scripts are left to them.
-    if (kind < 0 || kind > No(Monster::BLACK_KNIGHT_MOUNT) || unit.model[live.base_model].kind != MONSTER_KIND_NORMAL) {
-        return -1;
-    }
-    for (const KindBackOff &other : kOtherBackOffs) {
-        if (kind == No(other.kind)) {
-            return other.motion;
+const SnakeRetreat *SnakeRetreatOf(int kind) {
+    for (const SnakeRetreat &retreat : kRetreats) {
+        if (kind == No(retreat.kind)) {
+            return &retreat;
         }
     }
-    return kBackOff;
+    return nullptr;
 }
 
 bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
     Retreat &retreat = retreats[monster];
-    float    dx = 0.0f, dz = 0.0f, distance = 0.0f;
-    int      motion = SnakeBackOffMotion(unit, monster);
-    bool     backing = snake.up && &unit == NowMonstorUnit && motion >= 0 && unit.monster[monster].hp > 0 &&
-                   Backing(unit, monster, dx, dz, distance);
-    if (!backing) {
-        if (retreat.held) {
-            // Back to its script, from the top.
-            unit.script_state[monster] = 0;
+    if (retreat.running) {
+        // Its own script runs the retreat (or a hit's reaction in its place) to its end.
+        if (unit.script_state[monster] == 0) {
+            retreat.running = false;
+            retreat.rest = kSnakeRetreatRest;
         }
-        retreat = {};
         return false;
     }
-    if (!retreat.held) {
-        unit.script_state[monster] = 0;
-        retreat.held = true;
-    } else if (unit.script_state[monster] != 0) {
-        // A hit's reaction plays out as its script has it; then it backs off again.
-        retreat.playing = false;
+    if (retreat.rest > 0) {
+        retreat.rest--;
         return false;
     }
-    if (!retreat.playing) {
-        PlayMonsterMotion(unit, monster, motion, kMotionLoop);
-        retreat.playing = true;
+    float dx = 0.0f, dz = 0.0f, distance = 0.0f;
+    if (!snake.up || &unit != NowMonstorUnit || unit.monster[monster].hp <= 0 || !Near(unit, monster, dx, dz, distance)) {
+        return false;
     }
-    if (distance < 0.01f) {
-        dx = 1.0f, dz = 0.0f, distance = 1.0f;
+    const SnakeRetreat *own = RetreatOf(unit, monster);
+    if (own == nullptr) {
+        return false;
     }
-    MONSTOR &live = unit.monster[monster];
-    live.movement[0] = dx / distance;
-    live.movement[1] = 0.0f;
-    live.movement[2] = dz / distance;
-    live.movement_speed = kSnakeBackSpeed;
-    // Facing the player as it goes.
-    std::copy(CharaMain.pos, CharaMain.pos + 4, live.turn_target);
-    live.turn_speed = kSnakeBackTurn;
+    // In place of what its script was doing, as a hit's reaction takes its place.
+    RS_STACKDATA args[2] = {};
+    for (int i = 0; i < own->argc; i++) {
+        args[i].type = RS_FLOAT;
+        args[i].f = own->args[i];
+    }
+    unit.interpreter[monster].run_function(own->record, args, own->argc);
+    unit.script_state[monster] = unit.interpreter[monster].IsEnd() != 0 ? 0 : 1;
+    retreat.running = unit.script_state[monster] != 0;
+    retreat.rest = retreat.running ? 0 : kSnakeRetreatRest;
     return true;
 }
 
 void SnakeCharmerMonsterMove(CMonstorUnit &unit, int monster) {
     MONSTOR &live = unit.monster[monster];
     float    dx = 0.0f, dz = 0.0f, distance = 0.0f;
-    if (!snake.up || retreats[monster].held || live.movement_speed == 0.0f || !Backing(unit, monster, dx, dz, distance) ||
+    if (!snake.up || retreats[monster].running || live.movement_speed == 0.0f || !Near(unit, monster, dx, dz, distance) ||
         distance < 0.01f) {
         return;
     }

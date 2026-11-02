@@ -407,6 +407,31 @@ int CRunScript::run(int no) {
     return g_run_result = end != 0 ? 0 : 1;
 }
 
+int CRunScript::run_function(int record, const RS_STACKDATA *args, int argc) {
+    if (prog == nullptr) {
+        return g_run_result = -1;
+    }
+
+    call_sp = call;
+    func = HostFunc(code, code + record);
+    frame = stack;
+    for (int i = 0; i < func->arg; i++) {
+        if (i < argc) {
+            frame[i] = args[i];
+        } else {
+            frame[i].type = RS_INT;
+            frame[i].i = 0;
+        }
+    }
+    sp = frame + func->local;
+    check_stack();
+    std::memset(frame + func->arg, 0, (func->local - func->arg) * sizeof(RS_STACKDATA));
+    end = 0;
+    skip_wait = 0;
+    exe(CodeAt(code, func->addr));
+    return g_run_result = end != 0 ? 0 : 1;
+}
+
 int CRunScript::check_program(int no) {
     const auto *entries = reinterpret_cast<const RS_PROGDATA *>(reinterpret_cast<const char *>(prog) + prog->prog);
 

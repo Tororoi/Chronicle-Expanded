@@ -1,5 +1,7 @@
 #pragma once
 
+#include "expanded/enemies/monsters.hpp"
+
 namespace dc::game {
 class CCharacter;
 class CFrame;
@@ -20,11 +22,12 @@ namespace expanded {
 // appearance's last pose; from there it idles on its own: its mouth opens by kSnakeMouthAngle every kSnakeMouthPeriod
 // steps (and when a monster comes near), easing open over kSnakeMouthEase, held kSnakeMouthHold and easing shut, while
 // the head stretches forward and back by kSnakeStretch every kSnakeStretchPeriod steps and bobs up and down by kSnakeBob
-// every kSnakeBobPeriod. A monster in play within kSnakeRetreatRadius of the player backs off until it
-// is past kSnakeCalmRadius: an ordinary monster with a back-off motion (most have a backstep; SnakeBackOffMotion) is
-// taken from its script and plays it over and over, stepping away at kSnakeBackSpeed and turning to face the player
-// (kSnakeBackTurn), a hit's reaction playing out as its script has it; the rest (those without one, the bosses and the
-// mimics) keep to their scripts but take no step nearer the player. The head fades in over kSnakeFadeSteps as the guard goes up and out over as long as it comes down, the
+// every kSnakeBobPeriod. A monster in play that comes within kSnakeRetreatRadius of the player backs off as
+// its own script does: an ordinary monster whose script has a retreat (a routine of its own that steps it back on its
+// back-off motion, as its script calls it: SnakeRetreatOf) runs it in place of what it was doing, as a hit's reaction
+// takes its place, and its script carries on after; kSnakeRetreatRest steps later it may run it again. Near the player
+// and not retreating, any monster takes no step nearer: those without a retreat (and the bosses and the mimics, whose
+// scripts are left to them) only stop coming on. The head fades in over kSnakeFadeSteps as the guard goes up and out over as long as it comes down, the
 // head and the weapon glowing white (kSnakeGlow added to their light) as it shows.
 //
 // The appearance ends with the head turned as the event's body held it; the model takes the turn back to the head's
@@ -49,9 +52,7 @@ inline constexpr float       kSnakeHeight = 14.0f;
 inline constexpr float       kSnakeLift = 2.0f;
 inline constexpr float       kSnakeBack = 11.0f;
 inline constexpr float       kSnakeRetreatRadius = 80.0f;
-inline constexpr float       kSnakeCalmRadius = 120.0f;
-inline constexpr float       kSnakeBackSpeed = 0.8f;
-inline constexpr float       kSnakeBackTurn = 0.2f;
+inline constexpr int         kSnakeRetreatRest = 30;
 
 bool SerpentSwordActive();
 
@@ -70,12 +71,24 @@ void SnakeCharmerLight(const CCharacter &character, float *ambient);
 bool  SnakeCharmerUp();
 float SnakeCharmerShown();
 float SnakeCharmerMouth();
-// A monster's back-off motion, or -1 when it has none (or its script is left to it).
-int SnakeBackOffMotion(const CMonstorUnit &unit, int monster);
-// Hook: a monster's step: true when it backs off on its own motion in place of its script.
+
+// A kind's retreat: the function of its script (its record, as a CALL names it, in script) that steps it back on its
+// motion, and the arguments its script calls it with.
+struct SnakeRetreat {
+    Monster     kind;
+    const char *script;
+    int         record;
+    int         motion;
+    float       args[2];
+    int         argc = 0;
+};
+
+// A kind's retreat, or null when its script has none.
+const SnakeRetreat *SnakeRetreatOf(int kind);
+// Hook: a monster's step: true when its script started its retreat (in place of its step's script).
 bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster);
 // Hook: a monster's step after the other monsters blocked it: what takes a step nearer the player taken off it while
-// it backs off on its script.
+// it is near and not retreating.
 void SnakeCharmerMonsterMove(CMonstorUnit &unit, int monster);
 // Hook: the floor ending: the snake forgotten (its model goes with the floor).
 void SnakeCharmerReset();
