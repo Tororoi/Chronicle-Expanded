@@ -66,6 +66,7 @@ inline constexpr int kKitchenKnifeMended = 1005;    // … and the knife mended
 inline constexpr int kMonstersSlowedMessage = 1006; // dungeon/magic_circles: the Secret Armlet's favoured rage circle
 inline constexpr int kPocklekulMessage = 1007;      // weapons/ruby/pocklekul: the pockle summoned
 inline constexpr int kShootingStarMessage = 1008;   // weapons/osmond/star_breaker: a shooting star coming down
+inline constexpr int kWiseOwlDoorMessage = 1009;    // weapons/toan/wise_owl_sword: the Moustache Key's door opened
 
 // Notes a pack entry as the game takes it (GetPackFile): allmenu.mes and itemshop.bin are the banks given Expanded
 // text; any other entry at the same address is not.

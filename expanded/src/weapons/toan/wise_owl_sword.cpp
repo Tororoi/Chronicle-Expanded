@@ -5,8 +5,10 @@
 
 #include "clsmes.hpp"
 #include "expanded/core/menu_text.hpp"
+#include "expanded/dungeon/door_keys.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/ownership.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 #include "localize/localize.hpp"
 #include "monstorunit.hpp"
@@ -25,6 +27,14 @@ std::optional<std::string> WiseOwlLine() {
 
 [[maybe_unused]] const bool kWiseOwlLine = (SetSystemMessage(kWiseOwlMessage, WiseOwlLine), true);
 
+// The line when the sword opens the door.
+std::optional<std::string> WiseOwlDoorLine() {
+    return LocalizeText("expanded.wise_owl.door", "I've always got a spare with me, hoo.");
+}
+
+[[maybe_unused]] const bool kWiseOwlDoorLine = (SetSystemMessage(kWiseOwlDoorMessage, WiseOwlDoorLine), true);
+[[maybe_unused]] const bool kWiseOwlsKey = (AddDoorKey({ITEM_MOUSTACHE_KEY, WiseOwlsKeyActive, kWiseOwlDoorMessage}), true);
+
 // The monster last named, -1 once none is in range.
 int named = -1;
 
@@ -39,6 +49,10 @@ bool WiseOwlKey(int item_no) {
 }
 
 } // namespace
+
+bool WiseOwlsKeyActive() {
+    return WeaponWielded(ITEM_WEAPON_WISE_OWL_SWORD) || SuperSteveSphere() == ITEM_WEAPON_WISE_OWL_SWORD;
+}
 
 int WiseOwlKeyHolder(const CMonstorUnit &unit) {
     int   holder = -1;
