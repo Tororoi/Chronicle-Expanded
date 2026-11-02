@@ -33,6 +33,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/weapons/toan/antique_sword.hpp"
+#include "expanded/weapons/toan/drain_seeker.hpp"
 #endif
 
 namespace dc::game {
@@ -739,6 +740,13 @@ void CDungeonMap::DrawMiniMap(float *pos, float angle) {
             show = 1;
         }
 #ifdef CHRONICLE_EXPANDED
+        // The Drain Seeker's Blood Scent marks a mimic's chest as a monster, wherever it is, as the monsters' own marks.
+        if (expanded::BloodScentMimic(*this, i)) {
+            box_src = CRect_i_(72, 96, 8, 8);
+            box_dst = CRect_i_(map_x + 384, map_y + 68, 8, 8);
+            set2DSprite(Vif1Packet, symbol_texture, box_dst, box_src);
+            continue;
+        }
         // The Antique Sword's Treasure Sense shows every chest.
         if (expanded::TreasureSenseActive()) {
             show = 1;
