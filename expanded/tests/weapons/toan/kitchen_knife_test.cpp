@@ -1,7 +1,12 @@
 #include <gtest/gtest.h>
 
+#include "collisiondata.hpp"
+#include "expanded/weapons/kick_back.hpp"
+#include "expanded/weapons/kitchen_knife_shot.hpp"
+#include "expanded/weapons/toan/baselard.hpp"
 #include "expanded/weapons/toan/kitchen_knife.hpp"
 #include "itemdata.hpp"
+#include "shot_effect.hpp"
 #include "test_support.hpp"
 
 using expanded::test::TestFloor;
@@ -108,4 +113,43 @@ TEST(KitchenKnife, OnlyTheKnifeIsBlessed) {
     spring.floor.status().cur_chara = CHARA_XIAO;
     Spring::Step(true);
     EXPECT_EQ(expanded::SpringsBlessingLeft(), 0);
+}
+
+namespace {
+
+COLLISION_HIT PelletHit(int owner, int attack) {
+    COLLISION_HIT record = {};
+    record.owner = owner;
+    record.attack_no = attack;
+    return record;
+}
+
+} // namespace
+
+TEST(KitchenKnife, SuperStevesPelletsWithItsSphereAreGems) {
+    expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_KITCHEN_KNIFE);
+    EXPECT_TRUE(expanded::KitchenKnifePellets());
+    EXPECT_TRUE(expanded::KitchenKnifeHit(PelletHit(1, 0)));
+    EXPECT_FALSE(expanded::KitchenKnifeHit(PelletHit(0, 0)));
+    EXPECT_FALSE(expanded::KitchenKnifeHit(PelletHit(1, 2)));
+
+    steve.weapon().attach[0].sphere_weapon_no = ITEM_WEAPON_BASELARD;
+    EXPECT_FALSE(expanded::KitchenKnifePellets());
+    EXPECT_FALSE(expanded::KitchenKnifeHit(PelletHit(1, 0)));
+}
+
+TEST(KitchenKnife, AGemThrowsHalfAsFarAsABaselardPellet) {
+    auto carries = [](expanded::KickBack kick) { return kick.speed * kick.speed / (2 * kick.decay); };
+    EXPECT_NEAR(carries(expanded::kGemKickBack), carries(expanded::kHeavyKickBack) / 2, 0.01f);
+    EXPECT_FALSE(expanded::HeavyHandHit(PelletHit(1, 0))); // the Baselard's own throw is not added
+}
+
+TEST(KitchenKnife, APelletKeepsItsSpriteWithNoGemLoaded) {
+    expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_KITCHEN_KNIFE);
+    CSHOT                    shots = {};
+    shots.used[0] = 1;
+    shots.size[0] = 1.5f;
+    expanded::GemShotFired(shots, 0);
+    EXPECT_FLOAT_EQ(shots.size[0], 1.5f);
+    expanded::GemShotEnded(shots, 0);
 }

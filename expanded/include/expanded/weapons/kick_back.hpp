@@ -16,6 +16,10 @@ struct KickBack {
 // About 17 units: a third of Big Bang's blast distance, at its fade.
 inline constexpr KickBack kHeavyKickBack = {2.02f, 0.12f};
 
+// Half the Baselard's (about 8.5 units): its speed over the square root of two, the same decay. Super Steve's Aquamarines
+// with the Kitchen Knife's SynthSphere.
+inline constexpr KickBack kGemKickBack = {kHeavyKickBack.speed * 0.70710678f, kHeavyKickBack.decay};
+
 // Throws monster slot away from origin as a landed hit does, scaled by the monster's own kick-back scale.
 void KickMonster(CMonstorUnit &unit, int slot, const float *origin, KickBack kick);
 
