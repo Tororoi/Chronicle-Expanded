@@ -1,3 +1,5 @@
+#include "battlemenu.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -9,7 +11,6 @@
 #include <string_view>
 
 #include "battle_globals.hpp"
-#include "battlemenu.hpp"
 #include "battlemenu/internal.hpp"
 #include "btactstatus.hpp"
 #include "camera.hpp"
@@ -1907,7 +1908,7 @@ void DrawWepVolumeDisplay(int x, int y, WEAPON_HAVE *weapon, int alpha) {
     int limit[4] = {expanded::ChronicleTwoLimit(*weapon, expanded::kStatAttack, data->attack_max), 99, 99,
                     expanded::ChronicleTwoLimit(*weapon, expanded::kStatMagic, data->magic_max)};
 #else
-    int   limit[4] = {data->attack_max, 99, 99, data->magic_max};
+    int limit[4] = {data->attack_max, 99, 99, data->magic_max};
 #endif
     limit[0] = static_cast<int>(static_cast<float>(limit[0]) * rate);
     limit[3] = static_cast<int>(static_cast<float>(limit[3]) * rate);
@@ -3091,7 +3092,12 @@ void WeaponMenuSelect() {
             } else {
                 WEAPON_DATA *data = GetWeaponData(weapon->item_no);
 
-                if (data->hole[WepMenu.board.cursor] == 2) {
+                int kind = data->hole[WepMenu.board.cursor];
+#ifdef CHRONICLE_EXPANDED
+                kind = expanded::BusterHoleKind(*weapon, WepMenu.board.cursor, kind);
+#endif
+
+                if (kind == 2) {
                     mes_no = 0x70;
                 } else {
                     mes_no = 0x71;
@@ -3541,7 +3547,10 @@ int WeaponSelectKey() {
                         WepMenu.board.cursor = 0;
                         WepMenu.tag_page = WEP_TAG_STATUS;
                         SetOldEffectKind(weapon->best_elem);
-                        int          holes = GetWeaponHoleNum(weapon->item_no);
+                        int holes = GetWeaponHoleNum(weapon->item_no);
+#ifdef CHRONICLE_EXPANDED
+                        holes = expanded::BusterHoles(*weapon, holes);
+#endif
                         CMenuCursor *cursor = SaveData->GetMenuCursor();
                         int          max = PersonalRetMax(BOARD_PAGE_ATTACH);
 
@@ -3994,6 +4003,9 @@ void WepAttachHaveCancel() {
             slot->item_no = held;
 #ifdef CHRONICLE_EXPANDED
             expanded::BusterBoostPlaced(BtlHaveItemPt->from_page == WEP_MENU_ATTACH_SOCKETS ? &DngWepHavePt[WepMenu.weapon_slot] : nullptr, *slot);
+            if (BtlHaveItemPt->from_page == WEP_MENU_ATTACH_SOCKETS) {
+                expanded::BusterCancelled(DngWepHavePt[WepMenu.weapon_slot], WepMenu.board.held_attach, BtlHaveItemPt->item_no);
+            }
 #endif
         }
 
@@ -4429,6 +4441,9 @@ void WeaponMenuAttachWepKey() {
     }
 
     int holes = GetWeaponHoleNum(weapon->item_no);
+#ifdef CHRONICLE_EXPANDED
+    holes = expanded::BusterHoles(*weapon, holes);
+#endif
 
     if (WepMenu.board.cursor > holes - 1) {
         WepMenu.board.cursor = holes - 1;
@@ -4472,6 +4487,7 @@ void WeaponMenuAttachWepKey() {
             weapon->attach[hole].item_no = held;
 #ifdef CHRONICLE_EXPANDED
             expanded::BusterBoostPlaced(nullptr, WepMenu.board.held_attach);
+            expanded::BusterSphereLeft(*weapon, WepMenu.board.held_attach, hole);
 #endif
             BtlHaveItemPt->from_slot = WepMenu.board.cursor;
             BtlHaveItemPt->from_page = WEP_MENU_ATTACH_SOCKETS;
@@ -4483,6 +4499,14 @@ void WeaponMenuAttachWepKey() {
 
         WEAPON_DATA *data = GetWeaponData(weapon->item_no);
         int          socket = data->hole[hole];
+#ifdef CHRONICLE_EXPANDED
+        socket = expanded::BusterHoleKind(*weapon, hole, socket);
+
+        if (expanded::BusterSwapRefused(*weapon, hole, WepMenu.board.held_attach)) {
+            ComMenuSePlay(MENU_SOUND_REFUSE);
+            return;
+        }
+#endif
 
         if (BtlHaveItemPt->item_no == ITEM_ATTACH_SYNTHESIS_SPHERE && socket != 2) {
 #ifdef CHRONICLE_EXPANDED
@@ -4503,6 +4527,7 @@ void WeaponMenuAttachWepKey() {
         BtlHaveItemPt->item_no = item_no;
 #ifdef CHRONICLE_EXPANDED
         expanded::BusterBoostSwapped(*weapon, weapon->attach[hole], WepMenu.board.held_attach);
+        expanded::BusterSphereLeft(*weapon, WepMenu.board.held_attach, -1);
 #endif
         BtlHaveItemPt->from_slot = WepMenu.board.cursor;
         BtlHaveItemPt->from_page = WepMenu.mode;
@@ -6694,6 +6719,9 @@ void ItemMenuModeDraw() {
             WEAPON_HAVE *weapon = ItemMenuMode.target_weapon;
             int          filled = 0;
             int          holes = GetWeaponHoleNum(weapon->item_no);
+#ifdef CHRONICLE_EXPANDED
+            holes = expanded::BusterHoles(*weapon, holes);
+#endif
 
             for (int i = 0; i < holes; i++) {
                 if (weapon->attach[i].item_no >= ITEM_ATTACH_START) {
@@ -6952,7 +6980,7 @@ void ItemMenuCharaStatusDraw(int x, int y, int chara, int alpha) {
 #ifdef CHRONICLE_EXPANDED
         int level = expanded::PlayerDefense(chara, BtlMenuStatusPt->defense[chara]);
 #else
-        int  level = BtlMenuStatusPt->defense[chara];
+        int level = BtlMenuStatusPt->defense[chara];
 #endif
         RECT number_rect = {0x100, 0x60, 0xC, 0xE};
         DrawMenuNumber(level, x + 0x64, y + 0x24, CharaStatus, number_rect, 1, alpha);
@@ -8651,7 +8679,12 @@ void DrawWepHole(int x, int y, WEAPON_HAVE *weapon, int selected, int alpha) {
     x += 10.0f;
 
     for (int i = 0; i < 6; i++) {
-        if (data->hole[i] - 1 < 0) {
+        int kind = data->hole[i];
+#ifdef CHRONICLE_EXPANDED
+        kind = expanded::BusterHoleKind(*weapon, i, kind);
+#endif
+
+        if (kind - 1 < 0) {
             return;
         }
 
@@ -8673,7 +8706,7 @@ void DrawWepHole(int x, int y, WEAPON_HAVE *weapon, int selected, int alpha) {
         DrawMenu2DSprite(WepStatus, CRect_i_(x + 1, y + 2, 0x2A, 0x29), src, 0, 0, 0, alpha * 80 >> 7);
         u8 *color = nullptr;
 
-        if (data->hole[i] == 2) {
+        if (kind == 2) {
             color = colors[1];
 
             if (filled) {
@@ -8797,7 +8830,7 @@ void MenuClsMes::NowWeaponStatus(WEAPON_HAVE *selected_weapon) {
 #ifdef CHRONICLE_EXPANDED
                 int message_no = expanded::ConfuseOptionMessage(bit);
 #else
-                int     message_no = bit + 69;
+                int message_no = bit + 69;
 #endif
                 ClsMes *window = message;
                 int     index = option_count;

@@ -53,6 +53,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/toan/buster_sword.hpp"
 #include "expanded/weapons/toan/chronicle_two.hpp"
 #endif
 
@@ -215,6 +216,10 @@ void WeaponAllValueSet(WEAPON_HAVE *weapon, WEAPON_HAVE *result, int full) {
         return;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::BusterBoostWeapon(*weapon);
+#endif
+
     ATTACH_LIST *attaches = weapon->attach;
     ATTACH_LIST  total{};
     float        rate = GetNowWeaponRate(weapon);
@@ -226,8 +231,18 @@ void WeaponAllValueSet(WEAPON_HAVE *weapon, WEAPON_HAVE *result, int full) {
     int flags = weapon->flags;
     std::memcpy(result, weapon, sizeof(WEAPON_HAVE));
 
-    for (int i = 0; i < GetWeaponHoleNum(weapon->item_no); i++) {
-        if (data->hole[i] <= 0) {
+    int holes = GetWeaponHoleNum(weapon->item_no);
+#ifdef CHRONICLE_EXPANDED
+    holes = expanded::BusterHoles(*weapon, holes);
+#endif
+
+    for (int i = 0; i < holes; i++) {
+        int kind = data->hole[i];
+#ifdef CHRONICLE_EXPANDED
+        kind = expanded::BusterHoleKind(*weapon, i, kind);
+#endif
+
+        if (kind <= 0) {
             break;
         }
 
@@ -2365,7 +2380,10 @@ int GetWeaponMsgNo2(s32 item_no) {
 }
 
 void DrawWepAttach(int x, int y, WEAPON_HAVE *weapon, [[maybe_unused]] int selected, int alpha) {
-    const int holes = GetWeaponHoleNum(weapon->item_no);
+    int holes = GetWeaponHoleNum(weapon->item_no);
+#ifdef CHRONICLE_EXPANDED
+    holes = expanded::BusterHoles(*weapon, holes);
+#endif
 
     if (holes <= 0) {
         return;

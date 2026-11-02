@@ -51,6 +51,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/weapons/abilities.hpp"
+#include "expanded/weapons/toan/buster_sword.hpp"
 #endif
 
 namespace dc::game {
@@ -2564,7 +2565,11 @@ int GetNowWeaponAttachNum(WEAPON_HAVE *weapon) {
 
     if (data != nullptr) {
         for (int i = 0; i < 6; i++) {
-            if (data->hole[i] > 0 && weapon->attach[i].item_no >= ITEM_ATTACH_START) {
+            int kind = data->hole[i];
+#ifdef CHRONICLE_EXPANDED
+            kind = expanded::BusterHoleKind(*weapon, i, kind);
+#endif
+            if (kind > 0 && weapon->attach[i].item_no >= ITEM_ATTACH_START) {
                 count++;
             }
         }
