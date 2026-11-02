@@ -57,6 +57,7 @@
 #include "expanded/enemies/species.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/weapons/toan/drain_seeker.hpp"
 #endif
 
 namespace dc::game {
@@ -482,6 +483,10 @@ void CMonstorUnit::DrawMapSymbol(float * /*offset*/) {
     for (int i = 0; i < 16; i++) {
         if (monster[i].state != -1 && monster[i].revealed != 0) {
             bool draw = BtEquipMasuisyou != 0 || DebugStatus[3] != 0 || monster[i].state == 2;
+#ifdef CHRONICLE_EXPANDED
+            // The Drain Seeker's Blood Scent shows every monster.
+            draw = draw || expanded::BloodScentActive();
+#endif
 
             if (draw) {
                 CCharacter *character = &chara[i][0];
