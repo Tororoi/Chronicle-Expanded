@@ -1,10 +1,12 @@
 #include "expanded/weapons/toan/kitchen_knife.hpp"
 
+#include <cmath>
 #include <cstring>
 #include <optional>
 #include <string>
 
 #include "character.hpp"
+#include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/menu_text.hpp"
 #include "expanded/weapons/player_state.hpp"
@@ -162,6 +164,21 @@ void SpringsBlessingSoak() {
 
 int SpringsBlessingAttack(int attack) {
     return left > 0 && KnifeOut() ? attack * kBlessingAttack : attack;
+}
+
+namespace {
+
+// Hit owners: Xiao's pellets (attack 0).
+constexpr int kXiao = 1;
+
+} // namespace
+
+bool KitchenKnifePellets() {
+    return SuperSteveSphere() == ITEM_WEAPON_KITCHEN_KNIFE;
+}
+
+bool KitchenKnifeHit(const COLLISION_HIT &record) {
+    return record.owner == kXiao && record.attack_no == 0 && KitchenKnifePellets();
 }
 
 } // namespace expanded

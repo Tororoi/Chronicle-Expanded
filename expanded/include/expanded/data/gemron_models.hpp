@@ -24,6 +24,11 @@ inline constexpr const char *kBombModelFile = "dun/item/main_data/bakudan.mds";
 inline constexpr const char *kBombPictureFile = "dun/item/main_data/bakudan.img";
 inline constexpr const char *kGlowQuadFile = "dun/effect/_b_boll.chr";
 inline constexpr const char *kBombThrowSource = "dun/effect/ringo_ex.chr";
+// The Aquamarine thrown as the bomb is (the apple shot with the dropped gem's model and picture): Super Steve's pellets
+// with the Kitchen Knife's SynthSphere.
+inline constexpr const char *kAquamarineThrowFile = "expanded/effect/aquamarine_throw.chr";
+inline constexpr const char *kAquamarineModelFile = "dun/item/main_data/juelaqua.mds";
+inline constexpr const char *kAquamarinePictureFile = "dun/item/main_data/juelaqua.img";
 
 // The self-destruct: KEY 14 (a repeat of the attack the script never plays) over frames 200-218 at 0.15, the guard's
 // return reversed then the guard loop, held one frame past its final pose (217).

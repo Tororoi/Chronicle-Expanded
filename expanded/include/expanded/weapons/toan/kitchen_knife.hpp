@@ -1,5 +1,9 @@
 #pragma once
 
+namespace dc::game {
+struct COLLISION_HIT;
+} // namespace dc::game
+
 namespace expanded {
 
 // Kitchen Knife "Spring's Blessing": stepping into a healing spring with the knife out blesses it for
@@ -20,5 +24,12 @@ void SpringsBlessingSoak();
 
 // Hook: ToanKey_Play: the attack its swings hit with.
 int SpringsBlessingAttack(int attack);
+
+// Super Steve carrying the Kitchen Knife's SynthSphere fires Aquamarines (kitchen_knife_shot.hpp), and each hit throws
+// the monster back half as far as a Baselard pellet's (kick_back.hpp).
+bool KitchenKnifePellets();
+
+// Whether a hit is a Super Steve pellet with the sphere.
+bool KitchenKnifeHit(const COLLISION_HIT &record);
 
 } // namespace expanded

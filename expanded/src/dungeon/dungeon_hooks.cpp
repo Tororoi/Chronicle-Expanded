@@ -37,6 +37,7 @@
 #include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/kick_back.hpp"
+#include "expanded/weapons/kitchen_knife_shot.hpp"
 #include "expanded/weapons/osmond/snail.hpp"
 #include "expanded/weapons/osmond/star_breaker.hpp"
 #include "expanded/weapons/osmond/star_breaker/shooting_stars.hpp"
@@ -57,6 +58,7 @@
 #include "expanded/weapons/toan/dusack.hpp"
 #include "expanded/weapons/toan/gladius.hpp"
 #include "expanded/weapons/toan/heavens_cloud.hpp"
+#include "expanded/weapons/toan/kitchen_knife.hpp"
 #include "expanded/weapons/toan/lambs_sword.hpp"
 #include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/maneater.hpp"
@@ -207,6 +209,7 @@ void DungeonMonstersCleared(bool drop_stars) {
     JudgementReset();
     SceneLightReset();
     BigBangShotReset();
+    GemShotReset();
     ZeusChargeReset();
     ZeusShotReset();
     OwnSoundsReset();
@@ -231,6 +234,7 @@ void DungeonMonstersTick() {
     JudgementStep();
     SolarFlashStep();
     BigBangShotStep();
+    GemShotStep();
     ZeusChargeStep();
     ZeusShotStep();
     TyphoonShotStep();
@@ -351,6 +355,7 @@ void PelletFired(CSHOT &shots, int slot) {
     MoonlitFocusShot(shots.vector[slot]);
     SolarShotFired(shots, slot);
     BigBangShotFired(shots, slot);
+    GemShotFired(shots, slot);
     ZeusShotFired(shots, slot);
     TyphoonShotFired(shots, slot);
     StealShotFired(shots, slot);
@@ -370,6 +375,7 @@ void RubyOrbThrown(CSHOT_EFFECT &effect, int slot, float scale, bool repeat) {
 void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
     SolarShotEnded(shots, slot, point, struck);
     BigBangShotEnded(shots, slot, point);
+    GemShotEnded(shots, slot);
     ZeusShotEnded(shots, slot, point, struck);
     TyphoonShotEnded(shots, slot, point, struck);
     RicochetShotEnded(shots, slot, point, struck);

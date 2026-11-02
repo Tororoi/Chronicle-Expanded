@@ -4,6 +4,7 @@
 
 #include "collisiondata.hpp"
 #include "expanded/weapons/toan/baselard.hpp"
+#include "expanded/weapons/toan/kitchen_knife.hpp"
 #include "monstorunit.hpp"
 
 namespace expanded {
@@ -22,9 +23,12 @@ void KickMonster(CMonstorUnit &unit, int slot, const float *origin, KickBack kic
 }
 
 void WeaponKickBack(CMonstorUnit &unit, int slot, const COLLISION_HIT &record) {
+    // A swing throws away from Toan, a pellet away from where it struck.
+    const float *origin = record.knockback_mode == 2 ? record.knockback_origin : record.pos;
     if (HeavyHandHit(record)) {
-        // A swing throws away from Toan, a pellet away from where it struck.
-        KickMonster(unit, slot, record.knockback_mode == 2 ? record.knockback_origin : record.pos, kHeavyKickBack);
+        KickMonster(unit, slot, origin, kHeavyKickBack);
+    } else if (KitchenKnifeHit(record)) {
+        KickMonster(unit, slot, origin, kGemKickBack);
     }
 }
 
