@@ -48,7 +48,7 @@ inline constexpr const char *kPumpedUpBones[kPumpedParts - 1][2] = {
     {"jnt17_2", "jnt9_2" },
     {"jnt18_1", "jnt10_1"},
 };
-inline constexpr const char *kPumpedUpHands[] = {"r_hand", "l_hand", "renzu__m"};
+inline constexpr const char *kPumpedUpHands[] = {"l_hand", "renzu__m"};
 // The sword hand (r_hand) grows about the sword's hilt (the weapon frame's origin) rather than the wrist, so the palm
 // stays round it, and its grip closes as it grows (its joints as data/toan_grip.hpp rigs them): each finger's knuckle
 // and middle joint turned kPumpedUpKnuckleCurl and kPumpedUpMiddleCurl degrees about their own z axis, both thumb joints
@@ -77,5 +77,8 @@ int  PumpedUpAttack(int attack);
 void PumpedUpPelletHit(COLLISION_HIT &hit);
 void PumpedUpPosed(CFrame *frame);
 void PumpedUpSkinBone(CFrame *frame, int bone, float (*matrix)[4]);
+// Hook: MotionProc2 starting a skinned mesh's skin at its parent (matrix the parent's, the unit until then): the sword
+// hand's grown about the hilt, which its palm and joints then take (a skinned mesh's own frame is not drawn scaled).
+void PumpedUpSkinStart(CFrame *frame, int mesh, float (*matrix)[4]);
 
 } // namespace expanded

@@ -515,6 +515,10 @@ Mot_List *MotionProc2(CFrame *frame, tagMOTION_TYPE *motion, tagFRAME_INF *frame
         owner->attr.remake_pending = 1;
         sceVu0UnitMatrix(frame_info[list->target].bone_base_matrix);
         sceVu0UnitMatrix(frame_info[list->target].bone_matrix);
+#ifdef CHRONICLE_EXPANDED
+        expanded::PumpedUpSkinStart(frame, static_cast<int>(list->frame), g_bone_matrix);
+        sceVu0CopyMatrix(frame_info[list->target].bone_matrix, g_bone_matrix);
+#endif
     } else {
         sceVu0FMATRIX local;
         sceVu0FVECTOR translation;

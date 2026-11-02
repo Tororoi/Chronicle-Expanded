@@ -232,8 +232,7 @@ void PumpedUpPosed(CFrame *frame) {
         }
         return it->second;
     };
-    float   size = PumpedUpSize(kPumpedHand);
-    CFrame *hilt = frame->SearchFrame(const_cast<char *>(kPumpedUpHilt));
+    float size = PumpedUpSize(kPumpedHand);
     for (const char *name : kPumpedUpHands) {
         CFrame *hand = frame->SearchFrame(const_cast<char *>(name));
         if (hand == nullptr) {
@@ -242,17 +241,8 @@ void PumpedUpPosed(CFrame *frame) {
         sceVu0FVECTOR *local = rest(hand);
         sceVu0FMATRIX  inverse, scaled;
         sceVu0InversMatrix(inverse, local);
-        // About the wrist (the parent's origin, in the hand's own frame), or the sword hand about the hilt.
-        float pivot[3] = {inverse[3][0], inverse[3][1], inverse[3][2]};
-        if (std::strcmp(name, kPumpedUpSwordHand) == 0 && hilt != nullptr && hilt->parent == hand->parent) {
-            for (int c = 0; c < 3; c++) {
-                pivot[c] = inverse[3][c];
-                for (int r = 0; r < 3; r++) {
-                    pivot[c] += hilt->local[3][r] * inverse[r][c];
-                }
-            }
-        }
-        ScaleAbout(scaled, local, pivot, size);
+        // About the wrist: the parent's origin, in the hand's own frame.
+        ScaleAbout(scaled, local, inverse[3], size);
         hand->SetTransMatrix(scaled);
     }
     // The grip closing.
@@ -273,6 +263,24 @@ void PumpedUpPosed(CFrame *frame) {
             joint->SetTransMatrix(turned);
         }
     }
+}
+
+void PumpedUpSkinStart(CFrame *frame, int mesh, float (*matrix)[4]) {
+    if (!ToanPumped(frame)) {
+        return;
+    }
+    CFrame *hand = &static_cast<CFrameVu1 *>(frame)[mesh];
+    if (std::strcmp(hand->name, kPumpedUpSwordHand) != 0) {
+        return;
+    }
+    CFrame *hilt = frame->SearchFrame(const_cast<char *>(kPumpedUpHilt));
+    if (hilt == nullptr || hilt->parent != hand->parent) {
+        return;
+    }
+    // In the parent's (the wrist's) frame, where the hilt sits at its own translation.
+    sceVu0FMATRIX unit;
+    sceVu0UnitMatrix(unit);
+    ScaleAbout(matrix, unit, hilt->local[3], PumpedUpSize(kPumpedHand));
 }
 
 void PumpedUpSkinBone(CFrame *frame, int bone, float (*matrix)[4]) {
