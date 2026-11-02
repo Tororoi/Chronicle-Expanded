@@ -310,7 +310,7 @@ int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs) {
         return abs;
     }
     int result = ArmorPiercerAbs(
-        unit, monster, MarineHunterAbs(unit, monster, SanctifierAbs(unit, monster, ButchersEdgeAbs(unit, monster, JacketHunterAbs(unit, monster, abs)))));
+        unit, monster, MarineHunterAbs(unit, monster, SanctifierAbs(unit, monster, UtilityKnifeAbs(unit, monster, JacketHunterAbs(unit, monster, abs)))));
     pocklekul::PockleKillAbs(monster, result);
     return result;
 }
@@ -319,7 +319,7 @@ float MonsterWeaponDamage(const CMonstorUnit &unit, int monster, const COLLISION
     if (AllyUnit(unit)) {
         return damage;
     }
-    return ArmorPiercerDamage(unit, monster, hit, SanctifierDamage(unit, monster, hit, ButchersEdgeDamage(unit, monster, hit, damage)));
+    return ArmorPiercerDamage(unit, monster, hit, SanctifierDamage(unit, monster, hit, UtilityKnifeDamage(unit, monster, hit, damage)));
 }
 
 int MonsterDefense(const CMonstorUnit &unit, int monster, int defense) {

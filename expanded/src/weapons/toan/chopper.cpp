@@ -11,7 +11,7 @@
 
 namespace expanded {
 
-bool ButchersEdgeActive() {
+bool UtilityKnifeActive() {
     return WeaponActive(ITEM_WEAPON_CHOPPER);
 }
 
@@ -20,14 +20,14 @@ bool Organic(const CMonstorUnit &unit, int monster) {
     return family == MONSTER_FAMILY_BEAST || family == MONSTER_FAMILY_PLANT;
 }
 
-float ButchersEdgeDamage(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, float damage) {
+float UtilityKnifeDamage(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, float damage) {
     // The wielder's own weapon hits: they carry its anti-monster table.
     bool wielders = hit.vs_monster != nullptr && UserStatus != nullptr && hit.owner == UserStatus->cur_chara;
-    return wielders && ButchersEdgeActive() && Organic(unit, monster) ? damage * kButchersDamage : damage;
+    return wielders && UtilityKnifeActive() && Organic(unit, monster) ? damage * kUtilityKnifeDamage : damage;
 }
 
-int ButchersEdgeAbs(const CMonstorUnit &unit, int monster, int abs) {
-    return ButchersEdgeActive() && Organic(unit, monster) ? static_cast<int>(std::lround(abs * kButchersAbs)) : abs;
+int UtilityKnifeAbs(const CMonstorUnit &unit, int monster, int abs) {
+    return UtilityKnifeActive() && Organic(unit, monster) ? static_cast<int>(std::lround(abs * kUtilityKnifeAbs)) : abs;
 }
 
 } // namespace expanded

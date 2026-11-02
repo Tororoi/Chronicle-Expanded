@@ -50,7 +50,7 @@ TEST(Chopper, BeastsAndPlantsAreOrganic) {
     }
 }
 
-TEST(Chopper, ButchersEdgeRaisesDamageAndAbsOnOrganicAlone) {
+TEST(Chopper, UtilityKnifeRaisesDamageAndAbsOnOrganicAlone) {
     Floor                    floor({Monster::WEREWOLF, Monster::GUNNY});
     expanded::test::Wielding chopper(ITEM_WEAPON_CHOPPER);
     EXPECT_FLOAT_EQ(floor.Hit(0, 30.0f), 45.0f);
@@ -61,14 +61,14 @@ TEST(Chopper, ButchersEdgeRaisesDamageAndAbsOnOrganicAlone) {
     EXPECT_EQ(expanded::MonsterKillAbs(floor.unit(), 1, 6), 6);
 }
 
-TEST(Chopper, ButchersEdgeNeedsTheChopper) {
+TEST(Chopper, UtilityKnifeNeedsTheChopper) {
     Floor                    floor({Monster::WEREWOLF});
     expanded::test::Wielding dagger(ITEM_WEAPON_DAGGER);
     EXPECT_FLOAT_EQ(floor.Hit(0, 30.0f), 30.0f);
     EXPECT_EQ(expanded::MonsterKillAbs(floor.unit(), 0, 6), 6);
 }
 
-TEST(Chopper, SuperSteveCarriesButchersEdge) {
+TEST(Chopper, SuperSteveCarriesUtilityKnife) {
     Floor floor({Monster::CANNIBAL_PLANT});
     floor.floor.status().cur_chara = CHARA_XIAO;
     expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_CHOPPER);
