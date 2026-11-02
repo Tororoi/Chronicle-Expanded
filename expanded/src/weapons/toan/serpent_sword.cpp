@@ -60,6 +60,15 @@ struct Snake {
 
 Snake snake;
 
+// The glow disc on the snake's face: the steps it has grown (to kSnakeGlowSteps) and where the face last was. It outlives
+// the head's fade, so it is kept apart from it.
+struct Disc {
+    int   steps = 0;
+    float at[3] = {};
+};
+
+Disc disc;
+
 // A monster running its script's own retreat, and the steps it rests after one before it may run it again.
 struct Retreat {
     bool running = false;
@@ -509,9 +518,11 @@ int SnakeSlayerAmount(const CMonstorUnit &unit, int monster, const COLLISION_HIT
 void SnakeCharmerStep() {
     if (!SerpentSwordActive() || BtEventMode != 0) {
         Forget();
+        disc = {};
         return;
     }
     snake.up = Guarding();
+    disc.steps = snake.up ? std::min(kSnakeGlowSteps, disc.steps + 1) : std::max(0, disc.steps - 1);
     if (!snake.up) {
         snake.fade = std::max(0, snake.fade - 1);
         std::fill(std::begin(snake.near), std::end(snake.near), false);
@@ -537,9 +548,14 @@ void SnakeCharmerStep() {
         }
     }
     Idle(startled);
-    mirage::HazeStep();
+    mirage::HazeStep(kSnakeHazeWave);
     Place();
     snake.model->Step();
+    if (CFrame *face = FrameNamed(snake.model->frame, kSnakeFace)) {
+        sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, at;
+        face->GetWorldPosition(at, origin);
+        std::copy(at, at + 3, disc.at);
+    }
 }
 
 void SnakeCharmerPosed(CFrame *frame) {
@@ -564,14 +580,8 @@ void SnakeCharmerDraw() {
 }
 
 void SnakeCharmerGlowDraw() {
-    CFrame *face = snake.fade > 0 && snake.model != nullptr && snake.model->frame != nullptr && BtEventMode == 0
-                       ? FrameNamed(snake.model->frame, kSnakeFace)
-                       : nullptr;
-    if (face != nullptr) {
-        sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, at;
-        face->GetWorldPosition(at, origin);
-        // Growing in as the head fades in, shrinking away as it fades out.
-        DrawGlowDisc(GlowLook::kSalmon, at, kSnakeGlowDisc * Ease(SnakeCharmerShown()), kSnakeGlowPull);
+    if (disc.steps > 0 && BtEventMode == 0) {
+        DrawGlowDisc(GlowLook::kSalmon, disc.at, kSnakeGlowDisc * Ease(static_cast<float>(disc.steps) / kSnakeGlowSteps), kSnakeGlowPull);
     }
 }
 
@@ -601,6 +611,10 @@ bool SnakeCharmerUp() {
 
 float SnakeCharmerShown() {
     return static_cast<float>(snake.fade) / kSnakeFadeSteps;
+}
+
+float SnakeCharmerGlow() {
+    return static_cast<float>(disc.steps) / kSnakeGlowSteps;
 }
 
 float SnakeCharmerMouth() {
@@ -678,6 +692,7 @@ void SnakeCharmerMonsterMove(CMonstorUnit &unit, int monster) {
 
 void SnakeCharmerReset() {
     snake = Snake{};
+    disc = {};
     std::fill(std::begin(retreats), std::end(retreats), Retreat{});
 }
 

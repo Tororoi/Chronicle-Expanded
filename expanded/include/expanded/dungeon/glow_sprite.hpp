@@ -30,7 +30,7 @@ enum class GlowLook {
     kWind,
     kHoly,
     kNoElement,
-    kSalmon, // a pale pink core out to a salmon edge
+    kSalmon, // a dark salmon core out to a deeper salmon edge
     kCount,
 };
 

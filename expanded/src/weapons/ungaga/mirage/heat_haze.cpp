@@ -19,8 +19,8 @@ float phase = 0.0f;
 
 } // namespace
 
-void HazeStep() {
-    phase += kHazeWaveStep * std::uniform_real_distribution<float>(0.0f, 1.0f)(ModRandom());
+void HazeStep(float step) {
+    phase += step * std::uniform_real_distribution<float>(0.0f, 1.0f)(ModRandom());
     if (!(phase < kHazeWaveCycle)) {
         phase = 0.0f;
     }

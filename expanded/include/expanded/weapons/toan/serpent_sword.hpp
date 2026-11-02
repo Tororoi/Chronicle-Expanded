@@ -31,8 +31,9 @@ namespace expanded {
 // scripts are left to them) only stop coming on. The head fades in over kSnakeFadeSteps as the guard goes up and out over as long as it comes down, the
 // head and the weapon glowing white (kSnakeGlow added to their light) as it shows. It is a ghost: drawn
 // kSnakeGhost see-through (its nearest surface only, never its inside), shimmering as the Mirage's copy does, less
-// (kSnakeHaze at kSnakeHazeGain, about its face, kSnakeFace), a salmon-pink glow disc kSnakeGlowDisc across on its face
-// (depth-tested from kSnakeGlowPull nearer) growing in and shrinking away with it.
+// (kSnakeHaze at kSnakeHazeGain, its wave at kSnakeHazeWave, from under its face, kSnakeFace, down over the blade), a
+// salmon glow disc kSnakeGlowDisc across on its face (depth-tested from kSnakeGlowPull nearer) growing in as it comes and
+// shrinking away as it goes, over kSnakeGlowSteps (slower than its fade: the disc stays where the face last was).
 //
 // The appearance ends with the head turned as the event's body held it; the model takes the turn back to the head's
 // rest (the pose its skin was made in) so that it ends upright and facing ahead. Its jaw (kSnakeJaw) is shut at its
@@ -48,7 +49,9 @@ inline constexpr float            kSnakeGhost = 0.45f;
 inline constexpr const char      *kSnakeFace = "face";
 inline constexpr float            kSnakeHazeGain = 1.0f;
 inline constexpr float            kSnakeGlowDisc = 30.0f, kSnakeGlowPull = 8.0f;
-inline constexpr mirage::HazeLook kSnakeHaze = {-15.0f, 10.0f, 16.0f, 2.0f};
+inline constexpr int              kSnakeGlowSteps = 30;
+inline constexpr mirage::HazeLook kSnakeHaze = {-24.0f, 10.0f, 18.0f, 2.0f};
+inline constexpr float            kSnakeHazeWave = mirage::kHazeWaveStep * 0.5f;
 inline constexpr int              kSnakeMouthPeriod = 180, kSnakeMouthEase = 40, kSnakeMouthHold = 10;
 inline constexpr float            kSnakeMouthAngle = 0.5f; // radians
 inline constexpr float            kSnakeStretch = 1.2f;
@@ -84,6 +87,8 @@ void SnakeCharmerLight(const CCharacter &character, float *ambient);
 bool  SnakeCharmerUp();
 float SnakeCharmerShown();
 float SnakeCharmerMouth();
+// How far the glow disc has grown (0..1).
+float SnakeCharmerGlow();
 
 // A kind's retreat: the function of its script (its record, as a CALL names it, in script) that steps it back on its
 // motion, and the arguments its script calls it with.

@@ -296,6 +296,27 @@ TEST_F(SerpentSword, TheHeadFadesInAndOutWithTheGuard) {
     EXPECT_FLOAT_EQ(after[0], 0.0f);
 }
 
+TEST_F(SerpentSword, TheGlowDiscGrowsAndShrinksSlowerThanTheFade) {
+    Put({Monster::WEREWOLF});
+    At(0, 0.0f, 200.0f);
+    Guard(true);
+    for (int step = 1; step <= expanded::kSnakeGlowSteps; step++) {
+        expanded::SnakeCharmerStep();
+        EXPECT_NEAR(expanded::SnakeCharmerGlow(), static_cast<float>(step) / expanded::kSnakeGlowSteps, 1e-5f) << step;
+    }
+    // The head gone with its fade, the disc still shrinking away after it.
+    Guard(false);
+    for (int step = 0; step < expanded::kSnakeFadeSteps; step++) {
+        expanded::SnakeCharmerStep();
+    }
+    EXPECT_FLOAT_EQ(expanded::SnakeCharmerShown(), 0.0f);
+    EXPECT_GT(expanded::SnakeCharmerGlow(), 0.0f);
+    for (int step = expanded::kSnakeFadeSteps; step < expanded::kSnakeGlowSteps; step++) {
+        expanded::SnakeCharmerStep();
+    }
+    EXPECT_FLOAT_EQ(expanded::SnakeCharmerGlow(), 0.0f);
+}
+
 TEST_F(SerpentSword, TheHeadAppearsThenOpensItsMouthNowAndThen) {
     Put({Monster::WEREWOLF});
     At(0, 0.0f, 200.0f);

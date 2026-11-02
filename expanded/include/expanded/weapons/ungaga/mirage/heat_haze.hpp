@@ -20,8 +20,8 @@ struct HazeLook {
 
 inline constexpr HazeLook kMirageHaze = {kHazeLift, kHazeWidth, kHazeHeight, kHazeSway};
 
-// A frame unpaused: the wave stepped.
-void HazeStep();
+// A frame unpaused: the wave stepped, at most step (the Mirage copy's by default).
+void HazeStep(float step = kHazeWaveStep);
 // The draw at root, at gain, as look has it (the Mirage copy's by default).
 void HazeDraw(const float *root, float gain, const HazeLook &look = kMirageHaze);
 // The wave's phase (tests).
