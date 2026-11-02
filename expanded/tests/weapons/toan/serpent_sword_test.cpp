@@ -90,6 +90,7 @@ protected:
             floor_.Spawn(slot, slot);
             floor_.unit().monster[slot].state = 2;
             floor_.unit().monster[slot].revealed = -1;
+            floor_.unit().chara[slot][0].motion_type.motion_info = monster_clips_;
             slot++;
         }
     }
@@ -107,14 +108,7 @@ protected:
         return expanded::MonsterHitAmount(floor_.unit(), monster, hit, amount);
     }
 
-    // Where monster's script finds the player.
-    std::array<float, 4> Target(int monster) {
-        std::array<float, 4> found{};
-        floor_.unit().current_monster = monster;
-        expanded::ScriptPlayerPosition(found.data());
-        return found;
-    }
-
+    MOTION_INFO               monster_clips_[20] = {};
     expanded::test::Wielding  wielding_;
     expanded::test::TestFloor floor_;
     float                     saved_pos_[4] = {};
@@ -169,42 +163,83 @@ TEST_F(SerpentSword, TheSnakeComesWithTheGuard) {
     EXPECT_FALSE(expanded::SnakeCharmerUp());
 }
 
-TEST_F(SerpentSword, MonstersBackAwayUntilPastTheCalmRadius) {
+TEST_F(SerpentSword, MostKindsBackOffOnTheirBackstep) {
+    Put({Monster::WEREWOLF, Monster::AUNTIE_MEDU, Monster::HALLOWEEN, Monster::CAVE_BAT, Monster::MIMIC_DBC});
+    EXPECT_EQ(expanded::SnakeBackOffMotion(floor_.unit(), 0), 2);
+    EXPECT_EQ(expanded::SnakeBackOffMotion(floor_.unit(), 1), 4);
+    EXPECT_EQ(expanded::SnakeBackOffMotion(floor_.unit(), 2), 13);
+    EXPECT_EQ(expanded::SnakeBackOffMotion(floor_.unit(), 3), -1); // none
+    EXPECT_EQ(expanded::SnakeBackOffMotion(floor_.unit(), 4), -1); // a mimic's script is its own
+}
+
+TEST_F(SerpentSword, MonstersBackOffUntilPastTheCalmRadius) {
     Put({Monster::WEREWOLF, Monster::DASHER});
+    CMonstorUnit &unit = floor_.unit();
     At(0, 0.0f, 60.0f);   // within the radius
     At(1, 0.0f, -100.0f); // outside it
+    unit.script_state[0] = 1;
     Guard(true);
     expanded::SnakeCharmerStep();
-    auto away = Target(0);
-    EXPECT_GT(away[2], 60.0f); // a point behind it, away from the player
-    auto player = Target(1);
-    EXPECT_FLOAT_EQ(player[2], 0.0f); // the other finds the player
 
-    // A step toward the player is turned straight away; one already away is kept.
-    MONSTOR &wolf = floor_.unit().monster[0];
-    wolf.movement_speed = 1.0f;
-    wolf.movement[0] = 0.6f, wolf.movement[2] = -0.8f;
-    expanded::MonsterMoveChecked(floor_.unit(), 0);
-    EXPECT_FLOAT_EQ(wolf.movement[0], 0.0f);
-    EXPECT_FLOAT_EQ(wolf.movement[2], 1.0f);
-    wolf.movement[0] = 0.8f, wolf.movement[2] = 0.6f;
-    expanded::MonsterMoveChecked(floor_.unit(), 0);
-    EXPECT_FLOAT_EQ(wolf.movement[0], 0.8f);
+    // Taken from its script, it plays its backstep stepping away, facing the player; the other is left to its own.
+    ASSERT_TRUE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.script_state[0], 0);
+    EXPECT_EQ(unit.monster[0].requested_motion, 2);
+    EXPECT_FLOAT_EQ(unit.monster[0].movement[2], 1.0f);
+    EXPECT_FLOAT_EQ(unit.monster[0].movement_speed, expanded::kSnakeBackSpeed);
+    EXPECT_FLOAT_EQ(unit.monster[0].turn_target[2], 0.0f);
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 1));
 
-    // Out past the radius, it still backs off; past the calm radius it may come back.
+    // A hit's reaction runs on its script; then it backs off again.
+    unit.script_state[0] = 1;
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    unit.script_state[0] = 0;
+    EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
+
+    // Out past the radius it still backs off; past the calm radius its script takes it back from the top.
     At(0, 0.0f, 100.0f);
     expanded::SnakeCharmerStep();
-    EXPECT_GT(Target(0)[2], 100.0f);
+    EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
     At(0, 0.0f, expanded::kSnakeCalmRadius + 5.0f);
     expanded::SnakeCharmerStep();
-    EXPECT_FLOAT_EQ(Target(0)[2], 0.0f);
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.script_state[0], 0);
 
     // The guard down, none backs off.
     At(0, 0.0f, 60.0f);
     expanded::SnakeCharmerStep();
+    EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
     Guard(false);
     expanded::SnakeCharmerStep();
-    EXPECT_FLOAT_EQ(Target(0)[2], 0.0f);
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+}
+
+TEST_F(SerpentSword, KindsWithoutABackstepStopComingOn) {
+    Put({Monster::CAVE_BAT});
+    CMonstorUnit &unit = floor_.unit();
+    At(0, 0.0f, 60.0f);
+    Guard(true);
+    expanded::SnakeCharmerStep();
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    MONSTOR &bat = unit.monster[0];
+    // Straight at the player: it stops.
+    bat.movement_speed = 1.0f;
+    bat.movement[0] = 0.0f, bat.movement[2] = -1.0f;
+    expanded::MonsterMoveChecked(unit, 0);
+    EXPECT_FLOAT_EQ(bat.movement_speed, 0.0f);
+    // Slanting in: only the sideways part is left.
+    bat.movement_speed = 1.0f;
+    bat.movement[0] = 0.6f, bat.movement[2] = -0.8f;
+    expanded::MonsterMoveChecked(unit, 0);
+    EXPECT_FLOAT_EQ(bat.movement[0], 1.0f);
+    EXPECT_NEAR(bat.movement[2], 0.0f, 1e-6f);
+    EXPECT_FLOAT_EQ(bat.movement_speed, 0.6f);
+    // Away, as its script would have it: kept.
+    bat.movement_speed = 1.0f;
+    bat.movement[0] = 0.0f, bat.movement[2] = 1.0f;
+    expanded::MonsterMoveChecked(unit, 0);
+    EXPECT_FLOAT_EQ(bat.movement[2], 1.0f);
+    EXPECT_FLOAT_EQ(bat.movement_speed, 1.0f);
 }
 
 TEST_F(SerpentSword, TheHeadFadesInAndOutWithTheGuard) {
@@ -288,7 +323,7 @@ TEST_F(SuperSteveSerpent, SuperSteveCarriesSnakeCharmer) {
     Guard(true);
     expanded::SnakeCharmerStep();
     EXPECT_TRUE(expanded::SnakeCharmerUp());
-    EXPECT_GT(Target(0)[2], 60.0f);
+    EXPECT_TRUE(expanded::MonsterStepTaken(floor_.unit(), 0));
 }
 
 TEST_F(SerpentSword, OffWithTheWeaponAbilities) {

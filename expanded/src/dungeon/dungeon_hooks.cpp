@@ -353,7 +353,7 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
         return false;
     }
     return BossDeathStep(unit, monster) || BombGemronStep(unit, monster) || ReviveStep(unit, monster) ||
-           BlindStep(unit, monster);
+           BlindStep(unit, monster) || SnakeCharmerMonsterStep(unit, monster);
 }
 
 void PelletFired(CSHOT &shots, int slot) {
@@ -502,8 +502,7 @@ void DungeonShadowsDrawing() {
 
 void ScriptPlayerPosition(float *position) {
     if (NowMonstorUnit != nullptr && (PocklekulScriptTarget(position) || angel_gear::RingTarget(NowMonstorUnit->current_monster, position) ||
-                                      MirageTarget(NowMonstorUnit->current_monster, position) ||
-                                      SnakeCharmerTarget(NowMonstorUnit->current_monster, position))) {
+                                      MirageTarget(NowMonstorUnit->current_monster, position))) {
         return;
     }
     ConfuseScriptPlayerPosition(position);

@@ -15,13 +15,16 @@ namespace expanded {
 //
 // "Snake Charmer": the snake's spirit in the sword. While the guard is up, the Killer Snake's head (the Wise Owl Forest
 // event's giant snake: kKillerSnakeFile's head, set up from kKillerSnakeCfg) hovers over the blade at kSnakeScale,
-// kSnakeLift above its middle and facing as the player faces. It rises with its appearance (kSnakeAppear) and holds the
+// kSnakeLift above where the guard holds its middle (kSnakeAhead ahead of the player and kSnakeHeight up, on the player,
+// so the head stays still as the guard's pose comes and goes) and facing as the player faces. It rises with its appearance (kSnakeAppear) and holds the
 // appearance's last pose; from there it idles on its own: its mouth opens by kSnakeMouthAngle every kSnakeMouthPeriod
 // steps (and when a monster comes near), easing open over kSnakeMouthEase, held kSnakeMouthHold and easing shut, while
 // the head stretches forward and back by kSnakeStretch every kSnakeStretchPeriod steps and bobs up and down by kSnakeBob
-// every kSnakeBobPeriod. A monster in play within kSnakeRetreatRadius of the player backs away until it is past
-// kSnakeCalmRadius: every step it takes toward the player is turned straight away, and its script finds the player far
-// behind it. The head fades in over kSnakeFadeSteps as the guard goes up and out over as long as it comes down, the
+// every kSnakeBobPeriod. A monster in play within kSnakeRetreatRadius of the player backs off until it
+// is past kSnakeCalmRadius: an ordinary monster with a back-off motion (most have a backstep; SnakeBackOffMotion) is
+// taken from its script and plays it over and over, stepping away at kSnakeBackSpeed and turning to face the player
+// (kSnakeBackTurn), a hit's reaction playing out as its script has it; the rest (those without one, the bosses and the
+// mimics) keep to their scripts but take no step nearer the player. The head fades in over kSnakeFadeSteps as the guard goes up and out over as long as it comes down, the
 // head and the weapon glowing white (kSnakeGlow added to their light) as it shows.
 //
 // The appearance ends with the head turned as the event's body held it; the model takes the turn back to the head's
@@ -33,7 +36,7 @@ inline constexpr const char *kKillerSnakeCfg = "e117e54a.cfg";
 inline constexpr const char *kSnakeJaw = "null59";
 inline constexpr int         kSnakeAppear = 8;
 inline constexpr int         kSnakeFadeSteps = 15;
-inline constexpr float       kSnakeGlow = 32.0f;
+inline constexpr float       kSnakeGlow = 80.0f;
 inline constexpr int         kSnakeMouthPeriod = 180, kSnakeMouthEase = 20, kSnakeMouthHold = 20;
 inline constexpr float       kSnakeMouthAngle = 1.0f; // radians
 inline constexpr float       kSnakeStretch = 1.2f;
@@ -41,10 +44,14 @@ inline constexpr int         kSnakeStretchPeriod = 200;
 inline constexpr float       kSnakeBob = 0.6f;
 inline constexpr int         kSnakeBobPeriod = 120;
 inline constexpr float       kSnakeScale = 0.5f;
+inline constexpr float       kSnakeAhead = 4.0f;
+inline constexpr float       kSnakeHeight = 14.0f;
 inline constexpr float       kSnakeLift = 8.0f;
 inline constexpr float       kSnakeBack = 11.0f;
 inline constexpr float       kSnakeRetreatRadius = 80.0f;
 inline constexpr float       kSnakeCalmRadius = 120.0f;
+inline constexpr float       kSnakeBackSpeed = 0.8f;
+inline constexpr float       kSnakeBackTurn = 0.2f;
 
 bool SerpentSwordActive();
 
@@ -63,10 +70,12 @@ void SnakeCharmerLight(const CCharacter &character, float *ambient);
 bool  SnakeCharmerUp();
 float SnakeCharmerShown();
 float SnakeCharmerMouth();
-// Hook: where the monster's script finds the player: true, with a point well behind the monster, while it backs away.
-bool SnakeCharmerTarget(int monster, float *position);
-// Hook: a monster's step after the other monsters blocked it: a step toward the player turned straight away while it
-// backs away.
+// A monster's back-off motion, or -1 when it has none (or its script is left to it).
+int SnakeBackOffMotion(const CMonstorUnit &unit, int monster);
+// Hook: a monster's step: true when it backs off on its own motion in place of its script.
+bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster);
+// Hook: a monster's step after the other monsters blocked it: what takes a step nearer the player taken off it while
+// it backs off on its script.
 void SnakeCharmerMonsterMove(CMonstorUnit &unit, int monster);
 // Hook: the floor ending: the snake forgotten (its model goes with the floor).
 void SnakeCharmerReset();

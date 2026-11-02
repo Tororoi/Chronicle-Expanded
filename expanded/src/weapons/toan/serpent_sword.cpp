@@ -11,6 +11,7 @@
 #include "expanded/core/frames.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/player_state.hpp"
@@ -52,6 +53,48 @@ struct Snake {
 };
 
 Snake snake;
+
+// A monster backing off on its own motion, its script set aside.
+struct Retreat {
+    bool held = false;    // taken from its script
+    bool playing = false; // its back-off motion started
+};
+
+Retreat retreats[kFloorMonsters];
+
+// The back-off motion of most kinds; these are the rest (-1 those with none: they only stop coming on).
+constexpr int kBackOff = 2;
+
+struct KindBackOff {
+    Monster kind;
+    int     motion;
+};
+
+// clang-format off
+constexpr KindBackOff kOtherBackOffs[] = {
+    {Monster::STATUE,               -1},
+    {Monster::HALLOWEEN,            13},
+    {Monster::CANNIBAL_PLANT,       -1},
+    {Monster::EARTH_DIGGER,         -1},
+    {Monster::AUNTIE_MEDU,          4 },
+    {Monster::MOON_BUG,             -1},
+    {Monster::CAVE_BAT,             -1},
+    {Monster::EVIL_BAT,             -1},
+    {Monster::MOON_DIGGER,          -1},
+    {Monster::DARK_FLOWER,          -1},
+    {Monster::CURSED_ROSE,          -1},
+    {Monster::WINE_KEG,             -1},
+    {Monster::NIKAPOUS,             -1},
+    {Monster::HALLOWEEN_ENHANCED,   13},
+    {Monster::AUNTIE_MEDU_ENHANCED, 4 },
+    {Monster::CAVE_BAT_ENHANCED,    -1},
+    {Monster::CURSED_ROSE_ENHANCED, -1},
+    {Monster::EVIL_BAT_ENHANCED,    -1},
+    {Monster::BOMB_GEMRON,          -1}, // the gemrons Expanded drives itself
+    {Monster::CRYSTAL_GEMRON,       -1},
+    {Monster::ATLA_GEMRON,          -1},
+};
+// clang-format on
 
 // A monster in play: its offset from the player across the ground and its distance, false when it is not in play.
 bool Offset(CMonstorUnit &unit, int monster, float &dx, float &dz, float &distance) {
@@ -248,20 +291,12 @@ void AnglesFor(sceVu0FMATRIX target, float *angles) {
     }
 }
 
-// Above the sword, facing as the player faces; the head held where its root is, whatever its motion moves.
+// Ahead of and above the player, where the guard holds the blade, facing as the player faces; the head held where its
+// root is, whatever its motion moves.
 void Place() {
-    float   above[3] = {CharaMain.pos[0], CharaMain.pos[1], CharaMain.pos[2]};
-    CFrame *hilt = NowWeapon != nullptr && NowWeapon->frame != nullptr ? FrameNamed(NowWeapon->frame, "dcol0") : nullptr;
-    CFrame *tip = NowWeapon != nullptr && NowWeapon->frame != nullptr ? FrameNamed(NowWeapon->frame, "dcol1") : nullptr;
-    if (hilt != nullptr && tip != nullptr) {
-        sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, a, b;
-        hilt->GetWorldPosition(a, origin);
-        tip->GetWorldPosition(b, origin);
-        for (int c = 0; c < 3; c++) {
-            above[c] = (a[c] + b[c]) * 0.5f;
-        }
-    }
     float yaw = PlayerYaw();
+    float above[3] = {CharaMain.pos[0] + std::sin(yaw) * kSnakeAhead, CharaMain.pos[1] + kSnakeHeight,
+                      CharaMain.pos[2] + std::cos(yaw) * kSnakeAhead};
     // The counter-turn first, then the player's yaw, as the model's own angles.
     sceVu0FMATRIX upright, target;
     sceVu0UnitMatrix(upright);
@@ -273,7 +308,7 @@ void Place() {
     sceVu0RotMatrixY(target, upright, yaw);
     AnglesFor(target, snake.angles);
     snake.model->SetRotation(snake.angles[0], snake.angles[1], snake.angles[2]);
-    // Where the neck ends the appearance goes kSnakeLift over the sword, the head's middle kSnakeBack ahead of it.
+    // Where the neck ends the appearance goes kSnakeLift over that, the head's middle kSnakeBack ahead of it.
     // The idle's stretch along the facing and bob, from nothing as it starts.
     float idle = static_cast<float>(snake.idle);
     float back = kSnakeBack * kSnakeScale - kSnakeStretch * std::sin(kTau * idle / kSnakeStretchPeriod);
@@ -432,39 +467,89 @@ float SnakeCharmerMouth() {
     return snake.fade > 0 ? MouthAngle() / kSnakeMouthAngle : 0.0f;
 }
 
-bool SnakeCharmerTarget(int monster, float *position) {
-    float dx = 0.0f, dz = 0.0f, distance = 0.0f;
-    if (!snake.up || NowMonstorUnit == nullptr || !Backing(*NowMonstorUnit, monster, dx, dz, distance)) {
+int SnakeBackOffMotion(const CMonstorUnit &unit, int monster) {
+    const MONSTOR &live = unit.monster[monster];
+    int            kind = ModelKind(live.base_model);
+    // Ordinary monsters only: the bosses' and the mimics' scripts are left to them.
+    if (kind < 0 || kind > No(Monster::BLACK_KNIGHT_MOUNT) || unit.model[live.base_model].kind != MONSTER_KIND_NORMAL) {
+        return -1;
+    }
+    for (const KindBackOff &other : kOtherBackOffs) {
+        if (kind == No(other.kind)) {
+            return other.motion;
+        }
+    }
+    return kBackOff;
+}
+
+bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
+    Retreat &retreat = retreats[monster];
+    float    dx = 0.0f, dz = 0.0f, distance = 0.0f;
+    int      motion = SnakeBackOffMotion(unit, monster);
+    bool     backing = snake.up && &unit == NowMonstorUnit && motion >= 0 && unit.monster[monster].hp > 0 &&
+                   Backing(unit, monster, dx, dz, distance);
+    if (!backing) {
+        if (retreat.held) {
+            // Back to its script, from the top.
+            unit.script_state[monster] = 0;
+        }
+        retreat = {};
         return false;
+    }
+    if (!retreat.held) {
+        unit.script_state[monster] = 0;
+        retreat.held = true;
+    } else if (unit.script_state[monster] != 0) {
+        // A hit's reaction plays out as its script has it; then it backs off again.
+        retreat.playing = false;
+        return false;
+    }
+    if (!retreat.playing) {
+        PlayMonsterMotion(unit, monster, motion, kMotionLoop);
+        retreat.playing = true;
     }
     if (distance < 0.01f) {
         dx = 1.0f, dz = 0.0f, distance = 1.0f;
     }
-    // Twice the radius behind it, away from the player: it heads there.
-    float away = 2.0f * kSnakeRetreatRadius / distance;
-    float at[4];
-    NowMonstorUnit->chara[monster][0].GetPosition(at);
-    position[0] = at[0] + dx * away;
-    position[1] = at[1];
-    position[2] = at[2] + dz * away;
-    position[3] = 1.0f;
+    MONSTOR &live = unit.monster[monster];
+    live.movement[0] = dx / distance;
+    live.movement[1] = 0.0f;
+    live.movement[2] = dz / distance;
+    live.movement_speed = kSnakeBackSpeed;
+    // Facing the player as it goes.
+    std::copy(CharaMain.pos, CharaMain.pos + 4, live.turn_target);
+    live.turn_speed = kSnakeBackTurn;
     return true;
 }
 
 void SnakeCharmerMonsterMove(CMonstorUnit &unit, int monster) {
     MONSTOR &live = unit.monster[monster];
     float    dx = 0.0f, dz = 0.0f, distance = 0.0f;
-    if (!snake.up || live.movement_speed == 0.0f || !Backing(unit, monster, dx, dz, distance) || distance < 0.01f) {
+    if (!snake.up || retreats[monster].held || live.movement_speed == 0.0f || !Backing(unit, monster, dx, dz, distance) ||
+        distance < 0.01f) {
         return;
     }
-    if (live.movement[0] * dx + live.movement[2] * dz < 0.0f) {
-        live.movement[0] = dx / distance;
-        live.movement[2] = dz / distance;
+    // A step toward the player loses what takes it nearer: sideways it may go, and away as its script has it.
+    dx /= distance, dz /= distance;
+    float out = live.movement[0] * dx + live.movement[2] * dz;
+    if (out >= 0.0f) {
+        return;
     }
+    live.movement[0] -= out * dx;
+    live.movement[2] -= out * dz;
+    float left = std::sqrt(live.movement[0] * live.movement[0] + live.movement[2] * live.movement[2]);
+    if (left < 0.01f) {
+        live.movement_speed = 0.0f;
+        return;
+    }
+    live.movement[0] /= left;
+    live.movement[2] /= left;
+    live.movement_speed *= left;
 }
 
 void SnakeCharmerReset() {
     snake = Snake{};
+    std::fill(std::begin(retreats), std::end(retreats), Retreat{});
 }
 
 } // namespace expanded
