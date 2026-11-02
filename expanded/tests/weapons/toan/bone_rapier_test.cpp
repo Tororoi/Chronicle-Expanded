@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/door_keys.hpp"
 #include "expanded/enemies/revive.hpp"
 #include "expanded/weapons/toan/bone_rapier.hpp"
 #include "itemdata.hpp"
@@ -41,7 +42,7 @@ TEST(BoneRapier, SkeletonKeyAnswersTheBoneDoor) {
         Wielding     wielding(weapon);
         RS_STACKDATA result = {};
         BtEventInfo.item_select_result = 1;
-        EXPECT_TRUE(expanded::SkeletonKeyAnswers(kBoneKeyWindow, &result));
+        EXPECT_TRUE(expanded::DoorKeyAnswers(kBoneKeyWindow, &result));
         EXPECT_EQ(result.i, ITEM_BONE_KEY);
         EXPECT_EQ(BtEventInfo.item_select_result, 0);
     }
@@ -51,17 +52,17 @@ TEST(BoneRapier, OtherWindowsAndWeaponsShowTheWindow) {
     RS_STACKDATA result = {};
     {
         Wielding wielding(ITEM_WEAPON_DAGGER);
-        EXPECT_FALSE(expanded::SkeletonKeyAnswers(kBoneKeyWindow, &result));
+        EXPECT_FALSE(expanded::DoorKeyAnswers(kBoneKeyWindow, &result));
     }
 
     Wielding  wielding(ITEM_WEAPON_BONE_RAPIER);
     const int other_key[] = {ITEM_BONE_KEY + 1, -1};
     const int with_more[] = {ITEM_BONE_KEY, ITEM_BONE_KEY + 1, -1};
     const int any_item[] = {-1};
-    EXPECT_FALSE(expanded::SkeletonKeyAnswers(other_key, &result));
-    EXPECT_FALSE(expanded::SkeletonKeyAnswers(with_more, &result));
-    EXPECT_FALSE(expanded::SkeletonKeyAnswers(any_item, &result));
-    EXPECT_FALSE(expanded::SkeletonKeyAnswers(kBoneKeyWindow, nullptr));
+    EXPECT_FALSE(expanded::DoorKeyAnswers(other_key, &result));
+    EXPECT_FALSE(expanded::DoorKeyAnswers(with_more, &result));
+    EXPECT_FALSE(expanded::DoorKeyAnswers(any_item, &result));
+    EXPECT_FALSE(expanded::DoorKeyAnswers(kBoneKeyWindow, nullptr));
     EXPECT_EQ(result.i, 0);
 }
 

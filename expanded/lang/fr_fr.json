@@ -58,6 +58,7 @@
     "expanded.bandit_slingshot.acquired.30": "{icon-jar}\"{insert1}\" en poche.",
     "expanded.bandit_slingshot.stolen": "Le projectile de [monster] est désormais à toi",
     "expanded.wise_owl.key": "L'Épée du hibou sent {insert1} tout près...",
+    "expanded.wise_owl.door": "Hou hou ! L'Épée du hibou connaît le chemin.",
     "expanded.star_breaker.shooting_star": "Le Pulvériseur vous envoie une étoile filante !",
     "expanded.empty_sphere.slot_one": "Un Plan synthétique\nvide ne va que dans\nle premier espace.",
     "expanded.empty_sphere.break_confirm": "{alert}Enfermer 60% des facultés\nde l'arme dans la sphère\n(Consomme le plan vide)\nEffectuer la mutation ?"

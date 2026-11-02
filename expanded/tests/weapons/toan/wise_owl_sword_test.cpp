@@ -1,13 +1,20 @@
 #include <gtest/gtest.h>
 
+#include "dun/gameloop.hpp"
+#include "expanded/dungeon/door_keys.hpp"
 #include "expanded/weapons/toan/wise_owl_sword.hpp"
 #include "itemdata.hpp"
+#include "runscript.hpp"
 #include "sysmes.hpp"
 #include "test_support.hpp"
 
 using expanded::Monster;
+using expanded::test::Wielding;
 
 namespace {
+
+// The window the locked room's gate asks for in Wise Owl Forest: the Moustache Key alone.
+const int kMoustacheKeyWindow[] = {ITEM_MOUSTACHE_KEY, -1};
 
 // A floor of three monsters at 600, 300 and 100 from the player, none carrying a key.
 struct Floor {
@@ -72,4 +79,35 @@ TEST(WiseOwlSword, NamesTheKeyOnceAndOnlyWhileTheSwordIsOwned) {
     expanded::WiseOwlStep(floor.floor.unit());
     EXPECT_TRUE(SystemMesCheck());
     ClearSystemMes();
+}
+
+TEST(WiseOwlSword, InHandItOpensTheMoustacheKeyDoor) {
+    Wielding     wielding(ITEM_WEAPON_WISE_OWL_SWORD);
+    RS_STACKDATA result = {};
+    BtEventInfo.item_select_result = 1;
+    EXPECT_TRUE(expanded::DoorKeyAnswers(kMoustacheKeyWindow, &result));
+    EXPECT_EQ(result.i, ITEM_MOUSTACHE_KEY);
+    EXPECT_EQ(BtEventInfo.item_select_result, 0);
+
+    const int    bone_key[] = {ITEM_BONE_KEY, -1}; // the Bone Rapier's door, not the owl's
+    RS_STACKDATA other = {};
+    EXPECT_FALSE(expanded::DoorKeyAnswers(bone_key, &other));
+    EXPECT_EQ(other.i, 0);
+}
+
+TEST(WiseOwlSword, OwnedOrAnotherWeaponTheDoorAsksForTheKey) {
+    Wielding     dagger(ITEM_WEAPON_DAGGER);
+    RS_STACKDATA result = {};
+    EXPECT_FALSE(expanded::WiseOwlWayActive());
+    EXPECT_FALSE(expanded::DoorKeyAnswers(kMoustacheKeyWindow, &result));
+    EXPECT_EQ(result.i, 0);
+}
+
+TEST(WiseOwlSword, SuperSteveCarryingItsSphereKnowsTheWay) {
+    {
+        Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_WISE_OWL_SWORD);
+        EXPECT_TRUE(expanded::WiseOwlWayActive());
+    }
+    Wielding plain(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_DAGGER);
+    EXPECT_FALSE(expanded::WiseOwlWayActive());
 }

@@ -45,7 +45,7 @@
 #include "userstatus.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/weapons/toan/bone_rapier.hpp"
+#include "expanded/dungeon/door_keys.hpp"
 #endif
 
 namespace dc::game {
@@ -336,7 +336,7 @@ int _ITEM_USE_WINDOW(RS_STACKDATA *stack, int argument_count) {
     BtEventInfo.item_select_filtered = argument_count > 1;
     BtEventInfo.item_select_list[item_count] = -1;
 #ifdef CHRONICLE_EXPANDED
-    if (expanded::SkeletonKeyAnswers(BtEventInfo.item_select_list, PortItemSelectResult)) {
+    if (expanded::DoorKeyAnswers(BtEventInfo.item_select_list, PortItemSelectResult)) {
         return 1;
     }
 #endif
