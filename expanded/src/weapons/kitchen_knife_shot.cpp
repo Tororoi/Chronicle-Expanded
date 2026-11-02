@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <optional>
 
 #include "bt_shot_effect.hpp"
@@ -109,6 +110,16 @@ void GemShotFired(CSHOT &shots, int slot) {
 void GemShotEnded(const CSHOT &shots, int slot) {
     if (std::optional<int> gem = state.gems.Take(shots, slot)) {
         Hide(*gem);
+    }
+}
+
+void GemShotLight(const CCharacter &character, float *ambient) {
+    CSHOT_EFFECT *gems = state.effect >= 0 ? LoadedShotEffect(state.effect) : nullptr;
+    if (gems == nullptr || &character < &gems->chara[0] || &character >= std::end(gems->chara)) {
+        return;
+    }
+    for (int c = 0; c < 3; c++) {
+        ambient[c] += kGemTint[c];
     }
 }
 
