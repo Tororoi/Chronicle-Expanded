@@ -64,7 +64,8 @@ bool LambWeapon(const WEAPON_HAVE &weapon);
 bool LambWolfForm(const WEAPON_HAVE &weapon);
 
 // Hook: MenuWeaponSpSet, a weapon's model shown in its form: Super Steve (his pack as wolf_steve.hpp builds it) as Steve,
-// or with a Lamb's Sword SynthSphere in its wolf form as Wolf Steve. Nothing for a pack without the wolf's frames.
+// with a Lamb's Sword SynthSphere in its wolf form as Wolf Steve, or with a Macho Sword SynthSphere in Macho's hat (his
+// hair hidden under it). Nothing for a pack without those frames.
 void WolfSteveShow(CCharacter *chara, const WEAPON_HAVE &weapon);
 
 } // namespace expanded

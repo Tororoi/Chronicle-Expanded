@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <map>
+#include <numbers>
 #include <numeric>
 #include <optional>
 #include <stdexcept>
@@ -317,7 +318,80 @@ double Lerp(double a0, double a1, double b0, double b1, double x) {
 
 } // namespace
 
-Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const unsigned char> lamb_chr) {
+namespace {
+
+// Macho's hat in Steve's body mesh's coordinates: its triangles, each corner's position, normal and texture point.
+struct HatTri {
+    int                 material;
+    std::array<Vec3, 3> p, n;
+    std::array<Vec2, 3> uv;
+};
+
+std::vector<HatTri> MachoHat(const MdtMesh &head, const std::vector<Tri> &tris) {
+    const MachoHatFit &fit = kMachoHatFit;
+    auto               hat = [](int material) { return std::ranges::find(kMachoHatMaterials, material) != std::end(kMachoHatMaterials); };
+    double             lo[2] = {1e9, 1e9}, hi[2] = {-1e9, -1e9};
+    for (const Tri &t : tris) {
+        if (!hat(t.material)) {
+            continue;
+        }
+        for (const auto &r : t.rec) {
+            const auto &q = head.positions.at(std::size_t(r[0]));
+            lo[0] = std::min(lo[0], q[0]), hi[0] = std::max(hi[0], q[0]);
+            lo[1] = std::min(lo[1], q[2]), hi[1] = std::max(hi[1], q[2]);
+        }
+    }
+    double cx = (lo[0] + hi[0]) / 2, cz = (lo[1] + hi[1]) / 2;
+    // Tilted back about the side (z), then turned about the up (y), as rows: a point (row) times them.
+    double a = fit.tilt * std::numbers::pi / 180, b = fit.turn * std::numbers::pi / 180;
+    double tilt[3][3] = {
+        {std::cos(a),  std::sin(a), 0},
+        {-std::sin(a), std::cos(a), 0},
+        {0,            0,           1}
+    };
+    double turn[3][3] = {
+        {std::cos(b), 0, -std::sin(b)},
+        {0,           1, 0           },
+        {std::sin(b), 0, std::cos(b) }
+    };
+    double m[3][3] = {};
+    for (int r = 0; r < 3; r++) {
+        for (int c = 0; c < 3; c++) {
+            for (int k = 0; k < 3; k++) {
+                m[r][c] += tilt[r][k] * turn[k][c];
+            }
+        }
+    }
+    auto times = [&](const Vec3 &v) {
+        Vec3 out{};
+        for (int c = 0; c < 3; c++) {
+            out[std::size_t(c)] = v[0] * m[0][c] + v[1] * m[1][c] + v[2] * m[2][c];
+        }
+        return out;
+    };
+    std::vector<HatTri> out;
+    for (const Tri &t : tris) {
+        if (!hat(t.material)) {
+            continue;
+        }
+        HatTri h{t.material, {}, {}, {}};
+        for (int k = 0; k < 3; k++) {
+            const auto &q = head.positions.at(std::size_t(t.rec[std::size_t(k)][0]));
+            Vec3        r = times({q[2] - cz, q[1] - kMachoHatSeat, -(q[0] - cx)});
+            h.p[std::size_t(k)] = {r[0] * fit.size + fit.forward + kSteveHeadTop[0], r[1] * fit.size + fit.lift + kSteveHeadTop[1],
+                                   r[2] * fit.size + fit.side + kSteveHeadTop[2]};
+            Vec3 n = Normal(head, t.rec[std::size_t(k)]);
+            h.n[std::size_t(k)] = Unit(times({n[2], n[1], -n[0]}));
+            h.uv[std::size_t(k)] = Uv(head, t.rec[std::size_t(k)]);
+        }
+        out.push_back(h);
+    }
+    return out;
+}
+
+} // namespace
+
+Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const unsigned char> lamb_chr, std::span<const unsigned char> macho_chr) {
     const WolfSteveFit &fit = kWolfSteveFit;
     ChrPack             pack = ChrPack::Parse(steve_chr);
     Bytes               mds = pack.Require(kSteveMds).Payload();
@@ -608,8 +682,18 @@ Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const u
         }
         into.Add(it->second, p, n, uv);
     };
-    std::map<int, int> steve_mats, hand_mats;
-    std::vector<int>   off = head;
+    std::map<int, int> steve_mats, hand_mats, hair_mats;
+    NewMesh            steve_hair(glove);
+    std::vector<int>   off;
+    for (int t : head) {
+        if (std::ranges::find(hair, t) == hair.end()) {
+            off.push_back(t);
+        }
+    }
+    for (int t : hair) {
+        body_kept[std::size_t(t)] = false;
+        moved(steve_hair, hair_mats, body, bt[std::size_t(t)]);
+    }
     for (const auto &f : feet) {
         off.insert(off.end(), f.begin(), f.end());
     }
@@ -624,6 +708,23 @@ Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const u
         }
     }
 
+    // Macho's hat, its materials his.
+    ChrPack            macho = ChrPack::Parse(macho_chr);
+    Bytes              mmds = macho.Require(kMachoMds).Payload();
+    auto               mframes = ReadMdsSkeleton(mmds);
+    const MdsFrame    &mhead_frame = RequireFrame(mframes, kMachoHead, kMachoMds);
+    MdtMesh            mhead = MdtMesh::Parse(MdtAt(mmds, std::size_t(mhead_frame.mesh)));
+    ImgBank            macho_bank = ImgBank::Parse(macho.Require(kMachoImg).Payload());
+    NewMesh            hat_mesh(glove);
+    std::map<int, int> hat_mats;
+    for (const HatTri &h : MachoHat(mhead, Triangles(mhead, mhead_frame))) {
+        auto [it, fresh] = hat_mats.try_emplace(h.material, 0);
+        if (fresh) {
+            it->second = hat_mesh.Material(mhead.materials.at(std::size_t(h.material)));
+        }
+        hat_mesh.Add(it->second, h.p, h.n, h.uv);
+    }
+
     // The frames: Steve's and the wolf's on his body and glove frames, rest-posed there.
     int n = int(frames.size());
     pack.Require(kSteveMds).ReplacePayload(ReplaceMeshes(mds, {
@@ -635,9 +736,12 @@ Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const u
                                                              {FrameRecord(n + 1, kSteveHands, glove_frame.index), steve_hands.Build()},
                                                              {FrameRecord(n + 2, kWolfParts, body_frame.index), wolf_parts.Build()},
                                                              {FrameRecord(n + 3, kWolfHands, glove_frame.index), wolf_hands.Build()},
+                                                             {FrameRecord(n + 4, kSteveHair, body_frame.index), steve_hair.Build()},
+                                                             {FrameRecord(n + 5, kMachoHat, body_frame.index), hat_mesh.Build()},
                                                          }));
-    AppendBindPoses(pack, kSteveBbp, 4);
+    AppendBindPoses(pack, kSteveBbp, 6);
     steve_bank.entries.emplace_back(kWolfSheet, lamb_bank.Block(kWolfSheet));
+    steve_bank.entries.emplace_back(kMachoHatSheet, tim8::Swizzled(macho_bank.Block(kMachoHatSheet)));
     pack.Require(kSteveImg).ReplacePayload(steve_bank.Build());
     return pack.Rebuild();
 }
@@ -645,13 +749,13 @@ Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const u
 std::vector<DataBuild> WolfSteveBuilds() {
     using Files = const std::vector<Bytes> &;
     return {
-        DataBuild::FromSources("Wolf Steve", std::string(kRebuiltDiscFolder) + kSuperSteveFile, {kSuperSteveFile, kLambSwordFile},
-                               [](Files s) { return BuildWolfSteve(s[0], s[1]); }),
+        DataBuild::FromSources("Wolf Steve", std::string(kRebuiltDiscFolder) + kSuperSteveFile, {kSuperSteveFile, kLambSwordFile, kMachoFile},
+                               [](Files s) { return BuildWolfSteve(s[0], s[1], s[2]); }),
         DataBuild::FromSources("Wolf Steve in Xiao's weapon menu", std::string(kRebuiltDiscFolder) + kXiaoMenuWeaponsFile,
-                               {kXiaoMenuWeaponsFile, kLambSwordFile}, [](Files s) {
+                               {kXiaoMenuWeaponsFile, kLambSwordFile, kMachoFile}, [](Files s) {
                                    ChrPack    bundle = ChrPack::Parse(s[0]);
                                    ChrRecord &steve = bundle.Require("c04w13.chr");
-                                   steve.ReplacePayload(BuildWolfSteve(steve.Payload(), s[1]));
+                                   steve.ReplacePayload(BuildWolfSteve(steve.Payload(), s[1], s[2]));
                                    return bundle.Rebuild();
                                }),
     };
