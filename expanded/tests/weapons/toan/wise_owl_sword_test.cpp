@@ -98,16 +98,16 @@ TEST(WiseOwlSword, InHandItOpensTheMoustacheKeyDoor) {
 TEST(WiseOwlSword, OwnedOrAnotherWeaponTheDoorAsksForTheKey) {
     Wielding     dagger(ITEM_WEAPON_DAGGER);
     RS_STACKDATA result = {};
-    EXPECT_FALSE(expanded::WiseOwlWayActive());
+    EXPECT_FALSE(expanded::WiseOwlsKeyActive());
     EXPECT_FALSE(expanded::DoorKeyAnswers(kMoustacheKeyWindow, &result));
     EXPECT_EQ(result.i, 0);
 }
 
-TEST(WiseOwlSword, SuperSteveCarryingItsSphereKnowsTheWay) {
+TEST(WiseOwlSword, SuperSteveCarryingItsSphereHoldsTheKey) {
     {
         Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_WISE_OWL_SWORD);
-        EXPECT_TRUE(expanded::WiseOwlWayActive());
+        EXPECT_TRUE(expanded::WiseOwlsKeyActive());
     }
     Wielding plain(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_DAGGER);
-    EXPECT_FALSE(expanded::WiseOwlWayActive());
+    EXPECT_FALSE(expanded::WiseOwlsKeyActive());
 }

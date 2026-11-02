@@ -33,7 +33,7 @@ std::optional<std::string> WiseOwlDoorLine() {
 }
 
 [[maybe_unused]] const bool kWiseOwlDoorLine = (SetSystemMessage(kWiseOwlDoorMessage, WiseOwlDoorLine), true);
-[[maybe_unused]] const bool kWiseOwlWay = (AddDoorKey({ITEM_MOUSTACHE_KEY, WiseOwlWayActive, kWiseOwlDoorMessage}), true);
+[[maybe_unused]] const bool kWiseOwlsKey = (AddDoorKey({ITEM_MOUSTACHE_KEY, WiseOwlsKeyActive, kWiseOwlDoorMessage}), true);
 
 // The monster last named, -1 once none is in range.
 int named = -1;
@@ -50,7 +50,7 @@ bool WiseOwlKey(int item_no) {
 
 } // namespace
 
-bool WiseOwlWayActive() {
+bool WiseOwlsKeyActive() {
     return WeaponWielded(ITEM_WEAPON_WISE_OWL_SWORD) || SuperSteveSphere() == ITEM_WEAPON_WISE_OWL_SWORD;
 }
 
