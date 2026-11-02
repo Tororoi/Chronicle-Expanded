@@ -113,37 +113,46 @@ TEST_F(Pack, WithNoneInReachItsScriptWalksOnPastThePlayer) {
     EXPECT_FALSE(expanded::PackTarget(floor_.unit(), 2, mummy));
 }
 
-// With none in reach, the wolves park and heel, each to its own place behind the player.
-TEST_F(Pack, WithNoneInReachTheWolvesHeelApart) {
+// With none in reach, each wolf has its own place behind the player that its script heads for, and waits there.
+TEST_F(Pack, WithNoneInReachTheWolvesHeadForTheirOwnPlaces) {
     Place(2, 0.0f, 100.0f + expanded::kPackReach + 10.0f);
-    for (int slot : {0, 1}) {
-        floor_.unit().chara[slot][0].motion_no = 0; // idling: no move of their own to play out
-    }
-    float before[2][4];
-    for (int slot : {0, 1}) {
-        floor_.unit().chara[slot][0].GetPosition(before[slot]);
-    }
+    expanded::PackStep(0);
+    ASSERT_NE(expanded::PackPlace(0), nullptr);
+    ASSERT_NE(expanded::PackPlace(1), nullptr);
+    const float a[2] = {expanded::PackPlace(0)[0], expanded::PackPlace(0)[1]};
+    const float b[2] = {expanded::PackPlace(1)[0], expanded::PackPlace(1)[1]};
+    EXPECT_EQ(expanded::PackPlace(2), nullptr);
+    EXPECT_NEAR(std::hypot(a[0], a[1]), expanded::kPackHeel, 0.01f);
+    EXPECT_NEAR(std::hypot(b[0], b[1]), expanded::kPackHeel, 0.01f);
+    EXPECT_GT(std::hypot(a[0] - b[0], a[1] - b[1]), 20.0f); // apart
+    EXPECT_FALSE(expanded::PackParked(0));                  // still on its way: its script walks it
+    float at[4];
+    ASSERT_TRUE(expanded::PackTarget(floor_.unit(), 0, at));
+    EXPECT_NEAR(at[0], 0.0f + expanded::kPackWalkOn * a[0], 0.01f); // far past its place
+    EXPECT_NEAR(at[2], 100.0f + expanded::kPackWalkOn * (a[1] - 100.0f), 0.01f);
+
+    // There, its script waits and it idles.
+    Place(0, a[0], a[1]);
+    floor_.unit().chara[0][0].motion_no = 1;
     expanded::PackStep(0);
     EXPECT_TRUE(expanded::PackParked(0));
-    EXPECT_TRUE(expanded::PackParked(1));
-    EXPECT_FALSE(expanded::PackParked(2));
-    EXPECT_EQ(floor_.unit().chara[0][0].motion_no, 1); // walking to its place
-    for (int i = 0; i < 400; i++) {
-        expanded::PackStep(0);
-    }
-    float a[4], b[4];
-    floor_.unit().chara[0][0].GetPosition(a);
-    floor_.unit().chara[1][0].GetPosition(b);
-    EXPECT_NEAR(std::hypot(a[0], a[2]), expanded::kPackHeel, expanded::kPackArrived + 0.5f);
-    EXPECT_NEAR(std::hypot(b[0], b[2]), expanded::kPackHeel, expanded::kPackArrived + 0.5f);
-    EXPECT_GT(std::hypot(a[0] - b[0], a[2] - b[2]), 20.0f); // apart
-    EXPECT_EQ(floor_.unit().chara[0][0].motion_no, 0);      // idling there
+    EXPECT_EQ(floor_.unit().chara[0][0].motion_no, 0);
+    EXPECT_EQ(floor_.unit().monster[0].movement_speed, 0.0f);
 
-    // A monster in reach sets them loose.
+    // The player moves on: its script goes on.
+    CharaMain.pos[0] = expanded::kPackRestart + 20.0f;
+    expanded::PackStep(0);
+    EXPECT_FALSE(expanded::PackParked(0));
+
+    // A monster in reach sets it going after it.
+    CharaMain.pos[0] = 0.0f;
+    Place(0, a[0], a[1]);
+    expanded::PackStep(0);
+    ASSERT_TRUE(expanded::PackParked(0));
     Place(2, 0.0f, 100.0f);
     expanded::PackStep(0);
     EXPECT_FALSE(expanded::PackParked(0));
-    EXPECT_EQ(floor_.unit().script_state[0], 0);
+    EXPECT_EQ(expanded::PackPlace(0), nullptr);
 }
 
 TEST_F(Pack, AWolfsBlowPassesThePlayerBy) {

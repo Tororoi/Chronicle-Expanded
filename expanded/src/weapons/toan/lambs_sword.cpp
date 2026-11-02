@@ -88,11 +88,14 @@ bool PackTarget(CMonstorUnit &unit, int slot, float *position) {
         MonsterAimPoint(unit, prey, self[0], self[2], position);
         return true;
     }
-    // None: far past the player along its way to him, so its script walks on rather than arriving and striking.
-    for (int i : {0, 2}) {
-        position[i] = self[i] + kPackWalkOn * (CharaMain.pos[i] - self[i]);
+    // None: far past its place by the player (the player, before it has one) on the line there, rise and all (its
+    // script's step checks follow that line over the floor), so its script walks on rather than arriving and striking;
+    // PackStep holds it once it is there.
+    const float *place = PackPlace(slot);
+    float        to[3] = {place != nullptr ? place[0] : CharaMain.pos[0], CharaMain.pos[1], place != nullptr ? place[1] : CharaMain.pos[2]};
+    for (int i = 0; i < 3; i++) {
+        position[i] = self[i] + kPackWalkOn * (to[i] - self[i]);
     }
-    position[1] = CharaMain.pos[1];
     position[3] = 1.0f;
     return true;
 }
@@ -107,12 +110,16 @@ vmcode_t pack_wait[] = {
     {RS_OP_END,  0, 0}
 };
 
-constexpr int kIdleClip = 0, kWalkClip = 1; // every wolf's
+constexpr int kIdleClip = 0; // every wolf's
 
 struct Pack {
     const CMonstorUnit *unit = nullptr;
     bool                parked[kFloorMonsters] = {};
-    int                 settling[kFloorMonsters] = {};
+    bool                placed[kFloorMonsters] = {};
+    float               place[kFloorMonsters][2] = {};
+    float               held_at[kFloorMonsters][2] = {}; // its place when it began to wait
+    float               last[kFloorMonsters][2] = {};    // where it last made headway, and the frames since
+    int                 stalled[kFloorMonsters] = {};
     // Each parked wolf's script as it was when it parked, given back as it goes again: a Werewolf's script started afresh
     // from its main label never strikes.
     CRunScript script[kFloorMonsters];
@@ -130,7 +137,6 @@ void Park(CMonstorUnit &unit, int slot) {
 // Its script on from where it parked, its clips at their own rate.
 void Release(CMonstorUnit &unit, int slot) {
     pack.parked[slot] = false;
-    pack.settling[slot] = 0;
     unit.interpreter[slot] = pack.script[slot];
     unit.script_state[slot] = pack.running[slot];
     unit.chara[slot][0].motion_speed = -1.0f;
@@ -144,36 +150,18 @@ void Clip(CCharacter &body, int clip, float rate) {
     body.motion_speed = rate;
 }
 
-// A parked wolf to its place: kPackHeel behind the player, the pack fanned kPackSpread apart by rank (rank of count),
-// walked to (its walk clip, pace by how far it is) or idled at turned the way the player faces.
-void Heel(CMonstorUnit &unit, int slot, int rank, int count) {
+// A wolf at its place: its script waiting, idling there turned the way the player faces (its own turn).
+void Hold(CMonstorUnit &unit, int slot) {
+    Park(unit, slot);
     CCharacter &body = unit.chara[slot][0];
-    MONSTOR    &live = unit.monster[slot];
-    float       yaw = PlayerYaw();
-    float       angle = yaw + 3.14159265f + (float(rank) - float(count - 1) / 2.0f) * kPackSpread;
-    float       place[2] = {CharaMain.pos[0] + std::sin(angle) * kPackHeel, CharaMain.pos[2] + std::cos(angle) * kPackHeel};
-    float       at[4];
+    Clip(body, kIdleClip, -1.0f);
+    float at[4];
     body.GetPosition(at);
-    float dx = place[0] - at[0], dz = place[1] - at[2];
-    float distance = std::hypot(dx, dz);
-    float face[2];
-    if (!(kPackArrived < distance)) {
-        Clip(body, kIdleClip, -1.0f);
-        face[0] = at[0] + std::sin(yaw) * 10.0f;
-        face[1] = at[2] + std::cos(yaw) * 10.0f;
-    } else {
-        float pace = std::clamp(distance * kPackPace, kPackMinPace, kPackMaxPace);
-        float step = std::min(distance / 6.0f, pace);
-        at[0] += dx * (step / distance);
-        at[2] += dz * (step / distance);
-        body.SetPosition(at);
-        Clip(body, kWalkClip, pace * kPackWalkRate);
-        face[0] = place[0];
-        face[1] = place[1];
-    }
-    live.turn_target[0] = face[0];
+    float    yaw = PlayerYaw();
+    MONSTOR &live = unit.monster[slot];
+    live.turn_target[0] = at[0] + std::sin(yaw) * 10.0f;
     live.turn_target[1] = at[1];
-    live.turn_target[2] = face[1];
+    live.turn_target[2] = at[2] + std::cos(yaw) * 10.0f;
     live.turn_speed = kPackTurnRate;
 }
 
@@ -191,45 +179,84 @@ void PackStep(int pause) {
     if (pause != 0) {
         return;
     }
-    std::vector<int> heeling;
+    std::vector<int> following;
     for (int slot = 0; slot < kFloorMonsters; slot++) {
-        bool wolf = PackWolf(*unit, slot) && confuse::InPlay(*unit, slot);
-        if (!wolf || unit->monster[slot].hp <= 0) {
-            if (pack.parked[slot]) {
-                Release(*unit, slot);
-            }
-            continue;
+        bool wolf = PackWolf(*unit, slot) && confuse::InPlay(*unit, slot) && unit->monster[slot].hp > 0;
+        pack.placed[slot] = false;
+        if (wolf && PackPrey(*unit, slot) < 0) {
+            following.push_back(slot);
+        } else if (pack.parked[slot]) {
+            Release(*unit, slot);
         }
+    }
+    // Each its place kPackHeel from the player on its own side of him (none crosses him to get there), the pack fanned
+    // at least kPackSpread apart round him.
+    std::vector<std::pair<float, int>> bearings;
+    for (int slot : following) {
         float at[4];
         unit->chara[slot][0].GetPosition(at);
-        bool near = std::hypot(at[0] - CharaMain.pos[0], at[2] - CharaMain.pos[2]) < kPackLeash;
-        if (PackPrey(*unit, slot) >= 0 || !near) {
-            if (pack.parked[slot]) {
-                Release(*unit, slot);
-            }
-            continue;
+        bearings.emplace_back(std::atan2(at[0] - CharaMain.pos[0], at[2] - CharaMain.pos[2]), slot);
+    }
+    std::sort(bearings.begin(), bearings.end());
+    // Round the circle from its widest gap, so neighbours across the turn of the angle count as neighbours.
+    std::size_t widest = 0;
+    float       widest_gap = 0.0f;
+    for (std::size_t k = 0; k < bearings.size(); k++) {
+        float next = k + 1 < bearings.size() ? bearings[k + 1].first : bearings[0].first + 2.0f * 3.14159265f;
+        if (next - bearings[k].first > widest_gap) {
+            widest_gap = next - bearings[k].first;
+            widest = k + 1;
         }
-        if (!pack.parked[slot]) {
-            // A move of its own plays out first (its script walking on past the player).
-            int clip = unit->chara[slot][0].motion_no;
-            if (clip != kIdleClip && clip != kWalkClip && ++pack.settling[slot] < kPackSettle) {
-                continue;
+    }
+    for (std::size_t k = 0; k < widest && widest < bearings.size(); k++) {
+        bearings[k].first += 2.0f * 3.14159265f;
+    }
+    std::rotate(bearings.begin(), bearings.begin() + (widest % std::max<std::size_t>(bearings.size(), 1)), bearings.end());
+    for (int pass = 0; pass < 8 && bearings.size() > 1; pass++) {
+        for (std::size_t k = 0; k + 1 < bearings.size(); k++) {
+            float short_by = kPackSpread - (bearings[k + 1].first - bearings[k].first);
+            if (short_by > 0.0f) {
+                bearings[k].first -= short_by / 2.0f;
+                bearings[k + 1].first += short_by / 2.0f;
             }
+        }
+    }
+    for (auto [angle, slot] : bearings) {
+        pack.place[slot][0] = CharaMain.pos[0] + std::sin(angle) * kPackHeel;
+        pack.place[slot][1] = CharaMain.pos[2] + std::cos(angle) * kPackHeel;
+        pack.placed[slot] = true;
+        float at[4];
+        unit->chara[slot][0].GetPosition(at);
+        float off = std::hypot(pack.place[slot][0] - at[0], pack.place[slot][1] - at[2]);
+        if (std::hypot(at[0] - pack.last[slot][0], at[2] - pack.last[slot][1]) > kPackHeadway) {
+            pack.last[slot][0] = at[0];
+            pack.last[slot][1] = at[2];
+            pack.stalled[slot] = 0;
+        } else if (!pack.parked[slot]) {
+            pack.stalled[slot]++;
+        }
+        if (pack.parked[slot] && std::hypot(pack.place[slot][0] - pack.held_at[slot][0], pack.place[slot][1] - pack.held_at[slot][1]) > kPackRestart) {
+            Release(*unit, slot); // the player moved on: its script walks it there again
+            pack.stalled[slot] = 0;
+        } else if (!pack.parked[slot] && (off < kPackArrived || pack.stalled[slot] >= kPackStalledFrames)) {
             pack.parked[slot] = true;
-            pack.settling[slot] = 0;
+            pack.held_at[slot][0] = pack.place[slot][0];
+            pack.held_at[slot][1] = pack.place[slot][1];
             pack.script[slot] = unit->interpreter[slot];
             pack.running[slot] = unit->script_state[slot];
         }
-        heeling.push_back(slot);
-    }
-    for (std::size_t k = 0; k < heeling.size(); k++) {
-        Park(*unit, heeling[k]);
-        Heel(*unit, heeling[k], int(k), int(heeling.size()));
+        if (pack.parked[slot]) {
+            Hold(*unit, slot);
+        }
     }
 }
 
 bool PackParked(int slot) {
     return slot >= 0 && slot < kFloorMonsters && pack.parked[slot];
+}
+
+const float *PackPlace(int slot) {
+    return slot >= 0 && slot < kFloorMonsters && pack.placed[slot] ? pack.place[slot] : nullptr;
 }
 
 bool PackHitPassesBy(const COLLISION_HIT &hit) {
