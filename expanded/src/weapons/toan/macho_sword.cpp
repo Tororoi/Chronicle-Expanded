@@ -254,8 +254,7 @@ void PumpedUpPosed(CFrame *frame) {
                 continue;
             }
             bool           thumb = d == kGripThumb;
-            float          degrees = thumb ? kPumpedUpThumbCurl : k == 0 ? kPumpedUpKnuckleCurl
-                                                                         : kPumpedUpMiddleCurl;
+            float          degrees = kPumpedUpCurl[d][k];
             int            axis = thumb ? 0 : 2;
             sceVu0FVECTOR *local = rest(joint);
             sceVu0FMATRIX  turned;
@@ -280,7 +279,12 @@ void PumpedUpSkinStart(CFrame *frame, int mesh, float (*matrix)[4]) {
     // In the parent's (the wrist's) frame, where the hilt sits at its own translation.
     sceVu0FMATRIX unit;
     sceVu0UnitMatrix(unit);
-    ScaleAbout(matrix, unit, hilt->local[3], PumpedUpSize(kPumpedHand));
+    // The wrist is the parent's origin.
+    float pivot[3];
+    for (int c = 0; c < 3; c++) {
+        pivot[c] = hilt->local[3][c] * kPumpedUpGripPivot;
+    }
+    ScaleAbout(matrix, unit, pivot, PumpedUpSize(kPumpedHand));
 }
 
 void PumpedUpSkinBone(CFrame *frame, int bone, float (*matrix)[4]) {
