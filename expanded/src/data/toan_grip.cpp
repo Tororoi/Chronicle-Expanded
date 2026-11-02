@@ -233,48 +233,46 @@ Bytes BuildToanGrip(std::span<const unsigned char> toan) {
         }
     }
 
-    // Each digit's joints, in the wrist's frame: its knuckle where it meets the hand, its middle joint halfway out.
+    // Each digit's joints, in the wrist's frame: its first where it meets the hand (the middle of its knuckle), each next
+    // at the first ring of vertices of its section.
     const int                                           first = static_cast<int>(frames.size());
     std::vector<std::pair<Bytes, std::optional<Bytes>>> added;
     Bytes                                               bbp = pack.Require(kToanBbp).Payload();
     using Weights = std::vector<std::pair<int, float>>;
-    std::vector<Weights> bones(kGripDigits * 2);
+    std::vector<Weights> bones(kGripDigits * kGripJointsPerDigit);
     std::map<int, float> palm_share; // the palm's share of each vertex a digit takes
     for (int d = 0; d < kGripDigits; d++) {
-        const Digit &digit = digits[std::size_t(d)];
-        int          deepest = 0;
+        const Digit                  &digit = digits[std::size_t(d)];
+        std::vector<std::vector<int>> rings(kGripJointsPerDigit);
         for (const auto &[v, depth] : digit.depth) {
-            deepest = std::max(deepest, depth);
-        }
-        int              split = (deepest + 1) / 2;
-        std::vector<int> base, middle;
-        for (const auto &[v, depth] : digit.depth) {
-            (depth < split ? bones[std::size_t(d * 2)] : bones[std::size_t(d * 2 + 1)]).emplace_back(v, kWhole);
-            if (depth == 0) {
-                base.push_back(v);
-            }
-            if (depth == split) {
-                middle.push_back(v);
+            int section = std::min(depth, kGripJointsPerDigit - 1);
+            bones[std::size_t(d * kGripJointsPerDigit + section)].emplace_back(v, kWhole);
+            if (depth < kGripJointsPerDigit) {
+                rings[std::size_t(depth)].push_back(v);
             }
             palm_share[v] = 0.0f;
         }
         for (int v : digit.knuckle) {
-            bones[std::size_t(d * 2)].emplace_back(v, kWhole / 2);
+            bones[std::size_t(d * kGripJointsPerDigit)].emplace_back(v, kWhole / 2);
             palm_share[v] = kWhole / 2;
         }
-        Vec3 knuckle = Mean(hand, hand_local, digit.knuckle.empty() ? base : std::vector<int>(digit.knuckle.begin(), digit.knuckle.end()));
-        Vec3 joint = middle.empty() ? knuckle : Mean(hand, hand_local, middle);
-        Vec3 out{joint[0] - knuckle[0], joint[1] - knuckle[1], joint[2] - knuckle[2]};
-        added.emplace_back(FrameRecord(first + d * 2, kGripJoints[d][0], wrist.index, kIdentity, knuckle), std::nullopt);
-        added.emplace_back(FrameRecord(first + d * 2 + 1, kGripJoints[d][1], first + d * 2, kIdentity, out), std::nullopt);
-        for (const Vec3 &at : {knuckle, out}) {
-            AppendFloats(bbp, {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, at[0], at[1], at[2], 1});
+        if (!digit.knuckle.empty()) {
+            rings[0].assign(digit.knuckle.begin(), digit.knuckle.end());
+        }
+        Vec3 parent_at{};
+        for (int k = 0; k < kGripJointsPerDigit; k++) {
+            Vec3 at = rings[std::size_t(k)].empty() ? parent_at : Mean(hand, hand_local, rings[std::size_t(k)]);
+            Vec3 local{at[0] - parent_at[0], at[1] - parent_at[1], at[2] - parent_at[2]};
+            int  index = first + d * kGripJointsPerDigit + k;
+            added.emplace_back(FrameRecord(index, kGripJoints[d][k], k == 0 ? wrist.index : index - 1, kIdentity, local), std::nullopt);
+            AppendFloats(bbp, {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, local[0], local[1], local[2], 1});
+            parent_at = at;
         }
     }
     pack.Require(kToanMds).ReplacePayload(AppendMdsFrames(mds, added));
     pack.Require(kToanBbp).ReplacePayload(bbp);
 
-    // The weights: the palm to the wrist (the mesh's parent, whose track starts its skin), each digit's halves to their
+    // The weights: the palm to the wrist (the mesh's parent, whose track starts its skin), each digit's rings to their
     // joints, a joint's track after its parent's.
     MotFile wgt = MotFile::FromRecord(pack.Require(kToanWgt));
     if (wgt.tracks.empty()) {
@@ -303,7 +301,7 @@ Bytes BuildToanGrip(std::span<const unsigned char> toan) {
         }
     }
     track(wrist.index, palm);
-    for (int b = 0; b < kGripDigits * 2; b++) {
+    for (int b = 0; b < kGripDigits * kGripJointsPerDigit; b++) {
         track(first + b, bones[std::size_t(b)]);
     }
     pack.Require(kToanWgt).ReplacePayload(wgt.BuildPayload());

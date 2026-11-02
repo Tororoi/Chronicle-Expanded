@@ -232,7 +232,8 @@ void PumpedUpPosed(CFrame *frame) {
         }
         return it->second;
     };
-    float size = PumpedUpSize(kPumpedHand);
+    float   size = PumpedUpSize(kPumpedHand);
+    CFrame *hilt = frame->SearchFrame(const_cast<char *>(kPumpedUpHilt));
     for (const char *name : kPumpedUpHands) {
         CFrame *hand = frame->SearchFrame(const_cast<char *>(name));
         if (hand == nullptr) {
@@ -241,20 +242,31 @@ void PumpedUpPosed(CFrame *frame) {
         sceVu0FVECTOR *local = rest(hand);
         sceVu0FMATRIX  inverse, scaled;
         sceVu0InversMatrix(inverse, local);
-        // About the wrist: the parent's origin, in the hand's own frame.
-        ScaleAbout(scaled, local, inverse[3], size);
+        // As the sword hand: about the point kPumpedUpGripPivot of the way from the wrist (its parent's origin) to the
+        // hilt mirrored across (the sword's in its wrist's frame, its second axis turned round), in the hand's own frame.
+        float at[3] = {0.0f, 0.0f, 0.0f};
+        if (hilt != nullptr) {
+            at[0] = hilt->local[3][0] * kPumpedUpGripPivot;
+            at[1] = -hilt->local[3][1] * kPumpedUpGripPivot;
+            at[2] = hilt->local[3][2] * kPumpedUpGripPivot;
+        }
+        float pivot[3];
+        for (int c = 0; c < 3; c++) {
+            pivot[c] = inverse[3][c] + at[0] * inverse[0][c] + at[1] * inverse[1][c] + at[2] * inverse[2][c];
+        }
+        ScaleAbout(scaled, local, pivot, size);
         hand->SetTransMatrix(scaled);
     }
     // The grip closing.
     float share = LookShare();
     for (int d = 0; d < kGripDigits; d++) {
-        for (int k = 0; k < 2; k++) {
+        for (int k = 0; k < kGripJointsPerDigit; k++) {
             CFrame *joint = frame->SearchFrame(const_cast<char *>(kGripJoints[d][k]));
             if (joint == nullptr) {
                 continue;
             }
             bool           thumb = d == kGripThumb;
-            float          degrees = kPumpedUpCurl[d][k];
+            float          degrees = thumb ? kPumpedUpThumbCurl[k] : kPumpedUpFingerCurl[k];
             int            axis = thumb ? 0 : 2;
             sceVu0FVECTOR *local = rest(joint);
             sceVu0FMATRIX  turned;

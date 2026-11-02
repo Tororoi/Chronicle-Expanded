@@ -50,19 +50,16 @@ inline constexpr const char *kPumpedUpBones[kPumpedParts - 1][2] = {
 };
 inline constexpr const char *kPumpedUpHands[] = {"l_hand", "renzu__m"};
 // The sword hand (r_hand) grows about a point kPumpedUpGripPivot of the way from the wrist to the sword's hilt (the
-// weapon frame's origin), so the palm stays round the hilt, and its grip closes as it grows (its joints as
-// data/toan_grip.hpp rigs them): each digit's knuckle and middle joint turned kPumpedUpCurl degrees (index finger to
-// little finger about their own z axis, the thumb about its own x axis), each in step with the hand's growth.
+// weapon frame's origin), so the palm stays round the hilt (the other hand about the same point mirrored across, so the
+// two stay alike), and its grip closes as it grows (its joints as
+// data/toan_grip.hpp rigs them, a knuckle each): every finger's knuckles turned kPumpedUpFingerCurl degrees about their
+// own z axis, from the one at the hand out, and the thumb's kPumpedUpThumbCurl about their own x axis, each in step
+// with the hand's growth.
 inline constexpr const char *kPumpedUpSwordHand = "r_hand";
 inline constexpr const char *kPumpedUpHilt = "weapon";
 inline constexpr float       kPumpedUpGripPivot = 0.5f;
-inline constexpr float       kPumpedUpCurl[5][2] = {
-    {35.0f,  30.0f },
-    {35.0f,  30.0f },
-    {35.0f,  30.0f },
-    {35.0f,  30.0f },
-    {-20.0f, -20.0f},
-};
+inline constexpr float       kPumpedUpFingerCurl[3] = {35.0f, 55.0f, 55.0f};
+inline constexpr float       kPumpedUpThumbCurl[3] = {-20.0f, -20.0f, 0.0f};
 
 // The monsters a member has downed on this floor with the weapon it holds now (0 once it changed).
 int PumpedUpKills(int chara);
