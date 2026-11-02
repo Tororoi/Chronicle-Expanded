@@ -1,6 +1,7 @@
 #pragma once
 
 namespace dc::game {
+class CFrame;
 class CMonstorUnit;
 struct COLLISION_HIT;
 } // namespace dc::game
@@ -11,18 +12,27 @@ namespace expanded {
 //
 // "Snake Slayer": the weapon's hit kills Auntie Medu (Enhanced too) outright, whatever its damage.
 //
-// "Snake Charmer": while the guard is up, the Killer Snake (the Wise Owl Forest event's giant snake: kKillerSnakeFile's
-// model, set up from kKillerSnakeCfg) stands kSnakeSide to the player's side at kSnakeScale, facing as they face and
-// swaying (its motion kSnakeSway). A monster in play within kSnakeRetreatRadius of the player has the snake rear and lean
-// at it (kSnakeRear, played through once, turned to it; again while one is still that near) and backs away until it is
-// past kSnakeCalmRadius: every step it takes toward the player is turned straight away, and its script finds the player
-// far behind it. The snake goes with the guard.
-inline constexpr const char *kKillerSnakeFile = "gedit/s97/chara/e115.chr";
-inline constexpr const char *kKillerSnakeCfg = "e115e54a.cfg";
-inline constexpr int         kSnakeSway = 3;
-inline constexpr int         kSnakeRear = 2;
-inline constexpr float       kSnakeScale = 1.0f;
-inline constexpr float       kSnakeSide = 20.0f;
+// "Snake Charmer": the snake's spirit in the sword. While the guard is up, the Killer Snake's head (the Wise Owl Forest
+// event's giant snake: kKillerSnakeFile's head, set up from kKillerSnakeCfg) hovers over the blade at kSnakeScale,
+// kSnakeLift above its middle and facing as the player faces. It comes with its appearance (kSnakeAppear, played
+// through), then idles (kSnakeIdle), hissing (kSnakeHiss, its mouth opening, played through) every kSnakeHissPeriod
+// steps and whenever a monster comes near. A monster in play within kSnakeRetreatRadius of the player backs away until
+// it is past kSnakeCalmRadius: every step it takes toward the player is turned straight away, and its script finds the
+// player far behind it. The head goes with the guard.
+//
+// The appearance ends with the head turned as the event's body held it; the model takes the turn back to the head's
+// rest (the pose its skin was made in) so that it ends upright and facing ahead, and after it the neck is held where
+// the appearance left it, so the idle and the hiss only turn the head and open the mouth. kSnakeBack is how far ahead
+// of its neck the head's middle lies.
+inline constexpr const char *kKillerSnakeFile = "gedit/s97/chara/e117_0.chr";
+inline constexpr const char *kKillerSnakeCfg = "e117e54a.cfg";
+inline constexpr int         kSnakeAppear = 8;
+inline constexpr int         kSnakeIdle = 7;
+inline constexpr int         kSnakeHiss = 5;
+inline constexpr int         kSnakeHissPeriod = 120;
+inline constexpr float       kSnakeScale = 0.5f;
+inline constexpr float       kSnakeLift = 8.0f;
+inline constexpr float       kSnakeBack = 11.0f;
 inline constexpr float       kSnakeRetreatRadius = 80.0f;
 inline constexpr float       kSnakeCalmRadius = 120.0f;
 
@@ -33,6 +43,8 @@ int SnakeSlayerAmount(const CMonstorUnit &unit, int monster, const COLLISION_HIT
 
 // Hook: each dungeon step: the snake up while the guard is, its motion chosen, placed and stepped.
 void SnakeCharmerStep();
+// Hook: a model posed by its motion (MotionPlay, before its skin is built): the snake's neck held after its appearance.
+void SnakeCharmerPosed(CFrame *frame);
 // Hook: the monsters drawn: the snake.
 void SnakeCharmerDraw();
 // Whether the snake is up.

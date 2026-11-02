@@ -45,6 +45,7 @@
 #include "expanded/core/motion_keys.hpp"
 #include "expanded/core/motion_layer.hpp"
 #include "expanded/weapons/toan/macho_sword.hpp"
+#include "expanded/weapons/toan/serpent_sword.hpp"
 #endif
 
 namespace dc::game {
@@ -580,6 +581,7 @@ void SetMotionEX(CFrame *frame, tagMOTION_TYPE *motion, MOTION_INFO *info, MOTIO
 #ifdef CHRONICLE_EXPANDED
         expanded::MotionPosed(frame, motion);
         expanded::PumpedUpPosed(frame);
+        expanded::SnakeCharmerPosed(frame);
 #endif
         if (state->look_at != 0) {
             if (state->look_target != nullptr) {
@@ -608,6 +610,7 @@ void SetMotionEX(CFrame *frame, tagMOTION_TYPE *motion, MOTION_INFO *info, MOTIO
 #ifdef CHRONICLE_EXPANDED
     expanded::MotionPosed(frame, motion);
     expanded::PumpedUpPosed(frame);
+    expanded::SnakeCharmerPosed(frame);
 #endif
     if (state->look_at != 0) {
         if (state->look_target != nullptr) {

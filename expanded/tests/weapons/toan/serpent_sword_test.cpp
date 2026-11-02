@@ -24,14 +24,22 @@ using expanded::Monster;
 
 namespace {
 
-// The snake's clips as e115e54a.cfg gives them.
+// The head's clips as e117e54a.cfg gives them.
 std::vector<MOTION_INFO> g_clips = {
-    {.start = 10, .end = 15,  .speed = 0.2f },
-    {.start = 25, .end = 42,  .speed = 0.35f},
-    {.start = 50, .end = 75,  .speed = 0.2f },
-    {.start = 85, .end = 104, .speed = 0.15f},
+    {.start = 10,  .end = 40,  .speed = 0.2f },
+    {.start = 41,  .end = 44,  .speed = 0.03f},
+    {.start = 110, .end = 115, .speed = 0.05f},
+    {.start = 46,  .end = 70,  .speed = 0.2f },
+    {.start = 71,  .end = 85,  .speed = 0.2f },
+    {.start = 86,  .end = 92,  .speed = 0.1f },
+    {.start = 93,  .end = 100, .speed = 0.1f },
+    {.start = 125, .end = 133, .speed = 0.1f },
+    {.start = 135, .end = 155, .speed = 0.2f },
+    {.start = 270, .end = 290, .speed = 0.3f },
+    {.start = 176, .end = 260, .speed = 0.2f },
 };
-constexpr int kRearSteps = 125; // (75 - 50) / 0.2
+constexpr int kAppearSteps = 100; // (155 - 135) / 0.2
+constexpr int kHissSteps = 60;    // (92 - 86) / 0.1
 
 CFrameVu1                g_snake_frame;
 std::vector<std::string> g_loaded;
@@ -199,25 +207,44 @@ TEST_F(SerpentSword, MonstersBackAwayUntilPastTheCalmRadius) {
     EXPECT_FLOAT_EQ(Target(0)[2], 0.0f);
 }
 
-TEST_F(SerpentSword, TheSnakeSwaysAndRearsAtMonstersNear) {
+TEST_F(SerpentSword, TheHeadAppearsIdlesAndHisses) {
     Put({Monster::WEREWOLF});
     At(0, 0.0f, 200.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
-    CCharacter *snake = expanded::EnterFloorCharacter(expanded::kKillerSnakeFile, expanded::kKillerSnakeCfg);
-    ASSERT_NE(snake, nullptr);
-    EXPECT_EQ(snake->motion_no, expanded::kSnakeSway);
+    CCharacter *head = expanded::EnterFloorCharacter(expanded::kKillerSnakeFile, expanded::kKillerSnakeCfg);
+    ASSERT_NE(head, nullptr);
+    // Its appearance played through, then the idle.
+    for (int step = 1; step < kAppearSteps; step++) {
+        ASSERT_EQ(head->motion_no, expanded::kSnakeAppear) << step;
+        expanded::SnakeCharmerStep();
+    }
+    EXPECT_EQ(head->motion_no, expanded::kSnakeAppear);
+    expanded::SnakeCharmerStep();
+    EXPECT_EQ(head->motion_no, expanded::kSnakeIdle);
+    // A hiss when a monster comes near, played through.
     At(0, 0.0f, 50.0f);
     expanded::SnakeCharmerStep();
-    EXPECT_EQ(snake->motion_no, expanded::kSnakeRear);
-    // Played through, even with the monster gone; then the sway again.
-    At(0, 0.0f, 200.0f);
-    for (int step = 1; step < kRearSteps; step++) {
+    EXPECT_EQ(head->motion_no, expanded::kSnakeHiss);
+    for (int step = 1; step < kHissSteps; step++) {
         expanded::SnakeCharmerStep();
-        ASSERT_EQ(snake->motion_no, expanded::kSnakeRear) << step;
+        ASSERT_EQ(head->motion_no, expanded::kSnakeHiss) << step;
     }
     expanded::SnakeCharmerStep();
-    EXPECT_EQ(snake->motion_no, expanded::kSnakeSway);
+    EXPECT_EQ(head->motion_no, expanded::kSnakeIdle);
+    // And now and then: after kSnakeHissPeriod steps of the idle (the one it came back on the first).
+    for (int step = 2; step < expanded::kSnakeHissPeriod; step++) {
+        expanded::SnakeCharmerStep();
+        ASSERT_EQ(head->motion_no, expanded::kSnakeIdle) << step;
+    }
+    expanded::SnakeCharmerStep();
+    EXPECT_EQ(head->motion_no, expanded::kSnakeHiss);
+    // Down with the guard, up again with its appearance.
+    Guard(false);
+    expanded::SnakeCharmerStep();
+    Guard(true);
+    expanded::SnakeCharmerStep();
+    EXPECT_EQ(head->motion_no, expanded::kSnakeAppear);
 }
 
 TEST_F(SuperSteveSerpent, SuperSteveCarriesSnakeCharmer) {
