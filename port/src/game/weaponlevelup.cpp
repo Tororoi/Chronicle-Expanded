@@ -27,6 +27,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/weapons/toan/buster_sword.hpp"
 #include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/seven_branch_sword.hpp"
 #include "expanded/weapons/xiao/steel_slingshot.hpp"
@@ -116,7 +117,11 @@ void WeaponLevelUpValueCalc(WEAPON_HAVE *src, WEAPON_HAVE *dst, int levels, int 
 
     for (i = 0; i < levels; i++) {
         for (i = 0; i < 6; i++) {
-            if (weapon_data->hole[i] > 0) {
+            int kind = weapon_data->hole[i];
+#ifdef CHRONICLE_EXPANDED
+            kind = expanded::BusterHoleKind(*src, i, kind);
+#endif
+            if (kind > 0) {
                 ATTACH_LIST *attach = &src->attach[i];
 
                 if (attach->item_no >= ITEM_ATTACH_START) {
@@ -292,7 +297,11 @@ void CWeaponLevelUp::SetLevelUpValue(WEAPON_HAVE *have, CCharacter *character, C
     flags |= preview.flags;
 
     for (int i = 0; i < 6; i++) {
-        if (weapon_data->hole[i] > 0) {
+        int kind = weapon_data->hole[i];
+#ifdef CHRONICLE_EXPANDED
+        kind = expanded::BusterHoleKind(preview, i, kind);
+#endif
+        if (kind > 0) {
             ATTACH_LIST *attach = &preview.attach[i];
 
             if (preview.attach[i].item_no >= ITEM_ATTACH_START) {
