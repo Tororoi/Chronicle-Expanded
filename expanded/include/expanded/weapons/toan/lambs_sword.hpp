@@ -13,10 +13,12 @@ namespace expanded {
 // kLambSwordThreshold of its WHP or below, lamb above):
 // - Wolf form: the floor's wolves (Werewolves and White Fangs) run with the player. Each goes for the nearest other
 //   monster in play within kPackReach, its blows hurting the monsters they meet and none of them the player or another
-//   wolf; the monsters it hits turn on it. With none in reach it heels kPackHeel from the player. They draw no stars.
+//   wolf; the monsters it hits turn on it. With none in reach it goes for the player from farther than kPackClose, then
+//   heels kPackHeel from him (a wolf's script stops well short of where it goes). They draw no stars.
 // - Lamb form: a wolf's blow on the guard wears the weapon as a swing does, toward its wolf form.
 inline constexpr float kPackReach = 300.0f;
 inline constexpr float kPackHeel = 30.0f;
+inline constexpr float kPackClose = 60.0f;
 
 // Whether the Lamb's Sword is in hand (or on Super Steve's sphere), and in its wolf or its lamb form.
 bool PackLeaderWolf();

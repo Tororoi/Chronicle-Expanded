@@ -104,8 +104,11 @@ TEST_F(Pack, WithNoneInReachItHeels) {
     Place(2, 0.0f, 100.0f + expanded::kPackReach + 10.0f);
     float at[4];
     ASSERT_TRUE(expanded::PackTarget(floor_.unit(), 0, at));
-    EXPECT_FLOAT_EQ(at[0], 0.0f);
-    EXPECT_FLOAT_EQ(at[2], expanded::kPackHeel); // on its side of the player
+    EXPECT_FLOAT_EQ(at[0], 0.0f); // from afar, the player himself
+    EXPECT_FLOAT_EQ(at[2], 0.0f);
+    Place(0, 0.0f, expanded::kPackClose - 10.0f);
+    ASSERT_TRUE(expanded::PackTarget(floor_.unit(), 0, at));
+    EXPECT_FLOAT_EQ(at[2], expanded::kPackHeel); // near, kPackHeel off on its side of the player
     float mummy[4];
     EXPECT_FALSE(expanded::PackTarget(floor_.unit(), 2, mummy));
 }

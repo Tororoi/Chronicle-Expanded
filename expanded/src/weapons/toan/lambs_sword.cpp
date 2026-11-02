@@ -81,9 +81,11 @@ bool PackTarget(CMonstorUnit &unit, int slot, float *position) {
     if (length < 0.01f) {
         dx = 0.0f, dz = 1.0f, length = 1.0f;
     }
-    position[0] = CharaMain.pos[0] + dx / length * kPackHeel;
+    // From farther than kPackClose, the player himself: a wolf's script stops short of where it goes.
+    float heel = length > kPackClose ? 0.0f : kPackHeel;
+    position[0] = CharaMain.pos[0] + dx / length * heel;
     position[1] = CharaMain.pos[1];
-    position[2] = CharaMain.pos[2] + dz / length * kPackHeel;
+    position[2] = CharaMain.pos[2] + dz / length * heel;
     position[3] = 1.0f;
     return true;
 }
