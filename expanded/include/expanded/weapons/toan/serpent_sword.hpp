@@ -50,7 +50,7 @@ inline constexpr const char      *kSnakeFace = "face";
 inline constexpr float            kSnakeHazeGain = 1.0f;
 inline constexpr float            kSnakeGlowDisc = 30.0f, kSnakeGlowPull = 8.0f;
 inline constexpr int              kSnakeGlowSteps = 30;
-inline constexpr mirage::HazeLook kSnakeHaze = {-24.0f, 10.0f, 18.0f, 2.0f};
+inline constexpr mirage::HazeLook kSnakeHaze = {-19.0f, 10.0f, 16.0f, 2.0f};
 inline constexpr float            kSnakeHazeWave = mirage::kHazeWaveStep * 0.5f;
 inline constexpr int              kSnakeMouthPeriod = 180, kSnakeMouthEase = 40, kSnakeMouthHold = 10;
 inline constexpr float            kSnakeMouthAngle = 0.5f; // radians
