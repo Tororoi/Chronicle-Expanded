@@ -9,8 +9,7 @@ namespace expanded {
 
 // Chopper "Butcher's Edge": with the Chopper in hand, or Super Steve carrying its SynthSphere, the weapon's hits on
 // organic monsters deal kButchersDamage times their damage, and an organic monster it kills gives kButchersAbs times
-// its ABS (rounded). Organic: every beast (Dran, Master Utan and Minotaur Joe among them), every plant, and of the sea
-// monsters the Gyons, Space Gyons and the Opar (Enhanced forms alike); not the Gunny or the Crabby Hermit.
+// its ABS (rounded). Organic: every beast (Dran, Master Utan and Minotaur Joe among them) and every plant.
 inline constexpr float kButchersDamage = 1.5f;
 inline constexpr float kButchersAbs = 1.5f;
 

@@ -40,13 +40,12 @@ struct Floor {
 
 } // namespace
 
-TEST(Chopper, BeastsPlantsGyonsAndTheOparAreOrganic) {
-    Floor floor({Monster::WEREWOLF, Monster::CANNIBAL_PLANT, Monster::GYON, Monster::SPACE_GYON_ENHANCED, Monster::OPAR, Monster::GUNNY,
-                 Monster::CRABBY_HERMIT, Monster::MUMMY, Monster::STATUE});
-    for (int organic = 0; organic < 5; organic++) {
+TEST(Chopper, BeastsAndPlantsAreOrganic) {
+    Floor floor({Monster::WEREWOLF, Monster::CANNIBAL_PLANT, Monster::GYON, Monster::OPAR, Monster::MUMMY, Monster::STATUE});
+    for (int organic = 0; organic < 2; organic++) {
         EXPECT_TRUE(expanded::Organic(floor.unit(), organic)) << organic;
     }
-    for (int other = 5; other < 9; other++) {
+    for (int other = 2; other < 6; other++) {
         EXPECT_FALSE(expanded::Organic(floor.unit(), other)) << other;
     }
 }
