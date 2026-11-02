@@ -1,6 +1,7 @@
 #pragma once
 
 #include "expanded/enemies/monsters.hpp"
+#include "expanded/weapons/ungaga/mirage/heat_haze.hpp"
 
 namespace dc::game {
 class CCharacter;
@@ -28,31 +29,37 @@ namespace expanded {
 // takes its place, and its script carries on after; kSnakeRetreatRest steps later it may run it again. Near the player
 // and not retreating, any monster takes no step nearer: those without a retreat (and the bosses and the mimics, whose
 // scripts are left to them) only stop coming on. The head fades in over kSnakeFadeSteps as the guard goes up and out over as long as it comes down, the
-// head and the weapon glowing white (kSnakeGlow added to their light) as it shows.
+// head and the weapon glowing white (kSnakeGlow added to their light) as it shows. It is a ghost: drawn
+// kSnakeGhost see-through (its nearest surface only, never its inside), shimmering as the Mirage's copy does, less
+// (kSnakeHaze at kSnakeHazeGain, about its face, kSnakeFace).
 //
 // The appearance ends with the head turned as the event's body held it; the model takes the turn back to the head's
 // rest (the pose its skin was made in) so that it ends upright and facing ahead. Its jaw (kSnakeJaw) is shut at its
 // rest turn, and the appearance leaves it part open: the idle turns it about the same axis, from shut. kSnakeBack is
 // how far ahead of its neck the head's middle lies.
-inline constexpr const char *kKillerSnakeFile = "gedit/s97/chara/e117_0.chr";
-inline constexpr const char *kKillerSnakeCfg = "e117e54a.cfg";
-inline constexpr const char *kSnakeJaw = "null59";
-inline constexpr int         kSnakeAppear = 8;
-inline constexpr int         kSnakeFadeSteps = 15;
-inline constexpr float       kSnakeGlow = 80.0f;
-inline constexpr int         kSnakeMouthPeriod = 180, kSnakeMouthEase = 40, kSnakeMouthHold = 10;
-inline constexpr float       kSnakeMouthAngle = 0.5f; // radians
-inline constexpr float       kSnakeStretch = 1.2f;
-inline constexpr int         kSnakeStretchPeriod = 200;
-inline constexpr float       kSnakeBob = 0.6f;
-inline constexpr int         kSnakeBobPeriod = 120;
-inline constexpr float       kSnakeScale = 0.5f;
-inline constexpr float       kSnakeAhead = 10.0f;
-inline constexpr float       kSnakeHeight = 14.0f;
-inline constexpr float       kSnakeLift = 2.0f;
-inline constexpr float       kSnakeBack = 11.0f;
-inline constexpr float       kSnakeRetreatRadius = 80.0f;
-inline constexpr int         kSnakeRetreatRest = 30;
+inline constexpr const char      *kKillerSnakeFile = "gedit/s97/chara/e117_0.chr";
+inline constexpr const char      *kKillerSnakeCfg = "e117e54a.cfg";
+inline constexpr const char      *kSnakeJaw = "null59";
+inline constexpr int              kSnakeAppear = 8;
+inline constexpr int              kSnakeFadeSteps = 15;
+inline constexpr float            kSnakeGlow = 80.0f;
+inline constexpr float            kSnakeGhost = 0.45f;
+inline constexpr const char      *kSnakeFace = "face";
+inline constexpr float            kSnakeHazeGain = 0.5f;
+inline constexpr mirage::HazeLook kSnakeHaze = {-6.0f, 28.0f, 34.0f, 1.5f};
+inline constexpr int              kSnakeMouthPeriod = 180, kSnakeMouthEase = 40, kSnakeMouthHold = 10;
+inline constexpr float            kSnakeMouthAngle = 0.5f; // radians
+inline constexpr float            kSnakeStretch = 1.2f;
+inline constexpr int              kSnakeStretchPeriod = 200;
+inline constexpr float            kSnakeBob = 0.6f;
+inline constexpr int              kSnakeBobPeriod = 120;
+inline constexpr float            kSnakeScale = 0.5f;
+inline constexpr float            kSnakeAhead = 10.0f;
+inline constexpr float            kSnakeHeight = 14.0f;
+inline constexpr float            kSnakeLift = 2.0f;
+inline constexpr float            kSnakeBack = 11.0f;
+inline constexpr float            kSnakeRetreatRadius = 80.0f;
+inline constexpr int              kSnakeRetreatRest = 30;
 
 bool SerpentSwordActive();
 
@@ -65,6 +72,8 @@ void SnakeCharmerStep();
 void SnakeCharmerPosed(CFrame *frame);
 // Hook: the monsters drawn: the snake, as faded in as it is.
 void SnakeCharmerDraw();
+// Hook: the map's raster drawn: the snake's shimmer.
+void SnakeCharmerHazeDraw();
 // Hook: a character's light for its draw: the snake's and the weapon's white as the snake shows.
 void SnakeCharmerLight(const CCharacter &character, float *ambient);
 // Whether the snake is up (the guard is), how far it has faded in (0..1), and how far its mouth is open (0..1).

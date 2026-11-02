@@ -398,4 +398,10 @@ void MGGetFBuffBackTex(sceGsTex0 *tex0);
  */
 void MGStretchMoveImage(sceGsTex0 *src, const CRect_i_ &src_rect, sceGsTex0 *dst, const CRect_i_ &dst_rect);
 
+/**
+ * Port addition: whether the 3D draws that follow write colour (on until turned off); off, a model
+ * draws its depth alone, so that a translucent draw of it after shows only its nearest surface.
+ */
+void MGPortSetColorWrite(bool on);
+
 } // namespace dc::game

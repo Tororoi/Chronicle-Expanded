@@ -18,9 +18,11 @@
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/ungaga/mirage/heat_haze.hpp"
 #include "frame.hpp"
 #include "gameutil.hpp"
 #include "itemdata.hpp"
+#include "mglib.hpp"
 #include "monstorunit.hpp"
 #include "runscript.hpp"
 #include "userstatus.hpp"
@@ -534,6 +536,7 @@ void SnakeCharmerStep() {
         }
     }
     Idle(startled);
+    mirage::HazeStep();
     Place();
     snake.model->Step();
 }
@@ -549,8 +552,24 @@ void SnakeCharmerPosed(CFrame *frame) {
 
 void SnakeCharmerDraw() {
     if (snake.fade > 0 && snake.model != nullptr && snake.model->frame != nullptr && BtEventMode == 0) {
-        snake.model->ambient_offset[3] = kOpaque * SnakeCharmerShown();
+        // Its depth first, unseen, so the see-through draw after shows only its nearest surface, not its inside.
+        MGPortSetColorWrite(false);
+        snake.model->ambient_offset[3] = kOpaque;
         DrawFloorCharacter(*snake.model);
+        MGPortSetColorWrite(true);
+        snake.model->ambient_offset[3] = kOpaque * kSnakeGhost * SnakeCharmerShown();
+        DrawFloorCharacter(*snake.model);
+    }
+}
+
+void SnakeCharmerHazeDraw() {
+    CFrame *face = snake.fade > 0 && snake.model != nullptr && snake.model->frame != nullptr && BtEventMode == 0
+                       ? FrameNamed(snake.model->frame, kSnakeFace)
+                       : nullptr;
+    if (face != nullptr) {
+        sceVu0FVECTOR origin = {0.0f, 0.0f, 0.0f, 1.0f}, at;
+        face->GetWorldPosition(at, origin);
+        mirage::HazeDraw(at, kSnakeHazeGain * SnakeCharmerShown(), kSnakeHaze);
     }
 }
 

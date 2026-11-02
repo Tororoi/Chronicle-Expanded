@@ -180,6 +180,7 @@ void DungeonEffectsDrawn() {
 
 void DungeonRasterDrawn() {
     MirageHazeDraw();
+    SnakeCharmerHazeDraw();
 }
 
 void DungeonShotsDrawn() {

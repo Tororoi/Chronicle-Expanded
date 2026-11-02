@@ -14,6 +14,8 @@ using namespace dc::game;
 
 namespace {
 
+bool g_color_write = true; // MGPortSetColorWrite
+
 // The GS screen centre MGSetRenderInfo puts at offset[0] and offset[1], and the depth range of
 // its GS Z.
 constexpr float kGsCentre = 2048.0f;
@@ -234,6 +236,9 @@ gfx::DrawState Draw3DState(const RenderInfo & /*info*/, bool fog) {
     gfx::DrawState state = MGPortDrawState();
     state.blend = true;
     state.fog = fog;
+    if (!g_color_write) {
+        state.color_write_mask = 0;
+    }
     float rows = MGPortTargetRowScale(gfx::CurrentRenderTarget());
     state.scissor_rect.y *= rows;
     state.scissor_rect.h *= rows;
@@ -251,3 +256,11 @@ void Draw3DShadowCount(gfx::DrawState &state, bool subtract) {
 }
 
 } // namespace dc::render
+
+namespace dc::game {
+
+void MGPortSetColorWrite(bool on) {
+    dc::render::g_color_write = on;
+}
+
+} // namespace dc::game
