@@ -5,12 +5,14 @@
 #include <cstring>
 #include <format>
 #include <map>
+#include <numbers>
 
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dngmessageman.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/party.hpp"
+#include "expanded/data/toan_grip.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/weapons/ownership.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -91,6 +93,31 @@ void ScaleAbout(sceVu0FMATRIX out, const sceVu0FMATRIX m, const float *pivot, fl
             moved += m[r][c] * pivot[r] * (1.0f - size);
         }
         out[3][c] = m[3][c] + moved;
+    }
+}
+
+// m turned angle radians about its own axis (row-vector: the turn first, then m).
+void TurnAbout(sceVu0FMATRIX out, const sceVu0FMATRIX m, int axis, float angle) {
+    float turn[3][3] = {
+        {1, 0, 0},
+        {0, 1, 0},
+        {0, 0, 1}
+    };
+    int i = (axis + 1) % 3, j = (axis + 2) % 3;
+    turn[i][i] = std::cos(angle);
+    turn[i][j] = std::sin(angle);
+    turn[j][i] = -std::sin(angle);
+    turn[j][j] = std::cos(angle);
+    for (int r = 0; r < 3; r++) {
+        for (int c = 0; c < 4; c++) {
+            out[r][c] = 0.0f;
+            for (int k = 0; k < 3; k++) {
+                out[r][c] += turn[r][k] * m[k][c];
+            }
+        }
+    }
+    for (int c = 0; c < 4; c++) {
+        out[3][c] = m[3][c];
     }
 }
 
@@ -190,28 +217,61 @@ void PumpedUpPosed(CFrame *frame) {
         return;
     }
     if (!ToanPumped(frame)) {
-        // Back to their own size, once.
-        for (auto &[hand, local] : hand_locals) {
-            hand->SetTransMatrix(local);
+        // Back to their own size and pose, once.
+        for (auto &[part, local] : hand_locals) {
+            part->SetTransMatrix(local);
         }
         hand_locals.clear();
         return;
     }
-    float size = PumpedUpSize(kPumpedHand);
+    // A frame's own local, as its model gave it.
+    auto rest = [](CFrame *part) -> sceVu0FVECTOR * {
+        auto [it, fresh] = hand_locals.try_emplace(part);
+        if (fresh) {
+            sceVu0CopyMatrix(it->second, part->local);
+        }
+        return it->second;
+    };
+    float   size = PumpedUpSize(kPumpedHand);
+    CFrame *hilt = frame->SearchFrame(const_cast<char *>(kPumpedUpHilt));
     for (const char *name : kPumpedUpHands) {
         CFrame *hand = frame->SearchFrame(const_cast<char *>(name));
         if (hand == nullptr) {
             continue;
         }
-        auto [it, fresh] = hand_locals.try_emplace(hand);
-        if (fresh) {
-            sceVu0CopyMatrix(it->second, hand->local);
+        sceVu0FVECTOR *local = rest(hand);
+        sceVu0FMATRIX  inverse, scaled;
+        sceVu0InversMatrix(inverse, local);
+        // About the wrist (the parent's origin, in the hand's own frame), or the sword hand about the hilt.
+        float pivot[3] = {inverse[3][0], inverse[3][1], inverse[3][2]};
+        if (std::strcmp(name, kPumpedUpSwordHand) == 0 && hilt != nullptr && hilt->parent == hand->parent) {
+            for (int c = 0; c < 3; c++) {
+                pivot[c] = inverse[3][c];
+                for (int r = 0; r < 3; r++) {
+                    pivot[c] += hilt->local[3][r] * inverse[r][c];
+                }
+            }
         }
-        // About the wrist: the parent's origin, in the hand's own frame.
-        sceVu0FMATRIX inverse, scaled;
-        sceVu0InversMatrix(inverse, it->second);
-        ScaleAbout(scaled, it->second, inverse[3], size);
+        ScaleAbout(scaled, local, pivot, size);
         hand->SetTransMatrix(scaled);
+    }
+    // The grip closing.
+    float share = LookShare();
+    for (int d = 0; d < kGripDigits; d++) {
+        for (int k = 0; k < 2; k++) {
+            CFrame *joint = frame->SearchFrame(const_cast<char *>(kGripJoints[d][k]));
+            if (joint == nullptr) {
+                continue;
+            }
+            bool           thumb = d == kGripThumb;
+            float          degrees = thumb ? kPumpedUpThumbCurl : k == 0 ? kPumpedUpKnuckleCurl
+                                                                         : kPumpedUpMiddleCurl;
+            int            axis = thumb ? 0 : 2;
+            sceVu0FVECTOR *local = rest(joint);
+            sceVu0FMATRIX  turned;
+            TurnAbout(turned, local, axis, degrees * share * std::numbers::pi_v<float> / 180.0f);
+            joint->SetTransMatrix(turned);
+        }
     }
 }
 

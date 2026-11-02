@@ -6,11 +6,13 @@
 //
 // The hand (the mesh r_hand, rigid under the wrist joint jnt18_1 on the disc) becomes a skinned mesh, as the Dark
 // Genie's hands are: each finger and the thumb gets two joints under the wrist, its knuckle (kGripJoints[d][0]) and its
-// middle joint ([d][1], under the knuckle), each turned as the frames' own axes are; every vertex of the hand is weighted
-// wholly to one joint: a finger's first half (from its knuckle) to its knuckle, the rest to its middle joint, the palm
-// to the wrist. Untouched, the joints hold the hand as the disc has it. The fingers are the hand's pieces past
-// kGripFingerCut across its length once the thumb (the part below kGripThumbSide on its thumb side, past kGripThumbFrom)
-// is set apart, index finger first.
+// middle joint ([d][1], under the knuckle), each turned as the frames' own axes are. A finger's first half (from where it
+// leaves the hand) is weighted wholly to its knuckle and the rest to its middle joint; its knuckle (the hand's vertices
+// from kGripKnuckleFrom to the cut, each taken by the finger nearest it across the hand) half to the knuckle and half to
+// the wrist, so it bends with the finger; the palm wholly to the wrist. The knuckle joint sits in the middle of its
+// knuckle. Untouched, the joints hold the hand as the disc has it. The fingers are the hand's pieces past kGripFingerCut
+// across its length once the thumb (the part below kGripThumbSide on its thumb side, past kGripThumbFrom) is set apart,
+// index finger first.
 
 #include <span>
 #include <vector>
@@ -33,6 +35,7 @@ inline constexpr const char *kGripJoints[kGripDigits][2] = {
     {"r_thumb_1",  "r_thumb_2" },
 };
 inline constexpr double kGripFingerCut = 1.08;
+inline constexpr double kGripKnuckleFrom = 0.9;
 inline constexpr double kGripThumbFrom = 0.7;
 inline constexpr double kGripThumbSide = -0.2;
 

@@ -49,6 +49,15 @@ inline constexpr const char *kPumpedUpBones[kPumpedParts - 1][2] = {
     {"jnt18_1", "jnt10_1"},
 };
 inline constexpr const char *kPumpedUpHands[] = {"r_hand", "l_hand", "renzu__m"};
+// The sword hand (r_hand) grows about the sword's hilt (the weapon frame's origin) rather than the wrist, so the palm
+// stays round it, and its grip closes as it grows (its joints as data/toan_grip.hpp rigs them): each finger's knuckle
+// and middle joint turned kPumpedUpKnuckleCurl and kPumpedUpMiddleCurl degrees about their own z axis, both thumb joints
+// kPumpedUpThumbCurl about their own x axis, each in step with the hand's growth.
+inline constexpr const char *kPumpedUpSwordHand = "r_hand";
+inline constexpr const char *kPumpedUpHilt = "weapon";
+inline constexpr float       kPumpedUpKnuckleCurl = 35.0f;
+inline constexpr float       kPumpedUpMiddleCurl = 30.0f;
+inline constexpr float       kPumpedUpThumbCurl = -20.0f;
 
 // The monsters a member has downed on this floor with the weapon it holds now (0 once it changed).
 int PumpedUpKills(int chara);

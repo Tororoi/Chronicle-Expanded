@@ -59,6 +59,7 @@ std::vector<std::array<int, 3>> Triangles(const MdtMesh &m) {
 struct Digit {
     std::set<int>      vertices;
     std::map<int, int> depth;
+    std::set<int>      knuckle; // shared with the palm
 };
 
 void Measure(Digit &digit, const std::vector<std::array<int, 3>> &tris) {
@@ -145,7 +146,29 @@ std::vector<Digit> Digits(const MdtMesh &hand, const std::vector<std::array<int,
     if (digits.size() != kGripDigits - 1) {
         throw std::runtime_error(std::string(kGripHand) + " does not part into four fingers");
     }
-    digits.push_back({thumb, {}});
+    // Each knuckle vertex to the finger nearest it across the hand.
+    std::vector<double> across;
+    for (const Digit &d : digits) {
+        double z = 0.0;
+        for (int v : d.vertices) {
+            z += p[std::size_t(v)][2] / static_cast<double>(d.vertices.size());
+        }
+        across.push_back(z);
+    }
+    for (int v = 0; v < static_cast<int>(p.size()); v++) {
+        const auto &q = p[std::size_t(v)];
+        if (q[0] < kGripKnuckleFrom || q[0] >= kGripFingerCut || thumb.contains(v)) {
+            continue;
+        }
+        std::size_t nearest = 0;
+        for (std::size_t f = 1; f < across.size(); f++) {
+            if (std::abs(q[2] - across[f]) < std::abs(q[2] - across[nearest])) {
+                nearest = f;
+            }
+        }
+        digits[nearest].knuckle.insert(v);
+    }
+    digits.push_back({thumb, {}, {}});
     for (Digit &d : digits) {
         Measure(d, tris);
     }
@@ -214,8 +237,9 @@ Bytes BuildToanGrip(std::span<const unsigned char> toan) {
     const int                                           first = static_cast<int>(frames.size());
     std::vector<std::pair<Bytes, std::optional<Bytes>>> added;
     Bytes                                               bbp = pack.Require(kToanBbp).Payload();
-    std::vector<std::vector<int>>                       bones(kGripDigits * 2);
-    std::set<int>                                       rigged;
+    using Weights = std::vector<std::pair<int, float>>;
+    std::vector<Weights> bones(kGripDigits * 2);
+    std::map<int, float> palm_share; // the palm's share of each vertex a digit takes
     for (int d = 0; d < kGripDigits; d++) {
         const Digit &digit = digits[std::size_t(d)];
         int          deepest = 0;
@@ -225,16 +249,20 @@ Bytes BuildToanGrip(std::span<const unsigned char> toan) {
         int              split = (deepest + 1) / 2;
         std::vector<int> base, middle;
         for (const auto &[v, depth] : digit.depth) {
-            (depth < split ? bones[std::size_t(d * 2)] : bones[std::size_t(d * 2 + 1)]).push_back(v);
+            (depth < split ? bones[std::size_t(d * 2)] : bones[std::size_t(d * 2 + 1)]).emplace_back(v, kWhole);
             if (depth == 0) {
                 base.push_back(v);
             }
             if (depth == split) {
                 middle.push_back(v);
             }
-            rigged.insert(v);
+            palm_share[v] = 0.0f;
         }
-        Vec3 knuckle = Mean(hand, hand_local, base);
+        for (int v : digit.knuckle) {
+            bones[std::size_t(d * 2)].emplace_back(v, kWhole / 2);
+            palm_share[v] = kWhole / 2;
+        }
+        Vec3 knuckle = Mean(hand, hand_local, digit.knuckle.empty() ? base : std::vector<int>(digit.knuckle.begin(), digit.knuckle.end()));
         Vec3 joint = middle.empty() ? knuckle : Mean(hand, hand_local, middle);
         Vec3 out{joint[0] - knuckle[0], joint[1] - knuckle[1], joint[2] - knuckle[2]};
         added.emplace_back(FrameRecord(first + d * 2, kGripJoints[d][0], wrist.index, kIdentity, knuckle), std::nullopt);
@@ -253,7 +281,7 @@ Bytes BuildToanGrip(std::span<const unsigned char> toan) {
         throw std::runtime_error(std::string(kToanWgt) + " has no tracks");
     }
     const MotTrack &model = wgt.tracks.front();
-    auto            track = [&](int bone, const std::vector<int> &vertices) {
+    auto            track = [&](int bone, const Weights &vertices) {
         MotTrack t;
         t.w0 = static_cast<std::uint32_t>(hand_frame.index);
         t.w1 = static_cast<std::uint32_t>(bone);
@@ -261,15 +289,17 @@ Bytes BuildToanGrip(std::span<const unsigned char> toan) {
         t.w3 = model.w3;
         t.w6 = model.w6;
         t.w7 = model.w7;
-        for (int v : vertices) {
-            t.keys.push_back(MotKeyframe::Make(static_cast<std::uint32_t>(v), {kWhole, 0.0, 0.0, 0.0}));
+        for (const auto &[v, weight] : vertices) {
+            t.keys.push_back(MotKeyframe::Make(static_cast<std::uint32_t>(v), {weight, 0.0, 0.0, 0.0}));
         }
         wgt.tracks.push_back(std::move(t));
     };
-    std::vector<int> palm;
+    Weights palm;
     for (int v = 0; v < static_cast<int>(hand.positions.size()); v++) {
-        if (!rigged.contains(v)) {
-            palm.push_back(v);
+        auto  shared = palm_share.find(v);
+        float weight = shared == palm_share.end() ? kWhole : shared->second;
+        if (weight > 0.0f) {
+            palm.emplace_back(v, weight);
         }
     }
     track(wrist.index, palm);
