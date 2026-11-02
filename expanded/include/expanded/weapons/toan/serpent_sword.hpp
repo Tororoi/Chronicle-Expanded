@@ -37,14 +37,14 @@ inline constexpr const char *kSnakeJaw = "null59";
 inline constexpr int         kSnakeAppear = 8;
 inline constexpr int         kSnakeFadeSteps = 15;
 inline constexpr float       kSnakeGlow = 80.0f;
-inline constexpr int         kSnakeMouthPeriod = 180, kSnakeMouthEase = 20, kSnakeMouthHold = 20;
-inline constexpr float       kSnakeMouthAngle = 1.0f; // radians
+inline constexpr int         kSnakeMouthPeriod = 180, kSnakeMouthEase = 40, kSnakeMouthHold = 10;
+inline constexpr float       kSnakeMouthAngle = 0.5f; // radians
 inline constexpr float       kSnakeStretch = 1.2f;
 inline constexpr int         kSnakeStretchPeriod = 200;
 inline constexpr float       kSnakeBob = 0.6f;
 inline constexpr int         kSnakeBobPeriod = 120;
 inline constexpr float       kSnakeScale = 0.5f;
-inline constexpr float       kSnakeAhead = 4.0f;
+inline constexpr float       kSnakeAhead = 10.0f;
 inline constexpr float       kSnakeHeight = 14.0f;
 inline constexpr float       kSnakeLift = 8.0f;
 inline constexpr float       kSnakeBack = 11.0f;
