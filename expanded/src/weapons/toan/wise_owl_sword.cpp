@@ -29,7 +29,7 @@ std::optional<std::string> WiseOwlLine() {
 
 // The line when the sword opens the door.
 std::optional<std::string> WiseOwlDoorLine() {
-    return LocalizeText("expanded.wise_owl.door", "Hoo! Wise Owl knows the way in.");
+    return LocalizeText("expanded.wise_owl.door", "I've always got a spare with me, hoo.");
 }
 
 [[maybe_unused]] const bool kWiseOwlDoorLine = (SetSystemMessage(kWiseOwlDoorMessage, WiseOwlDoorLine), true);
