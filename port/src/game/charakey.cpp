@@ -30,6 +30,7 @@
 #include "expanded/weapons/toan/claymore.hpp"
 #include "expanded/weapons/toan/heavens_cloud.hpp"
 #include "expanded/weapons/toan/kitchen_knife.hpp"
+#include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/sand_breaker.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
@@ -112,7 +113,7 @@ void ToanKey_Play() {
 #endif
     float time = CharaMain.motion_type.state.time;
 #ifdef CHRONICLE_EXPANDED
-    int damage = expanded::RoughCounterAttack(expanded::SpringsBlessingAttack(NowWeaponHave->attack));
+    int damage = expanded::PumpedUpAttack(expanded::RoughCounterAttack(expanded::SpringsBlessingAttack(NowWeaponHave->attack)));
 #else
     int   damage = NowWeaponHave->attack;
 #endif

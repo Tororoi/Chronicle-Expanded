@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <map>
+#include <numbers>
 #include <numeric>
 #include <optional>
 #include <stdexcept>
@@ -317,7 +318,292 @@ double Lerp(double a0, double a1, double b0, double b1, double x) {
 
 } // namespace
 
-Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const unsigned char> lamb_chr) {
+namespace {
+
+// Macho's hat in Steve's body mesh's coordinates: its triangles, each corner's position, normal and texture point.
+struct HatTri {
+    int                 material;
+    std::array<Vec3, 3> p, n;
+    std::array<Vec2, 3> uv;
+};
+
+std::vector<HatTri> MachoHat(const MdtMesh &head, const std::vector<Tri> &tris) {
+    const MachoHatFit &fit = kMachoHatFit;
+    auto               hat = [](int material) { return std::ranges::find(kMachoHatMaterials, material) != std::end(kMachoHatMaterials); };
+    double             lo[2] = {1e9, 1e9}, hi[2] = {-1e9, -1e9};
+    for (const Tri &t : tris) {
+        if (!hat(t.material)) {
+            continue;
+        }
+        for (const auto &r : t.rec) {
+            const auto &q = head.positions.at(std::size_t(r[0]));
+            lo[0] = std::min(lo[0], q[0]), hi[0] = std::max(hi[0], q[0]);
+            lo[1] = std::min(lo[1], q[2]), hi[1] = std::max(hi[1], q[2]);
+        }
+    }
+    double cx = (lo[0] + hi[0]) / 2, cz = (lo[1] + hi[1]) / 2;
+    // Tilted back about the side (z), then turned about the up (y), as rows: a point (row) times them.
+    double a = fit.tilt * std::numbers::pi / 180, b = fit.turn * std::numbers::pi / 180;
+    double tilt[3][3] = {
+        {std::cos(a),  std::sin(a), 0},
+        {-std::sin(a), std::cos(a), 0},
+        {0,            0,           1}
+    };
+    double turn[3][3] = {
+        {std::cos(b), 0, -std::sin(b)},
+        {0,           1, 0           },
+        {std::sin(b), 0, std::cos(b) }
+    };
+    double m[3][3] = {};
+    for (int r = 0; r < 3; r++) {
+        for (int c = 0; c < 3; c++) {
+            for (int k = 0; k < 3; k++) {
+                m[r][c] += tilt[r][k] * turn[k][c];
+            }
+        }
+    }
+    auto times = [&](const Vec3 &v) {
+        Vec3 out{};
+        for (int c = 0; c < 3; c++) {
+            out[std::size_t(c)] = v[0] * m[0][c] + v[1] * m[1][c] + v[2] * m[2][c];
+        }
+        return out;
+    };
+    std::vector<HatTri> out;
+    for (const Tri &t : tris) {
+        if (!hat(t.material)) {
+            continue;
+        }
+        HatTri h{t.material, {}, {}, {}};
+        for (int k = 0; k < 3; k++) {
+            const auto &q = head.positions.at(std::size_t(t.rec[std::size_t(k)][0]));
+            Vec3        r = times({q[2] - cz, q[1] - kMachoHatSeat, -(q[0] - cx)});
+            h.p[std::size_t(k)] = {r[0] * fit.size + fit.forward + kSteveHeadTop[0], r[1] * fit.size + fit.lift + kSteveHeadTop[1],
+                                   r[2] * fit.size + fit.side + kSteveHeadTop[2]};
+            Vec3 n = Normal(head, t.rec[std::size_t(k)]);
+            h.n[std::size_t(k)] = Unit(times({n[2], n[1], -n[0]}));
+            h.uv[std::size_t(k)] = Uv(head, t.rec[std::size_t(k)]);
+        }
+        out.push_back(h);
+    }
+    return out;
+}
+
+} // namespace
+
+namespace {
+
+// Macho's arms, in Steve's body mesh's coordinates (+y up, the face +x; a side's sign is its z's).
+Vec3 Pos(const MdtMesh &m, int i) {
+    const auto &p = m.positions.at(std::size_t(i));
+    return {p[0], p[1], p[2]};
+}
+
+// The sword's coordinates into Steve's: its out x to his out z, its up z to his up y, its depth y to his depth x.
+Vec3 SwordTurn(const Vec3 &v) {
+    return {v[1], v[2], v[0]};
+}
+
+bool SteveArm(const MdtMesh &body, int i, double side) {
+    Vec3 p = Pos(body, i);
+    return side * p[2] > kSteveArmOut && p[0] > kSteveBandBack && std::ranges::find(kSteveBandEnds, i) == std::end(kSteveBandEnds);
+}
+
+bool SteveArm(const MdtMesh &body, int i) {
+    return SteveArm(body, i, 1.0) || SteveArm(body, i, -1.0);
+}
+
+Vec3 Mean(const std::vector<Vec3> &vs) {
+    Vec3 c{};
+    for (const Vec3 &v : vs) {
+        c = Add(c, v);
+    }
+    return Scale(c, 1.0 / double(vs.size()));
+}
+
+// Steve's shoulder, elbow and wrist on a side, as a look moves them.
+std::array<Vec3, 3> SteveMarks(const MdtMesh &body, const MdtMesh &glove, double side, const MachoArmsLook &look) {
+    std::vector<Vec3> ring, elbow, glove_side;
+    for (int i = 0; i < int(body.positions.size()); i++) {
+        if (SteveArm(body, i, side)) {
+            Vec3 p = Pos(body, i);
+            if (p[1] < kSteveElbowFrom) {
+                ring.push_back(p);
+            } else if (p[1] < kSteveWristFrom) {
+                elbow.push_back(p);
+            }
+        }
+    }
+    Vec3   ring0 = Mean(ring);
+    double width = -1e9;
+    for (int i = 0; i < int(body.positions.size()); i++) {
+        Vec3 p = Pos(body, i);
+        if (!SteveArm(body, i) && std::abs(p[1] - ring0[1]) < 0.15 && side * p[2] > 0) {
+            width = std::max(width, side * p[2]);
+        }
+    }
+    double low = 1e9;
+    for (int i = 0; i < int(glove.positions.size()); i++) {
+        Vec3 p = Pos(glove, i);
+        if (side * p[2] > 0) {
+            glove_side.push_back(p);
+            low = std::min(low, p[1]);
+        }
+    }
+    std::vector<Vec3> opening;
+    for (const Vec3 &p : glove_side) {
+        if (p[1] < low + 0.15) {
+            opening.push_back(p);
+        }
+    }
+    return {
+        Vec3{ring0[0], ring0[1] + look.shoulder_up, side * (width + look.shoulder_out)},
+        Add(Mean(elbow), {0.0,      look.elbow_up,               side * look.elbow_out             }
+        ),
+        Mean(opening),
+    };
+}
+
+// The sword's arm on a side (its fist left off): its triangles and its shoulder, elbow and wrist.
+struct SwordArm {
+    std::vector<int>    tris;
+    std::array<Vec3, 3> marks;
+};
+
+SwordArm SwordArmOf(const MdtMesh &sword, const std::vector<Tri> &tris, double side) {
+    auto              fist = [&](const Vec3 &p) { return p[2] > kSwordFistFrom && side * p[0] < kSwordFistIn; };
+    SwordArm          arm;
+    std::vector<Vec3> corners;
+    for (int t = 0; t < int(tris.size()); t++) {
+        std::array<Vec3, 3> p;
+        for (int k = 0; k < 3; k++) {
+            p[std::size_t(k)] = Pos(sword, tris[std::size_t(t)].rec[std::size_t(k)][0]);
+        }
+        Vec3 c = Scale(Add(Add(p[0], p[1]), p[2]), 1.0 / 3);
+        if (side * c[0] > kSwordArmOut && kSwordArmLow < c[2] && c[2] < kSwordArmHigh && std::ranges::none_of(p, fist)) {
+            arm.tris.push_back(t);
+            corners.insert(corners.end(), p.begin(), p.end());
+        }
+    }
+    double in = 1e9, out = -1e9;
+    for (const Vec3 &v : corners) {
+        in = std::min(in, side * v[0]), out = std::max(out, side * v[0]);
+    }
+    std::vector<Vec3> shoulder, elbow, wrist;
+    for (const Vec3 &v : corners) {
+        if (side * v[0] < in + 0.15) {
+            shoulder.push_back(v);
+        }
+        if (side * v[0] > out - 0.25) {
+            elbow.push_back(v);
+        }
+        if (v[2] > kSwordWristFrom) {
+            wrist.push_back(v);
+        }
+    }
+    arm.marks = {SwordTurn(Mean(shoulder)), SwordTurn(Mean(elbow)), SwordTurn(Mean(wrist))};
+    return arm;
+}
+
+// Across a part of the arm line (a to b): its unit normal in the y-z plane.
+Vec3 Across(const Vec3 &ab) {
+    double l = std::hypot(ab[1], ab[2]);
+    return {0.0, -ab[2] / l, ab[1] / l};
+}
+
+double Length(const Vec3 &v) {
+    return std::sqrt(Dot(v, v));
+}
+
+// A point of the sword's arm (turned) as its place on the arm line: the part (0 shoulder to elbow, 1 elbow to wrist), how
+// far along it, and its offsets off it (across, in depth x) in that part's lengths.
+struct ArmPlace {
+    int    part;
+    double along, across, depth;
+};
+
+ArmPlace PlaceOn(const std::array<Vec3, 3> &marks, const Vec3 &v) {
+    ArmPlace best{};
+    double   nearest = 1e18;
+    for (int k = 0; k < 2; k++) {
+        Vec3   a = marks[std::size_t(k)], ab = Sub(marks[std::size_t(k) + 1], a);
+        double l = Length(ab);
+        double t = Dot(Sub(v, a), ab) / (l * l);
+        t = k == 0 ? std::clamp(t, 0.0, 1.0) : std::max(t, 0.0);
+        Vec3   off = Sub(v, Add(a, Scale(ab, t)));
+        double d = Length(off);
+        if (d < nearest) {
+            nearest = d;
+            best = {k, t, Dot(off, Across(ab)) / l, off[0] / l};
+        }
+    }
+    return best;
+}
+
+Vec3 LayOn(const std::array<Vec3, 3> &marks, const ArmPlace &at, double muscle) {
+    Vec3   a = marks[std::size_t(at.part)], ab = Sub(marks[std::size_t(at.part) + 1], a);
+    double l = Length(ab);
+    return Add(Add(a, Scale(ab, at.along)), Scale(Add(Scale(Across(ab), at.across), Vec3{at.depth, 0.0, 0.0}), muscle * l));
+}
+
+// The sword's arms laid on Steve, in his sleeve: the drawn vertices (thin), then the thin look's and the buff's.
+Bytes MachoArms(const MdtMesh &body, const MdtMesh &glove, const std::vector<Tri> &body_tris, const MdtMesh &sword, const std::vector<Tri> &sword_tris) {
+    // His arm's corners' texture points and its material (the one most of its corners have).
+    std::map<int, int> arm_uv, arm_material;
+    for (const Tri &t : body_tris) {
+        for (const auto &r : t.rec) {
+            if (SteveArm(body, r[0])) {
+                arm_uv[r[0]] = r[2];
+                arm_material[t.material]++;
+            }
+        }
+    }
+    int material = std::ranges::max_element(arm_material, {}, [](const auto &e) { return e.second; })->first;
+
+    NewMesh             arms(glove);
+    int                 mat = arms.Material(body.materials.at(std::size_t(material)));
+    std::map<int, Vec3> buff_of; // a drawn vertex's buff place
+    for (double side : {1.0, -1.0}) {
+        SwordArm            arm = SwordArmOf(sword, sword_tris, side);
+        std::array<Vec3, 3> thin = SteveMarks(body, glove, side, kMachoArmsThin), buff = SteveMarks(body, glove, side, kMachoArmsBuff);
+        for (int t : arm.tris) {
+            const Tri          &tri = sword_tris[std::size_t(t)];
+            std::array<Vec3, 3> p, q, n;
+            std::array<Vec2, 3> uv;
+            for (int k = 0; k < 3; k++) {
+                ArmPlace at = PlaceOn(arm.marks, SwordTurn(Pos(sword, tri.rec[std::size_t(k)][0])));
+                p[std::size_t(k)] = LayOn(thin, at, kMachoArmsThin.muscle);
+                q[std::size_t(k)] = LayOn(buff, at, kMachoArmsBuff.muscle);
+                n[std::size_t(k)] = SwordTurn(Normal(sword, tri.rec[std::size_t(k)]));
+                auto        near = std::ranges::min_element(arm_uv, {}, [&](const auto &e) {
+                    Vec3 d = Sub(Pos(body, e.first), p[std::size_t(k)]);
+                    return Dot(d, d);
+                });
+                const auto &u = body.uvs.at(std::size_t(near->second));
+                uv[std::size_t(k)] = {u[0], u[1]};
+            }
+            arms.Add(mat, p, n, uv);
+            for (int k = 0; k < 3; k++) {
+                const Vec3 &v = p[std::size_t(k)];
+                buff_of[arms.positions.at({float(v[0]), float(v[1]), float(v[2]), 1.0f})] = q[std::size_t(k)];
+            }
+        }
+    }
+    std::size_t drawn = arms.m.positions.size();
+    for (std::size_t i = 0; i < drawn; i++) {
+        arms.m.positions.push_back(arms.m.positions[i]);
+    }
+    for (std::size_t i = 0; i < drawn; i++) {
+        const Vec3 &q = buff_of.at(int(i));
+        arms.m.positions.push_back({q[0], q[1], q[2], 1.0});
+    }
+    return arms.Build();
+}
+
+} // namespace
+
+Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const unsigned char> lamb_chr, std::span<const unsigned char> macho_chr,
+                     std::span<const unsigned char> macho_sword_chr) {
     const WolfSteveFit &fit = kWolfSteveFit;
     ChrPack             pack = ChrPack::Parse(steve_chr);
     Bytes               mds = pack.Require(kSteveMds).Payload();
@@ -348,8 +634,17 @@ Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const u
             feet.push_back(p);
         }
     }
+    // His arms: the triangles with a corner on one.
+    std::vector<bool> arm(bt.size());
+    for (std::size_t t = 0; t < bt.size(); t++) {
+        arm[t] = std::ranges::any_of(bt[t].rec, [&](const std::vector<int> &r) { return SteveArm(body, r[0]); });
+    }
+    std::erase_if(feet, [&](const std::vector<int> &f) { return std::ranges::any_of(f, [&](int t) { return arm[std::size_t(t)]; }); });
     std::vector<int> head, hair;
     for (int t : torso) {
+        if (arm[std::size_t(t)]) {
+            continue;
+        }
         if (bt[std::size_t(t)].Centroid()[2] >= kNeck) {
             head.push_back(t);
             auto [r, g, b] = MiddleColour(steve_sheet, body, bt[std::size_t(t)]);
@@ -608,8 +903,18 @@ Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const u
         }
         into.Add(it->second, p, n, uv);
     };
-    std::map<int, int> steve_mats, hand_mats;
-    std::vector<int>   off = head;
+    std::map<int, int> steve_mats, hand_mats, hair_mats;
+    NewMesh            steve_hair(glove);
+    std::vector<int>   off;
+    for (int t : head) {
+        if (std::ranges::find(hair, t) == hair.end()) {
+            off.push_back(t);
+        }
+    }
+    for (int t : hair) {
+        body_kept[std::size_t(t)] = false;
+        moved(steve_hair, hair_mats, body, bt[std::size_t(t)]);
+    }
     for (const auto &f : feet) {
         off.insert(off.end(), f.begin(), f.end());
     }
@@ -623,6 +928,39 @@ Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const u
             moved(steve_hands, hand_mats, glove, gt[t]);
         }
     }
+    std::map<int, int> arm_mats;
+    NewMesh            steve_arms(glove);
+    for (std::size_t t = 0; t < bt.size(); t++) {
+        if (arm[t]) {
+            body_kept[t] = false;
+            moved(steve_arms, arm_mats, body, bt[t]);
+        }
+    }
+
+    // The Macho Sword's arms, in his sleeve.
+    ChrPack         macho_sword = ChrPack::Parse(macho_sword_chr);
+    Bytes           smds = macho_sword.Require(kMachoSwordMds).Payload();
+    auto            sframes = ReadMdsSkeleton(smds);
+    const MdsFrame &sword_frame = RequireFrame(sframes, kMachoSwordMesh, kMachoSwordMds);
+    MdtMesh         sword = MdtMesh::Parse(MdtAt(smds, std::size_t(sword_frame.mesh)));
+    Bytes           macho_arms = MachoArms(body, glove, bt, sword, Triangles(sword, sword_frame));
+
+    // Macho's hat, its materials his.
+    ChrPack            macho = ChrPack::Parse(macho_chr);
+    Bytes              mmds = macho.Require(kMachoMds).Payload();
+    auto               mframes = ReadMdsSkeleton(mmds);
+    const MdsFrame    &mhead_frame = RequireFrame(mframes, kMachoHead, kMachoMds);
+    MdtMesh            mhead = MdtMesh::Parse(MdtAt(mmds, std::size_t(mhead_frame.mesh)));
+    ImgBank            macho_bank = ImgBank::Parse(macho.Require(kMachoImg).Payload());
+    NewMesh            hat_mesh(glove);
+    std::map<int, int> hat_mats;
+    for (const HatTri &h : MachoHat(mhead, Triangles(mhead, mhead_frame))) {
+        auto [it, fresh] = hat_mats.try_emplace(h.material, 0);
+        if (fresh) {
+            it->second = hat_mesh.Material(mhead.materials.at(std::size_t(h.material)));
+        }
+        hat_mesh.Add(it->second, h.p, h.n, h.uv);
+    }
 
     // The frames: Steve's and the wolf's on his body and glove frames, rest-posed there.
     int n = int(frames.size());
@@ -635,9 +973,24 @@ Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const u
                                                              {FrameRecord(n + 1, kSteveHands, glove_frame.index), steve_hands.Build()},
                                                              {FrameRecord(n + 2, kWolfParts, body_frame.index), wolf_parts.Build()},
                                                              {FrameRecord(n + 3, kWolfHands, glove_frame.index), wolf_hands.Build()},
+                                                             {FrameRecord(n + 4, kSteveHair, body_frame.index), steve_hair.Build()},
+                                                             {FrameRecord(n + 5, kMachoHat, body_frame.index), hat_mesh.Build()},
+                                                             {FrameRecord(n + 6, kSteveArms, body_frame.index), steve_arms.Build()},
+                                                             {FrameRecord(n + 7, kMachoArms, body_frame.index), macho_arms},
                                                          }));
-    AppendBindPoses(pack, kSteveBbp, 4);
+    AppendBindPoses(pack, kSteveBbp, 8);
+    // The Macho arms' vertices kept, for the game to lay them between their looks.
+    Bytes             cfg = pack.Require(kSteveCfg).Payload();
+    std::string       text(cfg.begin(), cfg.end());
+    const std::string body_buffer = std::string("ALLOC_DBUFF \"") + kBody + "\"";
+    std::size_t       at = text.find(body_buffer);
+    if (at == std::string::npos) {
+        throw std::runtime_error(std::string(kSteveCfg) + " has no " + body_buffer);
+    }
+    text.insert(at + body_buffer.size(), std::string("\r\nALLOC_DBUFF \"") + kMachoArms + "\"");
+    pack.Require(kSteveCfg).ReplacePayload(Bytes(text.begin(), text.end()));
     steve_bank.entries.emplace_back(kWolfSheet, lamb_bank.Block(kWolfSheet));
+    steve_bank.entries.emplace_back(kMachoHatSheet, tim8::Swizzled(macho_bank.Block(kMachoHatSheet)));
     pack.Require(kSteveImg).ReplacePayload(steve_bank.Build());
     return pack.Rebuild();
 }
@@ -645,13 +998,13 @@ Bytes BuildWolfSteve(std::span<const unsigned char> steve_chr, std::span<const u
 std::vector<DataBuild> WolfSteveBuilds() {
     using Files = const std::vector<Bytes> &;
     return {
-        DataBuild::FromSources("Wolf Steve", std::string(kRebuiltDiscFolder) + kSuperSteveFile, {kSuperSteveFile, kLambSwordFile},
-                               [](Files s) { return BuildWolfSteve(s[0], s[1]); }),
+        DataBuild::FromSources("Wolf Steve", std::string(kRebuiltDiscFolder) + kSuperSteveFile,
+                               {kSuperSteveFile, kLambSwordFile, kMachoFile, kMachoSwordFile}, [](Files s) { return BuildWolfSteve(s[0], s[1], s[2], s[3]); }),
         DataBuild::FromSources("Wolf Steve in Xiao's weapon menu", std::string(kRebuiltDiscFolder) + kXiaoMenuWeaponsFile,
-                               {kXiaoMenuWeaponsFile, kLambSwordFile}, [](Files s) {
+                               {kXiaoMenuWeaponsFile, kLambSwordFile, kMachoFile, kMachoSwordFile}, [](Files s) {
                                    ChrPack    bundle = ChrPack::Parse(s[0]);
                                    ChrRecord &steve = bundle.Require("c04w13.chr");
-                                   steve.ReplacePayload(BuildWolfSteve(steve.Payload(), s[1]));
+                                   steve.ReplacePayload(BuildWolfSteve(steve.Payload(), s[1], s[2], s[3]));
                                    return bundle.Rebuild();
                                }),
     };

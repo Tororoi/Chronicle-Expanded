@@ -276,11 +276,16 @@ void WolfSteveShow(CCharacter *chara, const WEAPON_HAVE &weapon) {
         return;
     }
     bool wolf = LambWeapon(weapon) && LambWolfForm(weapon);
+    bool macho = WeaponAbilitiesOn() && SphereWeapon(weapon) == ITEM_WEAPON_MACHO_SWORD; // Macho's hat and arms (macho_sword.hpp)
     for (auto [name, shown] : {
-             std::pair{kSteveParts, !wolf},
-             std::pair{kSteveHands, !wolf},
-             std::pair{kWolfParts,  wolf },
-             std::pair{kWolfHands,  wolf }
+             std::pair{kSteveParts, !wolf          },
+             std::pair{kSteveHands, !wolf          },
+             std::pair{kSteveHair,  !wolf && !macho},
+             std::pair{kWolfParts,  wolf           },
+             std::pair{kWolfHands,  wolf           },
+             std::pair{kMachoHat,   macho          },
+             std::pair{kSteveArms,  !macho         },
+             std::pair{kMachoArms,  macho          }
     }) {
         if (CFrame *frame = chara->frame->SearchFrame(const_cast<char *>(name))) {
             frame->attr.draw_on = shown ? 1 : 2;

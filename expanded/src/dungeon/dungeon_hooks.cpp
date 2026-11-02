@@ -137,10 +137,12 @@ void DungeonStatusReady() {
     StageStatusReady();
     ColdStorageVisitBegins();
     ShootingStarsVisitBegins();
+    PumpedUpReset();
 }
 
 void DungeonFrameBegins() {
     StageFrame();
+    PumpedUpFrame();
     FlameGunFrame();
 }
 
@@ -287,6 +289,7 @@ bool MonsterKilled(const CMonstorUnit &unit, int monster) {
     EventLogKilled(unit, monster);
     BossRecordKill(unit, monster);
     VampireKill(unit, monster);
+    PumpedUpKill(unit, monster);
     return BossCastCountsKill(monster);
 }
 
@@ -376,6 +379,7 @@ void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
 
 void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     ChargingBullHit(shots, slot, hit);
+    PumpedUpPelletHit(hit);
 }
 
 void ShotEffectHitSet(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {

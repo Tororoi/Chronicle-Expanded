@@ -44,6 +44,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/core/motion_keys.hpp"
 #include "expanded/core/motion_layer.hpp"
+#include "expanded/weapons/toan/macho_sword.hpp"
 #endif
 
 namespace dc::game {
@@ -514,6 +515,10 @@ Mot_List *MotionProc2(CFrame *frame, tagMOTION_TYPE *motion, tagFRAME_INF *frame
         owner->attr.remake_pending = 1;
         sceVu0UnitMatrix(frame_info[list->target].bone_base_matrix);
         sceVu0UnitMatrix(frame_info[list->target].bone_matrix);
+#ifdef CHRONICLE_EXPANDED
+        expanded::PumpedUpSkinStart(frame, static_cast<int>(list->frame), g_bone_matrix);
+        sceVu0CopyMatrix(frame_info[list->target].bone_matrix, g_bone_matrix);
+#endif
     } else {
         sceVu0FMATRIX local;
         sceVu0FVECTOR translation;
@@ -524,6 +529,9 @@ Mot_List *MotionProc2(CFrame *frame, tagMOTION_TYPE *motion, tagFRAME_INF *frame
                   motion->base_matrices[list->target]);
         sceVu0CopyMatrix(frame_info[list->target].bone_base_matrix, g_bone_matrix_base);
         sceVu0CopyMatrix(frame_info[list->target].bone_matrix, g_bone_matrix);
+#ifdef CHRONICLE_EXPANDED
+        expanded::PumpedUpSkinBone(frame, static_cast<int>(list->target), g_bone_matrix);
+#endif
         sceVu0CopyVector(translation, g_bone_matrix_base[3]);
         sceVu0InversMatrix(g_bone_matrix_base, g_bone_matrix_base);
         sceVu0CopyVector(g_bone_matrix_base[3], translation);
@@ -571,6 +579,7 @@ void SetMotionEX(CFrame *frame, tagMOTION_TYPE *motion, MOTION_INFO *info, MOTIO
 
 #ifdef CHRONICLE_EXPANDED
         expanded::MotionPosed(frame, motion);
+        expanded::PumpedUpPosed(frame);
 #endif
         if (state->look_at != 0) {
             if (state->look_target != nullptr) {
@@ -598,6 +607,7 @@ void SetMotionEX(CFrame *frame, tagMOTION_TYPE *motion, MOTION_INFO *info, MOTIO
 
 #ifdef CHRONICLE_EXPANDED
     expanded::MotionPosed(frame, motion);
+    expanded::PumpedUpPosed(frame);
 #endif
     if (state->look_at != 0) {
         if (state->look_target != nullptr) {
