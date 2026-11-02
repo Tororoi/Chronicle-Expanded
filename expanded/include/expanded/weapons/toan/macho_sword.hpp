@@ -24,10 +24,11 @@ int OvertrainingGaugeAbs(int abs, int max_abs);
 
 // Macho Sword "Pumped Up": every monster that goes down while a member has the Macho Sword in hand (or Super Steve
 // carrying its SynthSphere) pumps that member up: each one multiplies the weapon's attack by kPumpedUpRate, without
-// limit, and a monster that gets back up (a Mummy, a Gacious) counts again each time it goes down. The member's arms
-// (Toan's, or Xiao's with Super Steve) swell with it, bone by bone (upper arms, forearms and wrists thicker across their
-// length, hands larger; the glove cuffs, arm bands and bracelets keep their size), evenly from nothing to kPumpedUpLook at kPumpedUpFullLook monsters, and stay
-// there however far the attack goes on. It holds through the back floor and back and through changes of member, and is
+// limit, and a monster that gets back up (a Mummy, a Gacious) counts again each time it goes down. Toan's arms swell
+// with it, bone by bone (upper arms, forearms and wrists thicker across their length, hands larger; his glove cuffs keep
+// their size), evenly from nothing to kPumpedUpLook at kPumpedUpFullLook monsters, and stay there however far the attack
+// goes on. Super Steve wears the sword's own flexed arms with its SynthSphere (data/wolf_steve.hpp), growing the same
+// way from their thin look to their buff one with Xiao's count. It holds through the back floor and back and through changes of member, and is
 // gone on a new floor, a new visit, or as soon as the member's equipped weapon changes.
 inline constexpr float kPumpedUpRate = 1.1f;
 inline constexpr int   kPumpedUpFullLook = 15;
@@ -43,7 +44,7 @@ enum PumpedUpPart {
 
 inline constexpr float kPumpedUpLook[kPumpedParts] = {1.6f, 2.02f, 1.54f, 1.6f};
 
-// A member's arms as its dungeon model draws them: each part's bones (right, left), the hand holding the weapon (whether
+// Toan's arms as his dungeon model draws them: each part's bones (right, left), the hand holding the weapon (whether
 // rigged to close its grip, data/toan_grip.hpp) and the frames of the other hand.
 struct PumpedUpRig {
     int         chara;
@@ -59,11 +60,6 @@ inline constexpr PumpedUpRig kPumpedUpRigs[] = {
      "r_hand",
      true,
      {"l_hand", "renzu__m"}},
-    {1, // Xiao
-     {{"jnt20_1", "jnt10_1"}, {"jnt20_2", "jnt10_2"}, {"jnt21_1", "jnt9_1"}},
-     "l_hand",
-     false,
-     {"r_hand", nullptr}   },
 };
 
 // The member's rig, or null for one without.
@@ -89,9 +85,16 @@ int PumpedUpKills(int chara);
 float PumpedUpMultiplier();
 // The size of a part of the active member's arm now (1 when not pumped up).
 float PumpedUpSize(PumpedUpPart part);
+// How far Super Steve's Macho arms have grown from their thin look to their buff one (0 to 1): Xiao's count's share of
+// kPumpedUpFullLook.
+float SteveArmsGrowth();
+// Super Steve's Macho arms (the frame data/wolf_steve.hpp builds, from his model's root) laid at that growth, their
+// drawing remade when they moved.
+void GrowSteveArms(CFrame *steve);
 
 // Hooks: a monster's life ran out (CheckDmg); a new floor's monsters are being placed (BtArrengeMonstor), and a new
-// visit (GameInit); the top of a dungeon frame (a member's equipped weapon checked); Toan's swing's attack
+// visit (GameInit); the top of a dungeon frame (a member's equipped weapon checked, the weapon in hand's Macho arms
+// grown); Toan's swing's attack
 // (ToanKey_Play); a Super Steve pellet's hit as it is set; Toan's model posed (SetMotionEX, before the skin: his hands'
 // frames); and a bone's matrix as the skin takes it (MotionProc2, after the bone passed it unchanged to its children).
 void PumpedUpKill(const CMonstorUnit &unit, int monster);

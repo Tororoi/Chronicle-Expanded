@@ -15,14 +15,17 @@
 #include "dun/gameloop.hpp"
 #include "expanded/core/party.hpp"
 #include "expanded/data/toan_grip.hpp"
+#include "expanded/data/wolf_steve.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/weapons/ownership.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "frame.hpp"
 #include "framevu1.hpp"
 #include "itemdata.hpp"
+#include "mdt.hpp"
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
+#include "visualvu1.hpp"
 
 namespace expanded {
 
@@ -179,7 +182,7 @@ int OvertrainingGaugeAbs(int abs, int max_abs) {
     return std::min(abs, max_abs);
 }
 
-static_assert(kPumpedUpRigs[0].chara == CHARA_TOAN && kPumpedUpRigs[1].chara == CHARA_XIAO);
+static_assert(kPumpedUpRigs[0].chara == CHARA_TOAN);
 
 const PumpedUpRig *PumpedUpRigOf(int chara) {
     for (const PumpedUpRig &rig : kPumpedUpRigs) {
@@ -206,7 +209,40 @@ float PumpedUpMultiplier() {
 }
 
 float PumpedUpSize(PumpedUpPart part) {
+    if (UserStatus == nullptr || PumpedUpRigOf(UserStatus->cur_chara) == nullptr) {
+        return 1.0f;
+    }
     return 1.0f + (kPumpedUpLook[part] - 1.0f) * LookShare();
+}
+
+float SteveArmsGrowth() {
+    return static_cast<float>(std::min(PumpedUpKills(CHARA_XIAO), kPumpedUpFullLook)) / kPumpedUpFullLook;
+}
+
+void GrowSteveArms(CFrame *steve) {
+    CFrame     *arms = steve != nullptr ? steve->SearchFrame(const_cast<char *>(kMachoArms)) : nullptr;
+    CVisualVu1 *visual = arms != nullptr ? static_cast<CFrameVu1 *>(arms)->GetVisual() : nullptr;
+    u_int      *data = visual != nullptr ? visual->GetMDTDataAddress() : nullptr;
+    if (data == nullptr) {
+        return;
+    }
+    // The drawn vertices, then the thin look's and the buff's.
+    auto *mdt = reinterpret_cast<MDT_HEADER *>(data);
+    auto *vertices = reinterpret_cast<sceVu0FVECTOR *>(reinterpret_cast<u_char *>(mdt) + mdt->vertex_ofs);
+    int   count = static_cast<int>(mdt->vertex_num) / kMachoArmsSets;
+    float growth = SteveArmsGrowth();
+    bool  moved = false;
+    for (int i = 0; i < count; i++) {
+        for (int c = 0; c < 3; c++) {
+            float thin = vertices[count + i][c], buff = vertices[2 * count + i][c];
+            float at = thin + (buff - thin) * growth;
+            moved = moved || vertices[i][c] != at;
+            vertices[i][c] = at;
+        }
+    }
+    if (moved) {
+        arms->attr.remake_pending = 1;
+    }
 }
 
 void PumpedUpKill(const CMonstorUnit &, int monster) {
@@ -248,6 +284,7 @@ void PumpedUpFrame() {
             pumps[chara] = {}; // the weapon changed: the count goes with it
         }
     }
+    GrowSteveArms(NowWeapon != nullptr ? NowWeapon->frame : nullptr);
 }
 
 int PumpedUpAttack(int attack) {

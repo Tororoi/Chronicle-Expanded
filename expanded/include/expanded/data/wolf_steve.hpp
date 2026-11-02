@@ -49,6 +49,36 @@ struct MachoHatFit {
 
 inline constexpr MachoHatFit kMachoHatFit{};
 
+// The Macho Sword's flexed arms on Steve, for its SynthSphere: his own arms (his body mesh's vertices past kSteveArmOut
+// across him, in front of kSteveBandBack, the slingshot band's ends kSteveBandEnds kept) on a frame of their own
+// (kSteveArms), and the sword's (its mesh kMachoSwordMesh's triangles past kSwordArmOut across the hilt, between
+// kSwordArmLow and kSwordArmHigh along it, its fists, above kSwordFistFrom and inside kSwordFistIn, left off) on another
+// (kMachoArms), in his sleeve's texture: each corner the texture point of the nearest vertex of his own arm, at the
+// thin look. Each arm is laid along his shoulder-elbow-wrist line by where it sits along the sword's (its shoulder its
+// innermost vertices, its elbow its outermost, its wrist those past kSwordWristFrom), its distance off the line times the
+// look's muscle: his shoulder on the side of his body at his arm's old shoulder ring (its vertices below kSteveElbowFrom
+// up him), his elbow at his elbow ring's middle (below kSteveWristFrom), each moved by the look; his wrist the middle of
+// his glove's opening. kMachoArms holds three sets of vertices: the drawn ones (the thin look), then the thin look's
+// and the buff's to lay them between (macho_sword.hpp grows them with the kills). The looks are the arms viewer's,
+// approved 2026-11-02.
+inline constexpr const char *kMachoSwordFile = "commenu/weapon/c01w12.chr";
+inline constexpr const char *kMachoSwordMds = "c01w12.mds", *kMachoSwordMesh = "c01w12__m";
+inline constexpr const char *kSteveCfg = "c04w13.cfg";
+inline constexpr const char *kSteveArms = "c04w13_arms";
+inline constexpr const char *kMachoArms = "c04w13_macho__v";
+inline constexpr double      kSteveArmOut = 0.4, kSteveBandBack = -0.3, kSteveElbowFrom = 1.8, kSteveWristFrom = 2.4;
+inline constexpr int         kSteveBandEnds[] = {37, 38, 49, 50};
+inline constexpr double      kSwordArmOut = 0.45, kSwordArmLow = 1.0, kSwordArmHigh = 3.25;
+inline constexpr double      kSwordFistFrom = 2.3, kSwordFistIn = 1.3, kSwordWristFrom = 2.3;
+inline constexpr int         kMachoArmsSets = 3;
+
+struct MachoArmsLook {
+    double muscle, shoulder_out, shoulder_up, elbow_out, elbow_up;
+};
+
+inline constexpr MachoArmsLook kMachoArmsThin{0.5, -0.26, -0.37, 0.0, -0.42};
+inline constexpr MachoArmsLook kMachoArmsBuff{0.85, -0.26, -0.56, 0.5, -0.45};
+
 // The fit (the Wolf Steve viewer's, approved 2026-11-01), in the bind pose's units: Steve's long axis is z, his face
 // +x. The neck cut is kNeck along z; the wolf's head (the sword's, its face +y, top +z) is scaled by head_scale, its
 // front-to-back by head_depth more, and lifted head_lift off the cut; the foot paws hang head down from the ankles,
@@ -63,8 +93,10 @@ struct WolfSteveFit {
 inline constexpr WolfSteveFit kWolfSteveFit{};
 inline constexpr double       kNeck = 0.5, kNeckRing = 0.42;
 
-// Super Steve's pack with the wolf frames, his hair's and the hat's in, from his pack, the Lamb's Sword's and Macho's.
-Bytes BuildWolfSteve(std::span<const unsigned char> steve, std::span<const unsigned char> lamb, std::span<const unsigned char> macho);
+// Super Steve's pack with the wolf frames, his hair's, the hat's and the arms' in, from his pack, the Lamb's Sword's,
+// Macho's and the Macho Sword's.
+Bytes BuildWolfSteve(std::span<const unsigned char> steve, std::span<const unsigned char> lamb, std::span<const unsigned char> macho,
+                     std::span<const unsigned char> macho_sword);
 
 std::vector<DataBuild> WolfSteveBuilds();
 
