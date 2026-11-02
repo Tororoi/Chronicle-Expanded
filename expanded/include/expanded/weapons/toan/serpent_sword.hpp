@@ -32,7 +32,7 @@ namespace expanded {
 // head and the weapon glowing white (kSnakeGlow added to their light) as it shows. It is a ghost: drawn
 // kSnakeGhost see-through (its nearest surface only, never its inside), shimmering as the Mirage's copy does, less
 // (kSnakeHaze at kSnakeHazeGain, its wave at kSnakeHazeWave, from under its face, kSnakeFace, down over the blade), a
-// periwinkle-to-salmon glow disc kSnakeGlowDisc across on its face (depth-tested from kSnakeGlowPull nearer) growing in
+// periwinkle-to-fuchsia glow disc kSnakeGlowDisc across on its face (depth-tested from kSnakeGlowPull nearer) growing in
 // as it comes and shrinking away as it goes, over kSnakeGlowSteps (slower than its fade: the disc stays where the face
 // last was).
 //
@@ -51,7 +51,7 @@ inline constexpr const char      *kSnakeFace = "face";
 inline constexpr float            kSnakeHazeGain = 1.0f;
 inline constexpr float            kSnakeGlowDisc = 21.0f, kSnakeGlowPull = 8.0f;
 inline constexpr int              kSnakeGlowSteps = 30;
-inline constexpr mirage::HazeLook kSnakeHaze = {-19.0f, 10.0f, 16.0f, 2.0f};
+inline constexpr mirage::HazeLook kSnakeHaze = {-17.0f, 10.0f, 16.0f, 2.0f};
 inline constexpr float            kSnakeHazeWave = mirage::kHazeWaveStep * 0.5f;
 inline constexpr int              kSnakeMouthPeriod = 180, kSnakeMouthEase = 40, kSnakeMouthHold = 10;
 inline constexpr float            kSnakeMouthAngle = 0.5f; // radians
