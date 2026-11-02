@@ -13,7 +13,7 @@ namespace expanded {
 // is as ever. A pellet fired with every one of the effect's kGemShotSlots in the air flies as a plain pellet.
 inline constexpr int kGemShotSlots = 8;
 // A gentle cyan white over the gem: added to its ambient (red, green, blue).
-inline constexpr float kGemTint[3] = {25.0f, 42.0f, 46.0f};
+inline constexpr float kGemTint[3] = {40.0f, 70.0f, 75.0f};
 
 // One step (once a frame the monsters step unpaused): the gems ride their pellets; the floor's monsters put back.
 void GemShotStep();
