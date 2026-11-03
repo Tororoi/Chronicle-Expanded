@@ -15,8 +15,10 @@
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/enemies/monsters.hpp"
+#include "expanded/status/blind.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/ungaga/mirage/heat_haze.hpp"
@@ -76,6 +78,8 @@ Disc disc;
 struct Retreat {
     bool running = false;
     int  rest = 0;
+    bool held = false; // a kind without one: taken from its script, staggered and standing idle
+    int  stagger = 0;  // steps of its stagger left before it idles
 };
 
 Retreat retreats[kFloorMonsters];
@@ -634,6 +638,48 @@ const SnakeRetreat *SnakeRetreatOf(int kind) {
     return nullptr;
 }
 
+namespace {
+
+// The steps a monster's motion takes at its own speed.
+int MotionSteps(const CMonstorUnit &unit, int monster, int motion) {
+    const MOTION_INFO *clips = unit.chara[monster][0].motion_type.motion_info;
+    if (clips == nullptr || clips[motion].speed <= 0.0f) {
+        return 0;
+    }
+    return static_cast<int>(std::ceil(static_cast<float>(clips[motion].end - clips[motion].start) / clips[motion].speed));
+}
+
+// Its stagger (held on its last frame), or straight to its idle for a kind with none.
+void Stagger(CMonstorUnit &unit, int monster, Retreat &retreat, const BlindClips &clips) {
+    retreat.stagger = clips.stagger >= 0 ? std::max(1, MotionSteps(unit, monster, clips.stagger)) : 0;
+    PlayMonsterMotion(unit, monster, clips.stagger >= 0 ? clips.stagger : kSnakeIdle, clips.stagger >= 0 ? kMotionHoldLast | kMotionCut : kMotionLoop);
+}
+
+// A kind whose script has no retreat, held instead: staggered, then idle where it stands, as long as it is near.
+bool Hold(CMonstorUnit &unit, int monster, Retreat &retreat) {
+    const MONSTOR &live = unit.monster[monster];
+    BlindClips     clips;
+    if (unit.model[live.base_model].kind != MONSTER_KIND_NORMAL || !BlindClipsOf(ModelKind(live.base_model), &clips)) {
+        return false;
+    }
+    if (!retreat.held) {
+        retreat.held = true;
+        unit.script_state[monster] = 0;
+        Stagger(unit, monster, retreat, clips);
+    } else if (unit.script_state[monster] != 0) {
+        // A hit's reaction: the stagger again in its place.
+        unit.script_state[monster] = 0;
+        Stagger(unit, monster, retreat, clips);
+    } else if (retreat.stagger > 0 && --retreat.stagger == 0) {
+        PlayMonsterMotion(unit, monster, kSnakeIdle, kMotionLoop);
+    }
+    unit.monster[monster].movement_speed = 0.0f;
+    unit.monster[monster].turn_speed = 0.0f;
+    return true;
+}
+
+} // namespace
+
 bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
     Retreat &retreat = retreats[monster];
     if (retreat.running) {
@@ -650,11 +696,16 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
     }
     float dx = 0.0f, dz = 0.0f, distance = 0.0f;
     if (!snake.up || &unit != NowMonstorUnit || unit.monster[monster].hp <= 0 || !Near(unit, monster, dx, dz, distance)) {
+        if (retreat.held) {
+            // Back to its script, from the top.
+            unit.script_state[monster] = 0;
+            retreat = {};
+        }
         return false;
     }
     const SnakeRetreat *own = RetreatOf(unit, monster);
     if (own == nullptr) {
-        return false;
+        return Hold(unit, monster, retreat);
     }
     // In place of what its script was doing, as a hit's reaction takes its place.
     RS_STACKDATA args[2] = {};
@@ -672,7 +723,7 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
 void SnakeCharmerMonsterMove(CMonstorUnit &unit, int monster) {
     MONSTOR &live = unit.monster[monster];
     float    dx = 0.0f, dz = 0.0f, distance = 0.0f;
-    if (!snake.up || retreats[monster].running || live.movement_speed == 0.0f || !Near(unit, monster, dx, dz, distance) ||
+    if (!snake.up || retreats[monster].running || retreats[monster].held || live.movement_speed == 0.0f || !Near(unit, monster, dx, dz, distance) ||
         distance < 0.01f) {
         return;
     }

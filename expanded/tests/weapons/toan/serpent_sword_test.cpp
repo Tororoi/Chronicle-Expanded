@@ -94,6 +94,7 @@ protected:
             floor_.Spawn(slot, slot);
             floor_.unit().monster[slot].state = 2;
             floor_.unit().monster[slot].revealed = -1;
+            floor_.unit().chara[slot][0].motion_type.motion_info = monster_clips_;
             slot++;
         }
     }
@@ -111,6 +112,7 @@ protected:
         return expanded::MonsterHitAmount(floor_.unit(), monster, hit, amount);
     }
 
+    MOTION_INFO              monster_clips_[20] = {};
     expanded::test::TestSave save_;
 
     expanded::test::Wielding  wielding_;
@@ -204,8 +206,6 @@ TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
     At(0, 0.0f, 60.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
-    // No script loaded: nothing of its own to run.
-    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
 
     // The Werewolf's script, its retreat where the table has it: _SET_MOTION's command and the motion pushed, then a wait.
     const expanded::SnakeRetreat &wolf = *expanded::SnakeRetreatOf(expanded::No(Monster::WEREWOLF));
@@ -258,32 +258,71 @@ TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
     script.prog = nullptr;
 }
 
-TEST_F(SerpentSword, KindsWithoutABackstepStopComingOn) {
+TEST_F(SerpentSword, KindsWithoutARetreatStaggerThenIdle) {
     Put({Monster::CAVE_BAT});
+    CMonstorUnit &unit = floor_.unit();
+    monster_clips_[8] = {.start = 0, .end = 3, .speed = 1.0f}; // its stagger, three steps
+    At(0, 0.0f, 60.0f);
+    Guard(true);
+    expanded::SnakeCharmerStep();
+    MONSTOR &bat = unit.monster[0];
+    bat.movement_speed = 1.0f;
+    unit.script_state[0] = 1;
+
+    // Taken from its script: its stagger, then its idle, standing where it is.
+    ASSERT_TRUE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.script_state[0], 0);
+    EXPECT_EQ(bat.requested_motion, 8);
+    EXPECT_FLOAT_EQ(bat.movement_speed, 0.0f);
+    expanded::MonsterStepTaken(unit, 0);
+    expanded::MonsterStepTaken(unit, 0);
+    EXPECT_EQ(bat.requested_motion, 8);
+    expanded::MonsterStepTaken(unit, 0);
+    EXPECT_EQ(bat.requested_motion, expanded::kSnakeIdle);
+    for (int step = 0; step < 60; step++) {
+        ASSERT_TRUE(expanded::MonsterStepTaken(unit, 0)) << step;
+    }
+    EXPECT_EQ(bat.requested_motion, expanded::kSnakeIdle);
+
+    // Struck, it staggers again.
+    unit.script_state[0] = 1;
+    EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(bat.requested_motion, 8);
+    EXPECT_EQ(unit.script_state[0], 0);
+
+    // The guard down, its script takes it back from the top.
+    Guard(false);
+    expanded::SnakeCharmerStep();
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.script_state[0], 0);
+}
+
+TEST_F(SerpentSword, MimicsOnlyStopComingOn) {
+    Put({Monster::MIMIC_DBC});
     CMonstorUnit &unit = floor_.unit();
     At(0, 0.0f, 60.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    MONSTOR &bat = unit.monster[0];
+    MONSTOR &mimic = unit.monster[0];
     // Straight at the player: it stops.
-    bat.movement_speed = 1.0f;
-    bat.movement[0] = 0.0f, bat.movement[2] = -1.0f;
+    mimic.movement_speed = 1.0f;
+    mimic.movement[0] = 0.0f, mimic.movement[2] = -1.0f;
     expanded::MonsterMoveChecked(unit, 0);
-    EXPECT_FLOAT_EQ(bat.movement_speed, 0.0f);
+    EXPECT_FLOAT_EQ(mimic.movement_speed, 0.0f);
     // Slanting in: only the sideways part is left.
-    bat.movement_speed = 1.0f;
-    bat.movement[0] = 0.6f, bat.movement[2] = -0.8f;
+    mimic.movement_speed = 1.0f;
+    mimic.movement[0] = 0.6f, mimic.movement[2] = -0.8f;
     expanded::MonsterMoveChecked(unit, 0);
-    EXPECT_FLOAT_EQ(bat.movement[0], 1.0f);
-    EXPECT_NEAR(bat.movement[2], 0.0f, 1e-6f);
-    EXPECT_FLOAT_EQ(bat.movement_speed, 0.6f);
+    EXPECT_FLOAT_EQ(mimic.movement[0], 1.0f);
+    EXPECT_NEAR(mimic.movement[2], 0.0f, 1e-6f);
+    EXPECT_FLOAT_EQ(mimic.movement_speed, 0.6f);
     // Away, as its script would have it: kept.
-    bat.movement_speed = 1.0f;
-    bat.movement[0] = 0.0f, bat.movement[2] = 1.0f;
+    mimic.movement_speed = 1.0f;
+    mimic.movement[0] = 0.0f, mimic.movement[2] = 1.0f;
     expanded::MonsterMoveChecked(unit, 0);
-    EXPECT_FLOAT_EQ(bat.movement[2], 1.0f);
-    EXPECT_FLOAT_EQ(bat.movement_speed, 1.0f);
+    EXPECT_FLOAT_EQ(mimic.movement[2], 1.0f);
+    EXPECT_FLOAT_EQ(mimic.movement_speed, 1.0f);
 }
 
 TEST_F(SerpentSword, TheHeadFadesInAndOutWithTheGuard) {

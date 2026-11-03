@@ -20,23 +20,26 @@ namespace expanded {
 //
 // "Snake Charmer": the snake's spirit in the sword. While the guard is up, the Killer Snake's head (the Wise Owl Forest
 // event's giant snake: kKillerSnakeFile's head, set up from kKillerSnakeCfg) hovers over the blade at kSnakeScale,
-// kSnakeLift above where the guard holds its middle (kSnakeAhead ahead of the player and kSnakeHeight up, on the player,
-// so the head stays still as the guard's pose comes and goes) and facing as the player faces. It rises with its appearance (kSnakeAppear) and holds the
-// appearance's last pose; from there it idles on its own: its mouth opens by kSnakeMouthAngle every kSnakeMouthPeriod
-// steps (and when a monster comes near), easing open over kSnakeMouthEase, held kSnakeMouthHold and easing shut, while
-// the head stretches forward and back by kSnakeStretch every kSnakeStretchPeriod steps and bobs up and down by kSnakeBob
-// every kSnakeBobPeriod. A monster in play that comes within kSnakeRetreatRadius of the player backs off as
-// its own script does: an ordinary monster whose script has a retreat (a routine of its own that steps it back on its
-// back-off motion, as its script calls it: SnakeRetreatOf) runs it in place of what it was doing, as a hit's reaction
-// takes its place, and its script carries on after; kSnakeRetreatRest steps later it may run it again. Near the player
-// and not retreating, any monster takes no step nearer: those without a retreat (and the bosses and the mimics, whose
-// scripts are left to them) only stop coming on. The head fades in over kSnakeFadeSteps as the guard goes up and out over as long as it comes down, the
-// head and the weapon glowing white (kSnakeGlow added to their light) as it shows. It is a ghost: drawn
-// kSnakeGhost see-through (its nearest surface only, never its inside), shimmering as the Mirage's copy does, less
-// (kSnakeHaze at kSnakeHazeGain, its wave at kSnakeHazeWave, from under its face, kSnakeFace, down over the blade), a
-// periwinkle-to-fuchsia glow disc kSnakeGlowDisc across on its face (depth-tested from kSnakeGlowPull nearer) growing in
-// as it comes and shrinking away as it goes, over kSnakeGlowSteps (slower than its fade: the disc stays where the face
-// last was).
+// kSnakeLift above where the guard holds its middle (kSnakeAhead ahead of the player and kSnakeHeight up, on the
+// player, so the head stays still as the guard's pose comes and goes) and facing as the player faces. It rises with its
+// appearance (kSnakeAppear) and holds the appearance's last pose; from there it idles on its own: its mouth opens by
+// kSnakeMouthAngle every kSnakeMouthPeriod steps (and when a monster comes near), easing open over kSnakeMouthEase,
+// held kSnakeMouthHold and easing shut, while the head stretches forward and back by kSnakeStretch every
+// kSnakeStretchPeriod steps and bobs up and down by kSnakeBob every kSnakeBobPeriod. A monster in play that comes
+// within kSnakeRetreatRadius of the player backs off as its own script does: an ordinary monster whose script has a
+// retreat (a routine of its own that steps it back on its back-off motion, as its script calls it: SnakeRetreatOf) runs
+// it in place of what it was doing, as a hit's reaction takes its place, and its script carries on after;
+// kSnakeRetreatRest steps later it may run it again. An ordinary monster whose script has none is taken from its script
+// instead while it is near: it staggers (its damage clip, as a blinding staggers it: BlindClipsOf) and then stands idle
+// (kSnakeIdle) where it is, staggering again if struck, until the guard comes down. The bosses, the mimics and the
+// gemrons Expanded drives keep to their scripts but take no step nearer the player, as does any monster resting between
+// retreats. The head fades in over kSnakeFadeSteps as the guard goes up and out over as long as it comes down, the head
+// and the weapon glowing white (kSnakeGlow added to their light) as it shows. It is a ghost: drawn kSnakeGhost
+// see-through (its nearest surface only, never its inside), shimmering as the Mirage's copy does, less (kSnakeHaze at
+// kSnakeHazeGain, its wave at kSnakeHazeWave, from under its face, kSnakeFace, down over the blade), a
+// periwinkle-to-fuchsia glow disc kSnakeGlowDisc across on its face (depth-tested from kSnakeGlowPull nearer) growing
+// in as it comes and shrinking away as it goes, over kSnakeGlowSteps (slower than its fade: the disc stays where the
+// face last was).
 //
 // It hisses as it comes (kSnakeHiss: the Killer Snake's own hiss from its event's bank, SE 393 there, a little quieter
 // than the game plays it).
@@ -73,6 +76,7 @@ inline constexpr float            kSnakeLift = 2.0f;
 inline constexpr float            kSnakeBack = 11.0f;
 inline constexpr float            kSnakeRetreatRadius = 80.0f;
 inline constexpr int              kSnakeRetreatRest = 30;
+inline constexpr int              kSnakeIdle = 0;
 
 bool SerpentSwordActive();
 
