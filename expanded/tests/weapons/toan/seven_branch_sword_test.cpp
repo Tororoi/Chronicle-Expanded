@@ -8,6 +8,7 @@
 #include "clsmes.hpp"
 #include "dngstatusdata.hpp"
 #include "expanded/core/menu_text.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/seven_branch_sword.hpp"
 #include "itemdata.hpp"
 #include "test_support.hpp"
@@ -87,4 +88,11 @@ TEST(SevenBranchSword, TheMenuExplainsTheRule) {
     Menu menu(ITEM_WEAPON_DAGGER);
     EXPECT_EQ(Text(bank, expanded::kStatusBreakHintMessage), "\"Status break\"\nChange weapons to\n\"SynthSphere\".");
     EXPECT_EQ(Text(bank, expanded::kStatusBreakConfirmMessage), "{alert}Seal 60% weapon\nability to sphere.");
+}
+
+TEST(SevenBranchSword, OffWithTheWeaponAbilities) {
+    expanded::test::OptionScope options;
+    ASSERT_TRUE(options.Set(expanded::kWeaponAbilities, false));
+    EXPECT_FALSE(expanded::SevenfoldRefuses(Weapon(ITEM_WEAPON_7BRANCH_SWORD, 5)));
+    EXPECT_FLOAT_EQ(expanded::StatusBreakShare(Weapon(ITEM_WEAPON_7BRANCH_SWORD, 7)), 0.6f);
 }

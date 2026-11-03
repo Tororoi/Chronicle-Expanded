@@ -4,9 +4,11 @@
 #include <initializer_list>
 #include <utility>
 
+#include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/buster_sword.hpp"
 #include "itemdata.hpp"
 #include "menu_inventory.hpp"
+#include "test_support.hpp"
 #include "weaponlevelup.hpp"
 
 namespace {
@@ -213,4 +215,15 @@ TEST(BusterSword, ALevelUpAbsorbsTheExtraSlot) {
     int ice_with = dst.elem[1];
     WeaponLevelUpValueCalc(&without, &dst, 1, 0);
     EXPECT_GT(ice_with, dst.elem[1]);
+}
+
+TEST(BusterSword, OffWithTheWeaponAbilities) {
+    expanded::test::OptionScope options;
+    ASSERT_TRUE(options.Set(expanded::kWeaponAbilities, false));
+    WEAPON_HAVE buster = Weapon(ITEM_WEAPON_BUSTER_SWORD);
+    ATTACH_LIST anti = Entry(ITEM_ATTACH_DINOSLAYER);
+    int         own = anti.vs_monster[0];
+    expanded::BusterBoostPlaced(&buster, anti);
+    EXPECT_EQ(anti.vs_monster[0], own);
+    EXPECT_FALSE(expanded::BusterBoosted(&buster));
 }

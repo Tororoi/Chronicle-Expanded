@@ -21,11 +21,11 @@ float EnduranceUpShotWear(float wear) {
 }
 
 int EnduranceUpEndurance(const WEAPON_HAVE &weapon, int add) {
-    return weapon.item_no == ITEM_WEAPON_STEEL_SLINGSHOT ? kEnduranceUpEndurance : add;
+    return weapon.item_no == ITEM_WEAPON_STEEL_SLINGSHOT && WeaponAbilitiesOn() ? kEnduranceUpEndurance : add;
 }
 
 int EnduranceUpDurability(const WEAPON_HAVE &weapon, int roll) {
-    return weapon.item_no == ITEM_WEAPON_STEEL_SLINGSHOT ? roll * kEnduranceUpDurability : roll;
+    return weapon.item_no == ITEM_WEAPON_STEEL_SLINGSHOT && WeaponAbilitiesOn() ? roll * kEnduranceUpDurability : roll;
 }
 
 } // namespace expanded

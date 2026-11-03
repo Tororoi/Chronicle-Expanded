@@ -53,8 +53,7 @@ bool BusterBoosted(const WEAPON_HAVE *weapon) {
     if (weapon == nullptr) {
         return false;
     }
-    return weapon->item_no == ITEM_WEAPON_BUSTER_SWORD ||
-           (weapon->item_no == ITEM_WEAPON_SUPER_STEVE && SphereWeapon(*weapon) == ITEM_WEAPON_BUSTER_SWORD);
+    return CarriesWeapon(*weapon, ITEM_WEAPON_BUSTER_SWORD);
 }
 
 void BusterBoostEntry(ATTACH_LIST &entry, bool boosted) {
