@@ -19,6 +19,7 @@
 #include "userstatus.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/goro/plate_hammer.hpp"
 #include "expanded/weapons/toan/atlamillia_sword.hpp"
 #endif
 
@@ -64,6 +65,9 @@ int BattleSubWeaponDmg(float amount, int kind) {
 
         if (powder_slot != -1) {
             DelActiveItem(powder_slot + 1);
+#ifdef CHRONICLE_EXPANDED
+            expanded::TemperingRepaired(*weapon);
+#endif
             weapon->durability_f = weapon->durability;
             DngMessMan.message = 0xBC;
             DngMessMan.timer = 0xF0;
