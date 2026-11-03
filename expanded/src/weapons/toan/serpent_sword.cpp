@@ -89,7 +89,7 @@ struct Retreat {
         int  was;
     };
 
-    Raised raised[12] = {};
+    Raised raised[24] = {};
     int    raised_count = 0;
 };
 
@@ -227,7 +227,7 @@ bool MarkNear(CMonstorUnit &unit) {
 }
 
 // How far a routine's code is looked through for its end, and back from a call to it for its trigger; the AI loop's label.
-constexpr int kRoutineCells = 4096, kTriggerCells = 120, kAiLabel = 100;
+constexpr int kRoutineCells = 4096, kTriggerCells = 120, kAiLabel = 100, kShotDepth = 2;
 
 // A cell pushing the int value, and a function's last cell (its return, the padding after it).
 bool Pushes(const vmcode_t &cell, int value) {
@@ -335,33 +335,43 @@ vmcode_t *CodeOf(char *code, int record, int &count) {
     return cells;
 }
 
-// A condition at cell i: a variable compared with a constant (the cell after), then a jump past what it guards.
-bool ComparesAt(const vmcode_t *cells, int i, std::initializer_list<int> compares) {
-    if (cells[i].op != static_cast<int>(stb::kLoad) || cells[i + 1].op != static_cast<int>(stb::kPushConst) ||
-        cells[i + 2].op != static_cast<int>(stb::kCompare) || cells[i + 3].op != static_cast<int>(stb::kJumpFalse)) {
-        return false;
+// A condition at cell i: a variable compared with a constant (the cell after), then (past a marker the compiler may put
+// there) a jump past what it guards; the jump's cell, or -1.
+int ComparesAt(const vmcode_t *cells, int count, int i, std::initializer_list<int> compares) {
+    if (i + 3 >= count || cells[i].op != static_cast<int>(stb::kLoad) || cells[i + 1].op != static_cast<int>(stb::kPushConst) ||
+        cells[i + 2].op != static_cast<int>(stb::kCompare) ||
+        std::find(compares.begin(), compares.end(), cells[i + 2].arg1) == compares.end()) {
+        return -1;
     }
-    return std::find(compares.begin(), compares.end(), cells[i + 2].arg1) != compares.end();
+    int jump = cells[i + 3].op == static_cast<int>(stb::kMarker) && i + 4 < count ? i + 4 : i + 3;
+    return cells[jump].op == static_cast<int>(stb::kJumpFalse) ? jump : -1;
+}
+
+// The AI loop (label 100): its code, or null.
+vmcode_t *AiLoop(CRunScript &script, int &count) {
+    const char *base = reinterpret_cast<const char *>(script.prog);
+    const auto *labels = reinterpret_cast<const RS_PROGDATA *>(base + script.prog->prog);
+    for (int i = 0; i < script.prog->prog_num; i++) {
+        if (labels[i].no == kAiLabel) {
+            return CodeOf(script.code, static_cast<int>(base + labels[i].func - script.code), count);
+        }
+    }
+    return nullptr;
 }
 
 // The AI loop's trigger for the retreat (its label 100: a call to the routine under a distance to the player at most so
 // much and a roll under so much, its own cooldown between): the constants of the two, or false.
 bool TriggerOf(CRunScript &script, int record, vmcode_t *&distance, vmcode_t *&roll) {
-    const char *base = reinterpret_cast<const char *>(script.prog);
-    const auto *labels = reinterpret_cast<const RS_PROGDATA *>(base + script.prog->prog);
-    for (int i = 0; i < script.prog->prog_num; i++) {
-        if (labels[i].no != kAiLabel) {
-            continue;
-        }
-        int       count = 0;
-        vmcode_t *cells = CodeOf(script.code, static_cast<int>(base + labels[i].func - script.code), count);
+    int       count = 0;
+    vmcode_t *cells = AiLoop(script, count);
+    if (cells != nullptr) {
         for (int call = 0; call < count; call++) {
             if (cells[call].op != static_cast<int>(stb::kCall) || cells[call].arg2 != record) {
                 continue;
             }
             distance = roll = nullptr;
             for (int c = call - 4; c >= 0 && c >= call - kTriggerCells && (distance == nullptr || roll == nullptr); c--) {
-                if (!ComparesAt(cells, c, {static_cast<int>(stb::kLessThan), static_cast<int>(stb::kLessOrEqual)})) {
+                if (ComparesAt(cells, count, c, {static_cast<int>(stb::kLessThan), static_cast<int>(stb::kLessOrEqual)}) < 0) {
                     continue;
                 }
                 Measure measure = MeasureOf(cells, count, cells[c].arg1);
@@ -418,7 +428,7 @@ void RaiseLimits(CRunScript &script, Retreat &retreat, int record, float distanc
     vmcode_t *cells = CodeOf(script.code, record, count);
     bool      far = distance >= kSnakeRetreatTo;
     for (int i = 0; i + 3 < count; i++) {
-        if (!ComparesAt(cells, i, {static_cast<int>(stb::kGreaterThan), static_cast<int>(stb::kGreaterOrEqual)})) {
+        if (ComparesAt(cells, count, i, {static_cast<int>(stb::kGreaterThan), static_cast<int>(stb::kGreaterOrEqual)}) < 0) {
             continue;
         }
         switch (MeasureOf(cells, count, cells[i].arg1)) {
@@ -433,6 +443,78 @@ void RaiseLimits(CRunScript &script, Retreat &retreat, int record, float distanc
                 break;
             default:
                 break;
+        }
+    }
+}
+
+// Whether a function walks the monster in until the player is within its first argument (a distance to the player
+// compared at most, or under, the argument).
+bool WalksIn(char *code, int record) {
+    if (RecordAt(code, record).arg < 1) {
+        return false;
+    }
+    int       count = 0;
+    vmcode_t *cells = CodeOf(code, record, count);
+    for (int i = 0; i + 2 < count; i++) {
+        if (cells[i].op == static_cast<int>(stb::kLoad) && cells[i + 1].op == static_cast<int>(stb::kLoad) && cells[i + 1].arg1 == 0 &&
+            cells[i + 2].op == static_cast<int>(stb::kCompare) &&
+            (cells[i + 2].arg1 == static_cast<int>(stb::kLessThan) || cells[i + 2].arg1 == static_cast<int>(stb::kLessOrEqual)) &&
+            MeasureOf(cells, count, cells[i].arg1) == Measure::kPlayer) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Whether a function fires a shot: _SET_SHOT's (or _SET_SHOT2's) command pushed in its code, or in a function it calls
+// (depth calls deep).
+bool Fires(char *code, int record, int depth) {
+    int       count = 0;
+    vmcode_t *cells = CodeOf(code, record, count);
+    for (int i = 0; i < count; i++) {
+        if (Pushes(cells[i], stb::kSetShot) || Pushes(cells[i], stb::kSetShot2) ||
+            (depth > 0 && cells[i].op == static_cast<int>(stb::kCall) && Fires(code, cells[i].arg2, depth - 1))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// The AI loop's approach and shots for the step. What it does only while the player is within or beyond so far, by a
+// call: when that fires a shot (in the function or one it calls), never; when it is an approach (beyond so far), only
+// beyond kSnakeApproachTo. Where it walks the monster in to within so far of the player, it walks it in to
+// kSnakeApproachTo.
+void RaiseApproach(CRunScript &script, Retreat &retreat) {
+    int       count = 0;
+    vmcode_t *cells = AiLoop(script, count);
+    if (cells == nullptr) {
+        return;
+    }
+    auto at = [&](int i) { return static_cast<int>(reinterpret_cast<char *>(&cells[i]) - script.code); };
+    auto value = [](const vmcode_t &constant) {
+        return constant.arg1 == static_cast<int>(stb::kFloat) ? std::bit_cast<float>(constant.arg2) : static_cast<float>(constant.arg2);
+    };
+    for (int i = 0; i < count; i++) {
+        int  beyond = ComparesAt(cells, count, i, {static_cast<int>(stb::kGreaterThan), static_cast<int>(stb::kGreaterOrEqual)});
+        bool farther = beyond >= 0;
+        int  jump = farther ? beyond : ComparesAt(cells, count, i, {static_cast<int>(stb::kLessThan), static_cast<int>(stb::kLessOrEqual)});
+        if (jump >= 0 && MeasureOf(cells, count, cells[i].arg1) == Measure::kPlayer) {
+            bool calls = false, fires = false;
+            for (int j = jump + 1; j < count && at(j) < cells[jump].arg1; j++) {
+                if (cells[j].op == static_cast<int>(stb::kCall)) {
+                    calls = true;
+                    fires = fires || Fires(script.code, cells[j].arg2, kShotDepth);
+                }
+            }
+            if (fires) {
+                Raise(retreat, cells[i + 1], farther ? kSnakeRetreatUnlimited : -1.0f);
+            } else if (calls && farther && value(cells[i + 1]) < kSnakeApproachTo) {
+                Raise(retreat, cells[i + 1], kSnakeApproachTo);
+            }
+        }
+        if (cells[i].op == static_cast<int>(stb::kCall) && i > 0 && cells[i - 1].op == static_cast<int>(stb::kPushConst) &&
+            value(cells[i - 1]) < kSnakeApproachTo && WalksIn(script.code, cells[i].arg2)) {
+            Raise(retreat, cells[i - 1], kSnakeApproachTo);
         }
     }
 }
@@ -897,11 +979,15 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
     if (retreat.native) {
         // Its own AI retreats, as it would: near the player its trigger is certain (the distance it rolls within the
         // reach, the roll always made; its cooldown between), and the routine goes on to the reach's edge.
+        if (near) {
+            Raise(retreat, *trigger, kSnakeRetreatRadius);
+        }
+        if (distance < kSnakeApproachRadius) {
+            // Near enough to walk in or shoot: its approach kept to kSnakeApproachTo (a walk-in begun out here too), its
+            // shots held.
+            RaiseApproach(script, retreat);
+        }
         if (near || InRoutine(script, own->record)) {
-            if (near) {
-                Raise(retreat, *trigger, kSnakeRetreatRadius);
-                Raise(retreat, *roll, kSnakeRetreatRoll);
-            }
             RaiseLimits(script, retreat, own->record, distance);
         }
         return false;

@@ -122,11 +122,15 @@ protected:
     // A script on the monster: its retreat where the table has it, its limits (kPlayerLimit at kPlayerCell: the player 20
     // away; kPointLimit at kPointCell: 20 from where it started; kCountLimit at kCountCell: three hops), and its AI loop
     // (label 100) calling it when the player is within kTriggerDistance (kTriggerCell) on a roll under kTriggerRoll
-    // (kRollCell), or, without trigger, calling nothing.
+    // (kRollCell), or, without trigger, calling nothing; then stepping in while the player is more than kStepIn away
+    // (kStepInCell), shooting while within kShotRange (kShotCell), and walking in to kWalkIn (kWalkInCell).
     static constexpr int   kPlayerCell = 9, kPointCell = 20, kCountCell = 30, kTriggerCell = 10, kRollCell = 14;
+    static constexpr int   kStepInCell = 19, kShotCell = 24, kWalkInCell = 29;
     static constexpr int   kCountLimit = 3, kTriggerRoll = 30;
     static constexpr float kPlayerLimit = 20.0f, kPointLimit = 20.0f, kTriggerDistance = 40.0f;
-    static constexpr int   kCode = 0x60, kProg = 0x20, kEntry = 0x10, kLabelEntry = 0x200;
+    static constexpr float kStepIn = 18.0f, kShotRange = 70.0f, kWalkIn = 50.0f;
+    static constexpr int   kCode = 0x60, kProg = 0x20, kEntry = 0x10, kLabelEntry = 0x200, kStepEntry = 0x400, kShotEntry = 0x440,
+                         kWalkEntry = 0x480;
 
     vmcode_t *RoutineCells() { return reinterpret_cast<vmcode_t *>(reinterpret_cast<char *>(program_.data()) + kCode + kEntry); }
 
@@ -135,8 +139,9 @@ protected:
     float Float(const vmcode_t &cell) { return std::bit_cast<float>(cell.arg2); }
 
     CRunScript &LoadRetreat(int monster, const expanded::SnakeRetreat &retreat, bool trigger = true) {
-        const int label_record = retreat.record + 0x20;
-        program_.assign((kCode + label_record + 0x40) / 4, 0);
+        const int label_record = retreat.record + 0x20, step_record = retreat.record + 0x40, shot_record = retreat.record + 0x50,
+                  walk_record = retreat.record + 0x60;
+        program_.assign((kCode + retreat.record + 0x80) / 4, 0);
         char *base = reinterpret_cast<char *>(program_.data());
         auto *header = reinterpret_cast<RS_PROG_HEADER *>(base);
         header->code = kCode;
@@ -185,27 +190,69 @@ protected:
         };
         const int label_header[4] = {kLabelEntry, 0, 4, 0};
         const int loop[][3] = {
-            {3,  1,  10                                  }, // _GET_DISTANCE(&v0)
-            {2,  0,  8                                   },
-            {21, 2,  0                                   },
-            {4,  0,  0                                   },
-            {3,  1,  180                                 }, // _GET_RAND(100, &v1)
-            {3,  1,  100                                 },
-            {2,  1,  1                                   },
-            {21, 3,  0                                   },
-            {4,  0,  0                                   },
-            {1,  0,  8                                   }, // v0 <= 40
-            {3,  2,  std::bit_cast<int>(kTriggerDistance)},
-            {14, 43, 0                                   },
-            {17, 0,  0                                   },
-            {1,  1,  1                                   }, // v1 <= 30
-            {3,  1,  kTriggerRoll                        },
-            {14, 43, 0                                   },
-            {17, 0,  0                                   },
-            {19, 0,  trigger ? retreat.record : 0        }, // the retreat
-            {3,  1,  0                                   },
-            {15, 0,  0                                   }
+            {3,  1,                     10                                  }, // _GET_DISTANCE(&v0)
+            {2,  0,                     8                                   },
+            {21, 2,                     0                                   },
+            {4,  0,                     0                                   },
+            {3,  1,                     180                                 }, // _GET_RAND(100, &v1)
+            {3,  1,                     100                                 },
+            {2,  1,                     1                                   },
+            {21, 3,                     0                                   },
+            {4,  0,                     0                                   },
+            {1,  0,                     8                                   }, // v0 <= 40
+            {3,  2,                     std::bit_cast<int>(kTriggerDistance)},
+            {14, 43,                    0                                   },
+            {17, 0,                     0                                   },
+            {1,  1,                     1                                   }, // v1 <= 30
+            {3,  1,                     kTriggerRoll                        },
+            {14, 43,                    0                                   },
+            {17, 0,                     0                                   },
+            {19, 0,                     trigger ? retreat.record : 0        }, // the retreat
+            {1,  0,                     8                                   }, // v0 > 18: step in
+            {3,  2,                     std::bit_cast<int>(kStepIn)         },
+            {14, 44,                    0                                   },
+            {17, kLabelEntry + 23 * 12, 0                                   },
+            {19, 0,                     step_record                         },
+            {1,  0,                     8                                   }, // v0 <= 70: shoot
+            {3,  2,                     std::bit_cast<int>(kShotRange)      },
+            {14, 43,                    0                                   },
+            {22, 0,                     0                                   },
+            {17, kLabelEntry + 29 * 12, 0                                   },
+            {19, 0,                     shot_record                         },
+            {3,  2,                     std::bit_cast<int>(kWalkIn)         }, // walk in to 50
+            {19, 0,                     walk_record                         },
+            {3,  1,                     0                                   },
+            {15, 0,                     0                                   }
         };
+        const int step_header[4] = {kStepEntry, 0, 4, 0}, shot_header[4] = {kShotEntry, 0, 4, 0}, walk_header[4] = {kWalkEntry, 0, 4, 1};
+        const int step[][3] = {
+            {3,  1, 0},
+            {15, 0, 0}
+        };
+        const int shot[][3] = {
+            {3,  1, 133}, // _SET_SHOT's command
+            {4,  0, 0  },
+            {3,  1, 0  },
+            {15, 0, 0  }
+        };
+        const int walk[][3] = {
+            {3,  1,  10}, // _GET_DISTANCE(&v1) <= v0: there
+            {2,  1,  8 },
+            {21, 2,  0 },
+            {4,  0,  0 },
+            {1,  1,  8 },
+            {1,  0,  8 },
+            {14, 43, 0 },
+            {17, 0,  0 },
+            {3,  1,  0 },
+            {15, 0,  0 }
+        };
+        std::memcpy(code + step_record, step_header, sizeof(step_header));
+        std::memcpy(code + shot_record, shot_header, sizeof(shot_header));
+        std::memcpy(code + walk_record, walk_header, sizeof(walk_header));
+        std::memcpy(code + kStepEntry, step, sizeof(step));
+        std::memcpy(code + kShotEntry, shot, sizeof(shot));
+        std::memcpy(code + kWalkEntry, walk, sizeof(walk));
         std::memcpy(code + retreat.record, record, sizeof(record));
         std::memcpy(code + kEntry, routine, sizeof(routine));
         std::memcpy(code + label_record, label_header, sizeof(label_header));
@@ -329,22 +376,27 @@ TEST_F(SerpentSword, TheirOwnAiRetreatsToTheEdgeOfReach) {
     Guard(true);
     expanded::SnakeCharmerStep();
 
-    // Near the player, for its own step: its AI's trigger certain within the reach, its routine going on to the reach's
-    // edge; its script steps itself.
+    // Near the player, for its own step: its AI rolls its retreat within the reach (the roll its own), its routine goes on
+    // to the reach's edge, it approaches only to kSnakeApproachTo and holds its shot; its script steps itself.
     unit.script_state[0] = 1;
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
     EXPECT_FLOAT_EQ(Float(loop[kTriggerCell]), expanded::kSnakeRetreatRadius);
-    EXPECT_EQ(loop[kRollCell].arg2, static_cast<int>(expanded::kSnakeRetreatRoll));
+    EXPECT_EQ(loop[kRollCell].arg2, kTriggerRoll);
     EXPECT_FLOAT_EQ(Float(routine[kPlayerCell]), expanded::kSnakeRetreatTo);
     EXPECT_FLOAT_EQ(Float(routine[kPointCell]), expanded::kSnakeRetreatUnlimited);
     EXPECT_EQ(routine[kCountCell].arg2, expanded::kSnakeRetreatHops);
+    EXPECT_FLOAT_EQ(Float(loop[kStepInCell]), expanded::kSnakeApproachTo);
+    EXPECT_LT(Float(loop[kShotCell]), 0.0f);
+    EXPECT_FLOAT_EQ(Float(loop[kWalkInCell]), expanded::kSnakeApproachTo);
     // After its step its script (the kind's, shared) is as it was.
     expanded::MonsterScriptStepped(unit, 0);
     EXPECT_FLOAT_EQ(Float(loop[kTriggerCell]), kTriggerDistance);
-    EXPECT_EQ(loop[kRollCell].arg2, kTriggerRoll);
     EXPECT_FLOAT_EQ(Float(routine[kPlayerCell]), kPlayerLimit);
     EXPECT_FLOAT_EQ(Float(routine[kPointCell]), kPointLimit);
     EXPECT_EQ(routine[kCountCell].arg2, kCountLimit);
+    EXPECT_FLOAT_EQ(Float(loop[kStepInCell]), kStepIn);
+    EXPECT_FLOAT_EQ(Float(loop[kShotCell]), kShotRange);
+    EXPECT_FLOAT_EQ(Float(loop[kWalkInCell]), kWalkIn);
     // It walks as its script has it: nothing taken off a step toward the player.
     MONSTOR &jacket = unit.monster[0];
     jacket.movement_speed = 1.0f;
@@ -371,15 +423,23 @@ TEST_F(SerpentSword, TheirOwnAiRetreatsToTheEdgeOfReach) {
     expanded::MonsterScriptStepped(unit, 0);
     script.func = nullptr;
 
-    // Out of reach and not retreating, or the guard down: its script as it is.
+    // Out of reach, not retreating: its approach and shot still kept as it might walk in, its routine as it is; beyond
+    // that, and with the guard down, its script as it is.
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
     EXPECT_FLOAT_EQ(Float(loop[kTriggerCell]), kTriggerDistance);
     EXPECT_FLOAT_EQ(Float(routine[kPointCell]), kPointLimit);
+    EXPECT_FLOAT_EQ(Float(loop[kWalkInCell]), expanded::kSnakeApproachTo);
+    expanded::MonsterScriptStepped(unit, 0);
+    At(0, 0.0f, expanded::kSnakeApproachRadius + 5.0f);
+    expanded::SnakeCharmerStep();
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(Float(loop[kWalkInCell]), kWalkIn);
     At(0, 0.0f, 40.0f);
     Guard(false);
     expanded::SnakeCharmerStep();
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
     EXPECT_FLOAT_EQ(Float(loop[kTriggerCell]), kTriggerDistance);
+    EXPECT_FLOAT_EQ(Float(loop[kShotCell]), kShotRange);
 }
 
 TEST_F(SerpentSword, ARetreatItsAiNeverRollsForIsHeldInstead) {

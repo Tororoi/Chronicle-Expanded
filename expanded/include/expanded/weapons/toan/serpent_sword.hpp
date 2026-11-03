@@ -25,17 +25,20 @@ namespace expanded {
 // appearance (kSnakeAppear) and holds the appearance's last pose; from there it idles on its own: its mouth opens by
 // kSnakeMouthAngle every kSnakeMouthPeriod steps (and when a monster comes near), easing open over kSnakeMouthEase,
 // held kSnakeMouthHold and easing shut, while the head stretches forward and back by kSnakeStretch every
-// kSnakeStretchPeriod steps and bobs up and down by kSnakeBob every kSnakeBobPeriod. A monster in play within
-// kSnakeRetreatRadius of the player backs off as its own script does. Most scripts have a retreat (a routine of its own
-// that hops it back on its back-off motion: SnakeRetreatOf) that their AI loop (label 100) rolls for when the player is
-// near, its cooldown between; for a monster near the player, for its own step only (the program is the kind's, shared,
-// so the values go back after it), that trigger is made certain within the reach (its distance raised to
-// kSnakeRetreatRadius, its roll to kSnakeRetreatRoll) and the routine's own limits are raised: where it stops once the
-// player is so far it goes on to kSnakeRetreatTo, and where it stops after so far from where it started, or so many
-// hops, it goes on (to kSnakeRetreatHops hops) while the monster is nearer than kSnakeRetreatTo and stops at its next
-// check once it is that far. Everything else is its script's: when it rolls, its hops and their timing, what it does
-// after. An ordinary monster whose AI has no retreat to trigger is taken from its script instead while it is near: once
-// between actions it staggers (its damage clip, as a blinding staggers it: BlindClipsOf, cross-faded in) and then
+// kSnakeStretchPeriod steps and bobs up and down by kSnakeBob every kSnakeBobPeriod. A monster in play near the player
+// keeps off as its own AI does, values in its script raised for its own step only (the program is the kind's, shared,
+// so they go back after it). Most scripts have a retreat (a routine of its own that hops it back on its back-off
+// motion: SnakeRetreatOf) that their AI loop (label 100) rolls for when the player is within some distance, its
+// cooldown between: within kSnakeRetreatRadius that distance is the reach, the roll its own. The routine's own limits
+// are raised: where it stops once the player is so far it goes on to kSnakeRetreatTo, and where it stops after so far
+// from where it started, or so many hops, it goes on (to kSnakeRetreatHops hops) while the monster is nearer than
+// kSnakeRetreatTo and stops at its next check once it is that far. Within kSnakeApproachRadius (so that a walk-in begun
+// out there is kept too) its approach comes only to kSnakeApproachTo (what the loop calls only while the player is more
+// than so far is called only beyond it, and a walk-in to within so far walks in to it), and it holds its shots (what
+// the loop calls while the player is within, or beyond, so far is never called when it fires a shot). So it comes in to
+// about kSnakeApproachTo, rolls its retreat now and then, backs off to the edge and comes back; everything else is its
+// script's. An ordinary monster whose AI has no retreat to trigger is taken from its script instead while it is near:
+// once between actions it staggers (its damage clip, as a blinding staggers it: BlindClipsOf, cross-faded in) and then
 // stands idle (kSnakeIdle) where it is, staggering again if struck, until the guard comes down. A mimic retreats once
 // it is out of its chest and done with its wake (its appear clip, kMimicWake, a king mimic's kKingMimicWake). A monster
 // near the player that neither retreats nor is held (a boss, a mimic still waking) keeps to its script but takes no
@@ -83,7 +86,8 @@ inline constexpr float            kSnakeLift = 2.0f;
 inline constexpr float            kSnakeBack = 11.0f;
 inline constexpr float            kSnakeRetreatRadius = 100.0f;
 inline constexpr float            kSnakeRetreatTo = 110.0f;
-inline constexpr float            kSnakeRetreatRoll = 1000.0f;
+inline constexpr float            kSnakeApproachRadius = 200.0f;
+inline constexpr float            kSnakeApproachTo = 70.0f;
 inline constexpr float            kSnakeRetreatUnlimited = 10000.0f;
 inline constexpr int              kSnakeRetreatHops = 40;
 inline constexpr int              kSnakeIdle = 0;
