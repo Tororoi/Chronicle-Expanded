@@ -33,6 +33,9 @@ const WEAPON_HAVE *EquippedWeapon(const CUserStatus &status, int chara);
 // Super Steve with its SynthSphere.
 bool CarriesWeapon(const WEAPON_HAVE &weapon, int weapon_no);
 
+// Whether chara's equipped weapon (UserStatus's) carries weapon_no's effect (CarriesWeapon).
+bool EquippedCarries(int chara, int weapon_no);
+
 // The weapon whose cell of basefx01 the player's pellets are drawn with: the Steel Slingshot's stone for Double Impact's
 // pairs, a slingshot sphere's, else the wielded one's.
 int PelletWeapon();

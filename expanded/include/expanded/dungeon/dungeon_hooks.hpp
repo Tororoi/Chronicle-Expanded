@@ -220,6 +220,10 @@ void PlayerHitsChecking();
 // action.
 bool XiaoShotPlaying(CCharacter &chara, int aimed);
 
+// The wear a swing, a shot or a hit puts on the weapon (BattleSubWeaponDmg: the equipped record), amount the game's
+// after the weapon's Durable and Fragile, as the weapons' effects change it.
+float WeaponWear(const WEAPON_HAVE &weapon, float amount);
+
 // The WHP a shot of Xiao's costs, wear an ordinary one's (BattleActionPlay_Jinn), as the weapons' effects change it.
 float XiaoShotWear(float wear);
 

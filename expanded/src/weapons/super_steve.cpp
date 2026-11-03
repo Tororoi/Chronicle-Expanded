@@ -91,6 +91,11 @@ bool CarriesWeapon(const WEAPON_HAVE &weapon, int weapon_no) {
     return weapon.item_no == weapon_no || (weapon.item_no == ITEM_WEAPON_SUPER_STEVE && SphereWeapon(weapon) == weapon_no);
 }
 
+bool EquippedCarries(int chara, int weapon_no) {
+    const WEAPON_HAVE *weapon = UserStatus != nullptr ? EquippedWeapon(*UserStatus, chara) : nullptr;
+    return weapon != nullptr && CarriesWeapon(*weapon, weapon_no);
+}
+
 bool WeaponAbilitiesOn() {
     return OptionOn(kWeaponAbilities);
 }

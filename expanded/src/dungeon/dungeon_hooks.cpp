@@ -567,6 +567,10 @@ bool XiaoShotPlaying(CCharacter &chara, int aimed) {
     return FlameGunShot(aimed);
 }
 
+float WeaponWear(const WEAPON_HAVE &weapon, float amount) {
+    return HardShellWear(weapon, amount);
+}
+
 float XiaoShotWear(float wear) {
     return ChargedShotWear(EnduranceUpShotWear(wear));
 }
