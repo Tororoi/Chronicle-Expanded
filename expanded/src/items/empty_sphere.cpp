@@ -3,10 +3,7 @@
 #include <optional>
 #include <string>
 
-#include "battlemenu.hpp"
-#include "dngstatusdata.hpp"
 #include "expanded/core/menu_text.hpp"
-#include "expanded/core/party.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/seven_branch_sword.hpp"
 #include "itemdata.hpp"
@@ -19,22 +16,13 @@ namespace {
 // The level the game asks for a Status Break (WeaponStatusBreakEnable).
 constexpr int kBreakLevel = 5;
 
-// The weapon the weapon menu has selected, or nullptr.
-const WEAPON_HAVE *Selected() {
-    if (BtlMenuStatusPt == nullptr || WepMenu.chara < 0 || WepMenu.chara >= kPartyMembers || WepMenu.weapon_slot < 0 ||
-        WepMenu.weapon_slot >= kWeaponSlots) {
-        return nullptr;
-    }
-    return &BtlMenuStatusPt->chara_weapons[WepMenu.chara][WepMenu.weapon_slot];
-}
-
 std::optional<std::string> SlotWarning() {
     return LocalizeText("expanded.empty_sphere.slot_one", "An empty SynthSphere\nonly fits the\nfirst slot.");
 }
 
 // A break only the empty sphere allows spends it: the game's confirmation asks for no attachment.
 std::optional<std::string> Confirm() {
-    const WEAPON_HAVE *weapon = Selected();
+    const WEAPON_HAVE *weapon = MenuWeapon();
     if (weapon == nullptr || weapon->level >= kBreakLevel || !EmptySphereBreaks(*weapon) || SevenfoldRefuses(*weapon)) {
         return std::nullopt;
     }

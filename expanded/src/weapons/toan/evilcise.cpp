@@ -12,8 +12,7 @@ namespace {
 
 // chara's equipped Evilcise: the sword (Toan's) or Super Steve carrying its sphere (Xiao's).
 bool Cursing(const CUserStatus &status, int chara) {
-    const WEAPON_HAVE *weapon = EquippedWeapon(status, chara);
-    return weapon != nullptr && CarriesWeapon(*weapon, ITEM_WEAPON_EVILCISE);
+    return EquippedCarries(status, chara, ITEM_WEAPON_EVILCISE);
 }
 
 // The price of lifting it: poisoned, and 1 HP left.

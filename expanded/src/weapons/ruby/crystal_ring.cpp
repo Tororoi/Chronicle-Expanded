@@ -13,7 +13,6 @@
 #include "dungeoneventdata.hpp"
 #include "dungeoneventman.hpp"
 #include "expanded/core/menu_text.hpp"
-#include "expanded/core/party.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
@@ -69,8 +68,7 @@ int planting = -1;
 bool orb_became_arrow = false;
 
 bool Cursing(const CUserStatus &status, int chara) {
-    const WEAPON_HAVE *weapon = EquippedWeapon(status, chara);
-    return chara == CHARA_RUBY && weapon != nullptr && CarriesWeapon(*weapon, ITEM_WEAPON_CRYSTAL_RING);
+    return chara == CHARA_RUBY && EquippedCarries(status, chara, ITEM_WEAPON_CRYSTAL_RING);
 }
 
 void Lifted(CUserStatus &, int) {
@@ -84,18 +82,9 @@ bool Held() {
     return WeaponAbilitiesOn() && !(cured && mode == GAME_MODE_DUNGEON);
 }
 
-// The weapon the weapon menu has selected, or nullptr.
-const WEAPON_HAVE *MenuSelected() {
-    if (BtlMenuStatusPt == nullptr || WepMenu.chara < 0 || WepMenu.chara >= kPartyMembers || WepMenu.weapon_slot < 0 ||
-        WepMenu.weapon_slot >= kWeaponSlots) {
-        return nullptr;
-    }
-    return &BtlMenuStatusPt->chara_weapons[WepMenu.chara][WepMenu.weapon_slot];
-}
-
 // The 0-point warning reads as the curse's while the ring it holds is the menu's selection.
 std::optional<std::string> CursedWarning() {
-    const WEAPON_HAVE *weapon = MenuSelected();
+    const WEAPON_HAVE *weapon = MenuWeapon();
     if (weapon == nullptr || HeldElement(*weapon) < 0) {
         return std::nullopt;
     }

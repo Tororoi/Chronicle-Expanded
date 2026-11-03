@@ -15,8 +15,7 @@ constexpr int kTimed = AILMENT_FREEZE | AILMENT_STAMINA;
 } // namespace
 
 bool HerosCourage(int chara) {
-    const WEAPON_HAVE *weapon = UserStatus != nullptr ? EquippedWeapon(*UserStatus, chara) : nullptr;
-    return weapon != nullptr && CarriesWeapon(*weapon, ITEM_WEAPON_BRAVE_ARK);
+    return EquippedCarries(chara, ITEM_WEAPON_BRAVE_ARK);
 }
 
 void HerosCourageHit(COLLISION_HIT &hit) {

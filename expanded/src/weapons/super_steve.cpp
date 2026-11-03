@@ -1,5 +1,7 @@
 #include "expanded/weapons/super_steve.hpp"
 
+#include "battlemenu.hpp"
+#include "dngstatusdata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/options.hpp"
 #include "expanded/core/party.hpp"
@@ -84,6 +86,14 @@ const WEAPON_HAVE *EquippedWeapon(const CUserStatus &status, int chara) {
     return EquippedWeapon(const_cast<CUserStatus &>(status), chara);
 }
 
+const WEAPON_HAVE *MenuWeapon() {
+    if (BtlMenuStatusPt == nullptr || WepMenu.chara < 0 || WepMenu.chara >= kPartyMembers || WepMenu.weapon_slot < 0 ||
+        WepMenu.weapon_slot >= kWeaponSlots) {
+        return nullptr;
+    }
+    return &BtlMenuStatusPt->chara_weapons[WepMenu.chara][WepMenu.weapon_slot];
+}
+
 bool CarriesWeapon(const WEAPON_HAVE &weapon, int weapon_no) {
     if (weapon_no == 0 || !WeaponAbilitiesOn()) {
         return false;
@@ -91,9 +101,13 @@ bool CarriesWeapon(const WEAPON_HAVE &weapon, int weapon_no) {
     return weapon.item_no == weapon_no || (weapon.item_no == ITEM_WEAPON_SUPER_STEVE && SphereWeapon(weapon) == weapon_no);
 }
 
-bool EquippedCarries(int chara, int weapon_no) {
-    const WEAPON_HAVE *weapon = UserStatus != nullptr ? EquippedWeapon(*UserStatus, chara) : nullptr;
+bool EquippedCarries(const CUserStatus &status, int chara, int weapon_no) {
+    const WEAPON_HAVE *weapon = EquippedWeapon(status, chara);
     return weapon != nullptr && CarriesWeapon(*weapon, weapon_no);
+}
+
+bool EquippedCarries(int chara, int weapon_no) {
+    return UserStatus != nullptr && EquippedCarries(*UserStatus, chara, weapon_no);
 }
 
 bool WeaponAbilitiesOn() {

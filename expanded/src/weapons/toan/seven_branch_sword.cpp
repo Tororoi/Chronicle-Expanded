@@ -3,10 +3,7 @@
 #include <optional>
 #include <string>
 
-#include "battlemenu.hpp"
-#include "dngstatusdata.hpp"
 #include "expanded/core/menu_text.hpp"
-#include "expanded/core/party.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 #include "localize/localize.hpp"
@@ -20,17 +17,8 @@ bool Sevenfold(const WEAPON_HAVE &weapon) {
     return weapon.item_no == ITEM_WEAPON_7BRANCH_SWORD && WeaponAbilitiesOn();
 }
 
-// The weapon the weapon menu has selected, or nullptr.
-const WEAPON_HAVE *Selected() {
-    if (BtlMenuStatusPt == nullptr || WepMenu.chara < 0 || WepMenu.chara >= kPartyMembers || WepMenu.weapon_slot < 0 ||
-        WepMenu.weapon_slot >= kWeaponSlots) {
-        return nullptr;
-    }
-    return &BtlMenuStatusPt->chara_weapons[WepMenu.chara][WepMenu.weapon_slot];
-}
-
 bool SevenBranchSelected() {
-    const WEAPON_HAVE *weapon = Selected();
+    const WEAPON_HAVE *weapon = MenuWeapon();
     return weapon != nullptr && Sevenfold(*weapon);
 }
 
