@@ -33,6 +33,7 @@
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
+#include "expanded/weapons/goro/turtle_shell.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/heavens_cloud_shot.hpp"
 #include "expanded/weapons/judgement_blade.hpp"
@@ -344,7 +345,7 @@ int MonsterHardness(const CMonstorUnit &unit, int monster, int hardness) {
 }
 
 int PlayerDefense(int chara, int defense) {
-    return DefensiveLegacyDefense(chara, defense);
+    return DefensiveLegacyDefense(chara, HardShellDefense(chara, defense));
 }
 
 float PlayerLockOnRange(float rate) {
@@ -564,6 +565,10 @@ void PlayerHitsChecking() {
 bool XiaoShotPlaying(CCharacter &chara, int aimed) {
     QuickDrawShot(chara, aimed);
     return FlameGunShot(aimed);
+}
+
+float WeaponWear(const WEAPON_HAVE &weapon, float amount) {
+    return HardShellWear(weapon, amount);
 }
 
 float XiaoShotWear(float wear) {
