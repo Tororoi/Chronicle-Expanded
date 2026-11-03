@@ -29,10 +29,11 @@ namespace expanded {
 // within kSnakeRetreatRadius of the player backs off as its own script does: an ordinary monster whose script has a
 // retreat (a routine of its own that steps it back on its back-off motion, as its script calls it: SnakeRetreatOf) runs
 // it in place of what it would do next, once it is between actions (in a walk or an idle, or at the end of an attack or
-// other one-shot, as its script would choose its next), its motion cross-fading in where its script would cut. The
-// routine's own limits are raised for the monster's step (and put back after it, the program being the kind's, shared):
-// where it stops once the player is so far, it goes on to kSnakeRetreatTo, and where it stops after so far from where
-// it started, or so many hops, it goes on without end; the retreat ends at kSnakeRetreatTo (a little past the reach, so
+// other one-shot, as its script would choose its next), its hop playing again each time it has played to its end (as
+// the routine goes on past the hops its script gives it, which set it again without starting it over). The routine's
+// own limits are raised for the monster's step (and put back after it, the program being the kind's, shared): where it
+// stops once the player is so far, it goes on to kSnakeRetreatTo, and where it stops after so far from where it
+// started, or so many hops, it goes on without end; the retreat ends at kSnakeRetreatTo (a little past the reach, so
 // the monster comes back a way before the next) or as the guard comes down, its script carrying on from the top, or
 // after kSnakeRetreatStuck steps getting no farther (a wall at its back). A routine that ends of itself while the
 // monster is still near is followed by the next straight away; kSnakeRetreatStalls in a row that each gain it less than

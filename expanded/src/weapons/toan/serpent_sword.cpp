@@ -76,19 +76,14 @@ Disc disc;
 
 [[maybe_unused]] const bool kRegistered = (RegisterOwnSound(kSnakeHiss), true);
 
-// How a retreat's motion first comes in: cross-faded from another motion, or restarted when the monster is already in it
-// (a retreat run straight after the last, its motion held on its last frame, which setting it again would leave there).
-constexpr int kEntryBlend = 1, kEntryRestart = 2;
-
 // A monster running its script's own retreat, and the steps it rests after one before it may run it again.
 struct Retreat {
     bool                running = false;
-    int                 motion = -1; // the retreat's motion, cross-faded into in place of its script's cut
+    int                 motion = -1; // the retreat's motion, played again as each hop ends
     float               from = 0.0f; // its distance from the player as the retreat began
     float               best = 0.0f; // the farthest it has got in this retreat
     int                 stuck = 0;   // steps since it last got farther
     int                 stalls = 0;  // retreats in a row that gained it nothing
-    int                 entry = 0;   // how its retreat motion comes in, once: kEntryBlend, kEntryRestart, or 0 once it has
     int                 rest = 0;
     bool                held = false; // a kind without one: taken from its script, staggered and standing idle
     int                 stagger = 0;  // steps of its stagger left before it idles
@@ -889,7 +884,6 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
         args[i].type = RS_FLOAT;
         args[i].f = own->args[i];
     }
-    retreat.entry = unit.monster[monster].requested_motion == own->motion ? kEntryRestart : kEntryBlend;
     retreat.own = own;
     retreat.best = distance;
     retreat.stuck = 0;
@@ -903,28 +897,31 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
     return true;
 }
 
-void SnakeCharmerScriptStepped(CMonstorUnit & /*unit*/, int monster) {
-    if (monster >= 0 && monster < kFloorMonsters) {
-        Restore(retreats[monster]);
+void SnakeCharmerScriptStepped(CMonstorUnit &unit, int monster) {
+    if (monster < 0 || monster >= kFloorMonsters) {
+        return;
+    }
+    Retreat &retreat = retreats[monster];
+    Restore(retreat);
+    MONSTOR           &live = unit.monster[monster];
+    const CCharacter  &body = unit.chara[monster][0];
+    const MOTION_INFO *clips = body.motion_type.motion_info;
+    if (!retreat.running || live.requested_motion != retreat.motion || body.motion_no != retreat.motion ||
+        (live.requested_motion_flags & kMotionHoldLast) == 0 || clips == nullptr ||
+        body.motion_type.state.time < static_cast<float>(clips[retreat.motion].end) - 1.0f) {
+        return;
+    }
+    // Its hop played to its end (its script has seen it end): it plays again for the next. A routine that sets its hop
+    // once more without starting it over (as a chained retreat finds it, or a Gemron's after its first) would leave it
+    // on its last frame while the routine slides the monster on.
+    for (int part = 0; part <= live.attachment_count; part++) {
+        unit.chara[monster][part].motion_flags |= kMotionCut;
     }
 }
 
 void SnakeCharmerMonsterMove(CMonstorUnit &unit, int monster) {
     MONSTOR &live = unit.monster[monster];
-    Retreat &retreat = retreats[monster];
-    if (retreat.running && retreat.entry != 0 && live.requested_motion == retreat.motion) {
-        // Its retreat's motion as it first comes in (its script's step has set it; the body steps after this): from
-        // another motion it cross-fades in where its script would cut; already in it, it starts over. After that its
-        // script's own flags stand (a routine that cuts to its motion again each step restarts it).
-        bool restart = retreat.entry == kEntryRestart;
-        retreat.entry = 0;
-        live.requested_motion_flags = static_cast<s16>(restart ? live.requested_motion_flags | kMotionCut : live.requested_motion_flags & ~kMotionCut);
-        for (int part = 0; part <= live.attachment_count; part++) {
-            int &flags = unit.chara[monster][part].motion_flags;
-            flags = restart ? flags | kMotionCut : flags & ~kMotionCut;
-        }
-    }
-    float dx = 0.0f, dz = 0.0f, distance = 0.0f;
+    float    dx = 0.0f, dz = 0.0f, distance = 0.0f;
     if (!snake.up || retreats[monster].running || retreats[monster].held || live.movement_speed == 0.0f || !Near(unit, monster, dx, dz, distance) ||
         distance < 0.01f) {
         return;
