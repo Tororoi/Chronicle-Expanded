@@ -269,8 +269,17 @@ TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
     expanded::MonsterMoveChecked(unit, 0);
     EXPECT_EQ(wolf.requested_motion_flags, expanded::kMotionHoldLast);
     EXPECT_EQ(unit.chara[0][0].motion_flags, expanded::kMotionHoldLast);
-    // Its script carries it to the end; then a rest before it may retreat again.
+    // Its script carries it to the end, farther off: the next retreat at once while it is still near.
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    At(0, 0.0f, 50.0f);
+    unit.script_state[0] = 0;
+    EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.script_state[0], 1);
+    // Ones that gain it nothing (a wall at its back): the next, and the next, then a rest, its script carrying on.
+    for (int stall = 1; stall < expanded::kSnakeRetreatStalls; stall++) {
+        unit.script_state[0] = 0;
+        EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0)) << stall;
+    }
     unit.script_state[0] = 0;
     for (int step = 0; step <= expanded::kSnakeRetreatRest; step++) {
         EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0)) << step;

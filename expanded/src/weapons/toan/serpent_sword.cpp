@@ -77,11 +77,13 @@ Disc disc;
 
 // A monster running its script's own retreat, and the steps it rests after one before it may run it again.
 struct Retreat {
-    bool running = false;
-    int  motion = -1; // the retreat's motion, cross-faded into in place of its script's cut
-    int  rest = 0;
-    bool held = false; // a kind without one: taken from its script, staggered and standing idle
-    int  stagger = 0;  // steps of its stagger left before it idles
+    bool  running = false;
+    int   motion = -1; // the retreat's motion, cross-faded into in place of its script's cut
+    float from = 0.0f; // its distance from the player as the retreat began
+    int   stalls = 0;  // retreats in a row that gained it nothing
+    int   rest = 0;
+    bool  held = false; // a kind without one: taken from its script, staggered and standing idle
+    int   stagger = 0;  // steps of its stagger left before it idles
 };
 
 Retreat retreats[kFloorMonsters];
@@ -732,13 +734,24 @@ bool Hold(CMonstorUnit &unit, int monster, Retreat &retreat) {
 
 bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
     Retreat &retreat = retreats[monster];
+    bool     chain = false;
     if (retreat.running) {
         // Its own script runs the retreat (or a hit's reaction in its place) to its end.
-        if (unit.script_state[monster] == 0) {
-            retreat.running = false;
-            retreat.rest = kSnakeRetreatRest;
+        if (unit.script_state[monster] != 0) {
+            return false;
         }
-        return false;
+        retreat.running = false;
+        // Straight into the next while it is still near. Held up retreat after retreat (a wall at its back, not a step
+        // that went sideways), its script's turn for a rest.
+        float dx = 0.0f, dz = 0.0f, distance = 0.0f;
+        bool  gained = Offset(unit, monster, dx, dz, distance) && distance >= retreat.from + kSnakeRetreatGain;
+        retreat.stalls = gained ? 0 : retreat.stalls + 1;
+        if (retreat.stalls >= kSnakeRetreatStalls) {
+            retreat.stalls = 0;
+            retreat.rest = kSnakeRetreatRest;
+            return false;
+        }
+        chain = true;
     }
     if (retreat.rest > 0) {
         retreat.rest--;
@@ -753,7 +766,7 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
         }
         return false;
     }
-    if (!retreat.held && !AtSeam(unit, monster)) {
+    if (!retreat.held && !chain && !AtSeam(unit, monster)) {
         // Mid-action: it finishes what it is doing first.
         return false;
     }
@@ -771,6 +784,7 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
     unit.script_state[monster] = unit.interpreter[monster].IsEnd() != 0 ? 0 : 1;
     retreat.running = unit.script_state[monster] != 0;
     retreat.motion = own->motion;
+    retreat.from = distance;
     retreat.rest = retreat.running ? 0 : kSnakeRetreatRest;
     return true;
 }
