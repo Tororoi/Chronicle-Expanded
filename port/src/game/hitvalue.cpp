@@ -20,6 +20,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/weapons/goro/plate_hammer.hpp"
+#include "expanded/weapons/goro/turtle_shell.hpp"
 #include "expanded/weapons/toan/atlamillia_sword.hpp"
 #endif
 
@@ -47,6 +48,10 @@ int BattleSubWeaponDmg(float amount, int kind) {
     if (weapon->flags & 0x100) {
         amount *= 2.0f;
     }
+
+#ifdef CHRONICLE_EXPANDED
+    amount = expanded::HardShellWear(*weapon, amount);
+#endif
 
     int default_weapon = defWeapon__2[chara_no];
 
