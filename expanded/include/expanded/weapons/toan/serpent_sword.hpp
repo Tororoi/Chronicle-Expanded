@@ -77,7 +77,7 @@ inline constexpr float            kSnakeAhead = 10.0f;
 inline constexpr float            kSnakeHeight = 14.0f;
 inline constexpr float            kSnakeLift = 2.0f;
 inline constexpr float            kSnakeBack = 11.0f;
-inline constexpr float            kSnakeRetreatRadius = 60.0f;
+inline constexpr float            kSnakeRetreatRadius = 100.0f;
 inline constexpr int              kSnakeRetreatRest = 30;
 inline constexpr int              kSnakeIdle = 0;
 inline constexpr int              kMimicWake = 18, kKingMimicWake = 21;
