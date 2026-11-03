@@ -725,7 +725,7 @@ int CCollisionData::Set(float *position, int damage, int life, float radius, flo
     return -1;
 }
 
-int CCollisionData::CheckHitUser(float *position, int mask, float height) {
+int CCollisionData::CheckHitUser(float *position, int mask, float height, float reach) {
     sceVu0FVECTOR user_position;
     sceVu0FVECTOR hit_position;
 
@@ -743,7 +743,7 @@ int CCollisionData::CheckHitUser(float *position, int mask, float height) {
         sceVu0CopyVector(hit_position, hit[i].pos);
         hit_position[1] = 0.0f;
 
-        if (DistVector(user_position, hit_position) > hit[i].radius) {
+        if (DistVector(user_position, hit_position) > hit[i].radius + reach) {
             continue;
         }
 

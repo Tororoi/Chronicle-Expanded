@@ -194,6 +194,15 @@ void ScriptPlayerPosition(float *position);
 // How far from the player a monster's body stops (CMonstorUnit::MoveCheck2), radius the game's.
 float MonsterBlockRadius(float radius);
 
+// The column monsters' hits find the player in (BtCheckDamageProc's CheckHitUser): its height, height the game's, and
+// how much further than a hit's own radius it reaches him.
+float PlayerHurtHeight(float height);
+float PlayerHurtReach();
+
+// Whether the player stands on a hit switch (a door's PT_HIT_MARKER event at pos, radius its own, for chara_no) and
+// sets it off as a hit on it would (CDungeonEventMan::CheckCollisionDataHit).
+bool HitSwitchSteppedOn(int chara_no, const float *pos, float radius);
+
 // A shot effect's collision test (CSHOT_EFFECT::Step), checkCollision's result as the features change it.
 SHOT_COLLISION_RESULT ShotEffectCollision(CSHOT_EFFECT &effect, int slot, float *hit_position, float *position);
 

@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <iterator>
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -338,14 +339,14 @@ namespace {
 
 constexpr float kUnlitFull = 128.0f; // an unlit frame's own colour
 
-void FadeUnlit(CFrame *frame, float k, int depth) {
+void FadeUnlit(CFrame *frame, float k, const float *tint, int depth) {
     for (; frame != nullptr && depth <= 16; frame = frame->brother) {
         if (frame->attr.use_color != 0) {
-            for (float &channel : frame->attr.color) {
-                channel = kUnlitFull * k;
+            for (int channel = 0; channel < std::ssize(frame->attr.color); channel++) {
+                frame->attr.color[channel] = kUnlitFull * k * (tint != nullptr && channel < 3 ? tint[channel] : 1.0f);
             }
         }
-        FadeUnlit(frame->child, k, depth + 1);
+        FadeUnlit(frame->child, k, tint, depth + 1);
     }
 }
 
@@ -364,8 +365,8 @@ void SetBlastDamage(const BT_SHOT_EFFECT *effect, BlastDamage damage) {
     }
 }
 
-void FadeUnlitFrames(CFrame *frame, float k) {
-    FadeUnlit(frame, k, 0);
+void FadeUnlitFrames(CFrame *frame, float k, const float *tint) {
+    FadeUnlit(frame, k, tint, 0);
 }
 
 int ShotEffectBomb(float *position, const BT_SHOT_EFFECT *effect, int owner) {

@@ -1,0 +1,53 @@
+#pragma once
+
+namespace expanded {
+
+// Tall Hammer "Colossus": with the Tall Hammer in Goro's hand, holding a full charge grows Goro (and the hammer with
+// him) evenly from his size to kColossusMost times it over kColossusGrowFrames; letting go keeps the size he reached,
+// and charging again grows him on. kColossusFrames after he first grew he shrinks to kColossusLeast times his size over
+// kColossusShrinkFrames, and kColossusSpentFrames after the shrink began he pops back to his size as the Cactus's copy
+// rises (out of the summon smoke, turquoise, holding small until the smoke's frame kColossusPopFrom, past his size to
+// kColossusPopPeak of it by kColossusPopPeakFrame and settled by kColossusPopFrame); from the shrink to the pop he
+// cannot grow. At any size but his own:
+//   - his attack is his size times his weapon's;
+//   - his defense rises by up to kColossusDefense at kColossusMost and falls by as much at kColossusLeast;
+//   - his hammer's hits reach his size times as far, and throw monsters his size times as far (their first step's speed
+//     times its square root: a throw carries speed^2 over twice its decay);
+//   - the height monsters' hits and shots find him at is his size times his own, his body (where monsters stop) his
+//     size times as wide, and a hit reaches him (his size - 1) times that width further out;
+//   - at kColossusMost, a monster he walks into takes a hammer hit, once every kColossusTrampleFrames;
+//   - at kColossusSwitchSize or more, stepping onto a hammer switch sets it off.
+// Times are game frames, counted while the dungeon plays (not paused, no event). A change of floor puts him back.
+inline constexpr float kColossusMost = 2.0f, kColossusLeast = 0.5f, kColossusSwitchSize = 1.5f;
+inline constexpr int   kColossusGrowFrames = 300; // from his size to kColossusMost
+inline constexpr int   kColossusFrames = 1800, kColossusShrinkFrames = 120, kColossusSpentFrames = 720;
+inline constexpr float kColossusPopFrom = 6.5f, kColossusPopPeakFrame = 10.6f, kColossusPopFrame = 12.0f; // the smoke's
+inline constexpr float kColossusPopPeak = 3.4f / 3.0f;
+inline constexpr float kColossusPopSmokeScale = 0.5f;
+inline constexpr float kColossusSmokeTint[3] = {0.3f, 1.6f, 1.4f}; // the smoke's pink to turquoise
+inline constexpr int   kColossusDefense = 15;
+inline constexpr int   kColossusTrampleFrames = 30;
+inline constexpr float kColossusBodyRadius = 6.0f; // the player's body, as monsters stop at it (MoveCheck2)
+
+// Goro's size now (1: his own).
+float ColossusScale();
+
+// What his size changes, each the game's own as the argument (Goro in play; anyone else's as it is):
+int   ColossusAttack(int attack);
+int   ColossusDefense(int chara, int defense);
+float ColossusHitRadius(float radius);
+float ColossusKickSpeed(float speed);
+float ColossusHeight(float height);
+float ColossusHurtReach();
+float ColossusBlockRadius(float radius);
+void  ColossusShotPoint(float *point);
+// Whether he stands big enough to set off a hammer switch, and on the one for chara_no at pos, radius its own (within
+// its radius across, its height within his).
+bool ColossusTriggersSwitches();
+bool ColossusStepsOn(int chara_no, const float *pos, float radius);
+
+// Hooks: a dungeon step (DungeonMonstersTick); the floor changed (tests too).
+void ColossusStep();
+void ColossusReset();
+
+} // namespace expanded

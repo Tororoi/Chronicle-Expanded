@@ -34,6 +34,7 @@
 #include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/goro/battle_ax.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
+#include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/goro/turtle_shell.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/heavens_cloud_shot.hpp"
@@ -252,6 +253,7 @@ void DungeonMonstersTick() {
     TornadoChargeStep();
     GuardianGraceStep();
     DesertBloomStep();
+    ColossusStep();
     SnakeCharmerStep();
     BigRockStep();
     CurseOfBabelStep();
@@ -346,7 +348,7 @@ int MonsterHardness(const CMonstorUnit &unit, int monster, int hardness) {
 }
 
 int PlayerDefense(int chara, int defense) {
-    return DefensiveLegacyDefense(chara, HardShellDefense(chara, defense));
+    return ColossusDefense(chara, DefensiveLegacyDefense(chara, HardShellDefense(chara, defense)));
 }
 
 float PlayerLockOnRange(float rate) {
@@ -524,7 +526,19 @@ void ScriptPlayerPosition(float *position) {
 }
 
 float MonsterBlockRadius(float radius) {
-    return angel_gear::RingBlockRadius(radius);
+    return angel_gear::RingBlockRadius(ColossusBlockRadius(radius));
+}
+
+float PlayerHurtHeight(float height) {
+    return ColossusHeight(height);
+}
+
+float PlayerHurtReach() {
+    return ColossusHurtReach();
+}
+
+bool HitSwitchSteppedOn(int chara_no, const float *pos, float radius) {
+    return ColossusStepsOn(chara_no, pos, radius);
 }
 
 SHOT_COLLISION_RESULT ShotEffectCollision(CSHOT_EFFECT &effect, int slot, float *hit_position, float *position) {
@@ -533,6 +547,7 @@ SHOT_COLLISION_RESULT ShotEffectCollision(CSHOT_EFFECT &effect, int slot, float 
 }
 
 void ShotPlayerPoint(float *point) {
+    ColossusShotPoint(point);
     GuardianReflectorPlayerPoint(point);
 }
 

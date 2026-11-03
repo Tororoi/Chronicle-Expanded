@@ -37,9 +37,9 @@
 #include "dngmessageman.hpp"
 #include "dngstatusdata.hpp"
 #include "dranmapfield.hpp"
-#include "dungeonparts.hpp"
 #include "dungeoneventman.hpp"
 #include "dungeonmap.hpp"
+#include "dungeonparts.hpp"
 #include "edit.hpp"
 #include "editloop3.hpp"
 #include "frame.hpp"
@@ -3421,13 +3421,13 @@ void BtLoadMonstor(int ura) {
         effects[i].Initialize();
     }
 
-    BT_ENEMY_FLOOR       *floors = ura == 0 ? BtEnemyLayoutList[selectMapNo] : BtUraEnemyLayoutList[selectMapNo];
+    BT_ENEMY_FLOOR *floors = ura == 0 ? BtEnemyLayoutList[selectMapNo] : BtUraEnemyLayoutList[selectMapNo];
 #ifdef CHRONICLE_EXPANDED
     const BT_ENEMY_FLOOR &layout = *expanded::RosterFloorLayout(&floors[UserStatus->cur_floor], ura);
 #else
     const BT_ENEMY_FLOOR &layout = floors[UserStatus->cur_floor];
 #endif
-    int                   count = 0;
+    int count = 0;
 
     for (const auto &entry : layout.monster) {
         if (entry.monster_no == -1) {
@@ -3525,7 +3525,7 @@ void SwordDmgCheck1(float amount, int kind) {
 #ifdef CHRONICLE_EXPANDED
     float warn = weapon->durability * expanded::kLambSwordThreshold;
 #else
-    auto         warn = static_cast<float>(weapon->durability * 0.2);
+    auto warn = static_cast<float>(weapon->durability * 0.2);
 #endif
 
     int broke = BattleSubWeaponDmg(amount, kind);
@@ -3973,7 +3973,11 @@ int BtCheckDamageProc() {
     if (BtActStatus.recoil_frames == 0 && BtActStatus.invincible_frames == 0) {
         sceVu0CopyVector(pos, CharaMain.pos);
 
+#ifdef CHRONICLE_EXPANDED
+        int hit_no = NowColData->CheckHitUser(pos, 1, expanded::PlayerHurtHeight(CharaHeight(UserStatus)), expanded::PlayerHurtReach());
+#else
         int hit_no = NowColData->CheckHitUser(pos, 1, CharaHeight(UserStatus));
+#endif
 #ifdef CHRONICLE_EXPANDED
         if (hit_no != -1 && expanded::PlayerHitPassesBy(NowColData->hit[hit_no])) {
             hit_no = -1;
@@ -4546,7 +4550,7 @@ void BattleActionPlay_Jinn(CCharacter *chara, int aimed) {
 #ifdef CHRONICLE_EXPANDED
     int damage = expanded::RoughCounterAttack(NowWeaponHave->attack);
 #else
-    int   damage = NowWeaponHave->attack;
+    int damage = NowWeaponHave->attack;
 #endif
 
     // A poisoned weapon hits twice as hard.

@@ -89,8 +89,9 @@ void ShotEffectsDraw();
 int ShotEffectBomb(float *position, const BT_SHOT_EFFECT *effect, int owner);
 
 // An effect model's unlit frames drawn at k (0 to 1) of their own colour: for the additive meshes effects are made of, its
-// opacity. 1 hands back a model an earlier fade left dim.
-void FadeUnlitFrames(CFrame *frame, float k);
+// opacity. 1 hands back a model an earlier fade left dim. tint (red, green, blue, each times its own; null for none)
+// colours them too.
+void FadeUnlitFrames(CFrame *frame, float k, const float *tint = nullptr);
 
 // A description's blast damage by the monster that fired it, in place of its bomb_damage (nullptr removes it).
 using BlastDamage = int (*)(int owner);
