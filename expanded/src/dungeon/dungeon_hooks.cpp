@@ -32,6 +32,7 @@
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/curse.hpp"
+#include "expanded/weapons/goro/battle_ax.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
 #include "expanded/weapons/goro/turtle_shell.hpp"
 #include "expanded/weapons/heal.hpp"
@@ -318,7 +319,7 @@ int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs) {
         return abs;
     }
     int result = ArmorPiercerAbs(
-        unit, monster, MarineHunterAbs(unit, monster, SanctifierAbs(unit, monster, UtilityKnifeAbs(unit, monster, JacketHunterAbs(unit, monster, abs)))));
+        unit, monster, MarineHunterAbs(unit, monster, SanctifierAbs(unit, monster, WoodcutterAbs(unit, monster, UtilityKnifeAbs(unit, monster, JacketHunterAbs(unit, monster, abs))))));
     pocklekul::PockleKillAbs(monster, result);
     return result;
 }
@@ -327,7 +328,7 @@ float MonsterWeaponDamage(const CMonstorUnit &unit, int monster, const COLLISION
     if (AllyUnit(unit)) {
         return damage;
     }
-    return ArmorPiercerDamage(unit, monster, hit, SanctifierDamage(unit, monster, hit, UtilityKnifeDamage(unit, monster, hit, damage)));
+    return ArmorPiercerDamage(unit, monster, hit, SanctifierDamage(unit, monster, hit, WoodcutterDamage(unit, monster, hit, UtilityKnifeDamage(unit, monster, hit, damage))));
 }
 
 int MonsterDefense(const CMonstorUnit &unit, int monster, int defense) {
