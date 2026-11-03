@@ -23,6 +23,7 @@
 #include "expanded/status/blind.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/toan/snake_backup.hpp"
 #include "expanded/weapons/ungaga/mirage/heat_haze.hpp"
 #include "frame.hpp"
 #include "gameutil.hpp"
@@ -100,102 +101,131 @@ Retreat retreats[kFloorMonsters];
 
 // clang-format off
 constexpr SnakeRetreat kRetreats[] = {
-    {Monster::MASTER_JACKET, "e01a", 0x4498, 2},
-    {Monster::SKELETON_SOLDIER, "e03a", 0x2900, 2},
-    {Monster::WEREWOLF, "e07a", 0x39F4, 2, 2},
-    {Monster::FLI_FLI, "e08a", 0x445C, 2},
-    {Monster::HORNET, "e09a", 0x4850, 2},
-    {Monster::SUNDAY, "e14a", 0x38C8, 2},
-    {Monster::MONDAY, "e15a", 0x2FA0, 2},
-    {Monster::TUESDAY, "e16a", 0x54AC, 2},
-    {Monster::WEDNESDAY, "e17a", 0x2FA0, 2},
-    {Monster::THURSDAY, "e18a", 0x3568, 2},
-    {Monster::FRIDAY, "e19a", 0x3568, 2},
-    {Monster::SATURDAY, "e20a", 0x38F4, 2},
-    {Monster::GUNNY, "e23a", 0x4F3C, 2},
+    {Monster::MASTER_JACKET, "e01a", 0, 2},
+    {Monster::SKELETON_SOLDIER, "e03a", 0, 2},
+    {Monster::DASHER, "e06a", 0, 2},
+    {Monster::WEREWOLF, "e07a", 0, 2},
+    {Monster::FLI_FLI, "e08a", 0, 2},
+    {Monster::HORNET, "e09a", 0, 2},
+    {Monster::HALLOWEEN, "e10a", 0, 13},
+    {Monster::SUNDAY, "e14a", 0, 2},
+    {Monster::MONDAY, "e15a", 0, 2},
+    {Monster::TUESDAY, "e16a", 0, 2},
+    {Monster::WEDNESDAY, "e17a", 0, 2},
+    {Monster::THURSDAY, "e18a", 0, 2},
+    {Monster::FRIDAY, "e19a", 0, 2},
+    {Monster::SATURDAY, "e20a", 0, 2},
+    {Monster::WITCH_HELLZA, "e21a", 0, 2},
+    {Monster::WITCH_ILLZA, "e22a", 0, 2},
+    {Monster::GUNNY, "e23a", 0, 2},
     {Monster::GYON, "e24a", 0x3E70, 2},
     {Monster::PIRATES_CHARIOT, "e25a", 0x2084, 2},
-    {Monster::CAPTAIN, "e27a", 0x3EA8, 2},
-    {Monster::CORCEA, "e28a", 0x4278, 2},
-    {Monster::MR_BLARE, "e31a", 0x2848, 2},
-    {Monster::DUNE, "e32a", 0x61EC, 2},
-    {Monster::ARTHUR, "e40a", 0x3680, 2},
-    {Monster::GHOST, "e42a", 0x4170, 2},
-    {Monster::ALEXANDER, "e43a", 0x5E9C, 2},
+    {Monster::AUNTIE_MEDU, "e26a", 0, 4},
+    {Monster::CAPTAIN, "e27a", 0, 2},
+    {Monster::CORCEA, "e28a", 0, 2},
+    {Monster::GOLEM, "e30a", 0, 2},
+    {Monster::MR_BLARE, "e31a", 0, 2},
+    {Monster::DUNE, "e32a", 0, 2},
+    {Monster::TITAN, "e33a", 0, 2},
+    {Monster::KING_MIMIC_DBC, "e34a", 0, 2},
+    {Monster::MIMIC_DBC, "e35a", 0, 2},
+    {Monster::KING_MIMIC_SMT, "e36a", 0, 2},
+    {Monster::MIMIC_SMT, "e37a", 0, 2},
+    {Monster::KING_MIMIC_MS, "e38a", 0, 2},
+    {Monster::MIMIC_MS, "e39a", 0, 2},
+    {Monster::ARTHUR, "e40a", 0, 2},
+    {Monster::GHOST, "e42a", 0, 2},
+    {Monster::ALEXANDER, "e43a", 0, 2},
     {Monster::HEART, "e44a", 0x241C, 2},
-    {Monster::CLUB, "e45a", 0x2970, 2},
-    {Monster::DIAMOND, "e46a", 0x2970, 2},
-    {Monster::SPADE, "e47a", 0x2970, 2},
-    {Monster::JOKER, "e48a", 0x2970, 2},
-    {Monster::BOMBER_HEAD, "e49a", 0x61C8, 2},
-    {Monster::MUMMY, "e50a", 0x3BC4, 2},
-    {Monster::LICH, "e51a", 0x4170, 2},
-    {Monster::WHITE_FANG, "e56a", 0x39F4, 2, 2},
-    {Monster::PHANTOM, "e58a", 0x37FC, 2},
-    {Monster::DRAGON, "e59a", 0x52C0, 2},
-    {Monster::HELL_POCKLE, "e62a", 0x45A8, 2},
-    {Monster::BILLY, "e69a", 0x2848, 2},
-    {Monster::VULCAN, "e70a", 0x60DC, 2},
-    {Monster::CRABBY_HERMIT, "e71a", 0x48EC, 2},
-    {Monster::SPACE_GYON, "e72a", 0x3C48, 2},
-    {Monster::BLUE_DRAGON, "e73a", 0x52C0, 2},
-    {Monster::BLACK_DRAGON, "e74a", 0x52C0, 2},
-    {Monster::MASK_OF_PRAJNA, "e75a", 0x4170, 2},
-    {Monster::CRESCENT_BARON, "e76a", 0x37F8, 2},
-    {Monster::SAM, "e86a", 0x2848, 2},
-    {Monster::YAMMICH, "e101a", 0x3DD0, 2},
-    {Monster::HALEY_HOLEY, "e105a", 0x43AC, 2},
-    {Monster::GEMRON_FIRE, "e111a", 0x44B8, 2},
-    {Monster::WHITE_FANG_ENHANCED, "e125a", 0x39F4, 2, 2},
-    {Monster::ARTHUR_ENHANCED, "e126a", 0x3784, 2},
-    {Monster::MASTER_JACKET_ENHANCED, "e129a", 0x4498, 2},
-    {Monster::VULCAN_ENHANCED, "e130a", 0x61E0, 2},
-    {Monster::MUMMY_ENHANCED, "e131a", 0x3BC4, 2},
-    {Monster::DIAMOND_ENHANCED, "e132a", 0x2970, 2},
-    {Monster::GEMRON_ICE, "e112a", 0x44B8, 2},
-    {Monster::HORN_HEAD, "e119a", 0x48B0, 2},
-    {Monster::YAMMICH_ENHANCED, "e135a", 0x3ED4, 2},
-    {Monster::CLUB_ENHANCED, "e138a", 0x2970, 2},
-    {Monster::CORCEA_ENHANCED, "e139a", 0x4308, 2},
-    {Monster::GEMRON_THUNDER, "e113a", 0x44B8, 2},
-    {Monster::BISHOP_Q, "e116a", 0x5324, 2},
-    {Monster::MASK_OF_PRAJNA_ENHANCED, "e142a", 0x4170, 2},
+    {Monster::CLUB, "e45a", 0, 2},
+    {Monster::DIAMOND, "e46a", 0, 2},
+    {Monster::SPADE, "e47a", 0, 2},
+    {Monster::JOKER, "e48a", 0, 2},
+    {Monster::BOMBER_HEAD, "e49a", 0, 2},
+    {Monster::MUMMY, "e50a", 0, 2},
+    {Monster::LICH, "e51a", 0, 2},
+    {Monster::CURSE_DANCER, "e52a", 0, 2},
+    {Monster::LIVING_ARMOR, "e55a", 0, 2},
+    {Monster::WHITE_FANG, "e56a", 0, 2},
+    {Monster::PHANTOM, "e58a", 0, 2},
+    {Monster::DRAGON, "e59a", 0, 2},
+    {Monster::HELL_POCKLE, "e62a", 0, 2},
+    {Monster::RASH_DASHER, "e63a", 0, 2},
+    {Monster::STEEL_GIANT, "e64a", 0, 2},
+    {Monster::BLIZZARD, "e65a", 0, 2},
+    {Monster::BILLY, "e69a", 0, 2},
+    {Monster::VULCAN, "e70a", 0, 2},
+    {Monster::CRABBY_HERMIT, "e71a", 0, 2},
+    {Monster::SPACE_GYON, "e72a", 0, 2},
+    {Monster::BLUE_DRAGON, "e73a", 0, 2},
+    {Monster::BLACK_DRAGON, "e74a", 0, 2},
+    {Monster::MASK_OF_PRAJNA, "e75a", 0, 2},
+    {Monster::CRESCENT_BARON, "e76a", 0, 2},
+    {Monster::ROCKANOFF, "e77a", 0, 2},
+    {Monster::KING_MIMIC_WOF, "e78a", 0, 2},
+    {Monster::MIMIC_WOF, "e79a", 0, 2},
+    {Monster::KING_MIMIC_SW, "e80a", 0, 2},
+    {Monster::MIMIC_SW, "e81a", 0, 2},
+    {Monster::KING_MIMIC_GOT, "e82a", 0, 2},
+    {Monster::MIMIC_GOT, "e83a", 0, 2},
+    {Monster::SAM, "e86a", 0, 2},
+    {Monster::GOL, "e90a", 0, 2},
+    {Monster::SIL, "e91a", 0, 2},
+    {Monster::YAMMICH, "e101a", 0, 2},
+    {Monster::STATUE_DOG, "e103a", 0, 2},
+    {Monster::OPAR, "e104a", 0, 2},
+    {Monster::HALEY_HOLEY, "e105a", 0, 2},
+    {Monster::KING_PRICKLY, "e106a", 0, 2},
+    {Monster::GEMRON_FIRE, "e111a", 0, 2},
+    {Monster::WHITE_FANG_ENHANCED, "e125a", 0, 2},
+    {Monster::ARTHUR_ENHANCED, "e126a", 0, 2},
+    {Monster::SIL_ENHANCED, "e127a", 0, 2},
+    {Monster::HALLOWEEN_ENHANCED, "e128a", 0, 13},
+    {Monster::MASTER_JACKET_ENHANCED, "e129a", 0, 2},
+    {Monster::VULCAN_ENHANCED, "e130a", 0, 2},
+    {Monster::MUMMY_ENHANCED, "e131a", 0, 2},
+    {Monster::DIAMOND_ENHANCED, "e132a", 0, 2},
+    {Monster::GEMRON_ICE, "e112a", 0, 2},
+    {Monster::HORN_HEAD, "e119a", 0, 2},
+    {Monster::AUNTIE_MEDU_ENHANCED, "e133a", 0, 4},
+    {Monster::ROCKANOFF_ENHANCED, "e134a", 0, 2},
+    {Monster::YAMMICH_ENHANCED, "e135a", 0, 2},
+    {Monster::WITCH_HELLZA_ENHANCED, "e136a", 0, 2},
+    {Monster::STEEL_GIANT_ENHANCED, "e137a", 0, 2},
+    {Monster::CLUB_ENHANCED, "e138a", 0, 2},
+    {Monster::CORCEA_ENHANCED, "e139a", 0, 2},
+    {Monster::MIMIC_DS, "e109a", 0, 2},
+    {Monster::KING_MIMIC_DS, "e110a", 0, 2},
+    {Monster::GEMRON_THUNDER, "e113a", 0, 2},
+    {Monster::BISHOP_Q, "e116a", 0, 2},
+    {Monster::GOL_ENHANCED, "e141a", 0, 2},
+    {Monster::MASK_OF_PRAJNA_ENHANCED, "e142a", 0, 2},
     {Monster::GYON_ENHANCED, "e143a", 0x3F90, 2},
-    {Monster::SPADE_ENHANCED, "e144a", 0x2970, 2},
-    {Monster::CAPTAIN_ENHANCED, "e146a", 0x3EA8, 2},
-    {Monster::GEMRON_WIND, "e114a", 0x44B8, 2},
-    {Monster::SILVER_GEAR, "e118a", 0x6358, 2},
-    {Monster::ALEXANDER_ENHANCED, "e149a", 0x5E9C, 2},
+    {Monster::SPADE_ENHANCED, "e144a", 0, 2},
+    {Monster::RASH_DASHER_ENHANCED, "e145a", 0, 2},
+    {Monster::CAPTAIN_ENHANCED, "e146a", 0, 2},
+    {Monster::MIMIC_DS_ENHANCED, "e147a", 0, 2},
+    {Monster::KING_MIMIC_DS_ENHANCED, "e148a", 0, 2},
+    {Monster::GEMRON_WIND, "e114a", 0, 2},
+    {Monster::SILVER_GEAR, "e118a", 0, 2},
+    {Monster::ALEXANDER_ENHANCED, "e149a", 0, 2},
     {Monster::HEART_ENHANCED, "e150a", 0x241C, 2},
-    {Monster::BOMBER_HEAD_ENHANCED, "e151a", 0x62CC, 2},
-    {Monster::CRABBY_HERMIT_ENHANCED, "e152a", 0x49F0, 2},
+    {Monster::BOMBER_HEAD_ENHANCED, "e151a", 0, 2},
+    {Monster::CRABBY_HERMIT_ENHANCED, "e152a", 0, 2},
     {Monster::PIRATES_CHARIOT_ENHANCED, "e154a", 0x22A4, 2},
-    {Monster::SPACE_GYON_ENHANCED, "e155a", 0x4E0C, 2},
-    {Monster::GEMRON_HOLY, "e115a", 0x44B8, 2},
-    {Monster::GACIOUS_ENHANCED, "e117a", 0x4498, 2},
-    {Monster::CRESCENT_BARON_ENHANCED, "e159a", 0x38FC, 2},
-    {Monster::JOKER_ENHANCED, "e161a", 0x2970, 2},
-    {Monster::LICH_ENHANCED, "e162a", 0x4390, 2},
-    {Monster::KING_MIMIC_DBC, "e34a", 0x35D4, 2},
-    {Monster::MIMIC_DBC, "e35a", 0x4760, 2},
-    {Monster::KING_MIMIC_SMT, "e36a", 0x35BC, 2},
-    {Monster::MIMIC_SMT, "e37a", 0x4730, 2},
-    {Monster::KING_MIMIC_MS, "e38a", 0x35D4, 2},
-    {Monster::MIMIC_MS, "e39a", 0x46F4, 2},
-    {Monster::KING_MIMIC_WOF, "e78a", 0x2ADC, 2},
-    {Monster::MIMIC_WOF, "e79a", 0x4718, 2},
-    {Monster::KING_MIMIC_SW, "e80a", 0x3368, 2},
-    {Monster::MIMIC_SW, "e81a", 0x4718, 2},
-    {Monster::KING_MIMIC_GOT, "e82a", 0x36AC, 2},
-    {Monster::MIMIC_GOT, "e83a", 0x4718, 2},
-    {Monster::MIMIC_DS, "e109a", 0x4718, 2},
-    {Monster::KING_MIMIC_DS, "e110a", 0x3374, 2},
-    {Monster::MIMIC_DS_ENHANCED, "e147a", 0x4718, 2},
-    {Monster::KING_MIMIC_DS_ENHANCED, "e148a", 0x3374, 2},
-    {Monster::MIMIC_DS_ENHANCED_TWICE, "e156a", 0x4918, 2},
-    {Monster::KING_MIMIC_DS_ENHANCED_TWICE, "e157a", 0x3374, 2},
-    {Monster::MIMIC_DS_ENHANCED_THRICE, "e165a", 0x4918, 2},
-    {Monster::KING_MIMIC_DS_ENHANCED_THRICE, "e166a", 0x3374, 2},
+    {Monster::SPACE_GYON_ENHANCED, "e155a", 0, 2},
+    {Monster::MIMIC_DS_ENHANCED_TWICE, "e156a", 0, 2},
+    {Monster::KING_MIMIC_DS_ENHANCED_TWICE, "e157a", 0, 2},
+    {Monster::GEMRON_HOLY, "e115a", 0, 2},
+    {Monster::GACIOUS_ENHANCED, "e117a", 0, 2},
+    {Monster::CRESCENT_BARON_ENHANCED, "e159a", 0, 2},
+    {Monster::STATUE_DOG_ENHANCED, "e160a", 0, 2},
+    {Monster::JOKER_ENHANCED, "e161a", 0, 2},
+    {Monster::LICH_ENHANCED, "e162a", 0, 2},
+    {Monster::TITAN_ENHANCED, "e163a", 0, 2},
+    {Monster::LIVING_ARMOR_ENHANCED, "e164a", 0, 2},
+    {Monster::MIMIC_DS_ENHANCED_THRICE, "e165a", 0, 2},
+    {Monster::KING_MIMIC_DS_ENHANCED_THRICE, "e166a", 0, 2},
 };
 // clang-format on
 
@@ -563,11 +593,14 @@ const SnakeRetreat *RetreatOf(CMonstorUnit &unit, int monster) {
     const MONSTOR_MODEL &model = unit.model[live.base_model];
     const SnakeRetreat  *retreat = SnakeRetreatOf(ModelKind(live.base_model));
     CRunScript          &script = unit.interpreter[monster];
-    if (retreat == nullptr || !MayRetreat(live, model) || script.prog == nullptr ||
-        std::strcmp(model.script_name, retreat->script) != 0 || !HoldsRetreat(script.code, *retreat)) {
+    if (retreat == nullptr || !MayRetreat(live, model) || script.prog == nullptr) {
         return nullptr;
     }
-    return retreat;
+    if (retreat->record == 0) {
+        // The backup added to its script (snake_backup.hpp), when its script took it.
+        return SnakeBackupOf(script.code) != nullptr ? retreat : nullptr;
+    }
+    return std::strcmp(model.script_name, retreat->script) == 0 && HoldsRetreat(script.code, *retreat) ? retreat : nullptr;
 }
 
 // A motion's length in steps, from its key (its frames at its speed).
@@ -1013,7 +1046,18 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
     const SnakeRetreat *own = in_play ? RetreatOf(unit, monster) : nullptr;
     vmcode_t           *trigger = nullptr, *roll = nullptr;
     CRunScript         &script = unit.interpreter[monster];
-    retreat.native = own != nullptr && TriggerOf(script, own->record, trigger, roll);
+    int                 record = 0;
+    if (own != nullptr && own->record != 0) {
+        record = own->record;
+        retreat.native = TriggerOf(script, record, trigger, roll);
+    } else if (const SnakeBackup *added = own != nullptr ? SnakeBackupOf(script.code) : nullptr) {
+        // The backup added to its script: its trigger the stub's constant.
+        record = added->record;
+        trigger = reinterpret_cast<vmcode_t *>(script.code + added->trigger);
+        retreat.native = true;
+    } else {
+        retreat.native = false;
+    }
     if (retreat.native) {
         // Its own AI retreats, as it would: near the player its trigger is certain (the distance it rolls within the
         // reach, the roll always made; its cooldown between), and the routine goes on to the reach's edge.
@@ -1031,10 +1075,10 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
                 HoldShots(script, retreat, loop, count);
             }
         }
-        if (InRoutine(script, own->record) || (near && !retreat.retreating)) {
-            RaiseLimits(script, retreat, own->record, distance);
+        if (InRoutine(script, record) || (near && !retreat.retreating)) {
+            RaiseLimits(script, retreat, record, distance);
         }
-        retreat.retreating = retreat.retreating && InRoutine(script, own->record);
+        retreat.retreating = retreat.retreating && InRoutine(script, record);
         return false;
     }
     if (!near) {

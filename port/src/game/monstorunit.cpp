@@ -2647,6 +2647,9 @@ int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDat
     script_data[slot] = reinterpret_cast<char *>(&alloc->base[static_cast<std::ptrdiff_t>(alloc->used) * 16]);
     alloc->Alloc((((file_size >> 6) + 1) << 6) >> 4);
     memcpy(script_data[slot], read_buffer, file_size);
+#ifdef CHRONICLE_EXPANDED
+    script_data[slot] = expanded::MonsterScriptLoaded(*this, slot, model_no, script_data[slot], file_size);
+#endif
     model[slot] = *description;
     int count = 2;
 

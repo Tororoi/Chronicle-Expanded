@@ -19,6 +19,7 @@
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/serpent_sword.hpp"
+#include "expanded/weapons/toan/snake_backup.hpp"
 #include "framevu1.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -264,9 +265,47 @@ protected:
         return script;
     }
 
-    std::vector<int>         program_;
-    MOTION_INFO              monster_clips_[20] = {};
-    expanded::test::TestSave save_;
+    // A script on the monster as its kind's loads (its AI loop yielding and jumping back to its top), through the load
+    // hook, which adds the backup to it.
+    CRunScript &LoadBackup(int monster, Monster kind) {
+        constexpr int kLoop = 0x40;
+        loaded_.assign(kCode + kLoop + 5 * sizeof(vmcode_t), 0);
+        RS_PROG_HEADER header{};
+        header.code = kCode;
+        header.prog = kProg;
+        header.prog_num = 1;
+        std::memcpy(loaded_.data(), &header, sizeof(header));
+        const RS_PROGDATA label = {100, kCode + kEntry};
+        std::memcpy(loaded_.data() + kProg, &label, sizeof(label));
+        const int record[4] = {kLoop, 0, 3, 0};
+        std::memcpy(loaded_.data() + kCode + kEntry, record, sizeof(record));
+        const vmcode_t loop[] = {
+            {23, 0,     0},
+            {16, kLoop, 0},
+            {3,  1,     0},
+            {15, 0,     0}
+        };
+        std::memcpy(loaded_.data() + kCode + kLoop, loop, sizeof(loop));
+        char       *script = expanded::MonsterScriptLoaded(floor_.unit(), monster, expanded::No(kind), reinterpret_cast<char *>(loaded_.data()),
+                                                           static_cast<int>(loaded_.size()));
+        CRunScript &interpreter = floor_.unit().interpreter[monster];
+        interpreter.load(reinterpret_cast<RS_PROG_HEADER *>(script), nullptr, 64, nullptr, 8);
+        return interpreter;
+    }
+
+    // The added backup's cells: where it stops 40 from where it started, and after five passes.
+    static constexpr int kBackupFromStartCell = 35, kBackupHopsCell = 115;
+
+    const vmcode_t *BackupCells(CRunScript &script, const expanded::SnakeBackup &added) {
+        int addr = 0;
+        std::memcpy(&addr, script.code + added.record, sizeof(addr));
+        return reinterpret_cast<const vmcode_t *>(script.code + addr);
+    }
+
+    std::vector<int>           program_;
+    std::vector<unsigned char> loaded_;
+    MOTION_INFO                monster_clips_[20] = {};
+    expanded::test::TestSave   save_;
 
     expanded::test::Wielding  wielding_;
     expanded::test::TestFloor floor_;
@@ -338,22 +377,22 @@ TEST_F(SerpentSword, TheSnakeComesWithTheGuard) {
     EXPECT_FALSE(expanded::SnakeCharmerUp());
 }
 
-TEST_F(SerpentSword, MostKindsHaveARetreatOfTheirOwn) {
-    const expanded::SnakeRetreat *wolf = expanded::SnakeRetreatOf(expanded::No(Monster::WEREWOLF));
-    ASSERT_NE(wolf, nullptr);
-    EXPECT_STREQ(wolf->script, "e07a");
-    EXPECT_EQ(wolf->record, 0x39F4);
-    EXPECT_EQ(wolf->motion, 2);
-    EXPECT_EQ(wolf->argc, 2);
-    const expanded::SnakeRetreat *jacket = expanded::SnakeRetreatOf(expanded::No(Monster::MASTER_JACKET));
-    ASSERT_NE(jacket, nullptr);
-    EXPECT_EQ(jacket->argc, 0);
-    EXPECT_EQ(expanded::SnakeRetreatOf(expanded::No(Monster::CAVE_BAT)), nullptr);    // no back-off motion
-    EXPECT_EQ(expanded::SnakeRetreatOf(expanded::No(Monster::AUNTIE_MEDU)), nullptr); // her script never steps back
-    // A mimic's own, and an Expanded Gemron's its stand-in's: Holy Gemron's script, rewritten.
-    const expanded::SnakeRetreat *mimic = expanded::SnakeRetreatOf(expanded::No(Monster::KING_MIMIC_DS));
-    ASSERT_NE(mimic, nullptr);
-    EXPECT_STREQ(mimic->script, "e110a");
+TEST_F(SerpentSword, EveryKindThatCanBackOffDoes) {
+    // A too-close backup of its own.
+    const expanded::SnakeRetreat *chariot = expanded::SnakeRetreatOf(expanded::No(Monster::PIRATES_CHARIOT));
+    ASSERT_NE(chariot, nullptr);
+    EXPECT_STREQ(chariot->script, "e25a");
+    EXPECT_EQ(chariot->record, 0x2084);
+    // The backup added to its script, its hop its own backup motion.
+    for (Monster kind : {Monster::MASTER_JACKET, Monster::WEREWOLF, Monster::ROCKANOFF, Monster::KING_MIMIC_DS}) {
+        const expanded::SnakeRetreat *added = expanded::SnakeRetreatOf(expanded::No(kind));
+        ASSERT_NE(added, nullptr) << expanded::No(kind);
+        EXPECT_EQ(added->record, 0);
+        EXPECT_EQ(added->motion, 2);
+    }
+    EXPECT_EQ(expanded::SnakeRetreatOf(expanded::No(Monster::HALLOWEEN))->motion, 13);
+    EXPECT_EQ(expanded::SnakeRetreatOf(expanded::No(Monster::CAVE_BAT)), nullptr); // no backup motion
+    // An Expanded Gemron's its stand-in's: Holy Gemron's script, rewritten.
     for (Monster gemron : {Monster::CRYSTAL_GEMRON, Monster::ATLA_GEMRON, Monster::BOMB_GEMRON}) {
         EXPECT_EQ(expanded::SnakeRetreatOf(expanded::No(gemron)), expanded::SnakeRetreatOf(expanded::No(Monster::GEMRON_HOLY)));
     }
@@ -369,9 +408,9 @@ TEST_F(SerpentSword, ExpandedGemronsRunTheirStandInsRetreat) {
 }
 
 TEST_F(SerpentSword, TheirOwnAiRetreatsToTheEdgeOfReach) {
-    Put({Monster::MASTER_JACKET});
+    Put({Monster::GYON});
     CMonstorUnit &unit = floor_.unit();
-    CRunScript   &script = LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::MASTER_JACKET)));
+    CRunScript   &script = LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::GYON)));
     vmcode_t     *loop = LabelCells();
     vmcode_t     *routine = RoutineCells();
     At(0, 0.0f, 40.0f);
@@ -461,10 +500,10 @@ TEST_F(SerpentSword, ATooCloseBackupStartsAtTheApproachsEnd) {
     expanded::MonsterScriptStepped(unit, 0);
 }
 
-TEST_F(SerpentSword, ARetreatItsAiNeverRollsForIsHeldInstead) {
-    Put({Monster::MASTER_JACKET});
+TEST_F(SerpentSword, ARetreatItsAiNeverCallsIsHeldInstead) {
+    Put({Monster::GYON});
     CMonstorUnit &unit = floor_.unit();
-    LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::MASTER_JACKET)), false);
+    LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::GYON)), false);
     At(0, 0.0f, 40.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
@@ -530,25 +569,55 @@ TEST_F(SerpentSword, KindsWithoutARetreatStaggerThenIdle) {
     EXPECT_EQ(unit.script_state[0], 0);
 }
 
-TEST_F(SerpentSword, MimicsRetreatOnceAwake) {
-    Put({Monster::MIMIC_DBC});
-    CMonstorUnit &unit = floor_.unit();
+TEST_F(SerpentSword, TheBackupAddedToItsScriptBacksItOff) {
+    Put({Monster::ROCKANOFF});
+    CMonstorUnit                &unit = floor_.unit();
+    CRunScript                  &script = LoadBackup(0, Monster::ROCKANOFF);
+    const expanded::SnakeBackup *added = expanded::SnakeBackupOf(script.code);
+    ASSERT_NE(added, nullptr);
+    vmcode_t &trigger = *reinterpret_cast<vmcode_t *>(script.code + added->trigger);
     At(0, 0.0f, 40.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
-    LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::MIMIC_DBC)));
+    // Near the player, for its own step: its loop calls the backup within the approach's end, and the backup's limits
+    // (40 from where it started, five passes) go on.
+    EXPECT_FLOAT_EQ(Float(trigger), 0.0f);
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(Float(trigger), expanded::kSnakeApproachTo);
+    const vmcode_t *backup = BackupCells(script, *added);
+    EXPECT_FLOAT_EQ(Float(backup[kBackupFromStartCell]), expanded::kSnakeRetreatUnlimited);
+    EXPECT_EQ(backup[kBackupHopsCell].arg2, expanded::kSnakeRetreatHops);
+    expanded::MonsterScriptStepped(unit, 0);
+    EXPECT_FLOAT_EQ(Float(trigger), 0.0f);
+    EXPECT_FLOAT_EQ(Float(backup[kBackupFromStartCell]), 40.0f);
+    EXPECT_EQ(backup[kBackupHopsCell].arg2, 4);
+    // The guard down: as its script was.
+    Guard(false);
+    expanded::SnakeCharmerStep();
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(Float(trigger), 0.0f);
+}
+
+TEST_F(SerpentSword, MimicsBackOffOnceAwake) {
+    Put({Monster::MIMIC_DBC});
+    CMonstorUnit &unit = floor_.unit();
+    CRunScript   &script = LoadBackup(0, Monster::MIMIC_DBC);
+    vmcode_t     &trigger = *reinterpret_cast<vmcode_t *>(script.code + expanded::SnakeBackupOf(script.code)->trigger);
+    At(0, 0.0f, 40.0f);
+    Guard(true);
+    expanded::SnakeCharmerStep();
     // Still waking from its chest (its appear clip, or about to start it): its script as it is.
     unit.monster[0].requested_motion = expanded::kMimicWake;
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    EXPECT_FLOAT_EQ(Float(LabelCells()[kTriggerCell]), kTriggerDistance);
+    EXPECT_FLOAT_EQ(Float(trigger), 0.0f);
     unit.monster[0].requested_motion = 0;
     unit.monster[0].revealed = 1;
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    EXPECT_FLOAT_EQ(Float(LabelCells()[kTriggerCell]), kTriggerDistance);
-    // Awake: its own AI retreats.
+    EXPECT_FLOAT_EQ(Float(trigger), 0.0f);
+    // Awake: it backs off.
     unit.monster[0].revealed = -1;
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    EXPECT_FLOAT_EQ(Float(LabelCells()[kTriggerCell]), expanded::kSnakeRetreatRadius);
+    EXPECT_FLOAT_EQ(Float(trigger), expanded::kSnakeApproachTo);
     expanded::MonsterScriptStepped(unit, 0);
 }
 
