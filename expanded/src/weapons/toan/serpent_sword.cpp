@@ -3,6 +3,7 @@
 #include <libvu0.h>
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -81,14 +82,26 @@ constexpr int kEntryBlend = 1, kEntryRestart = 2;
 
 // A monster running its script's own retreat, and the steps it rests after one before it may run it again.
 struct Retreat {
-    bool  running = false;
-    int   motion = -1; // the retreat's motion, cross-faded into in place of its script's cut
-    float from = 0.0f; // its distance from the player as the retreat began
-    int   stalls = 0;  // retreats in a row that gained it nothing
-    int   entry = 0;   // how its retreat motion comes in, once: kEntryBlend, kEntryRestart, or 0 once it has
-    int   rest = 0;
-    bool  held = false; // a kind without one: taken from its script, staggered and standing idle
-    int   stagger = 0;  // steps of its stagger left before it idles
+    bool                running = false;
+    int                 motion = -1; // the retreat's motion, cross-faded into in place of its script's cut
+    float               from = 0.0f; // its distance from the player as the retreat began
+    float               best = 0.0f; // the farthest it has got in this retreat
+    int                 stuck = 0;   // steps since it last got farther
+    int                 stalls = 0;  // retreats in a row that gained it nothing
+    int                 entry = 0;   // how its retreat motion comes in, once: kEntryBlend, kEntryRestart, or 0 once it has
+    int                 rest = 0;
+    bool                held = false; // a kind without one: taken from its script, staggered and standing idle
+    int                 stagger = 0;  // steps of its stagger left before it idles
+    const SnakeRetreat *own = nullptr;
+
+    // Its routine's limits as its script has them, while raised for its step.
+    struct Limit {
+        int *at;
+        int  was;
+    };
+
+    Limit limits[8] = {};
+    int   limit_count = 0;
 };
 
 Retreat retreats[kFloorMonsters];
@@ -224,6 +237,9 @@ bool MarkNear(CMonstorUnit &unit) {
     return came;
 }
 
+// How far a routine's code is looked through for its end.
+constexpr int kRoutineCells = 4096;
+
 // A cell pushing the int value, and a function's last cell (its return, the padding after it).
 bool Pushes(const vmcode_t &cell, int value) {
     return cell.op == static_cast<int>(stb::kPushConst) && cell.arg1 == static_cast<int>(stb::kInt) && cell.arg2 == value;
@@ -247,7 +263,7 @@ Record RecordAt(const char *code, int record) {
 // Whether the loaded script holds the retreat where the table has it: a function of as many arguments whose code (or a
 // function it calls) sets the retreat's motion (_SET_MOTION's command and the motion pushed in turn).
 bool HoldsRetreat(const char *code, const SnakeRetreat &retreat) {
-    constexpr int kCells = 4096;
+    constexpr int kCells = kRoutineCells;
     auto          cells = [&](const Record &function) { return reinterpret_cast<const vmcode_t *>(code + function.addr); };
     auto          sets_motion = [&](const Record &function) {
         const vmcode_t *cell = cells(function);
@@ -286,6 +302,76 @@ bool MayRetreat(const MONSTOR &live, const MONSTOR_MODEL &model) {
             return live.revealed == -1 && live.requested_motion != kKingMimicWake;
         default:
             return false;
+    }
+}
+
+// What a retreat routine's variable measures, by how its code sets it: the distance to the player (_GET_DISTANCE into it
+// alone), the distance from a point (a point's three coordinates, then it), or a count (itself plus one, stored back).
+enum class Measure {
+    kNone,
+    kPlayer,
+    kPoint,
+    kCount
+};
+
+Measure MeasureOf(const vmcode_t *cells, int count, int var) {
+    for (int i = 0; i < count; i++) {
+        const vmcode_t &cell = cells[i];
+        if (cell.op == static_cast<int>(stb::kExt) && cell.arg1 >= 2 && i >= cell.arg1 && Pushes(cells[i - cell.arg1], stb::kGetDistance) &&
+            cells[i - 1].op == static_cast<int>(stb::kLoadAddress) && cells[i - 1].arg1 == var) {
+            return cell.arg1 == 2 ? Measure::kPlayer : Measure::kPoint;
+        }
+        if (i + 4 < count && cell.op == static_cast<int>(stb::kLoadAddress) && cell.arg1 == var && cells[i + 1].op == static_cast<int>(stb::kLoad) &&
+            cells[i + 1].arg1 == var && Pushes(cells[i + 2], 1) && cells[i + 3].op == static_cast<int>(stb::kAdd) && cells[i + 4].op == static_cast<int>(stb::kStore)) {
+            return Measure::kCount;
+        }
+    }
+    return Measure::kNone;
+}
+
+// Puts its routine's limits back as its script has them.
+void Restore(Retreat &retreat) {
+    for (int i = retreat.limit_count; i-- > 0;) {
+        *retreat.limits[i].at = retreat.limits[i].was;
+    }
+    retreat.limit_count = 0;
+}
+
+// Raises its routine's limits for the step its script takes (put back after it: the program is the kind's, shared, and
+// its own AI runs the same routine): where the routine stops once the player is so far (a variable it measures to the
+// player, compared at least or more than a constant) it goes on to kSnakeRetreatTo; where it stops once it has come
+// so far from where it started, or after so many hops, it goes on without end (its retreat is ended as it gets out of
+// reach, or stops getting farther).
+void Extend(CMonstorUnit &unit, int monster, Retreat &retreat) {
+    Restore(retreat);
+    char *code = unit.interpreter[monster].code;
+    auto *cells = reinterpret_cast<vmcode_t *>(code + RecordAt(code, retreat.own->record).addr);
+    int   count = 0;
+    while (count < kRoutineCells && !Ends(cells + count)) {
+        count++;
+    }
+    for (int i = 0; i + 3 < count && retreat.limit_count < static_cast<int>(std::size(retreat.limits)); i++) {
+        if (cells[i].op != static_cast<int>(stb::kLoad) || cells[i + 1].op != static_cast<int>(stb::kPushConst) ||
+            cells[i + 2].op != static_cast<int>(stb::kCompare) ||
+            (cells[i + 2].arg1 != static_cast<int>(stb::kGreaterThan) && cells[i + 2].arg1 != static_cast<int>(stb::kGreaterOrEqual)) ||
+            cells[i + 3].op != static_cast<int>(stb::kJumpFalse)) {
+            continue;
+        }
+        float to = 0.0f;
+        switch (MeasureOf(cells, count, cells[i].arg1)) {
+            case Measure::kPlayer:
+                to = kSnakeRetreatTo;
+                break;
+            case Measure::kPoint:
+            case Measure::kCount:
+                to = kSnakeRetreatUnlimited;
+                break;
+            case Measure::kNone:
+                continue;
+        }
+        int &value = cells[i + 1].arg2;
+        retreat.limits[retreat.limit_count++] = {&value, value};
+        value = cells[i + 1].arg1 == static_cast<int>(stb::kFloat) ? std::bit_cast<int>(to) : static_cast<int>(to);
     }
 }
 
@@ -741,15 +827,33 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
     Retreat &retreat = retreats[monster];
     bool     chain = false;
     if (retreat.running) {
-        // Its own script runs the retreat (or a hit's reaction in its place) to its end.
+        float dx = 0.0f, dz = 0.0f, distance = 0.0f;
+        bool  in_play = Offset(unit, monster, dx, dz, distance);
         if (unit.script_state[monster] != 0) {
+            // Its own script runs the retreat (or a hit's reaction in its place), its limits raised, until it is
+            // kSnakeRetreatTo away (past the reach, so it comes a little way back before the next) or the guard comes down (back to its script, from the top), or it stops getting farther (a wall at its
+            // back: its script's turn for a rest).
+            if (distance > retreat.best + kSnakeRetreatGain) {
+                retreat.best = distance;
+                retreat.stuck = 0;
+            } else {
+                retreat.stuck++;
+            }
+            bool out = !snake.up || &unit != NowMonstorUnit || !in_play || distance >= kSnakeRetreatTo;
+            if (out || retreat.stuck >= kSnakeRetreatStuck) {
+                unit.script_state[monster] = 0;
+                unit.monster[monster].movement_speed = 0.0f;
+                retreat.running = false;
+                retreat.rest = out ? 0 : kSnakeRetreatRest;
+                return false;
+            }
+            Extend(unit, monster, retreat);
             return false;
         }
         retreat.running = false;
         // Straight into the next while it is still near. Held up retreat after retreat (a wall at its back, not a step
         // that went sideways), its script's turn for a rest.
-        float dx = 0.0f, dz = 0.0f, distance = 0.0f;
-        bool  gained = Offset(unit, monster, dx, dz, distance) && distance >= retreat.from + kSnakeRetreatGain;
+        bool gained = in_play && distance >= retreat.from + kSnakeRetreatGain;
         retreat.stalls = gained ? 0 : retreat.stalls + 1;
         if (retreat.stalls >= kSnakeRetreatStalls) {
             retreat.stalls = 0;
@@ -786,6 +890,10 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
         args[i].f = own->args[i];
     }
     retreat.entry = unit.monster[monster].requested_motion == own->motion ? kEntryRestart : kEntryBlend;
+    retreat.own = own;
+    retreat.best = distance;
+    retreat.stuck = 0;
+    Extend(unit, monster, retreat);
     unit.interpreter[monster].run_function(own->record, args, own->argc);
     unit.script_state[monster] = unit.interpreter[monster].IsEnd() != 0 ? 0 : 1;
     retreat.running = unit.script_state[monster] != 0;
@@ -793,6 +901,12 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
     retreat.from = distance;
     retreat.rest = retreat.running ? 0 : kSnakeRetreatRest;
     return true;
+}
+
+void SnakeCharmerScriptStepped(CMonstorUnit & /*unit*/, int monster) {
+    if (monster >= 0 && monster < kFloorMonsters) {
+        Restore(retreats[monster]);
+    }
 }
 
 void SnakeCharmerMonsterMove(CMonstorUnit &unit, int monster) {

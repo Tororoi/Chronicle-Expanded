@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <bit>
 #include <cstring>
 #include <initializer_list>
 #include <string>
@@ -118,7 +119,14 @@ protected:
     }
 
     // A script on the monster with the retreat where the table has it: _SET_MOTION's command and the motion pushed, then
-    // a wait.
+    // a wait; past the wait, its limits (kPlayerLimit at kPlayerCell: the player 20 away, kCountLimit at kCountCell: three
+    // hops).
+    static constexpr int   kPlayerCell = 10, kCountCell = 20;
+    static constexpr int   kCountLimit = 3;
+    static constexpr float kPlayerLimit = 20.0f;
+
+    vmcode_t *RetreatCells() { return reinterpret_cast<vmcode_t *>(reinterpret_cast<char *>(program_.data()) + 0x60 + 0x10); }
+
     CRunScript &LoadRetreat(int monster, const expanded::SnakeRetreat &retreat) {
         constexpr int kCode = 0x60, kEntry = 0x10;
         program_.assign((kCode + retreat.record + 0x100) / 4, 0);
@@ -127,13 +135,31 @@ protected:
         char     *code = reinterpret_cast<char *>(program_.data()) + kCode;
         const int record[4] = {kEntry, 0, 4, retreat.argc};
         const int cells[][3] = {
-            {3,  1, 200           },
-            {3,  1, retreat.motion},
-            {4,  0, 0             },
-            {4,  0, 0             },
-            {23, 0, 0             },
-            {3,  1, 0             },
-            {15, 0, 0             }
+            {3,  1,  200                             },
+            {3,  1,  retreat.motion                  },
+            {4,  0,  0                               },
+            {4,  0,  0                               },
+            {23, 0,  0                               },
+            {3,  1,  10                              }, // _GET_DISTANCE(&v0): to the player
+            {2,  0,  8                               },
+            {21, 2,  0                               },
+            {4,  0,  0                               },
+            {1,  0,  8                               }, // v0 >= 20: done
+            {3,  2,  std::bit_cast<int>(kPlayerLimit)},
+            {14, 45, 0                               },
+            {17, 0,  0                               },
+            {2,  1,  1                               }, // v1 = v1 + 1
+            {1,  1,  1                               },
+            {3,  1,  1                               },
+            {6,  0,  0                               },
+            {5,  0,  0                               },
+            {4,  0,  0                               },
+            {1,  1,  1                               }, // v1 > 3: done
+            {3,  1,  kCountLimit                     },
+            {14, 44, 0                               },
+            {17, 0,  0                               },
+            {3,  1,  0                               },
+            {15, 0,  0                               }
         };
         std::memcpy(code + retreat.record, record, sizeof(record));
         std::memcpy(code + kEntry, cells, sizeof(cells));
@@ -307,6 +333,62 @@ TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
     Guard(false);
     expanded::SnakeCharmerStep();
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+}
+
+TEST_F(SerpentSword, RetreatsGoOnToTheEdgeOfReach) {
+    Put({Monster::MASTER_JACKET});
+    CMonstorUnit &unit = floor_.unit();
+    LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::MASTER_JACKET)));
+    vmcode_t *cells = RetreatCells();
+    At(0, 0.0f, 40.0f);
+    Guard(true);
+    expanded::SnakeCharmerStep();
+
+    // For its own step its routine goes on until the player is the reach away, its hops without end; after the step,
+    // its script (the kind's, shared with the rest) has its own limits again.
+    unit.script_state[0] = 1;
+    ASSERT_TRUE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(std::bit_cast<float>(cells[kPlayerCell].arg2), expanded::kSnakeRetreatTo);
+    EXPECT_EQ(cells[kCountCell].arg2, static_cast<int>(expanded::kSnakeRetreatUnlimited));
+    expanded::MonsterScriptStepped(unit, 0);
+    EXPECT_FLOAT_EQ(std::bit_cast<float>(cells[kPlayerCell].arg2), kPlayerLimit);
+    EXPECT_EQ(cells[kCountCell].arg2, kCountLimit);
+    At(0, 0.0f, 50.0f);
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(std::bit_cast<float>(cells[kPlayerCell].arg2), expanded::kSnakeRetreatTo);
+    expanded::MonsterScriptStepped(unit, 0);
+    EXPECT_EQ(cells[kCountCell].arg2, kCountLimit);
+
+    // Still going at the edge of reach; past it: back to its script, from the top, its step stopped.
+    At(0, 0.0f, expanded::kSnakeRetreatRadius + 1.0f);
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.script_state[0], 1);
+    expanded::MonsterScriptStepped(unit, 0);
+    unit.monster[0].movement_speed = 1.0f;
+    At(0, 0.0f, expanded::kSnakeRetreatTo);
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.script_state[0], 0);
+    EXPECT_FLOAT_EQ(unit.monster[0].movement_speed, 0.0f);
+    expanded::MonsterScriptStepped(unit, 0);
+
+    // Getting no farther (a wall at its back): its script's turn, after a rest.
+    At(0, 0.0f, 40.0f);
+    unit.script_state[0] = 1;
+    ASSERT_TRUE(expanded::MonsterStepTaken(unit, 0));
+    expanded::MonsterScriptStepped(unit, 0);
+    for (int step = 1; step < expanded::kSnakeRetreatStuck; step++) {
+        EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+        EXPECT_EQ(unit.script_state[0], 1) << step;
+        expanded::MonsterScriptStepped(unit, 0);
+    }
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.script_state[0], 0);
+    expanded::MonsterScriptStepped(unit, 0);
+    for (int step = 0; step < expanded::kSnakeRetreatRest; step++) {
+        EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0)) << step;
+    }
+    EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
+    expanded::MonsterScriptStepped(unit, 0);
 }
 
 TEST_F(SerpentSword, MonstersFinishWhatTheyAreDoingFirst) {

@@ -358,6 +358,12 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
            BlindStep(unit, monster) || SnakeCharmerMonsterStep(unit, monster);
 }
 
+void MonsterScriptStepped(CMonstorUnit &unit, int monster) {
+    if (!AllyUnit(unit)) {
+        SnakeCharmerScriptStepped(unit, monster);
+    }
+}
+
 void PelletFired(CSHOT &shots, int slot) {
     MoonlitFocusShot(shots.vector[slot]);
     SolarShotFired(shots, slot);

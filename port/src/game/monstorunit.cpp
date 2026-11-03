@@ -2215,6 +2215,9 @@ void CMonstorUnit::Step(int pause) {
                             script_state[current_monster] = 0;
                         }
                     }
+#ifdef CHRONICLE_EXPANDED
+                    expanded::MonsterScriptStepped(*this, current_monster);
+#endif
 
                     chara[current_monster][0].GetPosition(position);
 

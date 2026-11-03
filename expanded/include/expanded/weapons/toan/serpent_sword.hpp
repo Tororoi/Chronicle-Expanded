@@ -29,22 +29,27 @@ namespace expanded {
 // within kSnakeRetreatRadius of the player backs off as its own script does: an ordinary monster whose script has a
 // retreat (a routine of its own that steps it back on its back-off motion, as its script calls it: SnakeRetreatOf) runs
 // it in place of what it would do next, once it is between actions (in a walk or an idle, or at the end of an attack or
-// other one-shot, as its script would choose its next), its motion cross-fading in where its script would cut, and as
-// each ends it runs the next straight away while it is still near, its script carrying on only once it is out of reach
-// or the guard comes down; kSnakeRetreatStalls in a row that each gain it less than kSnakeRetreatGain (a wall at its
-// back, not one step that went sideways) hand it back to its script for kSnakeRetreatRest steps first. An ordinary
-// monster whose script has none is taken from its script instead while it is near: once between actions it staggers
-// (its damage clip, as a blinding staggers it: BlindClipsOf, cross-faded in) and then stands idle (kSnakeIdle) where it
-// is, staggering again if struck, until the guard comes down. A mimic runs its retreat too once it is out of its chest
-// and done with its wake (its appear clip, kMimicWake, a king mimic's kKingMimicWake); until then it keeps to its
-// script but takes no step nearer the player, as the bosses always do and as does any monster resting between retreats.
-// An Expanded species (the Crystal, Atla and Bomb Gemrons) runs its stand-in's script, and so its retreat. The head
-// fades in over kSnakeFadeSteps as the guard goes up and out over as long as it comes down, the head and the weapon
-// glowing white (kSnakeGlow added to their light) as it shows. It is a ghost: drawn kSnakeGhost see-through (its
-// nearest surface only, never its inside), shimmering as the Mirage's copy does, less (kSnakeHaze at kSnakeHazeGain,
-// its wave at kSnakeHazeWave, from under its face, kSnakeFace, down over the blade), a periwinkle-to-fuchsia glow disc
-// kSnakeGlowDisc across on its face (depth-tested from kSnakeGlowPull nearer) growing in as it comes and shrinking away
-// as it goes, over kSnakeGlowSteps (slower than its fade: the disc stays where the face last was).
+// other one-shot, as its script would choose its next), its motion cross-fading in where its script would cut. The
+// routine's own limits are raised for the monster's step (and put back after it, the program being the kind's, shared):
+// where it stops once the player is so far, it goes on to kSnakeRetreatTo, and where it stops after so far from where
+// it started, or so many hops, it goes on without end; the retreat ends at kSnakeRetreatTo (a little past the reach, so
+// the monster comes back a way before the next) or as the guard comes down, its script carrying on from the top, or
+// after kSnakeRetreatStuck steps getting no farther (a wall at its back). A routine that ends of itself while the
+// monster is still near is followed by the next straight away; kSnakeRetreatStalls in a row that each gain it less than
+// kSnakeRetreatGain (a wall at its back, not one step that went sideways) hand it back to its script for
+// kSnakeRetreatRest steps first. An ordinary monster whose script has none is taken from its script instead while it is
+// near: once between actions it staggers (its damage clip, as a blinding staggers it: BlindClipsOf, cross-faded in) and
+// then stands idle (kSnakeIdle) where it is, staggering again if struck, until the guard comes down. A mimic runs its
+// retreat too once it is out of its chest and done with its wake (its appear clip, kMimicWake, a king mimic's
+// kKingMimicWake); until then it keeps to its script but takes no step nearer the player, as the bosses always do and
+// as does any monster resting between retreats. An Expanded species (the Crystal, Atla and Bomb Gemrons) runs its
+// stand-in's script, and so its retreat. The head fades in over kSnakeFadeSteps as the guard goes up and out over as
+// long as it comes down, the head and the weapon glowing white (kSnakeGlow added to their light) as it shows. It is a
+// ghost: drawn kSnakeGhost see-through (its nearest surface only, never its inside), shimmering as the Mirage's copy
+// does, less (kSnakeHaze at kSnakeHazeGain, its wave at kSnakeHazeWave, from under its face, kSnakeFace, down over the
+// blade), a periwinkle-to-fuchsia glow disc kSnakeGlowDisc across on its face (depth-tested from kSnakeGlowPull nearer)
+// growing in as it comes and shrinking away as it goes, over kSnakeGlowSteps (slower than its fade: the disc stays
+// where the face last was).
 //
 // It hisses as it comes (kSnakeHiss: the Killer Snake's own hiss from its event's bank, SE 393 there, a little quieter
 // than the game plays it).
@@ -80,9 +85,12 @@ inline constexpr float            kSnakeHeight = 14.0f;
 inline constexpr float            kSnakeLift = 2.0f;
 inline constexpr float            kSnakeBack = 11.0f;
 inline constexpr float            kSnakeRetreatRadius = 100.0f;
+inline constexpr float            kSnakeRetreatTo = 110.0f;
 inline constexpr int              kSnakeRetreatRest = 30;
 inline constexpr float            kSnakeRetreatGain = 0.25f;
 inline constexpr int              kSnakeRetreatStalls = 3;
+inline constexpr int              kSnakeRetreatStuck = 60;
+inline constexpr float            kSnakeRetreatUnlimited = 10000.0f;
 inline constexpr int              kSnakeIdle = 0;
 inline constexpr int              kMimicWake = 18, kKingMimicWake = 21;
 
@@ -125,6 +133,8 @@ struct SnakeRetreat {
 const SnakeRetreat *SnakeRetreatOf(int kind);
 // Hook: a monster's step: true when its script started its retreat (in place of its step's script).
 bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster);
+// Hook: after a monster's script step: its retreat's limits put back as its script had them.
+void SnakeCharmerScriptStepped(CMonstorUnit &unit, int monster);
 // Hook: a monster's step after the other monsters blocked it: what takes a step nearer the player taken off it while
 // it is near and not retreating.
 void SnakeCharmerMonsterMove(CMonstorUnit &unit, int monster);
