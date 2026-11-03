@@ -29,11 +29,15 @@ bool WeaponActive(int weapon_no);
 WEAPON_HAVE       *EquippedWeapon(CUserStatus &status, int chara);
 const WEAPON_HAVE *EquippedWeapon(const CUserStatus &status, int chara);
 
+// The weapon record the weapon menu has selected, or nullptr.
+const WEAPON_HAVE *MenuWeapon();
+
 // Whether a weapon record carries weapon_no's effect, for a member other than the active one: it is weapon_no, or
 // Super Steve with its SynthSphere.
 bool CarriesWeapon(const WEAPON_HAVE &weapon, int weapon_no);
 
-// Whether chara's equipped weapon (UserStatus's) carries weapon_no's effect (CarriesWeapon).
+// Whether chara's equipped weapon in status (UserStatus's when not given) carries weapon_no's effect (CarriesWeapon).
+bool EquippedCarries(const CUserStatus &status, int chara, int weapon_no);
 bool EquippedCarries(int chara, int weapon_no);
 
 // The weapon whose cell of basefx01 the player's pellets are drawn with: the Steel Slingshot's stone for Double Impact's

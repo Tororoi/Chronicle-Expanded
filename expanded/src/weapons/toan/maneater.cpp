@@ -15,12 +15,11 @@ namespace {
 
 // chara's equipped Maneater: the sword (Toan's) or Super Steve carrying its sphere (Xiao's), else nullptr.
 WEAPON_HAVE *Maneater(CUserStatus &status, int chara) {
-    WEAPON_HAVE *weapon = EquippedWeapon(status, chara);
-    return weapon != nullptr && CarriesWeapon(*weapon, ITEM_WEAPON_MANEATER) ? weapon : nullptr;
+    return EquippedCarries(status, chara, ITEM_WEAPON_MANEATER) ? EquippedWeapon(status, chara) : nullptr;
 }
 
 bool Cursing(const CUserStatus &status, int chara) {
-    return Maneater(const_cast<CUserStatus &>(status), chara) != nullptr;
+    return EquippedCarries(status, chara, ITEM_WEAPON_MANEATER);
 }
 
 // Lifting it costs nothing.
@@ -31,11 +30,6 @@ constexpr CurseRule kBloodPrice = {.cursing = Cursing, .lifted = Lifted, .immune
 [[maybe_unused]] const bool kRule = AddCurseRule(&kBloodPrice);
 
 int frames[kPartyMembers] = {};
-
-// The life the member has, the gauge's target while it moves.
-int Life(const CUserStatus &status, int chara) {
-    return status.life_step[chara] != 0 ? status.next_hp[chara] : status.hp[chara];
-}
 
 void Feed(CUserStatus &status, int chara) {
     WEAPON_HAVE *sword = Maneater(status, chara);
@@ -49,7 +43,7 @@ void Feed(CUserStatus &status, int chara) {
     frames[chara] = 0;
     bool warning = sword->durability_f > 0.0f && sword->durability_f <= kBloodPriceWarning * sword->durability;
     bool down = (status.ailments[chara] & AILMENT_KNOCKED_OUT) != 0;
-    if (!warning || down || Life(status, chara) <= 1) {
+    if (!warning || down || MemberLife(status, chara) <= 1) {
         return;
     }
     status.AddNowLife(chara, -1, 0.0f);

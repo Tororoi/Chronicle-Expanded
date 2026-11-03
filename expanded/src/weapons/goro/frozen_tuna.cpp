@@ -5,6 +5,7 @@
 
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/party.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/enemies/enemy_events.hpp"
@@ -41,11 +42,6 @@ struct Pool {
 Pool goro_pool;
 Pool sphere_pool;
 
-// The life the member has, the gauge's target while it moves.
-int Life(const CUserStatus &status, int chara) {
-    return status.life_step[chara] != 0 ? status.next_hp[chara] : status.hp[chara];
-}
-
 void Log(const Pool &pool, const char *what) {
     LogEvent("pool", std::format("\"chara\":{},\"what\":\"{}\",\"banked\":{:.2f}", pool.chara, what, pool.banked));
 }
@@ -67,7 +63,7 @@ void StepPool(Pool &pool, bool active) {
         return;
     }
     int chara = UserStatus->cur_chara;
-    int life = Life(*UserStatus, chara);
+    int life = MemberLife(*UserStatus, chara);
     if (pool.weapon != weapon || pool.chara != chara) {
         Empty(pool);
         pool = {.weapon = weapon, .chara = chara, .whp = weapon->durability_f};

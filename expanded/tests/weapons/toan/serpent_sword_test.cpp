@@ -428,6 +428,7 @@ TEST_F(SerpentSword, TheirOwnAiRetreatsToTheEdgeOfReach) {
     EXPECT_FLOAT_EQ(Float(routine[kPointCell]), expanded::kSnakeRetreatUnlimited);
     EXPECT_EQ(routine[kCountCell].arg2, expanded::kSnakeRetreatHops);
     EXPECT_FLOAT_EQ(Float(loop[kStepInCell]), expanded::kSnakeApproachTo);
+    EXPECT_FLOAT_EQ(Float(loop[kShotCell]), kShotRange); // a check that shoots keeps its distance
     vmcode_t *shot = ShotCells();
     EXPECT_EQ(shot[0].op, 3); // the shot routine returns at once
     EXPECT_EQ(shot[1].op, 15);

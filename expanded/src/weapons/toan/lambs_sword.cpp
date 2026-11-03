@@ -276,7 +276,7 @@ void WolfSteveShow(CCharacter *chara, const WEAPON_HAVE &weapon) {
         return;
     }
     bool wolf = LambWeapon(weapon) && LambWolfForm(weapon);
-    bool macho = WeaponAbilitiesOn() && SphereWeapon(weapon) == ITEM_WEAPON_MACHO_SWORD; // Macho's hat and arms (macho_sword.hpp)
+    bool macho = SphereWeapon(weapon) == ITEM_WEAPON_MACHO_SWORD; // Macho's hat and arms (macho_sword.hpp)
     for (auto [name, shown] : {
              std::pair{kSteveParts, !wolf          },
              std::pair{kSteveHands, !wolf          },

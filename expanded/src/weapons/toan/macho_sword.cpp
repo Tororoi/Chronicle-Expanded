@@ -84,8 +84,7 @@ void FitCloth(const PumpedUpRig &rig, float grow) {
 std::map<CFrame *, sceVu0FMATRIX> hand_locals;
 
 bool Carries(int chara) {
-    const WEAPON_HAVE *weapon = UserStatus != nullptr ? EquippedWeapon(*UserStatus, chara) : nullptr;
-    return weapon != nullptr && WeaponAbilitiesOn() && CarriesWeapon(*weapon, ITEM_WEAPON_MACHO_SWORD);
+    return EquippedCarries(chara, ITEM_WEAPON_MACHO_SWORD);
 }
 
 // Toan's model, out with the Macho Sword in hand and pumped up.
