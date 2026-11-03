@@ -48,7 +48,7 @@ inline constexpr std::uint32_t kInt = 1, kFloat = 2, kString = 3;
 inline constexpr std::uint32_t kIntLocal = 1, kFloatLocal = 8;
 
 // Commands: an EXT's first argument.
-inline constexpr std::uint32_t kGetDistance = 10, kGetPosition = 11, kGetDirection = 31, kStatusSetMuteki = 101, kSetBodyCol = 130,
+inline constexpr std::uint32_t kGetDistance = 10, kGetPosition = 11, kGetDirection = 31, kSetMove = 32, kStatusSetMuteki = 101, kSetBodyCol = 130,
                                kSetDmgPara = 132, kSetShot = 133, kSetBodyColPara = 134, kGetRand = 180, kSetMotion = 200, kSetShot2 = 229,
                                kSetGuardFrame = 244;
 

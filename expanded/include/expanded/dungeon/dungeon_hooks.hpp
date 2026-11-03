@@ -108,6 +108,10 @@ float PlayerLockOnRange(float rate);
 
 // A monster's step (CMonstorUnit::Step): true when a feature stepped it in place of its script.
 bool MonsterStepTaken(CMonstorUnit &unit, int monster);
+// A kind's script loaded into a model slot (SetupBaseModel): the script its monsters run.
+char *MonsterScriptLoaded(CMonstorUnit &unit, int slot, int model_no, char *script, int size);
+// After a monster's script step (its own, or a feature's in its place).
+void MonsterScriptStepped(CMonstorUnit &unit, int monster);
 
 // Xiao fired a pellet into slot of shots (BattleActionPlay_Jinn), and a pellet ended at point, on a monster when struck
 // (CSHOT::step): the weapons that ride or answer her shots.

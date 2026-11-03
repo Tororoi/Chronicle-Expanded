@@ -68,6 +68,7 @@
 #include "expanded/weapons/toan/seventh_heaven.hpp"
 #include "expanded/weapons/toan/shamshir.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
+#include "expanded/weapons/toan/snake_backup.hpp"
 #include "expanded/weapons/toan/sun_sword.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
@@ -356,6 +357,16 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
     }
     return BossDeathStep(unit, monster) || BombGemronStep(unit, monster) || ReviveStep(unit, monster) ||
            BlindStep(unit, monster) || SnakeCharmerMonsterStep(unit, monster);
+}
+
+char *MonsterScriptLoaded(CMonstorUnit &unit, int slot, int model_no, char *script, int size) {
+    return SnakeBackupScript(unit, slot, model_no, script, size);
+}
+
+void MonsterScriptStepped(CMonstorUnit &unit, int monster) {
+    if (!AllyUnit(unit)) {
+        SnakeCharmerScriptStepped(unit, monster);
+    }
 }
 
 void PelletFired(CSHOT &shots, int slot) {
