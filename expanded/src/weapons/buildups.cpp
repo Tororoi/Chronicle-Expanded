@@ -14,22 +14,23 @@ struct WeaponBuildUp {
 
 constexpr WeaponBuildUp kBuildUps[] = {
     // Toan
-    {ITEM_WEAPON_HEAVEN_S_CLOUD, {}},
-    {ITEM_WEAPON_CHOORA, {ITEM_WEAPON_MANEATER}},
+    {ITEM_WEAPON_HEAVEN_S_CLOUD,   {}                                                                            },
+    {ITEM_WEAPON_CHOORA,           {ITEM_WEAPON_MANEATER}                                                        },
     // Xiao
-    {ITEM_WEAPON_HARDSHOOTER, {ITEM_WEAPON_DOUBLE_IMPACT}},
-    {ITEM_WEAPON_DOUBLE_IMPACT, {ITEM_WEAPON_MATADOR}},
+    {ITEM_WEAPON_HARDSHOOTER,      {ITEM_WEAPON_DOUBLE_IMPACT}                                                   },
+    {ITEM_WEAPON_DOUBLE_IMPACT,    {ITEM_WEAPON_MATADOR}                                                         },
     // Goro
-    {ITEM_WEAPON_BIG_BUCKS_HAMMER, {ITEM_WEAPON_MAGICAL_HAMMER}},
-    {ITEM_WEAPON_FROZEN_TUNA, {}},
+    {ITEM_WEAPON_BIG_BUCKS_HAMMER, {ITEM_WEAPON_MAGICAL_HAMMER}                                                  },
+    {ITEM_WEAPON_FROZEN_TUNA,      {}                                                                            },
+    {ITEM_WEAPON_LAST_JUDGEMENT,   {ITEM_WEAPON_INFERNO}                                                         },
     // Ruby
-    {ITEM_WEAPON_PLATINUM_RING, {ITEM_WEAPON_CRYSTAL_RING, ITEM_WEAPON_THORN_ARMLET}},
-    {ITEM_WEAPON_THORN_ARMLET, {ITEM_WEAPON_DESTRUCTION_RING}},
-    {ITEM_WEAPON_POCKLEKUL, {ITEM_WEAPON_FAIRY_S_RING, ITEM_WEAPON_GODDESS_RING, ITEM_WEAPON_SATAN_S_RING}},
+    {ITEM_WEAPON_PLATINUM_RING,    {ITEM_WEAPON_CRYSTAL_RING, ITEM_WEAPON_THORN_ARMLET}                          },
+    {ITEM_WEAPON_THORN_ARMLET,     {ITEM_WEAPON_DESTRUCTION_RING}                                                },
+    {ITEM_WEAPON_POCKLEKUL,        {ITEM_WEAPON_FAIRY_S_RING, ITEM_WEAPON_GODDESS_RING, ITEM_WEAPON_SATAN_S_RING}},
     // Osmond
-    {ITEM_WEAPON_JACKAL, {ITEM_WEAPON_SWALLOW}},
-    {ITEM_WEAPON_SNAIL, {ITEM_WEAPON_HEXA_BLASTER}},
-    {ITEM_WEAPON_SKUNK, {}},
+    {ITEM_WEAPON_JACKAL,           {ITEM_WEAPON_SWALLOW}                                                         },
+    {ITEM_WEAPON_SNAIL,            {ITEM_WEAPON_HEXA_BLASTER}                                                    },
+    {ITEM_WEAPON_SKUNK,            {}                                                                            },
 };
 
 // The changed build-ups of a weapon, or null for retail's.

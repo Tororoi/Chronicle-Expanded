@@ -349,19 +349,19 @@ Steve → Super Steve ★
 
 #### Goro
 
-> **Mod changes:** Big Bucks Hammer builds up to Magical Hammer only (direct Gaia Hammer path removed). Frozen Tuna is a terminal weapon (Turtle Shell path removed).
+> **Mod changes:** Big Bucks Hammer builds up to Magical Hammer only (direct Gaia Hammer path removed). Frozen Tuna is a terminal weapon (Turtle Shell path removed). Last Judgement builds up to Inferno only (was Tall Hammer).
 
 ```
-Steel Hammer → Plate Hammer → Magical Hammer ─┬─ Gaia Hammer ─┐
-                                               └─ Last Judgement ┴─ Tall Hammer ★
+Steel Hammer → Plate Hammer → Magical Hammer ─┬─ Gaia Hammer → Tall Hammer ★
+                                               └─ Last Judgement → Inferno ★
 
 Trial Hammer → Gaia Hammer → Tall Hammer ★
 
-Big Bucks Hammer → Magical Hammer ─┬─ Gaia Hammer ─┐
-                                    └─ Last Judgement ┴─ Tall Hammer ★
+Big Bucks Hammer → Magical Hammer ─┬─ Gaia Hammer → Tall Hammer ★
+                                    └─ Last Judgement → Inferno ★
 
-Turtle Shell ─┬─ Magical Hammer ─┬─ Gaia Hammer ─┐
-              │                   └─ Last Judgement ┴─ Tall Hammer ★
+Turtle Shell ─┬─ Magical Hammer ─┬─ Gaia Hammer → Tall Hammer ★
+              │                   └─ Last Judgement → Inferno ★
               └─ Battle Axe → Satan's Axe → Inferno ★
 
 Battle Axe → Satan's Axe → Inferno ★
