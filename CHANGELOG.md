@@ -195,7 +195,7 @@ Each character's weapons in the game's order: the ability Expanded gives each (a
 | Last Judgement | — | — |  |
 | Tall Hammer | — | — |  |
 | Satan's Ax | — | — |  |
-| Plate Hammer | **Tempering**: each time the Plate Hammer breaks and Auto Repair Powder mends it, its max WHP rises by 1 (up to 99, the most a level-up gives) before the powder fills it back up. | Tempering for Super Steve's own max WHP. |  |
+| Plate Hammer | **Tempering**: each time the Plate Hammer breaks and Auto Repair Powder mends it, its max WHP rises by 1 (up to 99, the most a level-up gives) before the powder fills it back up. | Tempering for Super Steve's own max WHP. | [#313](https://github.com/Tororoi/Chronicle-Expanded/pull/313) |
 | Trial Hammer | — | — |  |
 | Inferno | — | — |  |
 
