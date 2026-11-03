@@ -31,10 +31,12 @@ namespace expanded {
 // it in place of what it was doing, as a hit's reaction takes its place, and its script carries on after;
 // kSnakeRetreatRest steps later it may run it again. An ordinary monster whose script has none is taken from its script
 // instead while it is near: it staggers (its damage clip, as a blinding staggers it: BlindClipsOf) and then stands idle
-// (kSnakeIdle) where it is, staggering again if struck, until the guard comes down. The bosses, the mimics and the
-// gemrons Expanded drives keep to their scripts but take no step nearer the player, as does any monster resting between
-// retreats. The head fades in over kSnakeFadeSteps as the guard goes up and out over as long as it comes down, the head
-// and the weapon glowing white (kSnakeGlow added to their light) as it shows. It is a ghost: drawn kSnakeGhost
+// (kSnakeIdle) where it is, staggering again if struck, until the guard comes down. A mimic runs its retreat too once
+// it is out of its chest and done with its wake (its appear clip, kMimicWake, a king mimic's kKingMimicWake); until
+// then it keeps to its script but takes no step nearer the player, as the bosses always do and as does any monster
+// resting between retreats. An Expanded species (the Crystal, Atla and Bomb Gemrons) runs its stand-in's script, and so
+// its retreat. The head fades in over kSnakeFadeSteps as the guard goes up and out over as long as it comes down, the
+// head and the weapon glowing white (kSnakeGlow added to their light) as it shows. It is a ghost: drawn kSnakeGhost
 // see-through (its nearest surface only, never its inside), shimmering as the Mirage's copy does, less (kSnakeHaze at
 // kSnakeHazeGain, its wave at kSnakeHazeWave, from under its face, kSnakeFace, down over the blade), a
 // periwinkle-to-fuchsia glow disc kSnakeGlowDisc across on its face (depth-tested from kSnakeGlowPull nearer) growing
@@ -77,6 +79,7 @@ inline constexpr float            kSnakeBack = 11.0f;
 inline constexpr float            kSnakeRetreatRadius = 80.0f;
 inline constexpr int              kSnakeRetreatRest = 30;
 inline constexpr int              kSnakeIdle = 0;
+inline constexpr int              kMimicWake = 18, kKingMimicWake = 21;
 
 bool SerpentSwordActive();
 

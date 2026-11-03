@@ -18,6 +18,7 @@
 #include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/enemies/monsters.hpp"
+#include "expanded/enemies/species.hpp"
 #include "expanded/status/blind.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -162,6 +163,26 @@ constexpr SnakeRetreat kRetreats[] = {
     {Monster::CRESCENT_BARON_ENHANCED, "e159a", 0x38FC, 2, {}},
     {Monster::JOKER_ENHANCED, "e161a", 0x2970, 2, {}},
     {Monster::LICH_ENHANCED, "e162a", 0x4390, 2, {}},
+    {Monster::KING_MIMIC_DBC, "e34a", 0x35D4, 2, {}},
+    {Monster::MIMIC_DBC, "e35a", 0x4760, 2, {}},
+    {Monster::KING_MIMIC_SMT, "e36a", 0x35BC, 2, {}},
+    {Monster::MIMIC_SMT, "e37a", 0x4730, 2, {}},
+    {Monster::KING_MIMIC_MS, "e38a", 0x35D4, 2, {}},
+    {Monster::MIMIC_MS, "e39a", 0x46F4, 2, {}},
+    {Monster::KING_MIMIC_WOF, "e78a", 0x2ADC, 2, {}},
+    {Monster::MIMIC_WOF, "e79a", 0x4718, 2, {}},
+    {Monster::KING_MIMIC_SW, "e80a", 0x3368, 2, {}},
+    {Monster::MIMIC_SW, "e81a", 0x4718, 2, {}},
+    {Monster::KING_MIMIC_GOT, "e82a", 0x36AC, 2, {}},
+    {Monster::MIMIC_GOT, "e83a", 0x4718, 2, {}},
+    {Monster::MIMIC_DS, "e109a", 0x4718, 2, {}},
+    {Monster::KING_MIMIC_DS, "e110a", 0x3374, 2, {}},
+    {Monster::MIMIC_DS_ENHANCED, "e147a", 0x4718, 2, {}},
+    {Monster::KING_MIMIC_DS_ENHANCED, "e148a", 0x3374, 2, {}},
+    {Monster::MIMIC_DS_ENHANCED_TWICE, "e156a", 0x4918, 2, {}},
+    {Monster::KING_MIMIC_DS_ENHANCED_TWICE, "e157a", 0x3374, 2, {}},
+    {Monster::MIMIC_DS_ENHANCED_THRICE, "e165a", 0x4918, 2, {}},
+    {Monster::KING_MIMIC_DS_ENHANCED_THRICE, "e166a", 0x3374, 2, {}},
 };
 // clang-format on
 
@@ -245,13 +266,28 @@ bool HoldsRetreat(const char *code, const SnakeRetreat &retreat) {
     return false;
 }
 
-// The monster's retreat, when its kind has one and its loaded script holds it.
+// Whether a monster may retreat now: an ordinary one always, a mimic once out of its chest and done with its wake (the
+// "appear" clip its chest's opening plays before its AI starts), bosses never.
+bool MayRetreat(const MONSTOR &live, const MONSTOR_MODEL &model) {
+    switch (model.kind) {
+        case MONSTER_KIND_NORMAL:
+            return true;
+        case MONSTER_KIND_MIMIC_SMALL:
+            return live.revealed == -1 && live.requested_motion != kMimicWake;
+        case MONSTER_KIND_MIMIC_LARGE:
+            return live.revealed == -1 && live.requested_motion != kKingMimicWake;
+        default:
+            return false;
+    }
+}
+
+// The monster's retreat, when its kind has one, it may retreat now and its loaded script holds it.
 const SnakeRetreat *RetreatOf(CMonstorUnit &unit, int monster) {
     const MONSTOR       &live = unit.monster[monster];
     const MONSTOR_MODEL &model = unit.model[live.base_model];
     const SnakeRetreat  *retreat = SnakeRetreatOf(ModelKind(live.base_model));
     CRunScript          &script = unit.interpreter[monster];
-    if (retreat == nullptr || model.kind != MONSTER_KIND_NORMAL || script.prog == nullptr ||
+    if (retreat == nullptr || !MayRetreat(live, model) || script.prog == nullptr ||
         std::strcmp(model.script_name, retreat->script) != 0 || !HoldsRetreat(script.code, *retreat)) {
         return nullptr;
     }
@@ -630,8 +666,10 @@ float SnakeCharmerMouth() {
 }
 
 const SnakeRetreat *SnakeRetreatOf(int kind) {
+    // An Expanded species runs its stand-in's script (rewritten in place or added to past its end): its retreat too.
+    int script_kind = SpeciesStandIn(kind);
     for (const SnakeRetreat &retreat : kRetreats) {
-        if (kind == No(retreat.kind)) {
+        if (script_kind == No(retreat.kind)) {
             return &retreat;
         }
     }

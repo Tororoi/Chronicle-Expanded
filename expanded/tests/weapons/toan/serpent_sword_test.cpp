@@ -13,6 +13,7 @@
 #include "expanded/core/character_light.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
+#include "expanded/enemies/species.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/serpent_sword.hpp"
@@ -77,6 +78,9 @@ protected:
     }
 
     ~SerpentSword() override {
+        for (CRunScript &script : floor_.unit().interpreter) {
+            script.prog = nullptr;
+        }
         expanded::SnakeCharmerReset();
         expanded::FloorCharactersClear();
         expanded::SetFloorCharacterLoader(nullptr);
@@ -112,6 +116,32 @@ protected:
         return expanded::MonsterHitAmount(floor_.unit(), monster, hit, amount);
     }
 
+    // A script on the monster with the retreat where the table has it: _SET_MOTION's command and the motion pushed, then
+    // a wait.
+    CRunScript &LoadRetreat(int monster, const expanded::SnakeRetreat &retreat) {
+        constexpr int kCode = 0x60, kEntry = 0x10;
+        program_.assign((kCode + retreat.record + 0x100) / 4, 0);
+        auto *header = reinterpret_cast<RS_PROG_HEADER *>(program_.data());
+        header->code = kCode;
+        char     *code = reinterpret_cast<char *>(program_.data()) + kCode;
+        const int record[4] = {kEntry, 0, 4, retreat.argc};
+        const int cells[][3] = {
+            {3,  1, 200           },
+            {3,  1, retreat.motion},
+            {4,  0, 0             },
+            {4,  0, 0             },
+            {23, 0, 0             },
+            {3,  1, 0             },
+            {15, 0, 0             }
+        };
+        std::memcpy(code + retreat.record, record, sizeof(record));
+        std::memcpy(code + kEntry, cells, sizeof(cells));
+        CRunScript &script = floor_.unit().interpreter[monster];
+        script.load(header, nullptr, 64, nullptr, 8);
+        return script;
+    }
+
+    std::vector<int>         program_;
     MOTION_INFO              monster_clips_[20] = {};
     expanded::test::TestSave save_;
 
@@ -197,7 +227,22 @@ TEST_F(SerpentSword, MostKindsHaveARetreatOfTheirOwn) {
     EXPECT_EQ(jacket->argc, 0);
     EXPECT_EQ(expanded::SnakeRetreatOf(expanded::No(Monster::CAVE_BAT)), nullptr);    // no back-off motion
     EXPECT_EQ(expanded::SnakeRetreatOf(expanded::No(Monster::AUNTIE_MEDU)), nullptr); // her script never steps back
-    EXPECT_EQ(expanded::SnakeRetreatOf(expanded::No(Monster::MIMIC_DBC)), nullptr);   // a mimic's script is its own
+    // A mimic's own, and an Expanded Gemron's its stand-in's: Holy Gemron's script, rewritten.
+    const expanded::SnakeRetreat *mimic = expanded::SnakeRetreatOf(expanded::No(Monster::KING_MIMIC_DS));
+    ASSERT_NE(mimic, nullptr);
+    EXPECT_STREQ(mimic->script, "e110a");
+    for (Monster gemron : {Monster::CRYSTAL_GEMRON, Monster::ATLA_GEMRON, Monster::BOMB_GEMRON}) {
+        EXPECT_EQ(expanded::SnakeRetreatOf(expanded::No(gemron)), expanded::SnakeRetreatOf(expanded::No(Monster::GEMRON_HOLY)));
+    }
+}
+
+TEST_F(SerpentSword, ExpandedGemronsRunTheirStandInsRetreat) {
+    // Each loads under Holy Gemron's script name, so its loaded script is checked for the retreat as Holy Gemron's is.
+    const expanded::SnakeRetreat &holy = *expanded::SnakeRetreatOf(expanded::No(Monster::GEMRON_HOLY));
+    for (Monster gemron : {Monster::CRYSTAL_GEMRON, Monster::ATLA_GEMRON, Monster::BOMB_GEMRON}) {
+        ASSERT_NE(expanded::Species(expanded::No(gemron)), nullptr);
+        EXPECT_STREQ(expanded::Species(expanded::No(gemron))->script_name, holy.script);
+    }
 }
 
 TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
@@ -207,27 +252,7 @@ TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
     Guard(true);
     expanded::SnakeCharmerStep();
 
-    // The Werewolf's script, its retreat where the table has it: _SET_MOTION's command and the motion pushed, then a wait.
-    const expanded::SnakeRetreat &wolf = *expanded::SnakeRetreatOf(expanded::No(Monster::WEREWOLF));
-    constexpr int                 kCode = 0x60, kEntry = 0x10;
-    std::vector<int>              program((kCode + wolf.record + 0x100) / 4, 0);
-    auto                         *header = reinterpret_cast<RS_PROG_HEADER *>(program.data());
-    header->code = kCode;
-    char     *code = reinterpret_cast<char *>(program.data()) + kCode;
-    const int record[4] = {kEntry, 0, 4, 2};
-    const int cells[][3] = {
-        {3,  1, 200},
-        {3,  1, 2  },
-        {4,  0, 0  },
-        {4,  0, 0  },
-        {23, 0, 0  },
-        {3,  1, 0  },
-        {15, 0, 0  }
-    };
-    std::memcpy(code + wolf.record, record, sizeof(record));
-    std::memcpy(code + kEntry, cells, sizeof(cells));
-    CRunScript &script = unit.interpreter[0];
-    script.load(header, nullptr, 64, nullptr, 8);
+    CRunScript &script = LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::WEREWOLF)));
 
     // Near the player, its script runs the retreat with the arguments its script gives it, in place of what it was doing.
     unit.script_state[0] = 1;
@@ -255,7 +280,6 @@ TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
     Guard(false);
     expanded::SnakeCharmerStep();
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    script.prog = nullptr;
 }
 
 TEST_F(SerpentSword, KindsWithoutARetreatStaggerThenIdle) {
@@ -297,9 +321,30 @@ TEST_F(SerpentSword, KindsWithoutARetreatStaggerThenIdle) {
     EXPECT_EQ(unit.script_state[0], 0);
 }
 
-TEST_F(SerpentSword, MimicsOnlyStopComingOn) {
+TEST_F(SerpentSword, MimicsRetreatOnceAwake) {
     Put({Monster::MIMIC_DBC});
     CMonstorUnit &unit = floor_.unit();
+    At(0, 0.0f, 60.0f);
+    Guard(true);
+    expanded::SnakeCharmerStep();
+    LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::MIMIC_DBC)));
+    unit.script_state[0] = 1;
+    // Still waking from its chest (its appear clip, or about to start it): its script carries on.
+    unit.monster[0].requested_motion = expanded::kMimicWake;
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    unit.monster[0].requested_motion = 0;
+    unit.monster[0].revealed = 1;
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    // Awake: its own retreat.
+    unit.monster[0].revealed = -1;
+    EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.script_state[0], 1);
+}
+
+TEST_F(SerpentSword, WakingMimicsOnlyStopComingOn) {
+    Put({Monster::KING_MIMIC_DBC});
+    CMonstorUnit &unit = floor_.unit();
+    unit.monster[0].requested_motion = expanded::kKingMimicWake;
     At(0, 0.0f, 60.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
