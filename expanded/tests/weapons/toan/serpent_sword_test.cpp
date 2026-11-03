@@ -222,12 +222,13 @@ protected:
             {22, 0,                     0                                   },
             {17, kLabelEntry + 29 * 12, 0                                   },
             {19, 0,                     shot_record                         },
-            {3,  2,                     std::bit_cast<int>(kWalkIn)         }, // walk in to 50
+            {3,  2,                     std::bit_cast<int>(kWalkIn)         }, // walk in to 50, for 10
+            {3,  1,                     10                                  },
             {19, 0,                     walk_record                         },
             {3,  1,                     0                                   },
             {15, 0,                     0                                   }
         };
-        const int step_header[4] = {kStepEntry, 0, 4, 0}, shot_header[4] = {kShotEntry, 0, 4, 0}, walk_header[4] = {kWalkEntry, 0, 4, 1};
+        const int step_header[4] = {kStepEntry, 0, 4, 0}, shot_header[4] = {kShotEntry, 0, 4, 0}, walk_header[4] = {kWalkEntry, 0, 4, 2};
         const int step[][3] = {
             {3,  1, 0},
             {15, 0, 0}
@@ -498,6 +499,65 @@ TEST_F(SerpentSword, ATooCloseBackupStartsAtTheApproachsEnd) {
     EXPECT_FLOAT_EQ(Float(LabelCells()[kTriggerCell]), expanded::kSnakeApproachTo);
     EXPECT_EQ(LabelCells()[kRollCell].arg2, kTriggerRoll);
     expanded::MonsterScriptStepped(unit, 0);
+}
+
+TEST_F(SerpentSword, ChargesAreHeldLikeShots) {
+    Put({Monster::GYON});
+    CMonstorUnit                 &unit = floor_.unit();
+    const expanded::SnakeRetreat &gyon = *expanded::SnakeRetreatOf(expanded::No(Monster::GYON));
+    constexpr int                 kChargeEntry = 0x500;
+    vmcode_t                     *charge = nullptr;
+    // Its step-in a charge playing motion: _GET_POSITION(-2, &v0, &v1, &v2), _SET_MOTION(motion), _SET_MOVE(v0, v1, v2, 0.5f).
+    auto step_in = [&](int motion) {
+        LoadRetreat(0, gyon);
+        char     *code = reinterpret_cast<char *>(program_.data()) + kCode;
+        const int cells[][3] = {
+            {3,  1, 11                      },
+            {3,  1, 2                       },
+            {11, 0, 0                       },
+            {2,  0, 8                       },
+            {2,  1, 8                       },
+            {2,  2, 8                       },
+            {21, 5, 0                       },
+            {4,  0, 0                       },
+            {3,  1, 200                     },
+            {3,  1, motion                  },
+            {21, 2, 0                       },
+            {4,  0, 0                       },
+            {3,  1, 32                      },
+            {1,  0, 8                       },
+            {1,  1, 8                       },
+            {1,  2, 8                       },
+            {3,  2, std::bit_cast<int>(0.5f)},
+            {21, 5, 0                       },
+            {4,  0, 0                       },
+            {3,  1, 0                       },
+            {15, 0, 0                       }
+        };
+        const int header[4] = {kChargeEntry, 0, 4, 0};
+        std::memcpy(code + gyon.record + 0x40, header, sizeof(header));
+        charge = reinterpret_cast<vmcode_t *>(code + kChargeEntry);
+        std::memcpy(charge, cells, sizeof(cells));
+        At(0, 0.0f, 40.0f);
+        Guard(true);
+        expanded::SnakeCharmerStep();
+        unit.script_state[0] = 1;
+        EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    };
+
+    // An attack's motion at the player: it returns at once for the step, and is as it was after.
+    step_in(16);
+    EXPECT_EQ(charge[0].op, 3);
+    EXPECT_EQ(charge[1].op, 15);
+    expanded::MonsterScriptStepped(unit, 0);
+    EXPECT_EQ(charge[0].arg2, 11);
+    EXPECT_EQ(charge[1].op, 3);
+    // Its walk, or its backup, is no charge.
+    for (int motion : {1, gyon.motion}) {
+        step_in(motion);
+        EXPECT_EQ(charge[1].op, 3);
+        expanded::MonsterScriptStepped(unit, 0);
+    }
 }
 
 TEST_F(SerpentSword, ARetreatItsAiNeverCallsIsHeldInstead) {

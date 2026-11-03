@@ -260,7 +260,7 @@ bool MarkNear(CMonstorUnit &unit) {
 }
 
 // How far a routine's code is looked through for its end; the AI loop's label; how deep a call is looked into for a shot.
-constexpr int kRoutineCells = 4096, kAiLabel = 100, kShotDepth = 2;
+constexpr int kRoutineCells = 4096, kAiLabel = 100, kShotDepth = 2, kPlayerId = -2, kIdleMotion = 0, kWalkMotion = 1;
 
 // A cell pushing the int value, and a function's last cell (its return, the padding after it).
 bool Pushes(const vmcode_t &cell, int value) {
@@ -532,6 +532,28 @@ bool Fires(char *code, int record, int depth) {
     return false;
 }
 
+// Whether a function charges the player: takes the player's position, moves, and plays a motion of its own (an attack's;
+// not the idle, the walk, or the backup's motion), in its code or in a function it calls (depth calls deep).
+bool Charges(char *code, int record, int backup, int depth) {
+    int       count = 0;
+    vmcode_t *cells = CodeOf(code, record, count);
+    bool      aims = false, moves = false, attacks = false;
+    for (int i = 0; i < count; i++) {
+        if (depth > 0 && cells[i].op == static_cast<int>(stb::kCall) && Charges(code, cells[i].arg2, backup, depth - 1)) {
+            return true;
+        }
+        aims = aims || (i + 2 < count && Pushes(cells[i], stb::kGetPosition) && Pushes(cells[i + 1], -kPlayerId) &&
+                        cells[i + 2].op == static_cast<int>(stb::kNegate));
+        moves = moves || Pushes(cells[i], stb::kSetMove);
+        if (i + 1 < count && Pushes(cells[i], stb::kSetMotion) && cells[i + 1].op == static_cast<int>(stb::kPushConst) &&
+            cells[i + 1].arg1 == static_cast<int>(stb::kInt)) {
+            int motion = cells[i + 1].arg2;
+            attacks = attacks || (motion != kIdleMotion && motion != kWalkMotion && motion != backup);
+        }
+    }
+    return aims && moves && attacks;
+}
+
 // The AI loop's approach for the step: what it does only while the player is more than so far, by a call that fires
 // no shot (an approach, not an attack), only beyond kSnakeApproachTo; where it walks the monster in to within so far of
 // the player, to kSnakeApproachTo.
@@ -561,19 +583,27 @@ void RaiseApproach(CRunScript &script, Retreat &retreat) {
                 Raise(retreat, cells[i + 1], kSnakeApproachTo);
             }
         }
-        if (cells[i].op == static_cast<int>(stb::kCall) && i > 0 && cells[i - 1].op == static_cast<int>(stb::kPushConst) &&
-            value(cells[i - 1]) < kSnakeApproachTo && WalksIn(script.code, cells[i].arg2)) {
-            Raise(retreat, cells[i - 1], kSnakeApproachTo);
+        if (cells[i].op == static_cast<int>(stb::kCall) && WalksIn(script.code, cells[i].arg2)) {
+            // Its arguments pushed in turn before the call: the first, the distance, as many cells back.
+            int  first = i - RecordAt(script.code, cells[i].arg2).arg;
+            bool pushed = first >= 0;
+            for (int j = first; pushed && j < i; j++) {
+                pushed = cells[j].op == static_cast<int>(stb::kPushConst);
+            }
+            if (pushed && value(cells[first]) < kSnakeApproachTo) {
+                Raise(retreat, cells[first], kSnakeApproachTo);
+            }
         }
     }
 }
 
-// What the AI loop calls that leads to a shot (fires one, or calls what does, kShotDepth calls deep) held for the step:
-// each returns at once (0 pushed, then the return, over its first two cells), so its attack, and whatever leads up to it
-// (an aim, a turn), never begins; the loop carries on.
-void HoldShots(CRunScript &script, Retreat &retreat, vmcode_t *cells, int count) {
+// What the AI loop calls that leads to a shot (fires one, or calls what does, kShotDepth calls deep), or charges the
+// player (backup the kind's backup motion), held for the step: each returns at once (0 pushed, then the return, over
+// its first two cells), so its attack, and whatever leads up to it (an aim, a turn), never begins; the loop carries on.
+void HoldAttacks(CRunScript &script, Retreat &retreat, vmcode_t *cells, int count, int backup) {
     for (int i = 0; i < count; i++) {
-        if (cells[i].op != static_cast<int>(stb::kCall) || !Fires(script.code, cells[i].arg2, kShotDepth)) {
+        if (cells[i].op != static_cast<int>(stb::kCall) ||
+            (!Fires(script.code, cells[i].arg2, kShotDepth) && !Charges(script.code, cells[i].arg2, backup, kShotDepth))) {
             continue;
         }
         int       called = 0;
@@ -1066,13 +1096,13 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
             Raise(retreat, *trigger, roll != nullptr ? kSnakeRetreatRadius : kSnakeApproachTo);
         }
         if (distance < kSnakeApproachRadius) {
-            // Near enough to walk in or shoot: its approach kept to kSnakeApproachTo (a walk-in begun out here too), its
-            // shots held.
+            // Near enough to walk in or attack: its approach kept to kSnakeApproachTo (a walk-in begun out here too), its
+            // shots and charges held.
             RaiseApproach(script, retreat);
             int       count = 0;
             vmcode_t *loop = AiLoop(script, count);
             if (loop != nullptr) {
-                HoldShots(script, retreat, loop, count);
+                HoldAttacks(script, retreat, loop, count, own->motion);
             }
         }
         if (InRoutine(script, record) || (near && !retreat.retreating)) {

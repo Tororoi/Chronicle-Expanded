@@ -38,7 +38,8 @@ namespace expanded {
 // farther for kSnakeRetreatStuck steps (a wall at its back). Within kSnakeApproachRadius (so that a walk-in begun out
 // there is kept too) its approach comes only to kSnakeApproachTo (what the loop calls only while the player is more
 // than so far, when it leads to no shot, is called only beyond it, and a walk-in to within so far walks in to it), and
-// what the loop calls that leads to a shot (fires one, or calls what does: an aim, a volley) returns at once. So it
+// what the loop calls that leads to a shot (fires one, or calls what does: an aim, a volley), or charges the player (a
+// roll, a lunge: moves at the player's position in a motion of its own), returns at once. So it
 // comes in to about kSnakeApproachTo, backs off now and then to the edge and comes back; everything else is its
 // script's. An ordinary monster with no backup motion (or whose script took no backup) is taken from its script instead
 // while it is near: once between actions it staggers (its damage clip, as a blinding staggers it: BlindClipsOf,
