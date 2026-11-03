@@ -13,6 +13,7 @@
 #include "expanded/core/character_light.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
+#include "expanded/enemies/monster_actions.hpp"
 #include "expanded/enemies/species.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -260,6 +261,14 @@ TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
     EXPECT_EQ(unit.script_state[0], 1);
     EXPECT_FLOAT_EQ(script.stack[0].f, 0.36f);
     EXPECT_FLOAT_EQ(script.stack[1].f, 1.2f);
+    // The motion its retreat cuts to cross-fades in instead.
+    MONSTOR &wolf = unit.monster[0];
+    wolf.requested_motion = 2;
+    wolf.requested_motion_flags = expanded::kMotionHoldLast | expanded::kMotionCut;
+    unit.chara[0][0].motion_flags = expanded::kMotionHoldLast | expanded::kMotionCut;
+    expanded::MonsterMoveChecked(unit, 0);
+    EXPECT_EQ(wolf.requested_motion_flags, expanded::kMotionHoldLast);
+    EXPECT_EQ(unit.chara[0][0].motion_flags, expanded::kMotionHoldLast);
     // Its script carries it to the end; then a rest before it may retreat again.
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
     unit.script_state[0] = 0;
@@ -280,6 +289,28 @@ TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
     Guard(false);
     expanded::SnakeCharmerStep();
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+}
+
+TEST_F(SerpentSword, MonstersFinishWhatTheyAreDoingFirst) {
+    Put({Monster::WEREWOLF, Monster::CAVE_BAT});
+    CMonstorUnit &unit = floor_.unit();
+    LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::WEREWOLF)));
+    monster_clips_[5] = {.start = 0, .end = 10, .speed = 1.0f}; // a one-shot: an attack
+    At(0, 0.0f, 60.0f);
+    At(1, 10.0f, 60.0f);
+    Guard(true);
+    expanded::SnakeCharmerStep();
+    for (int monster : {0, 1}) {
+        unit.script_state[monster] = 1;
+        expanded::PlayMonsterMotion(unit, monster, 5, expanded::kMotionHoldLast | expanded::kMotionCut);
+        unit.chara[monster][0].motion_type.state.time = 4.0f;
+        // Mid-swing: its script carries on.
+        EXPECT_FALSE(expanded::MonsterStepTaken(unit, monster)) << monster;
+        // At the swing's end: the retreat, or the stagger, in its next action's place.
+        unit.chara[monster][0].motion_type.state.time = 9.5f;
+        EXPECT_TRUE(expanded::MonsterStepTaken(unit, monster)) << monster;
+    }
+    EXPECT_EQ(unit.monster[1].requested_motion_flags, expanded::kMotionHoldLast); // the stagger cross-faded in
 }
 
 TEST_F(SerpentSword, KindsWithoutARetreatStaggerThenIdle) {

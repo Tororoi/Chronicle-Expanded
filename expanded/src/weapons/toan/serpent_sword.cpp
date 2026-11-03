@@ -78,6 +78,7 @@ Disc disc;
 // A monster running its script's own retreat, and the steps it rests after one before it may run it again.
 struct Retreat {
     bool running = false;
+    int  motion = -1; // the retreat's motion, cross-faded into in place of its script's cut
     int  rest = 0;
     bool held = false; // a kind without one: taken from its script, staggered and standing idle
     int  stagger = 0;  // steps of its stagger left before it idles
@@ -687,10 +688,21 @@ int MotionSteps(const CMonstorUnit &unit, int monster, int motion) {
     return static_cast<int>(std::ceil(static_cast<float>(clips[motion].end - clips[motion].start) / clips[motion].speed));
 }
 
-// Its stagger (held on its last frame), or straight to its idle for a kind with none.
+// Whether the monster is between actions, where its own script would choose its next: in a looping motion (a walk, an
+// idle), or at the end of a one-shot (an attack, a hit's reaction, played once).
+bool AtSeam(const CMonstorUnit &unit, int monster) {
+    const CCharacter  &body = unit.chara[monster][0];
+    const MOTION_INFO *clips = body.motion_type.motion_info;
+    if ((unit.monster[monster].requested_motion_flags & kMotionHoldLast) == 0 || clips == nullptr) {
+        return true;
+    }
+    return body.motion_type.state.time >= static_cast<float>(clips[body.motion_no].end) - 1.0f;
+}
+
+// Its stagger (held on its last frame), or straight to its idle for a kind with none, cross-faded in.
 void Stagger(CMonstorUnit &unit, int monster, Retreat &retreat, const BlindClips &clips) {
     retreat.stagger = clips.stagger >= 0 ? std::max(1, MotionSteps(unit, monster, clips.stagger)) : 0;
-    PlayMonsterMotion(unit, monster, clips.stagger >= 0 ? clips.stagger : kSnakeIdle, clips.stagger >= 0 ? kMotionHoldLast | kMotionCut : kMotionLoop);
+    PlayMonsterMotion(unit, monster, clips.stagger >= 0 ? clips.stagger : kSnakeIdle, clips.stagger >= 0 ? kMotionHoldLast : kMotionLoop);
 }
 
 // A kind whose script has no retreat, held instead: staggered, then idle where it stands, as long as it is near.
@@ -741,6 +753,10 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
         }
         return false;
     }
+    if (!retreat.held && !AtSeam(unit, monster)) {
+        // Mid-action: it finishes what it is doing first.
+        return false;
+    }
     const SnakeRetreat *own = RetreatOf(unit, monster);
     if (own == nullptr) {
         return Hold(unit, monster, retreat);
@@ -754,13 +770,22 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
     unit.interpreter[monster].run_function(own->record, args, own->argc);
     unit.script_state[monster] = unit.interpreter[monster].IsEnd() != 0 ? 0 : 1;
     retreat.running = unit.script_state[monster] != 0;
+    retreat.motion = own->motion;
     retreat.rest = retreat.running ? 0 : kSnakeRetreatRest;
     return true;
 }
 
 void SnakeCharmerMonsterMove(CMonstorUnit &unit, int monster) {
     MONSTOR &live = unit.monster[monster];
-    float    dx = 0.0f, dz = 0.0f, distance = 0.0f;
+    if (retreats[monster].running && live.requested_motion == retreats[monster].motion) {
+        // Its retreat's motion, cut in by its script, cross-fades in instead (its script's step has set it; the body steps
+        // after this).
+        live.requested_motion_flags &= ~kMotionCut;
+        for (int part = 0; part <= live.attachment_count; part++) {
+            unit.chara[monster][part].motion_flags &= ~kMotionCut;
+        }
+    }
+    float dx = 0.0f, dz = 0.0f, distance = 0.0f;
     if (!snake.up || retreats[monster].running || retreats[monster].held || live.movement_speed == 0.0f || !Near(unit, monster, dx, dz, distance) ||
         distance < 0.01f) {
         return;
