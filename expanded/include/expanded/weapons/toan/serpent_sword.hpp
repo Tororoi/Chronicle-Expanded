@@ -36,24 +36,26 @@ namespace expanded {
 // stops after so far from where it started, or so many hops, it goes on (to kSnakeRetreatHops hops) while the monster
 // is nearer than kSnakeRetreatTo and getting farther, and stops at its next check once it is that far or has got no
 // farther for kSnakeRetreatStuck steps (a wall at its back). Within kSnakeApproachRadius (so that a walk-in begun out
-// there is kept too) its approach comes only to kSnakeApproachTo (what the loop calls only while the player is more
-// than so far, when it leads to no shot, is called only beyond it, and a walk-in to within so far walks in to it), and
-// what the loop calls that leads to a shot (fires one, or calls what does: an aim, a volley), or charges the player (a
-// roll, a lunge: moves at the player's position in a motion of its own), returns at once. So it
-// comes in to about kSnakeApproachTo, backs off now and then to the edge and comes back; everything else is its
-// script's. An ordinary monster with no backup motion (or whose script took no backup) is taken from its script instead
-// while it is near: once between actions it staggers (its damage clip, as a blinding staggers it: BlindClipsOf,
-// cross-faded in) and then stands idle (kSnakeIdle) where it is, staggering again if struck, until the guard comes
-// down. A mimic retreats once it is out of its chest and done with its wake (its appear clip, kMimicWake, a king
-// mimic's kKingMimicWake). A monster near the player that neither retreats nor is held (a boss, a mimic still waking)
-// keeps to its script but takes no step nearer the player. An Expanded species (the Crystal, Atla and Bomb Gemrons)
-// runs its stand-in's script, and so its retreat. The head fades in over kSnakeFadeSteps as the guard goes up and out
-// over as long as it comes down, the head and the weapon glowing white (kSnakeGlow added to their light) as it shows.
-// It is a ghost: drawn kSnakeGhost see-through (its nearest surface only, never its inside), shimmering as the Mirage's
-// copy does, less (kSnakeHaze at kSnakeHazeGain, its wave at kSnakeHazeWave, from under its face, kSnakeFace, down over
-// the blade), a periwinkle-to-fuchsia glow disc kSnakeGlowDisc across on its face (depth-tested from kSnakeGlowPull
-// nearer) growing in as it comes and shrinking away as it goes, over kSnakeGlowSteps (slower than its fade: the disc
-// stays where the face last was).
+// there is kept too) its approach comes to kSnakeApproachTo (what the loop calls only while the player is more than so
+// far, when it leads to no shot or charge, is called only beyond it, and a walk-in so called within
+// kSnakeApproachRadius beyond it too, and a walk-in to within so far walks in to it), and what the loop calls that
+// leads to a shot (fires one, or calls what does: an aim, a volley), or charges the player (a roll, a lunge: moves at
+// the player's position in a motion of its own), returns at once. So it comes in to about kSnakeApproachTo, backs off
+// now and then to the edge and comes back; the first time it is near in a guard, whatever it was doing (an attack
+// begun) is cut off as a hit cuts it off (stopped, its script back to its AI loop), unless it is retreating already;
+// everything else is its script's. An ordinary monster with no backup motion (or whose script took no backup) is taken
+// from its script instead while it is near: it staggers at once (its damage clip, as a blinding staggers it:
+// BlindClipsOf, cross-faded in) and then stands idle (kSnakeIdle) where it is, staggering again if struck, until the
+// guard comes down. A mimic retreats once it is out of its chest and done with its wake (its appear clip, kMimicWake, a
+// king mimic's kKingMimicWake). A monster near the player that neither retreats nor is held (a boss, a mimic still
+// waking) keeps to its script but takes no step nearer the player. An Expanded species (the Crystal, Atla and Bomb
+// Gemrons) runs its stand-in's script, and so its retreat. The head fades in over kSnakeFadeSteps as the guard goes up
+// and out over as long as it comes down, the head and the weapon glowing white (kSnakeGlow added to their light) as it
+// shows. It is a ghost: drawn kSnakeGhost see-through (its nearest surface only, never its inside), shimmering as the
+// Mirage's copy does, less (kSnakeHaze at kSnakeHazeGain, its wave at kSnakeHazeWave, from under its face, kSnakeFace,
+// down over the blade), a periwinkle-to-fuchsia glow disc kSnakeGlowDisc across on its face (depth-tested from
+// kSnakeGlowPull nearer) growing in as it comes and shrinking away as it goes, over kSnakeGlowSteps (slower than its
+// fade: the disc stays where the face last was).
 //
 // It hisses as it comes (kSnakeHiss: the Killer Snake's own hiss from its event's bank, SE 393 there, a little quieter
 // than the game plays it).

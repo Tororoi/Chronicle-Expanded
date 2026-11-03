@@ -560,6 +560,30 @@ TEST_F(SerpentSword, ChargesAreHeldLikeShots) {
     }
 }
 
+TEST_F(SerpentSword, AWalkInFromFartherOutComesInTo70) {
+    Put({Monster::GYON});
+    CMonstorUnit                 &unit = floor_.unit();
+    const expanded::SnakeRetreat &gyon = *expanded::SnakeRetreatOf(expanded::No(Monster::GYON));
+    constexpr float               kFarther = 90.0f;
+    // Its step-in from 90: a step, kept where it is; a walk-in, in to kSnakeApproachTo, so it comes in to its backup.
+    for (bool walks : {false, true}) {
+        LoadRetreat(0, gyon);
+        vmcode_t *loop = LabelCells();
+        loop[kStepInCell].arg2 = std::bit_cast<int>(kFarther);
+        if (walks) {
+            loop[kStepInCell + 3].arg2 = gyon.record + 0x60;
+        }
+        At(0, 0.0f, 40.0f);
+        Guard(true);
+        expanded::SnakeCharmerStep();
+        unit.script_state[0] = 1;
+        EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+        EXPECT_FLOAT_EQ(Float(loop[kStepInCell]), walks ? expanded::kSnakeApproachTo : kFarther);
+        expanded::MonsterScriptStepped(unit, 0);
+        EXPECT_FLOAT_EQ(Float(loop[kStepInCell]), kFarther);
+    }
+}
+
 TEST_F(SerpentSword, ARetreatItsAiNeverCallsIsHeldInstead) {
     Put({Monster::GYON});
     CMonstorUnit &unit = floor_.unit();
@@ -572,7 +596,7 @@ TEST_F(SerpentSword, ARetreatItsAiNeverCallsIsHeldInstead) {
     EXPECT_FLOAT_EQ(Float(LabelCells()[kTriggerCell]), kTriggerDistance);
 }
 
-TEST_F(SerpentSword, HeldMonstersFinishWhatTheyAreDoingFirst) {
+TEST_F(SerpentSword, HeldMonstersStopWhatTheyAreDoing) {
     Put({Monster::CAVE_BAT});
     CMonstorUnit &unit = floor_.unit();
     monster_clips_[5] = {.start = 0, .end = 10, .speed = 1.0f}; // a one-shot: an attack
@@ -582,12 +606,48 @@ TEST_F(SerpentSword, HeldMonstersFinishWhatTheyAreDoingFirst) {
     unit.script_state[0] = 1;
     expanded::PlayMonsterMotion(unit, 0, 5, expanded::kMotionHoldLast | expanded::kMotionCut);
     unit.chara[0][0].motion_type.state.time = 4.0f;
-    // Mid-swing: its script carries on.
-    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    // At the swing's end: the stagger, cross-faded in, in its next action's place.
-    unit.chara[0][0].motion_type.state.time = 9.5f;
+    // Mid-swing: the stagger, cross-faded in, in the swing's place.
     EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
     EXPECT_EQ(unit.monster[0].requested_motion_flags, expanded::kMotionHoldLast);
+}
+
+TEST_F(SerpentSword, TheSnakeCutsOffWhatTheyAreDoing) {
+    Put({Monster::GYON});
+    CMonstorUnit &unit = floor_.unit();
+    CRunScript   &script = LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::GYON)));
+    MONSTOR      &gyon = unit.monster[0];
+    auto          mid_attack = [&] {
+        unit.script_state[0] = 1;
+        gyon.movement_speed = 0.5f;
+        gyon.turn_speed = 0.3f;
+    };
+    At(0, 0.0f, 40.0f);
+    Guard(true);
+    expanded::SnakeCharmerStep();
+    // Mid-attack when the snake comes: stopped, its script back to its AI loop (which backs it off this step).
+    mid_attack();
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.script_state[0], 0);
+    EXPECT_FLOAT_EQ(gyon.movement_speed, 0.0f);
+    EXPECT_FLOAT_EQ(gyon.turn_speed, 0.0f);
+    expanded::MonsterScriptStepped(unit, 0);
+    // Once a guard: after that its script carries on.
+    mid_attack();
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.script_state[0], 1);
+    expanded::MonsterScriptStepped(unit, 0);
+    // The next guard cuts it off again, but not in its retreat.
+    Guard(false);
+    expanded::SnakeCharmerStep();
+    Guard(true);
+    expanded::SnakeCharmerStep();
+    funcdata in_routine = {.addr = kEntry};
+    script.func = &in_routine;
+    mid_attack();
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.script_state[0], 1);
+    expanded::MonsterScriptStepped(unit, 0);
+    script.func = nullptr;
 }
 
 TEST_F(SerpentSword, KindsWithoutARetreatStaggerThenIdle) {

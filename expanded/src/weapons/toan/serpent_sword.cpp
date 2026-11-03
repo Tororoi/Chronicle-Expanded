@@ -82,6 +82,7 @@ Disc disc;
 struct Retreat {
     bool  native = false;     // its own AI retreats (the move hook leaves it be)
     bool  retreating = false; // in its retreat routine
+    bool  startled = false;   // cut off from what it was doing, this guard
     float best = 0.0f;        // the farthest it has got in it
     int   stuck = 0;          // steps since it last got farther
     bool  held = false;       // a kind without one: taken from its script, staggered and standing idle
@@ -554,10 +555,11 @@ bool Charges(char *code, int record, int backup, int depth) {
     return aims && moves && attacks;
 }
 
-// The AI loop's approach for the step: what it does only while the player is more than so far, by a call that fires
-// no shot (an approach, not an attack), only beyond kSnakeApproachTo; where it walks the monster in to within so far of
-// the player, to kSnakeApproachTo.
-void RaiseApproach(CRunScript &script, Retreat &retreat) {
+// The AI loop's approach for the step: what it does only while the player is more than so far, by a call that neither
+// fires nor charges (an approach, not an attack), only beyond kSnakeApproachTo; a walk-in only while more than so far
+// (within kSnakeApproachRadius) beyond kSnakeApproachTo too, so it comes in all the way to where its backup starts;
+// where it walks the monster in to within so far of the player, to kSnakeApproachTo. backup is the kind's backup motion.
+void RaiseApproach(CRunScript &script, Retreat &retreat, int backup) {
     int       count = 0;
     vmcode_t *cells = AiLoop(script, count);
     if (cells == nullptr) {
@@ -572,14 +574,16 @@ void RaiseApproach(CRunScript &script, Retreat &retreat) {
         bool farther = beyond >= 0;
         int  jump = farther ? beyond : ComparesAt(cells, count, i, {static_cast<int>(stb::kLessThan), static_cast<int>(stb::kLessOrEqual)});
         if (jump >= 0 && MeasureOf(cells, count, cells[i].arg1) == Measure::kPlayer) {
-            bool calls = false, fires = false;
+            bool calls = false, fires = false, walks = true;
             for (int j = jump + 1; j < count && at(j) < cells[jump].arg1; j++) {
                 if (cells[j].op == static_cast<int>(stb::kCall)) {
                     calls = true;
-                    fires = fires || Fires(script.code, cells[j].arg2, kShotDepth);
+                    walks = walks && WalksIn(script.code, cells[j].arg2);
+                    fires = fires || Fires(script.code, cells[j].arg2, kShotDepth) || Charges(script.code, cells[j].arg2, backup, kShotDepth);
                 }
             }
-            if (calls && !fires && farther && value(cells[i + 1]) < kSnakeApproachTo) {
+            float beyond_by = value(cells[i + 1]);
+            if (calls && !fires && farther && (beyond_by < kSnakeApproachTo || (walks && beyond_by < kSnakeApproachRadius))) {
                 Raise(retreat, cells[i + 1], kSnakeApproachTo);
             }
         }
@@ -908,6 +912,9 @@ void SnakeCharmerStep() {
     if (!snake.up) {
         snake.fade = std::max(0, snake.fade - 1);
         std::fill(std::begin(snake.near), std::end(snake.near), false);
+        for (Retreat &retreat : retreats) {
+            retreat.startled = false;
+        }
         if (snake.fade == 0) {
             Forget();
             return;
@@ -1026,15 +1033,12 @@ int MotionSteps(const CMonstorUnit &unit, int monster, int motion) {
     return static_cast<int>(std::ceil(static_cast<float>(clips[motion].end - clips[motion].start) / clips[motion].speed));
 }
 
-// Whether the monster is between actions, where its own script would choose its next: in a looping motion (a walk, an
-// idle), or at the end of a one-shot (an attack, a hit's reaction, played once).
-bool AtSeam(const CMonstorUnit &unit, int monster) {
-    const CCharacter  &body = unit.chara[monster][0];
-    const MOTION_INFO *clips = body.motion_type.motion_info;
-    if ((unit.monster[monster].requested_motion_flags & kMotionHoldLast) == 0 || clips == nullptr) {
-        return true;
-    }
-    return body.motion_type.state.time >= static_cast<float>(clips[body.motion_no].end) - 1.0f;
+// Cut off from what it is doing, as a hit cuts it off: stopped where it stands, its script back to its top (its AI
+// loop), which picks what it does next this step.
+void Interrupt(CMonstorUnit &unit, int monster) {
+    unit.monster[monster].movement_speed = 0.0f;
+    unit.monster[monster].turn_speed = 0.0f;
+    unit.script_state[monster] = 0;
 }
 
 // Its stagger (held on its last frame), or straight to its idle for a kind with none, cross-faded in.
@@ -1089,6 +1093,13 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
         retreat.native = false;
     }
     if (retreat.native) {
+        if (near && !retreat.startled) {
+            // The snake met: whatever it is doing (an attack begun, a walk-in) cut off, unless it is retreating already.
+            retreat.startled = true;
+            if (!InRoutine(script, record)) {
+                Interrupt(unit, monster);
+            }
+        }
         // Its own AI retreats, as it would: near the player its trigger is certain (the distance it rolls within the
         // reach, the roll always made; its cooldown between), and the routine goes on to the reach's edge.
         if (near) {
@@ -1098,7 +1109,7 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
         if (distance < kSnakeApproachRadius) {
             // Near enough to walk in or attack: its approach kept to kSnakeApproachTo (a walk-in begun out here too), its
             // shots and charges held.
-            RaiseApproach(script, retreat);
+            RaiseApproach(script, retreat, own->motion);
             int       count = 0;
             vmcode_t *loop = AiLoop(script, count);
             if (loop != nullptr) {
@@ -1117,10 +1128,6 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
             unit.script_state[monster] = 0;
             retreat = {};
         }
-        return false;
-    }
-    if (!retreat.held && !AtSeam(unit, monster)) {
-        // Mid-action: it finishes what it is doing first.
         return false;
     }
     return Hold(unit, monster, retreat);
