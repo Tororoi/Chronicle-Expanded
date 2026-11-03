@@ -260,6 +260,12 @@ public:
     int check_program(int no);
 
     /**
+     * Port addition: starts one of the program's functions, its record at record in the code (as a CALL names it), with
+     * args as its arguments, as run starts a numbered program.
+     */
+    int run_function(int record, const RS_STACKDATA *args, int argc);
+
+    /**
      * Resumes the script, running through its waits.
      */
     void skip();

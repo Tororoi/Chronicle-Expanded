@@ -1727,6 +1727,9 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
                     if ((effect[current_monster].hit_attributes & 0x1000) && monster[current_monster].kind != MONSTER_KIND_NO_LOCK_ON && 100.0f * static_cast<float>(rand()) / 2147483648.0f < 1.0f) {
                         amount = monster[current_monster].hp;
                     }
+#ifdef CHRONICLE_EXPANDED
+                    amount = expanded::MonsterHitAmount(*this, current_monster, NowColData->hit[hit], amount);
+#endif
 
                     if (amount > 0 && (owner == 0 || owner == 2 || owner == 4) && element >= 0 && element < WEAPON_ELEMENT_NONE) {
                         SndSePlay(element + 0x65, -1, 0);

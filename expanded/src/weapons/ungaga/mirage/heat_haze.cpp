@@ -19,15 +19,15 @@ float phase = 0.0f;
 
 } // namespace
 
-void HazeStep() {
-    phase += kHazeWaveStep * std::uniform_real_distribution<float>(0.0f, 1.0f)(ModRandom());
+void HazeStep(float step) {
+    phase += step * std::uniform_real_distribution<float>(0.0f, 1.0f)(ModRandom());
     if (!(phase < kHazeWaveCycle)) {
         phase = 0.0f;
     }
 }
 
-// CFireOmni::DrawRaster at the copy, with the shimmer's size and sway.
-void HazeDraw(const float *root, float gain) {
+// CFireOmni::DrawRaster at root, with the shimmer's size and sway.
+void HazeDraw(const float *root, float gain, const HazeLook &look) {
     if (gain <= 0.0f) {
         return;
     }
@@ -36,10 +36,10 @@ void HazeDraw(const float *root, float gain) {
     if (mask == nullptr || blender == nullptr) {
         return; // no fires in this dungeon: nothing to blend with
     }
-    sceVu0FVECTOR world = {root[0], root[1] + kHazeLift + kFireRise, root[2], 1.0f};
+    sceVu0FVECTOR world = {root[0], root[1] + look.lift + kFireRise, root[2], 1.0f};
     int           top_left[4];
     int           bottom_right[4];
-    if (MGRotTransPers3DSprite(top_left, bottom_right, world, kHazeWidth, kHazeHeight, 0) != 1) {
+    if (MGRotTransPers3DSprite(top_left, bottom_right, world, look.width, look.height, 0) != 1) {
         return;
     }
 
@@ -65,7 +65,7 @@ void HazeDraw(const float *root, float gain) {
 
     // The sway is the depth the raster passes times the fire's scale and its gain: the shimmer's scale and gain ride it.
     sceGsTex0 blend = *reinterpret_cast<sceGsTex0 *>(&blender->tex0);
-    float     depth = static_cast<float>(top_left[2] >> 4) * kHazeSway * gain;
+    float     depth = static_cast<float>(top_left[2] >> 4) * look.sway * gain;
     blendTextuerTest(Vif1Packet, blend.TBP0, blend.TBW, blend.PSM, CRect_i_(x, y >> 1, width, height), mask,
                      CRect_i_(0, 0, width, height), CRect_i_(0, 0, 64, 64), depth, phase);
     set2DSprite(Vif1Packet, blender, CRect_i_(x, y, width, height * 2), CRect_i_(1, 1, width - 2, height - 2));

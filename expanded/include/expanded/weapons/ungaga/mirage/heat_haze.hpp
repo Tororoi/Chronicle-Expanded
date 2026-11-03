@@ -13,10 +13,17 @@ inline constexpr float kHazeSway = 3.0f;
 inline constexpr float kHazeWaveStep = 1.0f;
 inline constexpr float kHazeWaveCycle = 8.0f; // the wave's phase wraps at the eight steps of its table
 
-// A frame unpaused: the wave stepped.
-void HazeStep();
-// The draw at root, at gain.
-void HazeDraw(const float *root, float gain);
+// A shimmer's size and place: lift above its root, width by height units, sway times a fire's at full gain.
+struct HazeLook {
+    float lift, width, height, sway;
+};
+
+inline constexpr HazeLook kMirageHaze = {kHazeLift, kHazeWidth, kHazeHeight, kHazeSway};
+
+// A frame unpaused: the wave stepped, at most step (the Mirage copy's by default).
+void HazeStep(float step = kHazeWaveStep);
+// The draw at root, at gain, as look has it (the Mirage copy's by default).
+void HazeDraw(const float *root, float gain, const HazeLook &look = kMirageHaze);
 // The wave's phase (tests).
 float HazePhase();
 void  HazeReset();

@@ -64,6 +64,7 @@
 #include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/maneater.hpp"
 #include "expanded/weapons/toan/sand_breaker.hpp"
+#include "expanded/weapons/toan/serpent_sword.hpp"
 #include "expanded/weapons/toan/seventh_heaven.hpp"
 #include "expanded/weapons/toan/shamshir.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
@@ -119,6 +120,7 @@ void DungeonShotsStep(CMonstorUnit &unit) {
 
 void DungeonFloorUnloaded() {
     PocklekulReset();
+    SnakeCharmerReset();
     ShotEffectsClear();
     FloorCharactersClear();
     CursedPrismFloorEnds();
@@ -158,6 +160,7 @@ void DungeonMonstersDrawn() {
     DesertBloomDraw();
     BigRockDraw();
     CurseOfBabelDraw();
+    SnakeCharmerDraw();
 }
 
 void DungeonNpcsDrawn() {
@@ -173,10 +176,12 @@ void DungeonEffectsDrawn() {
     ChargingBullDraw();
     SpiritBeastDraw();
     GuardianReflectorDraw();
+    SnakeCharmerGlowDraw();
 }
 
 void DungeonRasterDrawn() {
     MirageHazeDraw();
+    SnakeCharmerHazeDraw();
 }
 
 void DungeonShotsDrawn() {
@@ -244,6 +249,7 @@ void DungeonMonstersTick() {
     TornadoChargeStep();
     GuardianGraceStep();
     DesertBloomStep();
+    SnakeCharmerStep();
     BigRockStep();
     CurseOfBabelStep();
     AirStrikeStep();
@@ -349,7 +355,7 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
         return false;
     }
     return BossDeathStep(unit, monster) || BombGemronStep(unit, monster) || ReviveStep(unit, monster) ||
-           BlindStep(unit, monster);
+           BlindStep(unit, monster) || SnakeCharmerMonsterStep(unit, monster);
 }
 
 void PelletFired(CSHOT &shots, int slot) {
@@ -442,6 +448,13 @@ void MonsterPoisoned(const MONSTOR &target) {
     VenomPoisoned(target);
 }
 
+int MonsterHitAmount(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount) {
+    if (AllyUnit(unit)) {
+        return amount;
+    }
+    return SnakeSlayerAmount(unit, monster, hit, amount);
+}
+
 void MonsterDamaged(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount) {
     if (AllyUnit(unit)) {
         return;
@@ -475,6 +488,7 @@ void MonsterMoveChecked(CMonstorUnit &unit, int monster) {
     pocklekul::PockleMoveChecked(unit, monster);
     if (!AllyUnit(unit)) {
         SolidColumnMonsterMove(unit, monster);
+        SnakeCharmerMonsterMove(unit, monster);
     }
 }
 
