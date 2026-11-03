@@ -175,7 +175,7 @@ TEST_F(SerpentSword, SnakeSlayerKillsAuntieMeduInOneHit) {
 
 TEST_F(SerpentSword, NothingUntilTheKillerSnakeIsBeaten) {
     Put({Monster::AUNTIE_MEDU});
-    At(0, 0.0f, 60.0f);
+    At(0, 0.0f, 40.0f);
     SaveData->SetGameFlag(expanded::kKillerSnakeBeaten, 0);
     EXPECT_FALSE(expanded::SerpentSwordActive());
     EXPECT_EQ(Hit(0, 12), 12);
@@ -249,7 +249,7 @@ TEST_F(SerpentSword, ExpandedGemronsRunTheirStandInsRetreat) {
 TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
     Put({Monster::WEREWOLF});
     CMonstorUnit &unit = floor_.unit();
-    At(0, 0.0f, 60.0f);
+    At(0, 0.0f, 40.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
 
@@ -285,7 +285,7 @@ TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
     At(0, 0.0f, expanded::kSnakeRetreatRadius + 5.0f);
     expanded::SnakeCharmerStep();
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    At(0, 0.0f, 60.0f);
+    At(0, 0.0f, 40.0f);
     Guard(false);
     expanded::SnakeCharmerStep();
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
@@ -296,8 +296,8 @@ TEST_F(SerpentSword, MonstersFinishWhatTheyAreDoingFirst) {
     CMonstorUnit &unit = floor_.unit();
     LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::WEREWOLF)));
     monster_clips_[5] = {.start = 0, .end = 10, .speed = 1.0f}; // a one-shot: an attack
-    At(0, 0.0f, 60.0f);
-    At(1, 10.0f, 60.0f);
+    At(0, 0.0f, 40.0f);
+    At(1, 10.0f, 40.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
     for (int monster : {0, 1}) {
@@ -317,7 +317,7 @@ TEST_F(SerpentSword, KindsWithoutARetreatStaggerThenIdle) {
     Put({Monster::CAVE_BAT});
     CMonstorUnit &unit = floor_.unit();
     monster_clips_[8] = {.start = 0, .end = 3, .speed = 1.0f}; // its stagger, three steps
-    At(0, 0.0f, 60.0f);
+    At(0, 0.0f, 40.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
     MONSTOR &bat = unit.monster[0];
@@ -355,7 +355,7 @@ TEST_F(SerpentSword, KindsWithoutARetreatStaggerThenIdle) {
 TEST_F(SerpentSword, MimicsRetreatOnceAwake) {
     Put({Monster::MIMIC_DBC});
     CMonstorUnit &unit = floor_.unit();
-    At(0, 0.0f, 60.0f);
+    At(0, 0.0f, 40.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
     LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::MIMIC_DBC)));
@@ -376,7 +376,7 @@ TEST_F(SerpentSword, WakingMimicsOnlyStopComingOn) {
     Put({Monster::KING_MIMIC_DBC});
     CMonstorUnit &unit = floor_.unit();
     unit.monster[0].requested_motion = expanded::kKingMimicWake;
-    At(0, 0.0f, 60.0f);
+    At(0, 0.0f, 40.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
@@ -498,7 +498,7 @@ TEST_F(SerpentSword, TheHeadAppearsThenOpensItsMouthNowAndThen) {
 
 TEST_F(SuperSteveSerpent, SuperSteveCarriesSnakeCharmer) {
     Put({Monster::WEREWOLF});
-    At(0, 0.0f, 60.0f);
+    At(0, 0.0f, 40.0f);
     floor_.status().cur_chara = CHARA_XIAO;
     Guard(true);
     expanded::SnakeCharmerStep();
@@ -513,7 +513,7 @@ TEST_F(SuperSteveSerpent, SuperSteveCarriesSnakeCharmer) {
 
 TEST_F(SerpentSword, OffWithTheWeaponAbilities) {
     Put({Monster::AUNTIE_MEDU});
-    At(0, 0.0f, 60.0f);
+    At(0, 0.0f, 40.0f);
     expanded::test::OptionScope options;
     ASSERT_TRUE(options.Set(expanded::kWeaponAbilities, false));
     EXPECT_EQ(Hit(0, 12), 12);
