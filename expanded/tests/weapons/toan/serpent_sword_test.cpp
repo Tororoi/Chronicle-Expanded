@@ -82,6 +82,7 @@ protected:
     ~SerpentSword() override {
         for (CRunScript &script : floor_.unit().interpreter) {
             script.prog = nullptr;
+            script.func = nullptr;
         }
         expanded::SnakeCharmerReset();
         expanded::FloorCharactersClear();
@@ -118,34 +119,55 @@ protected:
         return expanded::MonsterHitAmount(floor_.unit(), monster, hit, amount);
     }
 
-    // A script on the monster with the retreat where the table has it: _SET_MOTION's command and the motion pushed, then
-    // a wait; past the wait, its limits (kPlayerLimit at kPlayerCell: the player 20 away, kCountLimit at kCountCell: three
-    // hops).
-    static constexpr int   kPlayerCell = 10, kCountCell = 20;
-    static constexpr int   kCountLimit = 3;
-    static constexpr float kPlayerLimit = 20.0f;
+    // A script on the monster: its retreat where the table has it, its limits (kPlayerLimit at kPlayerCell: the player 20
+    // away; kPointLimit at kPointCell: 20 from where it started; kCountLimit at kCountCell: three hops), and its AI loop
+    // (label 100) calling it when the player is within kTriggerDistance (kTriggerCell) on a roll under kTriggerRoll
+    // (kRollCell), or, without trigger, calling nothing.
+    static constexpr int   kPlayerCell = 9, kPointCell = 20, kCountCell = 30, kTriggerCell = 10, kRollCell = 14;
+    static constexpr int   kCountLimit = 3, kTriggerRoll = 30;
+    static constexpr float kPlayerLimit = 20.0f, kPointLimit = 20.0f, kTriggerDistance = 40.0f;
+    static constexpr int   kCode = 0x60, kProg = 0x20, kEntry = 0x10, kLabelEntry = 0x200;
 
-    vmcode_t *RetreatCells() { return reinterpret_cast<vmcode_t *>(reinterpret_cast<char *>(program_.data()) + 0x60 + 0x10); }
+    vmcode_t *RoutineCells() { return reinterpret_cast<vmcode_t *>(reinterpret_cast<char *>(program_.data()) + kCode + kEntry); }
 
-    CRunScript &LoadRetreat(int monster, const expanded::SnakeRetreat &retreat) {
-        constexpr int kCode = 0x60, kEntry = 0x10;
-        program_.assign((kCode + retreat.record + 0x100) / 4, 0);
-        auto *header = reinterpret_cast<RS_PROG_HEADER *>(program_.data());
+    vmcode_t *LabelCells() { return reinterpret_cast<vmcode_t *>(reinterpret_cast<char *>(program_.data()) + kCode + kLabelEntry); }
+
+    float Float(const vmcode_t &cell) { return std::bit_cast<float>(cell.arg2); }
+
+    CRunScript &LoadRetreat(int monster, const expanded::SnakeRetreat &retreat, bool trigger = true) {
+        const int label_record = retreat.record + 0x20;
+        program_.assign((kCode + label_record + 0x40) / 4, 0);
+        char *base = reinterpret_cast<char *>(program_.data());
+        auto *header = reinterpret_cast<RS_PROG_HEADER *>(base);
         header->code = kCode;
-        char     *code = reinterpret_cast<char *>(program_.data()) + kCode;
-        const int record[4] = {kEntry, 0, 4, retreat.argc};
-        const int cells[][3] = {
-            {3,  1,  200                             },
+        header->prog = kProg;
+        header->prog_num = 1;
+        const RS_PROGDATA label = {100, kCode + label_record};
+        std::memcpy(base + kProg, &label, sizeof(label));
+        char     *code = base + kCode;
+        const int record[4] = {kEntry, 0, 8, retreat.argc};
+        const int routine[][3] = {
+            {3,  1,  200                             }, // _SET_MOTION(motion)
             {3,  1,  retreat.motion                  },
             {4,  0,  0                               },
             {4,  0,  0                               },
-            {23, 0,  0                               },
             {3,  1,  10                              }, // _GET_DISTANCE(&v0): to the player
             {2,  0,  8                               },
             {21, 2,  0                               },
             {4,  0,  0                               },
             {1,  0,  8                               }, // v0 >= 20: done
             {3,  2,  std::bit_cast<int>(kPlayerLimit)},
+            {14, 45, 0                               },
+            {17, 0,  0                               },
+            {3,  1,  10                              }, // _GET_DISTANCE(v2, v3, v4, &v5): from where it started
+            {1,  2,  8                               },
+            {1,  3,  8                               },
+            {1,  4,  8                               },
+            {2,  5,  8                               },
+            {21, 5,  0                               },
+            {4,  0,  0                               },
+            {1,  5,  8                               }, // v5 >= 20: done
+            {3,  2,  std::bit_cast<int>(kPointLimit) },
             {14, 45, 0                               },
             {17, 0,  0                               },
             {2,  1,  1                               }, // v1 = v1 + 1
@@ -161,8 +183,33 @@ protected:
             {3,  1,  0                               },
             {15, 0,  0                               }
         };
+        const int label_header[4] = {kLabelEntry, 0, 4, 0};
+        const int loop[][3] = {
+            {3,  1,  10                                  }, // _GET_DISTANCE(&v0)
+            {2,  0,  8                                   },
+            {21, 2,  0                                   },
+            {4,  0,  0                                   },
+            {3,  1,  180                                 }, // _GET_RAND(100, &v1)
+            {3,  1,  100                                 },
+            {2,  1,  1                                   },
+            {21, 3,  0                                   },
+            {4,  0,  0                                   },
+            {1,  0,  8                                   }, // v0 <= 40
+            {3,  2,  std::bit_cast<int>(kTriggerDistance)},
+            {14, 43, 0                                   },
+            {17, 0,  0                                   },
+            {1,  1,  1                                   }, // v1 <= 30
+            {3,  1,  kTriggerRoll                        },
+            {14, 43, 0                                   },
+            {17, 0,  0                                   },
+            {19, 0,  trigger ? retreat.record : 0        }, // the retreat
+            {3,  1,  0                                   },
+            {15, 0,  0                                   }
+        };
         std::memcpy(code + retreat.record, record, sizeof(record));
-        std::memcpy(code + kEntry, cells, sizeof(cells));
+        std::memcpy(code + kEntry, routine, sizeof(routine));
+        std::memcpy(code + label_record, label_header, sizeof(label_header));
+        std::memcpy(code + kLabelEntry, loop, sizeof(loop));
         CRunScript &script = floor_.unit().interpreter[monster];
         script.load(header, nullptr, 64, nullptr, 8);
         return script;
@@ -272,143 +319,97 @@ TEST_F(SerpentSword, ExpandedGemronsRunTheirStandInsRetreat) {
     }
 }
 
-TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
-    Put({Monster::WEREWOLF});
+TEST_F(SerpentSword, TheirOwnAiRetreatsToTheEdgeOfReach) {
+    Put({Monster::MASTER_JACKET});
     CMonstorUnit &unit = floor_.unit();
+    CRunScript   &script = LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::MASTER_JACKET)));
+    vmcode_t     *loop = LabelCells();
+    vmcode_t     *routine = RoutineCells();
     At(0, 0.0f, 40.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
 
-    CRunScript &script = LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::WEREWOLF)));
-
-    // Near the player, its script runs the retreat with the arguments its script gives it, in place of what it was doing.
+    // Near the player, for its own step: its AI's trigger certain within the reach, its routine going on to the reach's
+    // edge; its script steps itself.
     unit.script_state[0] = 1;
-    ASSERT_TRUE(expanded::MonsterStepTaken(unit, 0));
-    EXPECT_EQ(unit.script_state[0], 1);
-    EXPECT_FLOAT_EQ(script.stack[0].f, 0.36f);
-    EXPECT_FLOAT_EQ(script.stack[1].f, 1.2f);
-    // Its hop (played once) plays out with its script's own flags; at its last frame it plays again for the next.
-    MONSTOR    &wolf = unit.monster[0];
-    CCharacter &body = unit.chara[0][0];
-    monster_clips_[2] = {.start = 0, .end = 10, .speed = 1.0f};
-    wolf.requested_motion = 2;
-    wolf.requested_motion_flags = expanded::kMotionHoldLast;
-    body.SetMotion(2, expanded::kMotionHoldLast);
-    body.motion_type.state.time = 4.0f;
-    expanded::MonsterScriptStepped(unit, 0);
-    EXPECT_EQ(body.motion_flags, expanded::kMotionHoldLast);
-    body.motion_type.state.time = 9.5f;
-    expanded::MonsterScriptStepped(unit, 0);
-    EXPECT_EQ(body.motion_flags, expanded::kMotionHoldLast | expanded::kMotionCut);
-    body.SetMotion(2, expanded::kMotionHoldLast);
-    // Its script carries it to the end, farther off: the next retreat at once while it is still near.
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(Float(loop[kTriggerCell]), expanded::kSnakeRetreatRadius);
+    EXPECT_EQ(loop[kRollCell].arg2, static_cast<int>(expanded::kSnakeRetreatRoll));
+    EXPECT_FLOAT_EQ(Float(routine[kPlayerCell]), expanded::kSnakeRetreatTo);
+    EXPECT_FLOAT_EQ(Float(routine[kPointCell]), expanded::kSnakeRetreatUnlimited);
+    EXPECT_EQ(routine[kCountCell].arg2, expanded::kSnakeRetreatHops);
+    // After its step its script (the kind's, shared) is as it was.
     expanded::MonsterScriptStepped(unit, 0);
-    At(0, 0.0f, 50.0f);
-    unit.script_state[0] = 0;
-    EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
-    EXPECT_EQ(unit.script_state[0], 1);
-    // Ones that gain it nothing (a wall at its back): the next, and the next, then a rest, its script carrying on.
-    for (int stall = 1; stall < expanded::kSnakeRetreatStalls; stall++) {
-        unit.script_state[0] = 0;
-        EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0)) << stall;
-    }
-    unit.script_state[0] = 0;
-    for (int step = 0; step <= expanded::kSnakeRetreatRest; step++) {
-        EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0)) << step;
-    }
-    EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(Float(loop[kTriggerCell]), kTriggerDistance);
+    EXPECT_EQ(loop[kRollCell].arg2, kTriggerRoll);
+    EXPECT_FLOAT_EQ(Float(routine[kPlayerCell]), kPlayerLimit);
+    EXPECT_FLOAT_EQ(Float(routine[kPointCell]), kPointLimit);
+    EXPECT_EQ(routine[kCountCell].arg2, kCountLimit);
+    // It walks as its script has it: nothing taken off a step toward the player.
+    MONSTOR &jacket = unit.monster[0];
+    jacket.movement_speed = 1.0f;
+    jacket.movement[0] = 0.0f, jacket.movement[2] = -1.0f;
+    expanded::MonsterMoveChecked(unit, 0);
+    EXPECT_FLOAT_EQ(jacket.movement_speed, 1.0f);
 
-    // Out of reach, or with the guard down, it does as its script does.
-    unit.script_state[0] = 0;
-    for (int step = 0; step <= expanded::kSnakeRetreatRest; step++) {
-        expanded::MonsterStepTaken(unit, 0);
-    }
+    // Out of reach in its retreat: the routine goes on to the edge, its trigger as it was; at the edge it stops at its
+    // next check.
+    funcdata in_routine = {.addr = kEntry};
+    script.func = &in_routine;
     At(0, 0.0f, expanded::kSnakeRetreatRadius + 5.0f);
     expanded::SnakeCharmerStep();
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(Float(loop[kTriggerCell]), kTriggerDistance);
+    EXPECT_FLOAT_EQ(Float(routine[kPointCell]), expanded::kSnakeRetreatUnlimited);
+    expanded::MonsterScriptStepped(unit, 0);
+    At(0, 0.0f, expanded::kSnakeRetreatTo);
+    expanded::SnakeCharmerStep();
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(Float(routine[kPointCell]), 0.0f);
+    EXPECT_EQ(routine[kCountCell].arg2, 0);
+    EXPECT_FLOAT_EQ(Float(routine[kPlayerCell]), expanded::kSnakeRetreatTo);
+    expanded::MonsterScriptStepped(unit, 0);
+    script.func = nullptr;
+
+    // Out of reach and not retreating, or the guard down: its script as it is.
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(Float(loop[kTriggerCell]), kTriggerDistance);
+    EXPECT_FLOAT_EQ(Float(routine[kPointCell]), kPointLimit);
     At(0, 0.0f, 40.0f);
     Guard(false);
     expanded::SnakeCharmerStep();
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(Float(loop[kTriggerCell]), kTriggerDistance);
 }
 
-TEST_F(SerpentSword, RetreatsGoOnToTheEdgeOfReach) {
+TEST_F(SerpentSword, ARetreatItsAiNeverRollsForIsHeldInstead) {
     Put({Monster::MASTER_JACKET});
     CMonstorUnit &unit = floor_.unit();
-    LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::MASTER_JACKET)));
-    vmcode_t *cells = RetreatCells();
+    LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::MASTER_JACKET)), false);
     At(0, 0.0f, 40.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
-
-    // For its own step its routine goes on until the player is the reach away, its hops without end; after the step,
-    // its script (the kind's, shared with the rest) has its own limits again.
-    unit.script_state[0] = 1;
-    ASSERT_TRUE(expanded::MonsterStepTaken(unit, 0));
-    EXPECT_FLOAT_EQ(std::bit_cast<float>(cells[kPlayerCell].arg2), expanded::kSnakeRetreatTo);
-    EXPECT_EQ(cells[kCountCell].arg2, static_cast<int>(expanded::kSnakeRetreatUnlimited));
-    expanded::MonsterScriptStepped(unit, 0);
-    EXPECT_FLOAT_EQ(std::bit_cast<float>(cells[kPlayerCell].arg2), kPlayerLimit);
-    EXPECT_EQ(cells[kCountCell].arg2, kCountLimit);
-    At(0, 0.0f, 50.0f);
-    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    EXPECT_FLOAT_EQ(std::bit_cast<float>(cells[kPlayerCell].arg2), expanded::kSnakeRetreatTo);
-    expanded::MonsterScriptStepped(unit, 0);
-    EXPECT_EQ(cells[kCountCell].arg2, kCountLimit);
-
-    // Still going at the edge of reach; past it: back to its script, from the top, its step stopped.
-    At(0, 0.0f, expanded::kSnakeRetreatRadius + 1.0f);
-    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    EXPECT_EQ(unit.script_state[0], 1);
-    expanded::MonsterScriptStepped(unit, 0);
-    unit.monster[0].movement_speed = 1.0f;
-    At(0, 0.0f, expanded::kSnakeRetreatTo);
-    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    EXPECT_EQ(unit.script_state[0], 0);
-    EXPECT_FLOAT_EQ(unit.monster[0].movement_speed, 0.0f);
-    expanded::MonsterScriptStepped(unit, 0);
-
-    // Getting no farther (a wall at its back): its script's turn, after a rest.
-    At(0, 0.0f, 40.0f);
-    unit.script_state[0] = 1;
-    ASSERT_TRUE(expanded::MonsterStepTaken(unit, 0));
-    expanded::MonsterScriptStepped(unit, 0);
-    for (int step = 1; step < expanded::kSnakeRetreatStuck; step++) {
-        EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-        EXPECT_EQ(unit.script_state[0], 1) << step;
-        expanded::MonsterScriptStepped(unit, 0);
-    }
-    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    EXPECT_EQ(unit.script_state[0], 0);
-    expanded::MonsterScriptStepped(unit, 0);
-    for (int step = 0; step < expanded::kSnakeRetreatRest; step++) {
-        EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0)) << step;
-    }
     EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
-    expanded::MonsterScriptStepped(unit, 0);
+    EXPECT_EQ(unit.monster[0].requested_motion, 8);
+    EXPECT_FLOAT_EQ(Float(LabelCells()[kTriggerCell]), kTriggerDistance);
 }
 
-TEST_F(SerpentSword, MonstersFinishWhatTheyAreDoingFirst) {
-    Put({Monster::WEREWOLF, Monster::CAVE_BAT});
+TEST_F(SerpentSword, HeldMonstersFinishWhatTheyAreDoingFirst) {
+    Put({Monster::CAVE_BAT});
     CMonstorUnit &unit = floor_.unit();
-    LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::WEREWOLF)));
     monster_clips_[5] = {.start = 0, .end = 10, .speed = 1.0f}; // a one-shot: an attack
     At(0, 0.0f, 40.0f);
-    At(1, 10.0f, 40.0f);
     Guard(true);
     expanded::SnakeCharmerStep();
-    for (int monster : {0, 1}) {
-        unit.script_state[monster] = 1;
-        expanded::PlayMonsterMotion(unit, monster, 5, expanded::kMotionHoldLast | expanded::kMotionCut);
-        unit.chara[monster][0].motion_type.state.time = 4.0f;
-        // Mid-swing: its script carries on.
-        EXPECT_FALSE(expanded::MonsterStepTaken(unit, monster)) << monster;
-        // At the swing's end: the retreat, or the stagger, in its next action's place.
-        unit.chara[monster][0].motion_type.state.time = 9.5f;
-        EXPECT_TRUE(expanded::MonsterStepTaken(unit, monster)) << monster;
-    }
-    EXPECT_EQ(unit.monster[1].requested_motion_flags, expanded::kMotionHoldLast); // the stagger cross-faded in
+    unit.script_state[0] = 1;
+    expanded::PlayMonsterMotion(unit, 0, 5, expanded::kMotionHoldLast | expanded::kMotionCut);
+    unit.chara[0][0].motion_type.state.time = 4.0f;
+    // Mid-swing: its script carries on.
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    // At the swing's end: the stagger, cross-faded in, in its next action's place.
+    unit.chara[0][0].motion_type.state.time = 9.5f;
+    EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_EQ(unit.monster[0].requested_motion_flags, expanded::kMotionHoldLast);
 }
 
 TEST_F(SerpentSword, KindsWithoutARetreatStaggerThenIdle) {
@@ -457,17 +458,19 @@ TEST_F(SerpentSword, MimicsRetreatOnceAwake) {
     Guard(true);
     expanded::SnakeCharmerStep();
     LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::MIMIC_DBC)));
-    unit.script_state[0] = 1;
-    // Still waking from its chest (its appear clip, or about to start it): its script carries on.
+    // Still waking from its chest (its appear clip, or about to start it): its script as it is.
     unit.monster[0].requested_motion = expanded::kMimicWake;
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(Float(LabelCells()[kTriggerCell]), kTriggerDistance);
     unit.monster[0].requested_motion = 0;
     unit.monster[0].revealed = 1;
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
-    // Awake: its own retreat.
+    EXPECT_FLOAT_EQ(Float(LabelCells()[kTriggerCell]), kTriggerDistance);
+    // Awake: its own AI retreats.
     unit.monster[0].revealed = -1;
-    EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
-    EXPECT_EQ(unit.script_state[0], 1);
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(Float(LabelCells()[kTriggerCell]), expanded::kSnakeRetreatRadius);
+    expanded::MonsterScriptStepped(unit, 0);
 }
 
 TEST_F(SerpentSword, WakingMimicsOnlyStopComingOn) {

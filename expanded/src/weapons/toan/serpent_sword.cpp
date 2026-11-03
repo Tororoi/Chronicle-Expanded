@@ -76,129 +76,123 @@ Disc disc;
 
 [[maybe_unused]] const bool kRegistered = (RegisterOwnSound(kSnakeHiss), true);
 
-// A monster running its script's own retreat, and the steps it rests after one before it may run it again.
+// A monster near the player: its retreat left to its script (the AI loop's trigger for it and the routine's limits
+// raised for its step, put back after), or, for a kind whose script has none to trigger, taken from its script.
 struct Retreat {
-    bool                running = false;
-    int                 motion = -1; // the retreat's motion, played again as each hop ends
-    float               from = 0.0f; // its distance from the player as the retreat began
-    float               best = 0.0f; // the farthest it has got in this retreat
-    int                 stuck = 0;   // steps since it last got farther
-    int                 stalls = 0;  // retreats in a row that gained it nothing
-    int                 rest = 0;
-    bool                held = false; // a kind without one: taken from its script, staggered and standing idle
-    int                 stagger = 0;  // steps of its stagger left before it idles
-    const SnakeRetreat *own = nullptr;
+    bool native = false; // its own AI retreats (the move hook leaves it be)
+    bool held = false;   // a kind without one: taken from its script, staggered and standing idle
+    int  stagger = 0;    // steps of its stagger left before it idles
 
-    // Its routine's limits as its script has them, while raised for its step.
-    struct Limit {
+    // Values in its script raised for its step, as its script has them.
+    struct Raised {
         int *at;
         int  was;
     };
 
-    Limit limits[8] = {};
-    int   limit_count = 0;
+    Raised raised[12] = {};
+    int    raised_count = 0;
 };
 
 Retreat retreats[kFloorMonsters];
 
 // clang-format off
 constexpr SnakeRetreat kRetreats[] = {
-    {Monster::MASTER_JACKET, "e01a", 0x4498, 2, {}},
-    {Monster::SKELETON_SOLDIER, "e03a", 0x2900, 2, {}},
-    {Monster::WEREWOLF, "e07a", 0x39F4, 2, {0.36f, 1.2f}, 2},
-    {Monster::FLI_FLI, "e08a", 0x445C, 2, {}},
-    {Monster::HORNET, "e09a", 0x4850, 2, {}},
-    {Monster::SUNDAY, "e14a", 0x38C8, 2, {}},
-    {Monster::MONDAY, "e15a", 0x2FA0, 2, {}},
-    {Monster::TUESDAY, "e16a", 0x54AC, 2, {}},
-    {Monster::WEDNESDAY, "e17a", 0x2FA0, 2, {}},
-    {Monster::THURSDAY, "e18a", 0x3568, 2, {}},
-    {Monster::FRIDAY, "e19a", 0x3568, 2, {}},
-    {Monster::SATURDAY, "e20a", 0x38F4, 2, {}},
-    {Monster::GUNNY, "e23a", 0x4F3C, 2, {}},
-    {Monster::GYON, "e24a", 0x3E70, 2, {}},
-    {Monster::PIRATES_CHARIOT, "e25a", 0x26D4, 2, {}},
-    {Monster::CAPTAIN, "e27a", 0x3EA8, 2, {}},
-    {Monster::CORCEA, "e28a", 0x4278, 2, {}},
-    {Monster::MR_BLARE, "e31a", 0x2848, 2, {}},
-    {Monster::DUNE, "e32a", 0x61EC, 2, {}},
-    {Monster::ARTHUR, "e40a", 0x3680, 2, {}},
-    {Monster::GHOST, "e42a", 0x4170, 2, {}},
-    {Monster::ALEXANDER, "e43a", 0x5E9C, 2, {}},
-    {Monster::HEART, "e44a", 0x2970, 2, {}},
-    {Monster::CLUB, "e45a", 0x2970, 2, {}},
-    {Monster::DIAMOND, "e46a", 0x2970, 2, {}},
-    {Monster::SPADE, "e47a", 0x2970, 2, {}},
-    {Monster::JOKER, "e48a", 0x2970, 2, {}},
-    {Monster::BOMBER_HEAD, "e49a", 0x61C8, 2, {}},
-    {Monster::MUMMY, "e50a", 0x3BC4, 2, {}},
-    {Monster::LICH, "e51a", 0x4170, 2, {}},
-    {Monster::WHITE_FANG, "e56a", 0x39F4, 2, {0.3f, 0.37f}, 2},
-    {Monster::PHANTOM, "e58a", 0x37FC, 2, {}},
-    {Monster::DRAGON, "e59a", 0x52C0, 2, {}},
-    {Monster::HELL_POCKLE, "e62a", 0x45A8, 2, {}},
-    {Monster::BILLY, "e69a", 0x2848, 2, {}},
-    {Monster::VULCAN, "e70a", 0x60DC, 2, {}},
-    {Monster::CRABBY_HERMIT, "e71a", 0x48EC, 2, {}},
-    {Monster::SPACE_GYON, "e72a", 0x3C48, 2, {}},
-    {Monster::BLUE_DRAGON, "e73a", 0x52C0, 2, {}},
-    {Monster::BLACK_DRAGON, "e74a", 0x52C0, 2, {}},
-    {Monster::MASK_OF_PRAJNA, "e75a", 0x4170, 2, {}},
-    {Monster::CRESCENT_BARON, "e76a", 0x37F8, 2, {}},
-    {Monster::SAM, "e86a", 0x2848, 2, {}},
-    {Monster::YAMMICH, "e101a", 0x3DD0, 2, {}},
-    {Monster::HALEY_HOLEY, "e105a", 0x43AC, 2, {}},
-    {Monster::GEMRON_FIRE, "e111a", 0x44B8, 2, {}},
-    {Monster::WHITE_FANG_ENHANCED, "e125a", 0x39F4, 2, {0.3f, 0.37f}, 2},
-    {Monster::ARTHUR_ENHANCED, "e126a", 0x3784, 2, {}},
-    {Monster::MASTER_JACKET_ENHANCED, "e129a", 0x4498, 2, {}},
-    {Monster::VULCAN_ENHANCED, "e130a", 0x61E0, 2, {}},
-    {Monster::MUMMY_ENHANCED, "e131a", 0x3BC4, 2, {}},
-    {Monster::DIAMOND_ENHANCED, "e132a", 0x2970, 2, {}},
-    {Monster::GEMRON_ICE, "e112a", 0x44B8, 2, {}},
-    {Monster::HORN_HEAD, "e119a", 0x48B0, 2, {}},
-    {Monster::YAMMICH_ENHANCED, "e135a", 0x3ED4, 2, {}},
-    {Monster::CLUB_ENHANCED, "e138a", 0x2970, 2, {}},
-    {Monster::CORCEA_ENHANCED, "e139a", 0x4308, 2, {}},
-    {Monster::GEMRON_THUNDER, "e113a", 0x44B8, 2, {}},
-    {Monster::BISHOP_Q, "e116a", 0x5324, 2, {}},
-    {Monster::MASK_OF_PRAJNA_ENHANCED, "e142a", 0x4170, 2, {}},
-    {Monster::GYON_ENHANCED, "e143a", 0x3F90, 2, {}},
-    {Monster::SPADE_ENHANCED, "e144a", 0x2970, 2, {}},
-    {Monster::CAPTAIN_ENHANCED, "e146a", 0x3EA8, 2, {}},
-    {Monster::GEMRON_WIND, "e114a", 0x44B8, 2, {}},
-    {Monster::SILVER_GEAR, "e118a", 0x6358, 2, {}},
-    {Monster::ALEXANDER_ENHANCED, "e149a", 0x5E9C, 2, {}},
-    {Monster::HEART_ENHANCED, "e150a", 0x2970, 2, {}},
-    {Monster::BOMBER_HEAD_ENHANCED, "e151a", 0x62CC, 2, {}},
-    {Monster::CRABBY_HERMIT_ENHANCED, "e152a", 0x49F0, 2, {}},
-    {Monster::PIRATES_CHARIOT_ENHANCED, "e154a", 0x28F4, 2, {}},
-    {Monster::SPACE_GYON_ENHANCED, "e155a", 0x4E0C, 2, {}},
-    {Monster::GEMRON_HOLY, "e115a", 0x44B8, 2, {}},
-    {Monster::GACIOUS_ENHANCED, "e117a", 0x4498, 2, {}},
-    {Monster::CRESCENT_BARON_ENHANCED, "e159a", 0x38FC, 2, {}},
-    {Monster::JOKER_ENHANCED, "e161a", 0x2970, 2, {}},
-    {Monster::LICH_ENHANCED, "e162a", 0x4390, 2, {}},
-    {Monster::KING_MIMIC_DBC, "e34a", 0x35D4, 2, {}},
-    {Monster::MIMIC_DBC, "e35a", 0x4760, 2, {}},
-    {Monster::KING_MIMIC_SMT, "e36a", 0x35BC, 2, {}},
-    {Monster::MIMIC_SMT, "e37a", 0x4730, 2, {}},
-    {Monster::KING_MIMIC_MS, "e38a", 0x35D4, 2, {}},
-    {Monster::MIMIC_MS, "e39a", 0x46F4, 2, {}},
-    {Monster::KING_MIMIC_WOF, "e78a", 0x2ADC, 2, {}},
-    {Monster::MIMIC_WOF, "e79a", 0x4718, 2, {}},
-    {Monster::KING_MIMIC_SW, "e80a", 0x3368, 2, {}},
-    {Monster::MIMIC_SW, "e81a", 0x4718, 2, {}},
-    {Monster::KING_MIMIC_GOT, "e82a", 0x36AC, 2, {}},
-    {Monster::MIMIC_GOT, "e83a", 0x4718, 2, {}},
-    {Monster::MIMIC_DS, "e109a", 0x4718, 2, {}},
-    {Monster::KING_MIMIC_DS, "e110a", 0x3374, 2, {}},
-    {Monster::MIMIC_DS_ENHANCED, "e147a", 0x4718, 2, {}},
-    {Monster::KING_MIMIC_DS_ENHANCED, "e148a", 0x3374, 2, {}},
-    {Monster::MIMIC_DS_ENHANCED_TWICE, "e156a", 0x4918, 2, {}},
-    {Monster::KING_MIMIC_DS_ENHANCED_TWICE, "e157a", 0x3374, 2, {}},
-    {Monster::MIMIC_DS_ENHANCED_THRICE, "e165a", 0x4918, 2, {}},
-    {Monster::KING_MIMIC_DS_ENHANCED_THRICE, "e166a", 0x3374, 2, {}},
+    {Monster::MASTER_JACKET, "e01a", 0x4498, 2},
+    {Monster::SKELETON_SOLDIER, "e03a", 0x2900, 2},
+    {Monster::WEREWOLF, "e07a", 0x39F4, 2, 2},
+    {Monster::FLI_FLI, "e08a", 0x445C, 2},
+    {Monster::HORNET, "e09a", 0x4850, 2},
+    {Monster::SUNDAY, "e14a", 0x38C8, 2},
+    {Monster::MONDAY, "e15a", 0x2FA0, 2},
+    {Monster::TUESDAY, "e16a", 0x54AC, 2},
+    {Monster::WEDNESDAY, "e17a", 0x2FA0, 2},
+    {Monster::THURSDAY, "e18a", 0x3568, 2},
+    {Monster::FRIDAY, "e19a", 0x3568, 2},
+    {Monster::SATURDAY, "e20a", 0x38F4, 2},
+    {Monster::GUNNY, "e23a", 0x4F3C, 2},
+    {Monster::GYON, "e24a", 0x3E70, 2},
+    {Monster::PIRATES_CHARIOT, "e25a", 0x26D4, 2},
+    {Monster::CAPTAIN, "e27a", 0x3EA8, 2},
+    {Monster::CORCEA, "e28a", 0x4278, 2},
+    {Monster::MR_BLARE, "e31a", 0x2848, 2},
+    {Monster::DUNE, "e32a", 0x61EC, 2},
+    {Monster::ARTHUR, "e40a", 0x3680, 2},
+    {Monster::GHOST, "e42a", 0x4170, 2},
+    {Monster::ALEXANDER, "e43a", 0x5E9C, 2},
+    {Monster::HEART, "e44a", 0x2970, 2},
+    {Monster::CLUB, "e45a", 0x2970, 2},
+    {Monster::DIAMOND, "e46a", 0x2970, 2},
+    {Monster::SPADE, "e47a", 0x2970, 2},
+    {Monster::JOKER, "e48a", 0x2970, 2},
+    {Monster::BOMBER_HEAD, "e49a", 0x61C8, 2},
+    {Monster::MUMMY, "e50a", 0x3BC4, 2},
+    {Monster::LICH, "e51a", 0x4170, 2},
+    {Monster::WHITE_FANG, "e56a", 0x39F4, 2, 2},
+    {Monster::PHANTOM, "e58a", 0x37FC, 2},
+    {Monster::DRAGON, "e59a", 0x52C0, 2},
+    {Monster::HELL_POCKLE, "e62a", 0x45A8, 2},
+    {Monster::BILLY, "e69a", 0x2848, 2},
+    {Monster::VULCAN, "e70a", 0x60DC, 2},
+    {Monster::CRABBY_HERMIT, "e71a", 0x48EC, 2},
+    {Monster::SPACE_GYON, "e72a", 0x3C48, 2},
+    {Monster::BLUE_DRAGON, "e73a", 0x52C0, 2},
+    {Monster::BLACK_DRAGON, "e74a", 0x52C0, 2},
+    {Monster::MASK_OF_PRAJNA, "e75a", 0x4170, 2},
+    {Monster::CRESCENT_BARON, "e76a", 0x37F8, 2},
+    {Monster::SAM, "e86a", 0x2848, 2},
+    {Monster::YAMMICH, "e101a", 0x3DD0, 2},
+    {Monster::HALEY_HOLEY, "e105a", 0x43AC, 2},
+    {Monster::GEMRON_FIRE, "e111a", 0x44B8, 2},
+    {Monster::WHITE_FANG_ENHANCED, "e125a", 0x39F4, 2, 2},
+    {Monster::ARTHUR_ENHANCED, "e126a", 0x3784, 2},
+    {Monster::MASTER_JACKET_ENHANCED, "e129a", 0x4498, 2},
+    {Monster::VULCAN_ENHANCED, "e130a", 0x61E0, 2},
+    {Monster::MUMMY_ENHANCED, "e131a", 0x3BC4, 2},
+    {Monster::DIAMOND_ENHANCED, "e132a", 0x2970, 2},
+    {Monster::GEMRON_ICE, "e112a", 0x44B8, 2},
+    {Monster::HORN_HEAD, "e119a", 0x48B0, 2},
+    {Monster::YAMMICH_ENHANCED, "e135a", 0x3ED4, 2},
+    {Monster::CLUB_ENHANCED, "e138a", 0x2970, 2},
+    {Monster::CORCEA_ENHANCED, "e139a", 0x4308, 2},
+    {Monster::GEMRON_THUNDER, "e113a", 0x44B8, 2},
+    {Monster::BISHOP_Q, "e116a", 0x5324, 2},
+    {Monster::MASK_OF_PRAJNA_ENHANCED, "e142a", 0x4170, 2},
+    {Monster::GYON_ENHANCED, "e143a", 0x3F90, 2},
+    {Monster::SPADE_ENHANCED, "e144a", 0x2970, 2},
+    {Monster::CAPTAIN_ENHANCED, "e146a", 0x3EA8, 2},
+    {Monster::GEMRON_WIND, "e114a", 0x44B8, 2},
+    {Monster::SILVER_GEAR, "e118a", 0x6358, 2},
+    {Monster::ALEXANDER_ENHANCED, "e149a", 0x5E9C, 2},
+    {Monster::HEART_ENHANCED, "e150a", 0x2970, 2},
+    {Monster::BOMBER_HEAD_ENHANCED, "e151a", 0x62CC, 2},
+    {Monster::CRABBY_HERMIT_ENHANCED, "e152a", 0x49F0, 2},
+    {Monster::PIRATES_CHARIOT_ENHANCED, "e154a", 0x28F4, 2},
+    {Monster::SPACE_GYON_ENHANCED, "e155a", 0x4E0C, 2},
+    {Monster::GEMRON_HOLY, "e115a", 0x44B8, 2},
+    {Monster::GACIOUS_ENHANCED, "e117a", 0x4498, 2},
+    {Monster::CRESCENT_BARON_ENHANCED, "e159a", 0x38FC, 2},
+    {Monster::JOKER_ENHANCED, "e161a", 0x2970, 2},
+    {Monster::LICH_ENHANCED, "e162a", 0x4390, 2},
+    {Monster::KING_MIMIC_DBC, "e34a", 0x35D4, 2},
+    {Monster::MIMIC_DBC, "e35a", 0x4760, 2},
+    {Monster::KING_MIMIC_SMT, "e36a", 0x35BC, 2},
+    {Monster::MIMIC_SMT, "e37a", 0x4730, 2},
+    {Monster::KING_MIMIC_MS, "e38a", 0x35D4, 2},
+    {Monster::MIMIC_MS, "e39a", 0x46F4, 2},
+    {Monster::KING_MIMIC_WOF, "e78a", 0x2ADC, 2},
+    {Monster::MIMIC_WOF, "e79a", 0x4718, 2},
+    {Monster::KING_MIMIC_SW, "e80a", 0x3368, 2},
+    {Monster::MIMIC_SW, "e81a", 0x4718, 2},
+    {Monster::KING_MIMIC_GOT, "e82a", 0x36AC, 2},
+    {Monster::MIMIC_GOT, "e83a", 0x4718, 2},
+    {Monster::MIMIC_DS, "e109a", 0x4718, 2},
+    {Monster::KING_MIMIC_DS, "e110a", 0x3374, 2},
+    {Monster::MIMIC_DS_ENHANCED, "e147a", 0x4718, 2},
+    {Monster::KING_MIMIC_DS_ENHANCED, "e148a", 0x3374, 2},
+    {Monster::MIMIC_DS_ENHANCED_TWICE, "e156a", 0x4918, 2},
+    {Monster::KING_MIMIC_DS_ENHANCED_TWICE, "e157a", 0x3374, 2},
+    {Monster::MIMIC_DS_ENHANCED_THRICE, "e165a", 0x4918, 2},
+    {Monster::KING_MIMIC_DS_ENHANCED_THRICE, "e166a", 0x3374, 2},
 };
 // clang-format on
 
@@ -232,8 +226,8 @@ bool MarkNear(CMonstorUnit &unit) {
     return came;
 }
 
-// How far a routine's code is looked through for its end.
-constexpr int kRoutineCells = 4096;
+// How far a routine's code is looked through for its end, and back from a call to it for its trigger; the AI loop's label.
+constexpr int kRoutineCells = 4096, kTriggerCells = 120, kAiLabel = 100;
 
 // A cell pushing the int value, and a function's last cell (its return, the padding after it).
 bool Pushes(const vmcode_t &cell, int value) {
@@ -300,21 +294,28 @@ bool MayRetreat(const MONSTOR &live, const MONSTOR_MODEL &model) {
     }
 }
 
-// What a retreat routine's variable measures, by how its code sets it: the distance to the player (_GET_DISTANCE into it
-// alone), the distance from a point (a point's three coordinates, then it), or a count (itself plus one, stored back).
+// What a script's variable measures, by how its code sets it: the distance to the player (_GET_DISTANCE into it alone),
+// the distance from a point (a point's three coordinates, then it), a roll (_GET_RAND into it), or a count (itself plus
+// one, stored back).
 enum class Measure {
     kNone,
     kPlayer,
     kPoint,
-    kCount
+    kRoll,
+    kCount,
 };
 
 Measure MeasureOf(const vmcode_t *cells, int count, int var) {
     for (int i = 0; i < count; i++) {
         const vmcode_t &cell = cells[i];
-        if (cell.op == static_cast<int>(stb::kExt) && cell.arg1 >= 2 && i >= cell.arg1 && Pushes(cells[i - cell.arg1], stb::kGetDistance) &&
-            cells[i - 1].op == static_cast<int>(stb::kLoadAddress) && cells[i - 1].arg1 == var) {
-            return cell.arg1 == 2 ? Measure::kPlayer : Measure::kPoint;
+        if (cell.op == static_cast<int>(stb::kExt) && cell.arg1 >= 2 && i >= cell.arg1 && cells[i - 1].op == static_cast<int>(stb::kLoadAddress) &&
+            cells[i - 1].arg1 == var) {
+            if (Pushes(cells[i - cell.arg1], stb::kGetDistance)) {
+                return cell.arg1 == 2 ? Measure::kPlayer : Measure::kPoint;
+            }
+            if (Pushes(cells[i - cell.arg1], stb::kGetRand)) {
+                return Measure::kRoll;
+            }
         }
         if (i + 4 < count && cell.op == static_cast<int>(stb::kLoadAddress) && cell.arg1 == var && cells[i + 1].op == static_cast<int>(stb::kLoad) &&
             cells[i + 1].arg1 == var && Pushes(cells[i + 2], 1) && cells[i + 3].op == static_cast<int>(stb::kAdd) && cells[i + 4].op == static_cast<int>(stb::kStore)) {
@@ -324,49 +325,115 @@ Measure MeasureOf(const vmcode_t *cells, int count, int var) {
     return Measure::kNone;
 }
 
-// Puts its routine's limits back as its script has them.
-void Restore(Retreat &retreat) {
-    for (int i = retreat.limit_count; i-- > 0;) {
-        *retreat.limits[i].at = retreat.limits[i].was;
-    }
-    retreat.limit_count = 0;
-}
-
-// Raises its routine's limits for the step its script takes (put back after it: the program is the kind's, shared, and
-// its own AI runs the same routine): where the routine stops once the player is so far (a variable it measures to the
-// player, compared at least or more than a constant) it goes on to kSnakeRetreatTo; where it stops once it has come
-// so far from where it started, or after so many hops, it goes on without end (its retreat is ended as it gets out of
-// reach, or stops getting farther).
-void Extend(CMonstorUnit &unit, int monster, Retreat &retreat) {
-    Restore(retreat);
-    char *code = unit.interpreter[monster].code;
-    auto *cells = reinterpret_cast<vmcode_t *>(code + RecordAt(code, retreat.own->record).addr);
-    int   count = 0;
+// A function's code, its cells to its end.
+vmcode_t *CodeOf(char *code, int record, int &count) {
+    auto *cells = reinterpret_cast<vmcode_t *>(code + RecordAt(code, record).addr);
+    count = 0;
     while (count < kRoutineCells && !Ends(cells + count)) {
         count++;
     }
-    for (int i = 0; i + 3 < count && retreat.limit_count < static_cast<int>(std::size(retreat.limits)); i++) {
-        if (cells[i].op != static_cast<int>(stb::kLoad) || cells[i + 1].op != static_cast<int>(stb::kPushConst) ||
-            cells[i + 2].op != static_cast<int>(stb::kCompare) ||
-            (cells[i + 2].arg1 != static_cast<int>(stb::kGreaterThan) && cells[i + 2].arg1 != static_cast<int>(stb::kGreaterOrEqual)) ||
-            cells[i + 3].op != static_cast<int>(stb::kJumpFalse)) {
+    return cells;
+}
+
+// A condition at cell i: a variable compared with a constant (the cell after), then a jump past what it guards.
+bool ComparesAt(const vmcode_t *cells, int i, std::initializer_list<int> compares) {
+    if (cells[i].op != static_cast<int>(stb::kLoad) || cells[i + 1].op != static_cast<int>(stb::kPushConst) ||
+        cells[i + 2].op != static_cast<int>(stb::kCompare) || cells[i + 3].op != static_cast<int>(stb::kJumpFalse)) {
+        return false;
+    }
+    return std::find(compares.begin(), compares.end(), cells[i + 2].arg1) != compares.end();
+}
+
+// The AI loop's trigger for the retreat (its label 100: a call to the routine under a distance to the player at most so
+// much and a roll under so much, its own cooldown between): the constants of the two, or false.
+bool TriggerOf(CRunScript &script, int record, vmcode_t *&distance, vmcode_t *&roll) {
+    const char *base = reinterpret_cast<const char *>(script.prog);
+    const auto *labels = reinterpret_cast<const RS_PROGDATA *>(base + script.prog->prog);
+    for (int i = 0; i < script.prog->prog_num; i++) {
+        if (labels[i].no != kAiLabel) {
             continue;
         }
-        float to = 0.0f;
+        int       count = 0;
+        vmcode_t *cells = CodeOf(script.code, static_cast<int>(base + labels[i].func - script.code), count);
+        for (int call = 0; call < count; call++) {
+            if (cells[call].op != static_cast<int>(stb::kCall) || cells[call].arg2 != record) {
+                continue;
+            }
+            distance = roll = nullptr;
+            for (int c = call - 4; c >= 0 && c >= call - kTriggerCells && (distance == nullptr || roll == nullptr); c--) {
+                if (!ComparesAt(cells, c, {static_cast<int>(stb::kLessThan), static_cast<int>(stb::kLessOrEqual)})) {
+                    continue;
+                }
+                Measure measure = MeasureOf(cells, count, cells[c].arg1);
+                if (measure == Measure::kPlayer && distance == nullptr) {
+                    distance = &cells[c + 1];
+                } else if (measure == Measure::kRoll && roll == nullptr) {
+                    roll = &cells[c + 1];
+                }
+            }
+            if (distance != nullptr && roll != nullptr) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Whether the script is in the routine (running it, or a function it called).
+bool InRoutine(const CRunScript &script, int record) {
+    int addr = RecordAt(script.code, record).addr;
+    if (script.func != nullptr && script.func->addr == addr) {
+        return true;
+    }
+    for (const RS_CALLDATA *call = script.call; call != nullptr && call < script.call_sp; call++) {
+        if (call->func != nullptr && call->func->addr == addr) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Puts the raised values back as its script has them.
+void Restore(Retreat &retreat) {
+    for (int i = retreat.raised_count; i-- > 0;) {
+        *retreat.raised[i].at = retreat.raised[i].was;
+    }
+    retreat.raised_count = 0;
+}
+
+// A constant (a pushed int or float) raised to to for the step.
+void Raise(Retreat &retreat, vmcode_t &constant, float to) {
+    if (retreat.raised_count >= static_cast<int>(std::size(retreat.raised))) {
+        return;
+    }
+    retreat.raised[retreat.raised_count++] = {&constant.arg2, constant.arg2};
+    constant.arg2 = constant.arg1 == static_cast<int>(stb::kFloat) ? std::bit_cast<int>(to) : static_cast<int>(to);
+}
+
+// The routine's own limits for the step: where it stops once the player is so far it goes on to kSnakeRetreatTo; where
+// it stops once so far from where it started, or after so many hops, it goes on (to kSnakeRetreatHops hops, in case a
+// wall holds it) while the monster is nearer than kSnakeRetreatTo, and stops at its next check once it is that far.
+void RaiseLimits(CRunScript &script, Retreat &retreat, int record, float distance) {
+    int       count = 0;
+    vmcode_t *cells = CodeOf(script.code, record, count);
+    bool      far = distance >= kSnakeRetreatTo;
+    for (int i = 0; i + 3 < count; i++) {
+        if (!ComparesAt(cells, i, {static_cast<int>(stb::kGreaterThan), static_cast<int>(stb::kGreaterOrEqual)})) {
+            continue;
+        }
         switch (MeasureOf(cells, count, cells[i].arg1)) {
             case Measure::kPlayer:
-                to = kSnakeRetreatTo;
+                Raise(retreat, cells[i + 1], kSnakeRetreatTo);
                 break;
             case Measure::kPoint:
-            case Measure::kCount:
-                to = kSnakeRetreatUnlimited;
+                Raise(retreat, cells[i + 1], far ? 0.0f : kSnakeRetreatUnlimited);
                 break;
-            case Measure::kNone:
-                continue;
+            case Measure::kCount:
+                Raise(retreat, cells[i + 1], far ? 0.0f : static_cast<float>(kSnakeRetreatHops));
+                break;
+            default:
+                break;
         }
-        int &value = cells[i + 1].arg2;
-        retreat.limits[retreat.limit_count++] = {&value, value};
-        value = cells[i + 1].arg1 == static_cast<int>(stb::kFloat) ? std::bit_cast<int>(to) : static_cast<int>(to);
     }
 }
 
@@ -819,50 +886,27 @@ bool Hold(CMonstorUnit &unit, int monster, Retreat &retreat) {
 } // namespace
 
 bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
-    Retreat &retreat = retreats[monster];
-    bool     chain = false;
-    if (retreat.running) {
-        float dx = 0.0f, dz = 0.0f, distance = 0.0f;
-        bool  in_play = Offset(unit, monster, dx, dz, distance);
-        if (unit.script_state[monster] != 0) {
-            // Its own script runs the retreat (or a hit's reaction in its place), its limits raised, until it is
-            // kSnakeRetreatTo away (past the reach, so it comes a little way back before the next) or the guard comes down (back to its script, from the top), or it stops getting farther (a wall at its
-            // back: its script's turn for a rest).
-            if (distance > retreat.best + kSnakeRetreatGain) {
-                retreat.best = distance;
-                retreat.stuck = 0;
-            } else {
-                retreat.stuck++;
+    Retreat            &retreat = retreats[monster];
+    float               dx = 0.0f, dz = 0.0f, distance = 0.0f;
+    bool                in_play = snake.up && &unit == NowMonstorUnit && unit.monster[monster].hp > 0 && Offset(unit, monster, dx, dz, distance);
+    bool                near = in_play && snake.near[monster];
+    const SnakeRetreat *own = in_play ? RetreatOf(unit, monster) : nullptr;
+    vmcode_t           *trigger = nullptr, *roll = nullptr;
+    CRunScript         &script = unit.interpreter[monster];
+    retreat.native = own != nullptr && TriggerOf(script, own->record, trigger, roll);
+    if (retreat.native) {
+        // Its own AI retreats, as it would: near the player its trigger is certain (the distance it rolls within the
+        // reach, the roll always made; its cooldown between), and the routine goes on to the reach's edge.
+        if (near || InRoutine(script, own->record)) {
+            if (near) {
+                Raise(retreat, *trigger, kSnakeRetreatRadius);
+                Raise(retreat, *roll, kSnakeRetreatRoll);
             }
-            bool out = !snake.up || &unit != NowMonstorUnit || !in_play || distance >= kSnakeRetreatTo;
-            if (out || retreat.stuck >= kSnakeRetreatStuck) {
-                unit.script_state[monster] = 0;
-                unit.monster[monster].movement_speed = 0.0f;
-                retreat.running = false;
-                retreat.rest = out ? 0 : kSnakeRetreatRest;
-                return false;
-            }
-            Extend(unit, monster, retreat);
-            return false;
+            RaiseLimits(script, retreat, own->record, distance);
         }
-        retreat.running = false;
-        // Straight into the next while it is still near. Held up retreat after retreat (a wall at its back, not a step
-        // that went sideways), its script's turn for a rest.
-        bool gained = in_play && distance >= retreat.from + kSnakeRetreatGain;
-        retreat.stalls = gained ? 0 : retreat.stalls + 1;
-        if (retreat.stalls >= kSnakeRetreatStalls) {
-            retreat.stalls = 0;
-            retreat.rest = kSnakeRetreatRest;
-            return false;
-        }
-        chain = true;
-    }
-    if (retreat.rest > 0) {
-        retreat.rest--;
         return false;
     }
-    float dx = 0.0f, dz = 0.0f, distance = 0.0f;
-    if (!snake.up || &unit != NowMonstorUnit || unit.monster[monster].hp <= 0 || !Near(unit, monster, dx, dz, distance)) {
+    if (!near) {
         if (retreat.held) {
             // Back to its script, from the top.
             unit.script_state[monster] = 0;
@@ -870,59 +914,23 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
         }
         return false;
     }
-    if (!retreat.held && !chain && !AtSeam(unit, monster)) {
+    if (!retreat.held && !AtSeam(unit, monster)) {
         // Mid-action: it finishes what it is doing first.
         return false;
     }
-    const SnakeRetreat *own = RetreatOf(unit, monster);
-    if (own == nullptr) {
-        return Hold(unit, monster, retreat);
-    }
-    // In place of what its script was doing, as a hit's reaction takes its place.
-    RS_STACKDATA args[2] = {};
-    for (int i = 0; i < own->argc; i++) {
-        args[i].type = RS_FLOAT;
-        args[i].f = own->args[i];
-    }
-    retreat.own = own;
-    retreat.best = distance;
-    retreat.stuck = 0;
-    Extend(unit, monster, retreat);
-    unit.interpreter[monster].run_function(own->record, args, own->argc);
-    unit.script_state[monster] = unit.interpreter[monster].IsEnd() != 0 ? 0 : 1;
-    retreat.running = unit.script_state[monster] != 0;
-    retreat.motion = own->motion;
-    retreat.from = distance;
-    retreat.rest = retreat.running ? 0 : kSnakeRetreatRest;
-    return true;
+    return Hold(unit, monster, retreat);
 }
 
-void SnakeCharmerScriptStepped(CMonstorUnit &unit, int monster) {
-    if (monster < 0 || monster >= kFloorMonsters) {
-        return;
-    }
-    Retreat &retreat = retreats[monster];
-    Restore(retreat);
-    MONSTOR           &live = unit.monster[monster];
-    const CCharacter  &body = unit.chara[monster][0];
-    const MOTION_INFO *clips = body.motion_type.motion_info;
-    if (!retreat.running || live.requested_motion != retreat.motion || body.motion_no != retreat.motion ||
-        (live.requested_motion_flags & kMotionHoldLast) == 0 || clips == nullptr ||
-        body.motion_type.state.time < static_cast<float>(clips[retreat.motion].end) - 1.0f) {
-        return;
-    }
-    // Its hop played to its end (its script has seen it end): it plays again for the next. A routine that sets its hop
-    // once more without starting it over (as a chained retreat finds it, or a Gemron's after its first) would leave it
-    // on its last frame while the routine slides the monster on.
-    for (int part = 0; part <= live.attachment_count; part++) {
-        unit.chara[monster][part].motion_flags |= kMotionCut;
+void SnakeCharmerScriptStepped(CMonstorUnit & /*unit*/, int monster) {
+    if (monster >= 0 && monster < kFloorMonsters) {
+        Restore(retreats[monster]);
     }
 }
 
 void SnakeCharmerMonsterMove(CMonstorUnit &unit, int monster) {
     MONSTOR &live = unit.monster[monster];
     float    dx = 0.0f, dz = 0.0f, distance = 0.0f;
-    if (!snake.up || retreats[monster].running || retreats[monster].held || live.movement_speed == 0.0f || !Near(unit, monster, dx, dz, distance) ||
+    if (!snake.up || retreats[monster].native || retreats[monster].held || live.movement_speed == 0.0f || !Near(unit, monster, dx, dz, distance) ||
         distance < 0.01f) {
         return;
     }
