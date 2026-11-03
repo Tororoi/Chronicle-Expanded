@@ -7,12 +7,18 @@
 #include "dngstatusdata.hpp"
 #include "expanded/core/menu_text.hpp"
 #include "expanded/core/party.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 #include "localize/localize.hpp"
 
 namespace expanded {
 
 namespace {
+
+// Whether the weapon keeps the Sevenfold Rite: a 7 Branch Sword, with the weapon abilities.
+bool Sevenfold(const WEAPON_HAVE &weapon) {
+    return weapon.item_no == ITEM_WEAPON_7BRANCH_SWORD && WeaponAbilitiesOn();
+}
 
 // The weapon the weapon menu has selected, or nullptr.
 const WEAPON_HAVE *Selected() {
@@ -25,7 +31,7 @@ const WEAPON_HAVE *Selected() {
 
 bool SevenBranchSelected() {
     const WEAPON_HAVE *weapon = Selected();
-    return weapon != nullptr && weapon->item_no == ITEM_WEAPON_7BRANCH_SWORD;
+    return weapon != nullptr && Sevenfold(*weapon);
 }
 
 std::optional<std::string> Hint() {
@@ -54,11 +60,11 @@ std::optional<std::string> Refused() {
 } // namespace
 
 bool SevenfoldRefuses(const WEAPON_HAVE &weapon) {
-    return weapon.item_no == ITEM_WEAPON_7BRANCH_SWORD && weapon.level < kSevenfoldLevel;
+    return Sevenfold(weapon) && weapon.level < kSevenfoldLevel;
 }
 
 float StatusBreakShare(const WEAPON_HAVE &weapon) {
-    return weapon.item_no == ITEM_WEAPON_7BRANCH_SWORD ? kSevenfoldShare : kStatusBreakShare;
+    return Sevenfold(weapon) ? kSevenfoldShare : kStatusBreakShare;
 }
 
 } // namespace expanded

@@ -2,6 +2,7 @@
 
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/weapons/charge.hpp"
+#include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/steel_slingshot.hpp"
 #include "itemdata.hpp"
 #include "test_support.hpp"
@@ -67,6 +68,19 @@ TEST(SteelSlingshot, ALevelUpAddsTwoEnduranceAndTwiceTheWhpRoll) {
     WEAPON_HAVE wooden = steel;
     wooden.item_no = ITEM_WEAPON_WOODEN_SLINGSHOT;
     WeaponLevelUpValueCalc(&wooden, &leveled, 1, 0);
+    EXPECT_EQ(leveled.endurance, 11);
+    EXPECT_LE(leveled.durability, 33);
+}
+
+TEST(SteelSlingshot, OffWithTheWeaponAbilities) {
+    expanded::test::OptionScope options;
+    ASSERT_TRUE(options.Set(expanded::kWeaponAbilities, false));
+    WEAPON_HAVE steel = {};
+    steel.item_no = ITEM_WEAPON_STEEL_SLINGSHOT;
+    steel.endurance = 10;
+    steel.durability = 30;
+    WEAPON_HAVE leveled = {};
+    WeaponLevelUpValueCalc(&steel, &leveled, 1, 0);
     EXPECT_EQ(leveled.endurance, 11);
     EXPECT_LE(leveled.durability, 33);
 }
