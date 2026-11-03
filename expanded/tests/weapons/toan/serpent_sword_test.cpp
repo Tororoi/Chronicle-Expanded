@@ -269,12 +269,21 @@ TEST_F(SerpentSword, MonstersRunTheirOwnRetreat) {
     expanded::MonsterMoveChecked(unit, 0);
     EXPECT_EQ(wolf.requested_motion_flags, expanded::kMotionHoldLast);
     EXPECT_EQ(unit.chara[0][0].motion_flags, expanded::kMotionHoldLast);
-    // Its script carries it to the end, farther off: the next retreat at once while it is still near.
+    // After that, its script's own flags stand.
+    wolf.requested_motion_flags = expanded::kMotionHoldLast | expanded::kMotionCut;
+    expanded::MonsterMoveChecked(unit, 0);
+    EXPECT_EQ(wolf.requested_motion_flags, expanded::kMotionHoldLast | expanded::kMotionCut);
+    // Its script carries it to the end, farther off: the next retreat at once while it is still near, its motion (held on
+    // its last frame) starting over.
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
     At(0, 0.0f, 50.0f);
     unit.script_state[0] = 0;
+    wolf.requested_motion_flags = expanded::kMotionHoldLast;
+    unit.chara[0][0].motion_flags = expanded::kMotionHoldLast;
     EXPECT_TRUE(expanded::MonsterStepTaken(unit, 0));
     EXPECT_EQ(unit.script_state[0], 1);
+    expanded::MonsterMoveChecked(unit, 0);
+    EXPECT_EQ(unit.chara[0][0].motion_flags, expanded::kMotionHoldLast | expanded::kMotionCut);
     // Ones that gain it nothing (a wall at its back): the next, and the next, then a rest, its script carrying on.
     for (int stall = 1; stall < expanded::kSnakeRetreatStalls; stall++) {
         unit.script_state[0] = 0;

@@ -75,12 +75,17 @@ Disc disc;
 
 [[maybe_unused]] const bool kRegistered = (RegisterOwnSound(kSnakeHiss), true);
 
+// How a retreat's motion first comes in: cross-faded from another motion, or restarted when the monster is already in it
+// (a retreat run straight after the last, its motion held on its last frame, which setting it again would leave there).
+constexpr int kEntryBlend = 1, kEntryRestart = 2;
+
 // A monster running its script's own retreat, and the steps it rests after one before it may run it again.
 struct Retreat {
     bool  running = false;
     int   motion = -1; // the retreat's motion, cross-faded into in place of its script's cut
     float from = 0.0f; // its distance from the player as the retreat began
     int   stalls = 0;  // retreats in a row that gained it nothing
+    int   entry = 0;   // how its retreat motion comes in, once: kEntryBlend, kEntryRestart, or 0 once it has
     int   rest = 0;
     bool  held = false; // a kind without one: taken from its script, staggered and standing idle
     int   stagger = 0;  // steps of its stagger left before it idles
@@ -780,6 +785,7 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
         args[i].type = RS_FLOAT;
         args[i].f = own->args[i];
     }
+    retreat.entry = unit.monster[monster].requested_motion == own->motion ? kEntryRestart : kEntryBlend;
     unit.interpreter[monster].run_function(own->record, args, own->argc);
     unit.script_state[monster] = unit.interpreter[monster].IsEnd() != 0 ? 0 : 1;
     retreat.running = unit.script_state[monster] != 0;
@@ -791,12 +797,17 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
 
 void SnakeCharmerMonsterMove(CMonstorUnit &unit, int monster) {
     MONSTOR &live = unit.monster[monster];
-    if (retreats[monster].running && live.requested_motion == retreats[monster].motion) {
-        // Its retreat's motion, cut in by its script, cross-fades in instead (its script's step has set it; the body steps
-        // after this).
-        live.requested_motion_flags &= ~kMotionCut;
+    Retreat &retreat = retreats[monster];
+    if (retreat.running && retreat.entry != 0 && live.requested_motion == retreat.motion) {
+        // Its retreat's motion as it first comes in (its script's step has set it; the body steps after this): from
+        // another motion it cross-fades in where its script would cut; already in it, it starts over. After that its
+        // script's own flags stand (a routine that cuts to its motion again each step restarts it).
+        bool restart = retreat.entry == kEntryRestart;
+        retreat.entry = 0;
+        live.requested_motion_flags = static_cast<s16>(restart ? live.requested_motion_flags | kMotionCut : live.requested_motion_flags & ~kMotionCut);
         for (int part = 0; part <= live.attachment_count; part++) {
-            unit.chara[monster][part].motion_flags &= ~kMotionCut;
+            int &flags = unit.chara[monster][part].motion_flags;
+            flags = restart ? flags | kMotionCut : flags & ~kMotionCut;
         }
     }
     float dx = 0.0f, dz = 0.0f, distance = 0.0f;
