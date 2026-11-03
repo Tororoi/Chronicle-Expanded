@@ -51,6 +51,7 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/attach_boost.hpp"
 #include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/toan/buster_sword.hpp"
@@ -217,7 +218,7 @@ void WeaponAllValueSet(WEAPON_HAVE *weapon, WEAPON_HAVE *result, int full) {
     }
 
 #ifdef CHRONICLE_EXPANDED
-    expanded::BusterBoostWeapon(*weapon);
+    expanded::AttachBoostWeapon(*weapon);
 #endif
 
     ATTACH_LIST *attaches = weapon->attach;

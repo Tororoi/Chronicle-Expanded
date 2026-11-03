@@ -56,6 +56,7 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/items/empty_sphere.hpp"
 #include "expanded/status/confuse.hpp"
+#include "expanded/weapons/attach_boost.hpp"
 #include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/toan/buster_sword.hpp"
 #include "expanded/weapons/toan/chronicle_two.hpp"
@@ -4002,7 +4003,7 @@ void WepAttachHaveCancel() {
             BtlHaveItemPt->item_no = item_no;
             slot->item_no = held;
 #ifdef CHRONICLE_EXPANDED
-            expanded::BusterBoostPlaced(BtlHaveItemPt->from_page == WEP_MENU_ATTACH_SOCKETS ? &DngWepHavePt[WepMenu.weapon_slot] : nullptr, *slot);
+            expanded::AttachBoostPlaced(BtlHaveItemPt->from_page == WEP_MENU_ATTACH_SOCKETS ? &DngWepHavePt[WepMenu.weapon_slot] : nullptr, *slot);
             if (BtlHaveItemPt->from_page == WEP_MENU_ATTACH_SOCKETS) {
                 expanded::BusterCancelled(DngWepHavePt[WepMenu.weapon_slot], WepMenu.board.held_attach, BtlHaveItemPt->item_no);
             }
@@ -4486,7 +4487,7 @@ void WeaponMenuAttachWepKey() {
             BtlHaveItemPt->item_no = item_no;
             weapon->attach[hole].item_no = held;
 #ifdef CHRONICLE_EXPANDED
-            expanded::BusterBoostPlaced(nullptr, WepMenu.board.held_attach);
+            expanded::AttachBoostPlaced(nullptr, WepMenu.board.held_attach);
             expanded::BusterSphereLeft(*weapon, WepMenu.board.held_attach, hole);
 #endif
             BtlHaveItemPt->from_slot = WepMenu.board.cursor;
@@ -4526,7 +4527,7 @@ void WeaponMenuAttachWepKey() {
         weapon->attach[hole].item_no = held;
         BtlHaveItemPt->item_no = item_no;
 #ifdef CHRONICLE_EXPANDED
-        expanded::BusterBoostSwapped(*weapon, weapon->attach[hole], WepMenu.board.held_attach);
+        expanded::AttachBoostSwapped(*weapon, weapon->attach[hole], WepMenu.board.held_attach);
         expanded::BusterSphereLeft(*weapon, WepMenu.board.held_attach, -1);
 #endif
         BtlHaveItemPt->from_slot = WepMenu.board.cursor;
