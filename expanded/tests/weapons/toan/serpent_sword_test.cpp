@@ -20,6 +20,7 @@
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "runscript.hpp"
+#include "savedata.hpp"
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
@@ -68,6 +69,7 @@ protected:
         CharaMain.SetRotation(0.0f, 0.0f, 0.0f);
         saved_guard_ = BtActStatus.guard_mode;
         BtActStatus.guard_mode = 0;
+        SaveData->SetGameFlag(expanded::kKillerSnakeBeaten, 1);
         expanded::SetFloorCharacterLoader(FakeSnake);
         expanded::FloorCharactersClear();
         expanded::SnakeCharmerReset();
@@ -109,6 +111,8 @@ protected:
         return expanded::MonsterHitAmount(floor_.unit(), monster, hit, amount);
     }
 
+    expanded::test::TestSave save_;
+
     expanded::test::Wielding  wielding_;
     expanded::test::TestFloor floor_;
     float                     saved_pos_[4] = {};
@@ -134,6 +138,22 @@ TEST_F(SerpentSword, SnakeSlayerKillsAuntieMeduInOneHit) {
     EXPECT_EQ(Hit(1, 0), floor_.unit().monster[1].hp); // even a hit that would do nothing
     EXPECT_EQ(Hit(2, 12), 12);
     EXPECT_EQ(Hit(0, 12, false), 12); // not a weapon hit (an item, a monster)
+}
+
+TEST_F(SerpentSword, NothingUntilTheKillerSnakeIsBeaten) {
+    Put({Monster::AUNTIE_MEDU});
+    At(0, 0.0f, 60.0f);
+    SaveData->SetGameFlag(expanded::kKillerSnakeBeaten, 0);
+    EXPECT_FALSE(expanded::SerpentSwordActive());
+    EXPECT_EQ(Hit(0, 12), 12);
+    Guard(true);
+    expanded::SnakeCharmerStep();
+    EXPECT_FALSE(expanded::SnakeCharmerUp());
+    EXPECT_TRUE(g_loaded.empty());
+    SaveData->SetGameFlag(expanded::kKillerSnakeBeaten, 1);
+    expanded::SnakeCharmerStep();
+    EXPECT_TRUE(expanded::SnakeCharmerUp());
+    EXPECT_EQ(Hit(0, 12), floor_.unit().monster[0].hp);
 }
 
 TEST_F(NoSerpent, SnakeSlayerNeedsTheSerpentSword) {

@@ -26,6 +26,7 @@
 #include "mglib.hpp"
 #include "monstorunit.hpp"
 #include "runscript.hpp"
+#include "savedata.hpp"
 #include "userstatus.hpp"
 
 namespace expanded {
@@ -501,7 +502,7 @@ void Forget() {
 } // namespace
 
 bool SerpentSwordActive() {
-    return WeaponActive(ITEM_WEAPON_SERPENT_SWORD);
+    return WeaponActive(ITEM_WEAPON_SERPENT_SWORD) && SaveData != nullptr && SaveData->GetGameFlag(kKillerSnakeBeaten) != 0;
 }
 
 int SnakeSlayerAmount(const CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, int amount) {

@@ -12,7 +12,8 @@ struct COLLISION_HIT;
 
 namespace expanded {
 
-// Serpent Sword, with it in hand or Super Steve carrying its SynthSphere.
+// Serpent Sword, with it in hand or Super Steve carrying its SynthSphere, once the Killer Snake is beaten (game flag
+// kKillerSnakeBeaten, "hebikiri": until then the sword is the event's, taking no wear and gaining no ABS).
 //
 // "Snake Slayer": the weapon's hit kills Auntie Medu (Enhanced too) outright, whatever its damage.
 //
@@ -40,6 +41,7 @@ namespace expanded {
 // rest (the pose its skin was made in) so that it ends upright and facing ahead. Its jaw (kSnakeJaw) is shut at its
 // rest turn, and the appearance leaves it part open: the idle turns it about the same axis, from shut. kSnakeBack is
 // how far ahead of its neck the head's middle lies.
+inline constexpr int              kKillerSnakeBeaten = 0x30;
 inline constexpr const char      *kKillerSnakeFile = "gedit/s97/chara/e117_0.chr";
 inline constexpr const char      *kKillerSnakeCfg = "e117e54a.cfg";
 inline constexpr const char      *kSnakeJaw = "null59";
