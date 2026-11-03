@@ -1,5 +1,6 @@
 #pragma once
 
+#include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/ungaga/mirage/heat_haze.hpp"
 
@@ -37,11 +38,15 @@ namespace expanded {
 // as it comes and shrinking away as it goes, over kSnakeGlowSteps (slower than its fade: the disc stays where the face
 // last was).
 //
+// It hisses as it comes (kSnakeHiss: the Killer Snake's own hiss from its event's bank, SE 393 there, a little quieter
+// than the game plays it).
+//
 // The appearance ends with the head turned as the event's body held it; the model takes the turn back to the head's
 // rest (the pose its skin was made in) so that it ends upright and facing ahead. Its jaw (kSnakeJaw) is shut at its
 // rest turn, and the appearance leaves it part open: the idle turns it about the same axis, from shut. kSnakeBack is
 // how far ahead of its neck the head's middle lies.
 inline constexpr int              kKillerSnakeBeaten = 0x30;
+inline constexpr OwnSound         kSnakeHiss = {"sound/set/snd401.snd", "d02c_g.hd", 44, 93, 150, 1, nullptr, 0, 100};
 inline constexpr const char      *kKillerSnakeFile = "gedit/s97/chara/e117_0.chr";
 inline constexpr const char      *kKillerSnakeCfg = "e117e54a.cfg";
 inline constexpr const char      *kSnakeJaw = "null59";

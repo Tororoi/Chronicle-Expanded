@@ -70,6 +70,8 @@ struct Disc {
 
 Disc disc;
 
+[[maybe_unused]] const bool kRegistered = (RegisterOwnSound(kSnakeHiss), true);
+
 // A monster running its script's own retreat, and the steps it rests after one before it may run it again.
 struct Retreat {
     bool running = false;
@@ -542,6 +544,7 @@ void SnakeCharmerStep() {
     if (snake.up) {
         if (snake.fade == 0) {
             Appear();
+            PlayOwnSound(kSnakeHiss, false);
         }
         snake.fade = std::min(kSnakeFadeSteps, snake.fade + 1);
         if (NowMonstorUnit != nullptr) {
