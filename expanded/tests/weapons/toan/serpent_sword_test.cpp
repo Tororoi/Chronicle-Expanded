@@ -134,11 +134,13 @@ protected:
 
     vmcode_t *RoutineCells() { return reinterpret_cast<vmcode_t *>(reinterpret_cast<char *>(program_.data()) + kCode + kEntry); }
 
+    vmcode_t *ShotCells() { return reinterpret_cast<vmcode_t *>(reinterpret_cast<char *>(program_.data()) + kCode + kShotEntry); }
+
     vmcode_t *LabelCells() { return reinterpret_cast<vmcode_t *>(reinterpret_cast<char *>(program_.data()) + kCode + kLabelEntry); }
 
     float Float(const vmcode_t &cell) { return std::bit_cast<float>(cell.arg2); }
 
-    CRunScript &LoadRetreat(int monster, const expanded::SnakeRetreat &retreat, bool trigger = true) {
+    CRunScript &LoadRetreat(int monster, const expanded::SnakeRetreat &retreat, bool trigger = true, bool rolled = true) {
         const int label_record = retreat.record + 0x20, step_record = retreat.record + 0x40, shot_record = retreat.record + 0x50,
                   walk_record = retreat.record + 0x60;
         program_.assign((kCode + retreat.record + 0x80) / 4, 0);
@@ -202,11 +204,11 @@ protected:
             {1,  0,                     8                                   }, // v0 <= 40
             {3,  2,                     std::bit_cast<int>(kTriggerDistance)},
             {14, 43,                    0                                   },
-            {17, 0,                     0                                   },
-            {1,  1,                     1                                   }, // v1 <= 30
+            {17, kLabelEntry + 18 * 12, 0                                   },
+            {1,  1,                     1                                   }, // v1 <= 30 (for a backup v1 > 30: no roll)
             {3,  1,                     kTriggerRoll                        },
-            {14, 43,                    0                                   },
-            {17, 0,                     0                                   },
+            {14, rolled ? 43 : 44,      0                                   },
+            {17, kLabelEntry + 18 * 12, 0                                   },
             {19, 0,                     trigger ? retreat.record : 0        }, // the retreat
             {1,  0,                     8                                   }, // v0 > 18: step in
             {3,  2,                     std::bit_cast<int>(kStepIn)         },
@@ -386,7 +388,9 @@ TEST_F(SerpentSword, TheirOwnAiRetreatsToTheEdgeOfReach) {
     EXPECT_FLOAT_EQ(Float(routine[kPointCell]), expanded::kSnakeRetreatUnlimited);
     EXPECT_EQ(routine[kCountCell].arg2, expanded::kSnakeRetreatHops);
     EXPECT_FLOAT_EQ(Float(loop[kStepInCell]), expanded::kSnakeApproachTo);
-    EXPECT_LT(Float(loop[kShotCell]), 0.0f);
+    vmcode_t *shot = ShotCells();
+    EXPECT_EQ(shot[0].op, 3); // the shot routine returns at once
+    EXPECT_EQ(shot[1].op, 15);
     EXPECT_FLOAT_EQ(Float(loop[kWalkInCell]), expanded::kSnakeApproachTo);
     // After its step its script (the kind's, shared) is as it was.
     expanded::MonsterScriptStepped(unit, 0);
@@ -395,7 +399,8 @@ TEST_F(SerpentSword, TheirOwnAiRetreatsToTheEdgeOfReach) {
     EXPECT_FLOAT_EQ(Float(routine[kPointCell]), kPointLimit);
     EXPECT_EQ(routine[kCountCell].arg2, kCountLimit);
     EXPECT_FLOAT_EQ(Float(loop[kStepInCell]), kStepIn);
-    EXPECT_FLOAT_EQ(Float(loop[kShotCell]), kShotRange);
+    EXPECT_EQ(shot[0].arg2, 133);
+    EXPECT_EQ(shot[1].op, 4);
     EXPECT_FLOAT_EQ(Float(loop[kWalkInCell]), kWalkIn);
     // It walks as its script has it: nothing taken off a step toward the player.
     MONSTOR &jacket = unit.monster[0];
@@ -439,7 +444,21 @@ TEST_F(SerpentSword, TheirOwnAiRetreatsToTheEdgeOfReach) {
     expanded::SnakeCharmerStep();
     EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
     EXPECT_FLOAT_EQ(Float(loop[kTriggerCell]), kTriggerDistance);
-    EXPECT_FLOAT_EQ(Float(loop[kShotCell]), kShotRange);
+    EXPECT_EQ(ShotCells()[0].arg2, 133);
+}
+
+TEST_F(SerpentSword, ATooCloseBackupStartsAtTheApproachsEnd) {
+    Put({Monster::PIRATES_CHARIOT});
+    CMonstorUnit &unit = floor_.unit();
+    LoadRetreat(0, *expanded::SnakeRetreatOf(expanded::No(Monster::PIRATES_CHARIOT)), true, false);
+    At(0, 0.0f, 40.0f);
+    Guard(true);
+    expanded::SnakeCharmerStep();
+    // Called whenever the player is close, no roll: it backs off as it comes in to where its approach ends.
+    EXPECT_FALSE(expanded::MonsterStepTaken(unit, 0));
+    EXPECT_FLOAT_EQ(Float(LabelCells()[kTriggerCell]), expanded::kSnakeApproachTo);
+    EXPECT_EQ(LabelCells()[kRollCell].arg2, kTriggerRoll);
+    expanded::MonsterScriptStepped(unit, 0);
 }
 
 TEST_F(SerpentSword, ARetreatItsAiNeverRollsForIsHeldInstead) {

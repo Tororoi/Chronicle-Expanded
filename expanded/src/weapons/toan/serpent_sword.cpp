@@ -79,9 +79,12 @@ Disc disc;
 // A monster near the player: its retreat left to its script (the AI loop's trigger for it and the routine's limits
 // raised for its step, put back after), or, for a kind whose script has none to trigger, taken from its script.
 struct Retreat {
-    bool native = false; // its own AI retreats (the move hook leaves it be)
-    bool held = false;   // a kind without one: taken from its script, staggered and standing idle
-    int  stagger = 0;    // steps of its stagger left before it idles
+    bool  native = false;     // its own AI retreats (the move hook leaves it be)
+    bool  retreating = false; // in its retreat routine
+    float best = 0.0f;        // the farthest it has got in it
+    int   stuck = 0;          // steps since it last got farther
+    bool  held = false;       // a kind without one: taken from its script, staggered and standing idle
+    int   stagger = 0;        // steps of its stagger left before it idles
 
     // Values in its script raised for its step, as its script has them.
     struct Raised {
@@ -89,7 +92,7 @@ struct Retreat {
         int  was;
     };
 
-    Raised raised[24] = {};
+    Raised raised[64] = {};
     int    raised_count = 0;
 };
 
@@ -111,7 +114,7 @@ constexpr SnakeRetreat kRetreats[] = {
     {Monster::SATURDAY, "e20a", 0x38F4, 2},
     {Monster::GUNNY, "e23a", 0x4F3C, 2},
     {Monster::GYON, "e24a", 0x3E70, 2},
-    {Monster::PIRATES_CHARIOT, "e25a", 0x26D4, 2},
+    {Monster::PIRATES_CHARIOT, "e25a", 0x2084, 2},
     {Monster::CAPTAIN, "e27a", 0x3EA8, 2},
     {Monster::CORCEA, "e28a", 0x4278, 2},
     {Monster::MR_BLARE, "e31a", 0x2848, 2},
@@ -119,7 +122,7 @@ constexpr SnakeRetreat kRetreats[] = {
     {Monster::ARTHUR, "e40a", 0x3680, 2},
     {Monster::GHOST, "e42a", 0x4170, 2},
     {Monster::ALEXANDER, "e43a", 0x5E9C, 2},
-    {Monster::HEART, "e44a", 0x2970, 2},
+    {Monster::HEART, "e44a", 0x241C, 2},
     {Monster::CLUB, "e45a", 0x2970, 2},
     {Monster::DIAMOND, "e46a", 0x2970, 2},
     {Monster::SPADE, "e47a", 0x2970, 2},
@@ -163,10 +166,10 @@ constexpr SnakeRetreat kRetreats[] = {
     {Monster::GEMRON_WIND, "e114a", 0x44B8, 2},
     {Monster::SILVER_GEAR, "e118a", 0x6358, 2},
     {Monster::ALEXANDER_ENHANCED, "e149a", 0x5E9C, 2},
-    {Monster::HEART_ENHANCED, "e150a", 0x2970, 2},
+    {Monster::HEART_ENHANCED, "e150a", 0x241C, 2},
     {Monster::BOMBER_HEAD_ENHANCED, "e151a", 0x62CC, 2},
     {Monster::CRABBY_HERMIT_ENHANCED, "e152a", 0x49F0, 2},
-    {Monster::PIRATES_CHARIOT_ENHANCED, "e154a", 0x28F4, 2},
+    {Monster::PIRATES_CHARIOT_ENHANCED, "e154a", 0x22A4, 2},
     {Monster::SPACE_GYON_ENHANCED, "e155a", 0x4E0C, 2},
     {Monster::GEMRON_HOLY, "e115a", 0x44B8, 2},
     {Monster::GACIOUS_ENHANCED, "e117a", 0x4498, 2},
@@ -226,8 +229,8 @@ bool MarkNear(CMonstorUnit &unit) {
     return came;
 }
 
-// How far a routine's code is looked through for its end, and back from a call to it for its trigger; the AI loop's label.
-constexpr int kRoutineCells = 4096, kTriggerCells = 120, kAiLabel = 100, kShotDepth = 2;
+// How far a routine's code is looked through for its end; the AI loop's label; how deep a call is looked into for a shot.
+constexpr int kRoutineCells = 4096, kAiLabel = 100, kShotDepth = 2;
 
 // A cell pushing the int value, and a function's last cell (its return, the padding after it).
 bool Pushes(const vmcode_t &cell, int value) {
@@ -359,34 +362,40 @@ vmcode_t *AiLoop(CRunScript &script, int &count) {
     return nullptr;
 }
 
-// The AI loop's trigger for the retreat (its label 100: a call to the routine under a distance to the player at most so
-// much and a roll under so much, its own cooldown between): the constants of the two, or false.
+// The AI loop's trigger for the retreat (its label 100): a call to the routine after a condition on the distance to the
+// player, at most (or under) so much (since the call before it). Some loops back off whenever the player is that close
+// (a too-close backup); most roll for it too (a condition on a roll there as well, its cooldown between: a dodge). The distance's constant and
+// the roll's (null for a backup), a backup's call first; false when the loop never calls the routine so.
 bool TriggerOf(CRunScript &script, int record, vmcode_t *&distance, vmcode_t *&roll) {
     int       count = 0;
     vmcode_t *cells = AiLoop(script, count);
-    if (cells != nullptr) {
-        for (int call = 0; call < count; call++) {
-            if (cells[call].op != static_cast<int>(stb::kCall) || cells[call].arg2 != record) {
+    distance = roll = nullptr;
+    if (cells == nullptr) {
+        return false;
+    }
+    for (int call = 0; call < count; call++) {
+        if (cells[call].op != static_cast<int>(stb::kCall) || cells[call].arg2 != record) {
+            continue;
+        }
+        // The conditions since the call before it (the nearest distance and roll).
+        vmcode_t *near = nullptr, *rolled = nullptr;
+        for (int c = call - 1; c >= 0 && cells[c].op != static_cast<int>(stb::kCall); c--) {
+            if (ComparesAt(cells, count, c, {static_cast<int>(stb::kLessThan), static_cast<int>(stb::kLessOrEqual)}) < 0) {
                 continue;
             }
-            distance = roll = nullptr;
-            for (int c = call - 4; c >= 0 && c >= call - kTriggerCells && (distance == nullptr || roll == nullptr); c--) {
-                if (ComparesAt(cells, count, c, {static_cast<int>(stb::kLessThan), static_cast<int>(stb::kLessOrEqual)}) < 0) {
-                    continue;
-                }
-                Measure measure = MeasureOf(cells, count, cells[c].arg1);
-                if (measure == Measure::kPlayer && distance == nullptr) {
-                    distance = &cells[c + 1];
-                } else if (measure == Measure::kRoll && roll == nullptr) {
-                    roll = &cells[c + 1];
-                }
-            }
-            if (distance != nullptr && roll != nullptr) {
-                return true;
+            Measure measure = MeasureOf(cells, count, cells[c].arg1);
+            if (measure == Measure::kPlayer && near == nullptr) {
+                near = &cells[c + 1];
+            } else if (measure == Measure::kRoll && rolled == nullptr) {
+                rolled = &cells[c + 1];
             }
         }
+        if (near != nullptr && (distance == nullptr || (roll != nullptr && rolled == nullptr))) {
+            distance = near;
+            roll = rolled;
+        }
     }
-    return false;
+    return distance != nullptr;
 }
 
 // Whether the script is in the routine (running it, or a function it called).
@@ -411,22 +420,35 @@ void Restore(Retreat &retreat) {
     retreat.raised_count = 0;
 }
 
-// A constant (a pushed int or float) raised to to for the step.
-void Raise(Retreat &retreat, vmcode_t &constant, float to) {
+// A word of its script set to value for the step.
+void Set(Retreat &retreat, int &word, int value) {
     if (retreat.raised_count >= static_cast<int>(std::size(retreat.raised))) {
         return;
     }
-    retreat.raised[retreat.raised_count++] = {&constant.arg2, constant.arg2};
-    constant.arg2 = constant.arg1 == static_cast<int>(stb::kFloat) ? std::bit_cast<int>(to) : static_cast<int>(to);
+    retreat.raised[retreat.raised_count++] = {&word, word};
+    word = value;
+}
+
+// A constant (a pushed int or float) raised to to for the step.
+void Raise(Retreat &retreat, vmcode_t &constant, float to) {
+    Set(retreat, constant.arg2, constant.arg1 == static_cast<int>(stb::kFloat) ? std::bit_cast<int>(to) : static_cast<int>(to));
 }
 
 // The routine's own limits for the step: where it stops once the player is so far it goes on to kSnakeRetreatTo; where
-// it stops once so far from where it started, or after so many hops, it goes on (to kSnakeRetreatHops hops, in case a
-// wall holds it) while the monster is nearer than kSnakeRetreatTo, and stops at its next check once it is that far.
+// it stops once so far from where it started, or after so many hops, it goes on (to kSnakeRetreatHops hops) while the
+// monster is nearer than kSnakeRetreatTo and getting farther, and stops at its next check once it is that far, or has
+// got no farther for kSnakeRetreatStuck steps (a wall at its back).
 void RaiseLimits(CRunScript &script, Retreat &retreat, int record, float distance) {
     int       count = 0;
     vmcode_t *cells = CodeOf(script.code, record, count);
-    bool      far = distance >= kSnakeRetreatTo;
+    if (!retreat.retreating || distance > retreat.best + kSnakeRetreatGain) {
+        retreat.best = distance;
+        retreat.stuck = 0;
+    } else {
+        retreat.stuck++;
+    }
+    retreat.retreating = true;
+    bool far = distance >= kSnakeRetreatTo || retreat.stuck >= kSnakeRetreatStuck;
     for (int i = 0; i + 3 < count; i++) {
         if (ComparesAt(cells, count, i, {static_cast<int>(stb::kGreaterThan), static_cast<int>(stb::kGreaterOrEqual)}) < 0) {
             continue;
@@ -480,10 +502,9 @@ bool Fires(char *code, int record, int depth) {
     return false;
 }
 
-// The AI loop's approach and shots for the step. What it does only while the player is within or beyond so far, by a
-// call: when that fires a shot (in the function or one it calls), never; when it is an approach (beyond so far), only
-// beyond kSnakeApproachTo. Where it walks the monster in to within so far of the player, it walks it in to
-// kSnakeApproachTo.
+// The AI loop's approach for the step: what it does only while the player is more than so far, by a call that fires
+// no shot (an approach, not an attack), only beyond kSnakeApproachTo; where it walks the monster in to within so far of
+// the player, to kSnakeApproachTo.
 void RaiseApproach(CRunScript &script, Retreat &retreat) {
     int       count = 0;
     vmcode_t *cells = AiLoop(script, count);
@@ -506,15 +527,32 @@ void RaiseApproach(CRunScript &script, Retreat &retreat) {
                     fires = fires || Fires(script.code, cells[j].arg2, kShotDepth);
                 }
             }
-            if (fires) {
-                Raise(retreat, cells[i + 1], farther ? kSnakeRetreatUnlimited : -1.0f);
-            } else if (calls && farther && value(cells[i + 1]) < kSnakeApproachTo) {
+            if (calls && !fires && farther && value(cells[i + 1]) < kSnakeApproachTo) {
                 Raise(retreat, cells[i + 1], kSnakeApproachTo);
             }
         }
         if (cells[i].op == static_cast<int>(stb::kCall) && i > 0 && cells[i - 1].op == static_cast<int>(stb::kPushConst) &&
             value(cells[i - 1]) < kSnakeApproachTo && WalksIn(script.code, cells[i].arg2)) {
             Raise(retreat, cells[i - 1], kSnakeApproachTo);
+        }
+    }
+}
+
+// What the AI loop calls that leads to a shot (fires one, or calls what does, kShotDepth calls deep) held for the step:
+// each returns at once (0 pushed, then the return, over its first two cells), so its attack, and whatever leads up to it
+// (an aim, a turn), never begins; the loop carries on.
+void HoldShots(CRunScript &script, Retreat &retreat, vmcode_t *cells, int count) {
+    for (int i = 0; i < count; i++) {
+        if (cells[i].op != static_cast<int>(stb::kCall) || !Fires(script.code, cells[i].arg2, kShotDepth)) {
+            continue;
+        }
+        int       called = 0;
+        vmcode_t *code = CodeOf(script.code, cells[i].arg2, called);
+        if (called >= 2 && code[1].op != static_cast<int>(stb::kReturn)) {
+            Set(retreat, code[0].op, static_cast<int>(stb::kPushConst));
+            Set(retreat, code[0].arg1, static_cast<int>(stb::kInt));
+            Set(retreat, code[0].arg2, 0);
+            Set(retreat, code[1].op, static_cast<int>(stb::kReturn));
         }
     }
 }
@@ -980,16 +1018,23 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
         // Its own AI retreats, as it would: near the player its trigger is certain (the distance it rolls within the
         // reach, the roll always made; its cooldown between), and the routine goes on to the reach's edge.
         if (near) {
-            Raise(retreat, *trigger, kSnakeRetreatRadius);
+            // A dodge rolls within the reach; a backup backs off as the monster comes in to its approach's end.
+            Raise(retreat, *trigger, roll != nullptr ? kSnakeRetreatRadius : kSnakeApproachTo);
         }
         if (distance < kSnakeApproachRadius) {
             // Near enough to walk in or shoot: its approach kept to kSnakeApproachTo (a walk-in begun out here too), its
             // shots held.
             RaiseApproach(script, retreat);
+            int       count = 0;
+            vmcode_t *loop = AiLoop(script, count);
+            if (loop != nullptr) {
+                HoldShots(script, retreat, loop, count);
+            }
         }
-        if (near || InRoutine(script, own->record)) {
+        if (InRoutine(script, own->record) || (near && !retreat.retreating)) {
             RaiseLimits(script, retreat, own->record, distance);
         }
+        retreat.retreating = retreat.retreating && InRoutine(script, own->record);
         return false;
     }
     if (!near) {
