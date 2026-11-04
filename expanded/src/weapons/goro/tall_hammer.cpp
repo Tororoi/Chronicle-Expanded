@@ -11,7 +11,6 @@
 #include "bound.hpp"
 #include "bt_shot_effect.hpp"
 #include "btactstatus.hpp"
-#include "btmisc.hpp"
 #include "camerafollow.hpp"
 #include "character.hpp"
 #include "cloth.hpp"
@@ -29,7 +28,6 @@
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/weapon_hit.hpp"
-#include "framevu1.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -52,9 +50,6 @@ constexpr float kPopEnd = kColossusPopFrame;
 // The motions his stride plays in: the run (1), the walk (2), the strafes while locked on (0x12-0x16), the walk while
 // charging (0x1E) and the walk while guarding (0x21).
 constexpr int kStrideMotions[] = {1, 2, 0x12, 0x13, 0x14, 0x15, 0x16, 0x1E, 0x21};
-
-// The Tall Hammer's head's two faces (c06w10.mds), halfway between which is its centre.
-constexpr const char *kHammerFaces[2] = {"dcol2", "dcol3"};
 
 // The pop's burst: the turquoise explosion (data/colossus_pop.hpp), one motion playing once from where it is put, no
 // flight and no hit, as Big Bang's explosion.
@@ -237,21 +232,11 @@ void Trample() {
     }
 }
 
-// Where the pop bursts: the centre of the hammer's head, halfway between its two faces (kHammerFaces), or his feet with
-// no hammer out.
+// Where the pop bursts: the middle of him, half his height (at the size he is drawn at) over his feet.
 void PopSpot(float *spot) {
-    std::copy(CharaMain.pos, CharaMain.pos + 3, spot);
-    if (NowWeapon == nullptr || NowWeapon->frame == nullptr) {
-        return;
-    }
-    float faces[2][4];
-    for (int f = 0; f < 2; f++) {
-        faces[f][3] = 1.0f;
-        getFramePos(static_cast<CFrameVu1 *>(NowWeapon->frame), const_cast<char *>(kHammerFaces[f]), faces[f]);
-    }
-    for (int c = 0; c < 3; c++) {
-        spot[c] = (faces[0][c] + faces[1][c]) / 2.0f;
-    }
+    spot[0] = CharaMain.pos[0];
+    spot[1] = CharaMain.pos[1] + kColossusHeightOf * colossus.applied / 2.0f;
+    spot[2] = CharaMain.pos[2];
 }
 
 // The pop's burst put out, if it plays.
@@ -666,7 +651,7 @@ void ColossusStep() {
     }
     if (MonstersStepping()) {
         colossus.clock++;
-        // The pop's burst held in the hammer's head as it moves, until it has played.
+        // The pop's burst held on him as he grows back, until it has played.
         if (colossus.pop != nullptr) {
             if (colossus.pop->active[colossus.pop_slot] == 0) {
                 colossus.pop = nullptr;
