@@ -16,6 +16,7 @@
 #include "expanded/data/queens_canal.hpp"
 #include "expanded/data/script_damage.hpp"
 #include "expanded/data/spirit_cat.hpp"
+#include "expanded/data/tall_hammer_silver.hpp"
 #include "expanded/data/toan_grip.hpp"
 #include "expanded/data/town_model.hpp"
 #include "expanded/data/wolf_steve.hpp"
@@ -43,6 +44,7 @@ const DataKind kDataKinds[] = {
     {"fishing pose", FishingPoseBuilds},
     {"queens canal", QueensCanalBuilds},
     {"weapon model", WolfSteveBuilds},
+    {"weapon model", TallHammerSilverBuilds},
     {"character model", ToanGripBuilds},
     {"character model", GoroShirtBuilds},
 };

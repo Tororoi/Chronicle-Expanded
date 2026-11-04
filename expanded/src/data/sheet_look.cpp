@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -192,6 +193,48 @@ std::unordered_map<int, int> MergeColours(const std::vector<int> &keys, const st
         }
     }
     return merged;
+}
+
+Bytes RecolourSheet(std::span<const unsigned char> tim, bool swizzled, const std::function<std::array<int, 3>(const std::array<int, 3> &)> &colour_of) {
+    tim8::Picture picture = tim8::Read(tim, swizzled);
+    auto          at = [&](int index) {
+        std::size_t j = static_cast<std::size_t>(tim8::Csm1(index)) * 4;
+        return std::array<int, 3>{picture.clut[j], picture.clut[j + 1], picture.clut[j + 2]};
+    };
+    std::vector<int>                colour(picture.pixels.size());
+    std::unordered_map<int, double> weight;
+    std::vector<int>                order;
+    for (std::size_t i = 0; i < colour.size(); i++) {
+        colour[i] = Key(colour_of(at(picture.pixels[i])));
+        if (weight[colour[i]]++ == 0) {
+            order.push_back(colour[i]);
+        }
+    }
+    std::unordered_map<int, int> merged = MergeColours(order, weight);
+    std::unordered_map<int, int> slot;
+    Bytes                        index(colour.size()), clut(256 * 4, 0);
+    int                          used = 0;
+    for (std::size_t i = 0; i < colour.size(); i++) {
+        int v = colour[i];
+        if (auto m = merged.find(v); m != merged.end()) {
+            v = m->second;
+        }
+        auto [found, added] = slot.try_emplace(v, used);
+        if (added) {
+            if (used >= kBudget) {
+                throw std::runtime_error("recolour: more than 256 colours after merging");
+            }
+            std::size_t j = static_cast<std::size_t>(tim8::Csm1(used)) * 4;
+            clut[j] = static_cast<unsigned char>(v >> 16);
+            clut[j + 1] = static_cast<unsigned char>(v >> 8);
+            clut[j + 2] = static_cast<unsigned char>(v);
+            clut[j + 3] = kOpaque;
+            used++;
+        }
+        index[i] = static_cast<unsigned char>(found->second);
+    }
+    Bytes pixels = swizzled ? tim8::Swizzle(index, picture.width, picture.height) : index;
+    return tim8::Build(tim, picture.width, picture.height, pixels, clut);
 }
 
 SheetLook SheetLook::Parse(std::string_view text) {

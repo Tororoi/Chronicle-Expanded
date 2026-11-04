@@ -4,6 +4,7 @@
 // Time's torch glow. Includes no game header, so dcdata can build with it.
 
 #include <array>
+#include <functional>
 #include <map>
 #include <set>
 #include <span>
@@ -50,6 +51,10 @@ std::array<int, 3>    HslToRgb(double h, double s, double l);
 // weighted centroid until 256 are left (cost = distance x x.sqrt(x), x = 0.12 + the pair's mean luminance, so near-black
 // goes first). Each merged colour's key to the colour it became; none when there are 256 or fewer.
 std::unordered_map<int, int> MergeColours(const std::vector<int> &keys, const std::unordered_map<int, double> &weight);
+
+// An 8-bit picture (swizzled: in an IM2 bank's block order) with each texel's colour (0-255) mapped by colour_of, the
+// colours merged with MergeColours and the picture indexed again onto them.
+Bytes RecolourSheet(std::span<const unsigned char> tim, bool swizzled, const std::function<std::array<int, 3>(const std::array<int, 3> &)> &colour_of);
 
 // The element glow disc: the torch glow (a 64x64 32-bit TIM2) as an 8-bit picture, its luminance ranks on the 128
 // palette entries the GS's CLUT order leaves in place, coloured from core at the centre to outer at its edge, on a
