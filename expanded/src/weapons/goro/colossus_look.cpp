@@ -1,16 +1,21 @@
 #include "expanded/weapons/goro/colossus_look.hpp"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <format>
 #include <optional>
-#include <span>
 #include <vector>
 
+#include "character.hpp"
+#include "cloth.hpp"
 #include "data/data_read.hpp"
 #include "dataread.hpp"
+#include "dun/gameloop.hpp"
+#include "expanded/core/frame_tint.hpp"
+#include "expanded/core/frames.hpp"
+#include "expanded/data/goro_gold.hpp"
 #include "expanded/data/model_parts.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
@@ -22,18 +27,15 @@ namespace expanded {
 
 namespace {
 
-// One body sheet: its texels' palette indices, its palette (0 to 1, and the renderer's alpha) and each texel's region,
-// and the texture last written with the share it was written at.
+// One body sheet in its own colours and in its gold copy (RGBA8, the renderer's alpha), and the texture last written
+// with the share it was written at.
 struct Sheet {
-    const char                           *name = nullptr;
-    int                                   width = 0, height = 0;
-    std::vector<unsigned char>            index;
-    std::array<std::array<float, 3>, 256> colour{};
-    std::array<unsigned char, 256>        alpha{};
-    std::vector<ColossusRegion>           region;
-    gfx::TextureHandle                    texture = gfx::kNullTexture;
-    float                                 share = 0.0f;
-    bool                                  refused = false; // a texture at another size: left as it is
+    const char                *name = nullptr;
+    int                        width = 0, height = 0;
+    std::vector<unsigned char> own, gold;
+    gfx::TextureHandle         texture = gfx::kNullTexture;
+    float                      share = 0.0f;
+    bool                       refused = false; // a texture at another size: left as it is
 };
 
 struct Look {
@@ -43,100 +45,67 @@ struct Look {
 
 Look look;
 
-void Hsl(const float *c, float &h, float &s, float &l) {
-    float mx = std::max({c[0], c[1], c[2]}), mn = std::min({c[0], c[1], c[2]}), d = mx - mn;
-    l = (mx + mn) / 2.0f;
-    if (d < 1e-6f) {
-        h = s = 0.0f;
-        return;
+std::vector<unsigned char> Rgba(const tim8::Picture &picture) {
+    std::vector<unsigned char> out(picture.pixels.size() * 4);
+    for (std::size_t i = 0; i < picture.pixels.size(); i++) {
+        std::size_t j = static_cast<std::size_t>(tim8::Csm1(picture.pixels[i])) * 4;
+        out[i * 4] = picture.clut[j];
+        out[i * 4 + 1] = picture.clut[j + 1];
+        out[i * 4 + 2] = picture.clut[j + 2];
+        out[i * 4 + 3] = static_cast<unsigned char>(std::min(255, picture.clut[j + 3] * 2));
     }
-    s = l > 0.5f ? d / (2.0f - mx - mn) : d / (mx + mn);
-    h = mx == c[0] ? (c[1] - c[2]) / d + (c[1] < c[2] ? 6.0f : 0.0f) : mx == c[1] ? (c[2] - c[0]) / d + 2.0f
-                                                                                  : (c[0] - c[1]) / d + 4.0f;
-    h *= 60.0f;
+    return out;
 }
 
-void Rgb(float h, float s, float l, float *out) {
-    float a = s * std::min(l, 1.0f - l);
-    for (int i = 0; i < 3; i++) {
-        float k = std::fmod((i == 0 ? 0.0f : i == 1 ? 8.0f
-                                                    : 4.0f) +
-                                h / 30.0f,
-                            12.0f);
-        out[i] = l - a * std::max(-1.0f, std::min({k - 3.0f, 9.0f - k, 1.0f}));
-    }
-}
-
-// The sheets as his pack has them (read once).
+// The sheets and their copies as his built pack has them (read once: none without it).
 void Read() {
     look.read = true;
-    std::uintmax_t size = DataFileSize(kColossusLookPack);
+    std::uintmax_t size = DataFileSize(std::string(kRebuiltDiscFolder) + kGoroDungeonFile);
     if (size == 0) {
         return;
     }
     std::vector<u_int> pack((size + 2 * 2048) / sizeof(u_int));
     char               path[64];
-    std::snprintf(path, sizeof(path), "%s", kColossusLookPack);
+    std::snprintf(path, sizeof(path), "%s", kGoroDungeonFile);
     if (LoadFile2(path, pack.data(), nullptr, 0) != 0) {
-        char bank_name[32];
-        std::snprintf(bank_name, sizeof(bank_name), "%s", kColossusLookBank);
-        int   bank_size = 0;
-        auto *bank = reinterpret_cast<const unsigned char *>(GetPackFile(pack.data(), bank_name, &bank_size));
-        if (bank != nullptr && bank_size > 0) {
-            try {
-                ImgBank images = ImgBank::Parse({bank, static_cast<std::size_t>(bank_size)});
-                bool    swizzled = std::memcmp(images.magic.data(), "IM2", 3) == 0;
-                for (const char *name : kColossusLookSheets) {
-                    tim8::Picture picture = tim8::Read(images.Block(name), swizzled);
-                    Sheet         sheet;
-                    sheet.name = name;
-                    sheet.width = picture.width;
-                    sheet.height = picture.height;
-                    sheet.index.assign(picture.pixels.begin(), picture.pixels.end());
-                    for (int k = 0; k < 256; k++) {
-                        std::size_t j = static_cast<std::size_t>(tim8::Csm1(k)) * 4;
-                        for (int c = 0; c < 3; c++) {
-                            sheet.colour[k][c] = picture.clut[j + c] / 255.0f;
-                        }
-                        sheet.alpha[k] = static_cast<unsigned char>(std::min(255, picture.clut[j + 3] * 2));
-                    }
-                    sheet.region.resize(sheet.index.size());
-                    for (int y = 0; y < sheet.height; y++) {
-                        for (int x = 0; x < sheet.width; x++) {
-                            std::size_t i = static_cast<std::size_t>(y) * sheet.width + x;
-                            sheet.region[i] = ColossusRegionOf(name, x, y, sheet.colour[sheet.index[i]].data());
-                        }
-                    }
-                    look.sheets.push_back(std::move(sheet));
-                }
-            } catch (const std::exception &) {
-                look.sheets.clear();
+        auto bank = [&](const char *name) -> std::optional<ImgBank> {
+            char file[32];
+            std::snprintf(file, sizeof(file), "%s", name);
+            int   bytes = 0;
+            auto *data = reinterpret_cast<const unsigned char *>(GetPackFile(pack.data(), file, &bytes));
+            if (data == nullptr || bytes <= 0) {
+                return std::nullopt;
             }
+            return ImgBank::Parse({data, static_cast<std::size_t>(bytes)});
+        };
+        try {
+            std::optional<ImgBank> own = bank(kGoroBank), gold = bank(kGoroGoldBank);
+            if (own && gold) {
+                bool own_swizzled = std::memcmp(own->magic.data(), "IM2", 3) == 0;
+                bool gold_swizzled = std::memcmp(gold->magic.data(), "IM2", 3) == 0;
+                for (const char *name : kGoroGoldSheets) {
+                    tim8::Picture a = tim8::Read(own->Block(name), own_swizzled), b = tim8::Read(gold->Block(name), gold_swizzled);
+                    if (a.width == b.width && a.height == b.height) {
+                        look.sheets.push_back({name, a.width, a.height, Rgba(a), Rgba(b)});
+                    }
+                }
+            }
+        } catch (const std::exception &) {
+            look.sheets.clear();
         }
     }
     DataReadForgetPackCapacities(pack.data());
 }
 
-// The sheet's texels at a share of the look, as RGBA8, each mip level after the first a box filter of the one before.
-void Write(Sheet &sheet, gfx::TextureHandle texture, std::uint32_t levels, float share) {
-    std::array<std::array<std::array<unsigned char, 4>, 256>, 3> lut{};
-    for (int r = 0; r < 3; r++) {
-        for (int k = 0; k < 256; k++) {
-            float out[3];
-            ColossusLookColour(static_cast<ColossusRegion>(r), share, sheet.colour[k].data(), out);
-            for (int c = 0; c < 3; c++) {
-                lut[r][k][c] = static_cast<unsigned char>(std::lround(std::clamp(out[c], 0.0f, 1.0f) * 255.0f));
-            }
-            lut[r][k][3] = sheet.alpha[k];
-        }
-    }
-    std::vector<unsigned char> level(sheet.index.size() * 4);
-    for (std::size_t i = 0; i < sheet.index.size(); i++) {
-        std::memcpy(&level[i * 4], lut[static_cast<int>(sheet.region[i])][sheet.index[i]].data(), 4);
+// The sheet share of the way to its copy, each mip level after the first a box filter of the one before.
+void Write(const Sheet &sheet, std::uint32_t levels, float share) {
+    std::vector<unsigned char> level(sheet.own.size());
+    for (std::size_t i = 0; i < level.size(); i++) {
+        level[i] = static_cast<unsigned char>(std::lround(sheet.own[i] + (sheet.gold[i] - sheet.own[i]) * share));
     }
     int w = sheet.width, h = sheet.height;
     for (std::uint32_t mip = 0; mip < std::max(levels, 1u); mip++) {
-        gfx::UpdateTexture(texture, mip, 0, 0, w, h, level.data());
+        gfx::UpdateTexture(sheet.texture, mip, 0, 0, w, h, level.data());
         if (w == 1 && h == 1) {
             break;
         }
@@ -148,8 +117,7 @@ void Write(Sheet &sheet, gfx::TextureHandle texture, std::uint32_t levels, float
                     int sum = 0;
                     for (int dy = 0; dy < 2; dy++) {
                         for (int dx = 0; dx < 2; dx++) {
-                            int sx = std::min(w - 1, x * 2 + dx), sy = std::min(h - 1, y * 2 + dy);
-                            sum += level[(static_cast<std::size_t>(sy) * w + sx) * 4 + c];
+                            sum += level[(static_cast<std::size_t>(std::min(h - 1, y * 2 + dy)) * w + std::min(w - 1, x * 2 + dx)) * 4 + c];
                         }
                     }
                     next[(static_cast<std::size_t>(y) * nw + x) * 4 + c] = static_cast<unsigned char>((sum + 2) / 4);
@@ -162,63 +130,42 @@ void Write(Sheet &sheet, gfx::TextureHandle texture, std::uint32_t levels, float
     }
 }
 
-} // namespace
-
-ColossusRegion ColossusRegionOf(const char *sheet, int x, int y, const float *rgb) {
-    if (std::strcmp(sheet, kColossusWrapsSheet) == 0 && x >= kColossusWraps[0] && y >= kColossusWraps[1] && x < kColossusWraps[2] &&
-        y < kColossusWraps[3]) {
-        return ColossusRegion::Kept;
+// The gold parts lit share of the way to the full tint: the gold frame, the cape's frame and the cloth drawing it.
+void Tint(float share) {
+    float add[3];
+    for (int c = 0; c < 3; c++) {
+        add[c] = kColossusTint[c] * share;
     }
-    float h, s, l;
-    Hsl(rgb, h, s, l);
-    if (h >= 60.0f && h < 180.0f && s > 0.12f) {
-        return ColossusRegion::Turquoise;
+    for (const char *name : {kGoroGoldBody, kGoroCape}) {
+        if (CFrame *frame = FrameNamed(CharaMain.frame, name); frame != nullptr) {
+            SetFrameTint(frame, add[0], add[1], add[2]);
+        }
     }
-    if (s < 0.1f || l > 0.85f || l < 0.02f) { // bone, buckles, highlights, the blackest lines
-        return ColossusRegion::Kept;
-    }
-    if (h < 8.0f || h >= 330.0f) { // the red strip, the pink
-        return ColossusRegion::Kept;
-    }
-    if (h < 30.0f && l >= 0.5f && s >= 0.35f) { // flesh
-        return ColossusRegion::Kept;
-    }
-    if (h >= 25.0f && h < 60.0f && l >= 0.62f && s < 0.35f) { // teeth and claws
-        return ColossusRegion::Kept;
-    }
-    return h < 70.0f ? ColossusRegion::Gold : ColossusRegion::Kept;
-}
-
-void ColossusLookColour(ColossusRegion region, float share, const float *rgb, float *out) {
-    std::copy(rgb, rgb + 3, out);
-    if (region == ColossusRegion::Kept || share <= 0.0f) {
-        return;
-    }
-    float h, s, l;
-    Hsl(rgb, h, s, l);
-    float to = region == ColossusRegion::Gold ? kColossusGoldHue : kColossusTurquoiseHue;
-    float turn = std::fmod(to - h + 540.0f, 360.0f) - 180.0f; // the shorter way round
-    Rgb(std::fmod(h + turn * share + 360.0f, 360.0f), s, l, out);
-    if (region == ColossusRegion::Gold) {
-        for (int c = 0; c < 3; c++) {
-            out[c] *= 1.0f + kColossusTint[c] * kColossusTintStrength * share;
+    if (CharaMain.cloth != nullptr) {
+        for (int i = 0; i < CHARA_CLOTH_MAX; i++) {
+            if (CharaMain.cloth[i] != nullptr) {
+                SetVisualTint(CharaMain.cloth[i], add[0], add[1], add[2]);
+            }
         }
     }
 }
+
+} // namespace
 
 float ColossusLookShare(float size) {
     return std::clamp((size - 1.0f) / (kColossusMost - 1.0f), 0.0f, 1.0f);
 }
 
 void ColossusLookStep(float size) {
+    float share = ColossusLookShare(size);
+    Tint(share);
     if (!look.read) {
         // Read once his sheets are loaded (none are without the game's data).
-        if (TexManager.GetTexture(const_cast<char *>(kColossusLookSheets[0]), -1) == nullptr) {
+        if (TexManager.GetTexture(const_cast<char *>(kGoroGoldSheets[0]), -1) == nullptr) {
             return;
         }
         Read();
     }
-    float share = ColossusLookShare(size);
     for (Sheet &sheet : look.sheets) {
         CTexture *texture = TexManager.GetTexture(const_cast<char *>(sheet.name), -1);
         if (texture == nullptr) {
@@ -243,7 +190,7 @@ void ColossusLookStep(float size) {
             continue;
         }
         std::optional<gfx::TextureInfo> info = gfx::GetTextureInfo(sheet.texture);
-        Write(sheet, sheet.texture, info ? info->mip_levels : 1u, share);
+        Write(sheet, info ? info->mip_levels : 1u, share);
         sheet.share = share;
     }
 }

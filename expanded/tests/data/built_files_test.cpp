@@ -28,6 +28,7 @@ constexpr Built kBuilt[] = {
     {"chara/spirit_cat.chr",           437152,  0x6d1be3bc3aff86c5ULL},
     {"disc/chara/c01d_turi.chr",       1849104, 0xb2fd8aeb3ab6c290ULL},
     {"disc/commenu/c04wtes.chr",       607040,  0x739cc23694eba8fbULL},
+    {"disc/dun/mainchara/c06b.chr",    1445600, 0x7d7d0ea2bbbaa5ceULL},
     {"disc/commenu/weapon/c04w13.chr", 77312,   0x6292e5a529d33618ULL},
     {"disc/gedit/e03/e03_1.mes",       5598,    0x7f7a938dd5735e38ULL},
     {"disc/gedit/e03/e03talk_1.mes",   47122,   0xfb8f96324c158b40ULL},

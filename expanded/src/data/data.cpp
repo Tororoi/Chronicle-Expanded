@@ -10,13 +10,14 @@
 #include "expanded/data/fishing_poses.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/data/gemron_models.hpp"
+#include "expanded/data/goro_gold.hpp"
 #include "expanded/data/monster_scripts.hpp"
 #include "expanded/data/prop_models.hpp"
 #include "expanded/data/queens_canal.hpp"
 #include "expanded/data/script_damage.hpp"
 #include "expanded/data/spirit_cat.hpp"
-#include "expanded/data/town_model.hpp"
 #include "expanded/data/toan_grip.hpp"
+#include "expanded/data/town_model.hpp"
 #include "expanded/data/wolf_steve.hpp"
 
 namespace expanded {
@@ -43,6 +44,7 @@ const DataKind kDataKinds[] = {
     {"queens canal", QueensCanalBuilds},
     {"weapon model", WolfSteveBuilds},
     {"character model", ToanGripBuilds},
+    {"character model", GoroGoldBuilds},
 };
 
 } // namespace

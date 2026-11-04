@@ -11,7 +11,7 @@ namespace expanded {
 namespace {
 
 struct Tint {
-    const CFrame        *frame;
+    const void          *key; // the frame, or the visual
     std::array<float, 3> add;
 };
 
@@ -23,10 +23,8 @@ void ClearFrameTints() {
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(ClearFrameTints), true);
 
-} // namespace
-
-void SetFrameTint(const CFrame *frame, float red, float green, float blue) {
-    auto found = std::find_if(tints.begin(), tints.end(), [&](const Tint &tint) { return tint.frame == frame; });
+void SetTint(const void *key, float red, float green, float blue) {
+    auto found = std::find_if(tints.begin(), tints.end(), [&](const Tint &tint) { return tint.key == key; });
     if (red == 0.0f && green == 0.0f && blue == 0.0f) {
         if (found != tints.end()) {
             tints.erase(found);
@@ -35,16 +33,26 @@ void SetFrameTint(const CFrame *frame, float red, float green, float blue) {
         found->add = {red, green, blue};
     } else {
         tints.push_back({
-            frame, {red, green, blue}
+            key, {red, green, blue}
         });
     }
 }
 
-bool FrameTintBegin(const CFrame *frame, float *ambient, float *saved) {
+} // namespace
+
+void SetFrameTint(const CFrame *frame, float red, float green, float blue) {
+    SetTint(frame, red, green, blue);
+}
+
+void SetVisualTint(const void *visual, float red, float green, float blue) {
+    SetTint(visual, red, green, blue);
+}
+
+bool FrameTintBegin(const CFrame *frame, const void *visual, float *ambient, float *saved) {
     if (tints.empty()) {
         return false;
     }
-    auto found = std::find_if(tints.begin(), tints.end(), [&](const Tint &tint) { return tint.frame == frame; });
+    auto found = std::find_if(tints.begin(), tints.end(), [&](const Tint &tint) { return tint.key == frame || (visual != nullptr && tint.key == visual); });
     if (found == tints.end()) {
         return false;
     }

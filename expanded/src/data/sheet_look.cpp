@@ -23,6 +23,8 @@ double JsRound(double x) {
     return std::floor(x + 0.5);
 }
 
+} // namespace
+
 std::array<double, 3> RgbToHsl(double r, double g, double b) {
     r /= 255;
     g /= 255;
@@ -59,6 +61,8 @@ std::array<int, 3> HslToRgb(double h, double s, double l) {
     }
     return {int(JsRound((r + m) * 255)), int(JsRound((g + m) * 255)), int(JsRound((b + m) * 255))};
 }
+
+namespace {
 
 int Key(const std::array<int, 3> &c) {
     return (c[0] << 16) | (c[1] << 8) | c[2];
@@ -114,7 +118,9 @@ PictureAt Locate(std::span<const unsigned char> tim) {
 
 // The page's merge: each colour (weighted by its texels) a cluster; the cheapest pair merged into its weighted centroid
 // until 256 are left. Cost = distance x x.sqrt(x), x = 0.12 + the pair's mean luminance, so near-black goes first.
-std::unordered_map<int, int> Merge(const std::vector<int> &keys, const std::unordered_map<int, double> &weight) {
+} // namespace
+
+std::unordered_map<int, int> MergeColours(const std::vector<int> &keys, const std::unordered_map<int, double> &weight) {
     std::unordered_map<int, int> merged;
     int                          n = static_cast<int>(keys.size());
     if (n <= kBudget) {
@@ -187,8 +193,6 @@ std::unordered_map<int, int> Merge(const std::vector<int> &keys, const std::unor
     }
     return merged;
 }
-
-} // namespace
 
 SheetLook SheetLook::Parse(std::string_view text) {
     nlohmann::json json = nlohmann::json::parse(text);
@@ -290,7 +294,7 @@ Bytes SheetLook::ApplyToSheet(std::span<const unsigned char> tim) const {
         }
         colour_count[v] += pair_count[key];
     }
-    std::unordered_map<int, int> merged = Merge(colour_order, colour_count);
+    std::unordered_map<int, int> merged = MergeColours(colour_order, colour_count);
     Bytes                        out_index(index.size());
     std::unordered_map<int, int> slot;
     std::vector<int>             out_pal;
