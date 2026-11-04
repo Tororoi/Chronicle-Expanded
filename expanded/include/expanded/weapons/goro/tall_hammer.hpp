@@ -59,9 +59,10 @@ void  ColossusShotPoint(float *point);
 bool ColossusShrugsOff(int kind);
 void ColossusShrugged(bool blocked);
 int  ColossusHitKind(int kind);
-// At his full size, what hits him hits once: a monster's hits pass him by for as long as the hit's own kind would have
-// kept him from being hit again (the guard-breaking hit's knockdown, the knockback's stagger, the light hit's flinch),
-// and a shot hits nothing more and, still in flight, meets him as a wall on its next step (its impact, or its burst).
+// At his full size, each attack hits him once: a monster's sphere that hit him passes him by until its hit window
+// closes or its motion starts over (its next swing hits), the monster's other spheres and other monsters' hitting as
+// ever, and a shot hits nothing more and, still in flight, meets him as a wall on its next step (its impact, or its
+// burst).
 // Hooks: whether a hit passes him by (BtCheckDamageProc), a hit reached him (after the game reacts to it), a shot set a
 // hit record (ShotEffectHitSet) and a shot's collision test (ShotEffectCollision).
 bool                  ColossusPassesBy(const COLLISION_HIT &hit);

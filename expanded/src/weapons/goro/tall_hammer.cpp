@@ -48,20 +48,19 @@ constexpr float kTrampleReach = 2.0f;      // past where the monster stops again
 constexpr float kSwitchBelow = 5.0f;       // how far under his feet a switch he stands on may lie
 constexpr float kColossusHeightOf = 16.0f; // Goro's height (CharaHeight)
 
-// How long a hit's kind keeps the player from being hit again (BtCheckDamageProc's recoil): the guard-breaking hit's
-// knockdown, the knockback's stagger, the light hit's flinch.
-constexpr int kKnockdownFrames = 0xA0, kStaggerFrames = 0x50, kFlinchFrames = 8;
-
-// A monster's melee hit's owner (CMonstorUnit: 200 + its slot times 5).
+// A monster's melee hit's owner (CMonstorUnit: 200 + its slot times 5), its attack_no the sphere that dealt it.
 constexpr int kMonsterOwner = 200, kMonsterOwnerStride = 5;
 
 // How long a shot's hit record stays its (CSHOT_EFFECT::Step sets it for 2 frames).
 constexpr int kShotHitLife = 2;
 
-// What has hit him at his full size, whose hits pass him by until a step of his clock: a monster, a shot or, for
-// anything else, the hit record.
+// An attack that has hit him at his full size, whose hits pass him by while it goes on: a monster's sphere while its
+// hit window stays open (time: how far its motion had got), a shot or, for anything else, the hit record, until a
+// step of his clock.
 struct Spared {
     int                 monster = -1;
+    int                 sphere = -1;
+    float               time = 0.0f;
     const CSHOT_EFFECT *effect = nullptr;
     int                 slot = -1;
     int                 record = -1;
@@ -348,6 +347,24 @@ ShotHit *ShotOf(int record) {
     return shot.effect != nullptr && colossus.clock - shot.at <= kShotHitLife ? &shot : nullptr;
 }
 
+// Whether a monster's sphere is still in the attack that hit him: in use, inside its hit window, and its motion not
+// started over since (a new swing).
+bool StillAttacking(Spared &spared) {
+    if (NowMonstorUnit == nullptr || spared.monster < 0 || spared.monster >= kFloorMonsters || spared.sphere < 0 || spared.sphere >= 16) {
+        return false;
+    }
+    const MONSTOR_EFFECT_STATE2 &hits = NowMonstorUnit->effect2[spared.monster];
+    float                        time = NowMonstorUnit->chara[spared.monster][0].motion_type.state.time;
+    bool                         still = hits.active[spared.sphere] != 0 && time >= spared.time && time >= hits.motion_start[spared.sphere] && time <= hits.motion_end[spared.sphere];
+    spared.time = time;
+    return still;
+}
+
+// Whether a spared attack goes on.
+bool GoesOn(Spared &spared) {
+    return spared.sphere >= 0 ? StillAttacking(spared) : colossus.clock < spared.until;
+}
+
 bool ColossusPassesBy(const COLLISION_HIT &hit) {
     if (colossus.spared.empty()) {
         return false;
@@ -356,14 +373,11 @@ bool ColossusPassesBy(const COLLISION_HIT &hit) {
     const ShotHit *shot = ShotOf(record);
     bool           by_shot = shot != nullptr;
     int            monster = hit.owner >= kMonsterOwner ? (hit.owner - kMonsterOwner) / kMonsterOwnerStride : -1;
-    for (const Spared &spared : colossus.spared) {
-        if (colossus.clock >= spared.until) {
-            continue;
-        }
+    for (Spared &spared : colossus.spared) {
         if (by_shot        ? spared.effect == shot->effect && spared.slot == shot->slot
-            : monster >= 0 ? spared.monster == monster
+            : monster >= 0 ? spared.monster == monster && spared.sphere == hit.attack_no
                            : spared.record == record) {
-            return true;
+            return GoesOn(spared);
         }
     }
     return false;
@@ -373,23 +387,26 @@ void ColossusHitTaken(const COLLISION_HIT &hit) {
     if (!AtMost()) {
         return;
     }
-    std::erase_if(colossus.spared, [](const Spared &spared) { return colossus.clock >= spared.until; });
     int    record = RecordOf(hit);
     Spared spared;
-    spared.until = colossus.clock + (hit.kind == kGuardBreakingHit ? kKnockdownFrames : hit.kind == kKnockbackHit ? kStaggerFrames
-                                                                                                                  : kFlinchFrames);
     if (const ShotHit *shot = ShotOf(record); shot != nullptr) {
         // A shot: it hits nothing more and, still in flight, meets him as a wall.
         spared.effect = shot->effect;
         spared.slot = shot->slot;
+        spared.until = colossus.clock + kShotHitLife + 1;
         shot->effect->life_time[shot->slot] = 0;
         if (shot->effect->phase[shot->slot] < 2) {
             colossus.stopping.emplace_back(shot->effect, shot->slot);
         }
-    } else if (hit.owner >= kMonsterOwner) {
+    } else if (hit.owner >= kMonsterOwner && hit.attack_no >= 0) {
         spared.monster = (hit.owner - kMonsterOwner) / kMonsterOwnerStride;
+        spared.sphere = hit.attack_no;
+        if (NowMonstorUnit != nullptr && spared.monster < kFloorMonsters) {
+            spared.time = NowMonstorUnit->chara[spared.monster][0].motion_type.state.time;
+        }
     } else if (record >= 0) {
         spared.record = record;
+        spared.until = colossus.clock + hit.life + 1;
     } else {
         return;
     }
@@ -434,6 +451,7 @@ void ColossusStep() {
     }
     if (MonstersStepping()) {
         colossus.clock++;
+        std::erase_if(colossus.spared, [](Spared &spared) { return !GoesOn(spared); });
         if (GoroInPlay() && colossus.phase != Phase::Shrinking && colossus.phase != Phase::Spent && colossus.phase != Phase::Popping) {
             Grow();
         }

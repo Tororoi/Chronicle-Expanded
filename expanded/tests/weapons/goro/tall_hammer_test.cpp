@@ -273,24 +273,61 @@ TEST_F(Colossus, AShruggedOffHitLeavesHimInWhatHeWasDoing) {
 
 TEST_F(Colossus, AtFullSizeAMonstersAttackHitsHimOnce) {
     Grow(expanded::kColossusGrowFrames);
+    // Monster 2's bite: sphere 1, hitting from motion frame 10 to 20.
+    MONSTOR_EFFECT_STATE2 &spheres = NowMonstorUnit->effect2[2];
+    float                 &time = NowMonstorUnit->chara[2][0].motion_type.state.time;
+    for (int sphere : {1, 2}) {
+        spheres.active[sphere] = 1;
+        spheres.motion_start[sphere] = 10.0f;
+        spheres.motion_end[sphere] = 20.0f;
+    }
+    time = 12.0f;
     COLLISION_HIT &bite = NowColData->hit[3];
     bite = {};
     bite.kind = expanded::kGuardBreakingHit;
-    bite.owner = 200 + 2 * 5; // monster 2's
+    bite.owner = 200 + 2 * 5;
+    bite.attack_no = 1;
     EXPECT_FALSE(expanded::PlayerHitPassesBy(bite));
     expanded::PlayerHitReacted(false, bite);
-    // The same monster's next hits pass him by for as long as the knockdown would have kept him from them.
+    // The bite's next hits pass him by while it goes on; the monster's other attacks, and other monsters', land.
     COLLISION_HIT &again = NowColData->hit[7];
     again = bite;
     EXPECT_TRUE(expanded::PlayerHitPassesBy(again));
-    COLLISION_HIT &other = NowColData->hit[8];
+    COLLISION_HIT &sphere = NowColData->hit[8];
+    sphere = bite;
+    sphere.attack_no = 2;
+    EXPECT_FALSE(expanded::PlayerHitPassesBy(sphere));
+    COLLISION_HIT &other = NowColData->hit[9];
     other = bite;
     other.owner = 200 + 3 * 5;
     EXPECT_FALSE(expanded::PlayerHitPassesBy(other));
-    Steps(0xA0 - 1);
-    EXPECT_TRUE(expanded::PlayerHitPassesBy(again));
+    time = 20.0f;
     Steps(1);
+    EXPECT_TRUE(expanded::PlayerHitPassesBy(again));
+    // Its window over, its next bite lands.
+    time = 21.0f;
+    Steps(1);
+    time = 12.0f;
     EXPECT_FALSE(expanded::PlayerHitPassesBy(again));
+}
+
+TEST_F(Colossus, AMonstersNextSwingLandsThoughItsWindowStaysOpen) {
+    Grow(expanded::kColossusGrowFrames);
+    MONSTOR_EFFECT_STATE2 &spheres = NowMonstorUnit->effect2[0];
+    float                 &time = NowMonstorUnit->chara[0][0].motion_type.state.time;
+    spheres.active[0] = 1;
+    spheres.motion_start[0] = 0.0f;
+    spheres.motion_end[0] = 30.0f;
+    time = 25.0f;
+    COLLISION_HIT &bite = NowColData->hit[3];
+    bite = {};
+    bite.kind = expanded::kKnockbackHit;
+    bite.owner = 200;
+    bite.attack_no = 0;
+    expanded::PlayerHitReacted(false, bite);
+    EXPECT_TRUE(expanded::PlayerHitPassesBy(bite));
+    time = 2.0f; // the motion started over
+    EXPECT_FALSE(expanded::PlayerHitPassesBy(bite));
 }
 
 TEST_F(Colossus, AShotThatHitsHimAtFullSizeStopsAsAtAWall) {
