@@ -40,6 +40,7 @@ struct Sheet {
 
 struct Look {
     bool               read = false;
+    bool               hammer_lit = false;
     std::vector<Sheet> sheets;
 };
 
@@ -130,7 +131,8 @@ void Write(const Sheet &sheet, std::uint32_t levels, float share) {
     }
 }
 
-// The gold parts lit share of the way to the full tint: the gold frame, the cape's frame and the cloth drawing it.
+// The gold parts lit share of the way to the full tint (the gold frame, the cape's frame and the cloth drawing it), and
+// the hammer.
 void Tint(float share) {
     float add[3];
     for (int c = 0; c < 3; c++) {
@@ -147,6 +149,13 @@ void Tint(float share) {
                 SetVisualTint(CharaMain.cloth[i], add[0], add[1], add[2]);
             }
         }
+    }
+    // Written while it is lit, and once more as it goes out: a weapon it never lit keeps its own.
+    if (NowWeapon != nullptr && (share > 0.0f || look.hammer_lit)) {
+        for (int c = 0; c < 3; c++) {
+            NowWeapon->ambient_offset[c] = kColossusHammerTint[c] * share;
+        }
+        look.hammer_lit = share > 0.0f;
     }
 }
 

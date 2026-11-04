@@ -625,9 +625,7 @@ void ColossusStep() {
         }
     }
     Apply();
-    if (GoroInPlay()) {
-        ColossusLookStep(colossus.applied);
-    }
+    ColossusLookStep(GoroInPlay() ? colossus.applied : 1.0f);
 }
 
 void ColossusQuiet() {
