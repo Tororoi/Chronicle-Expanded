@@ -35,6 +35,7 @@
 #include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/goro/battle_ax.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
+#include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/goro/turtle_shell.hpp"
 #include "expanded/weapons/heal.hpp"
@@ -510,6 +511,7 @@ void MonsterMoveChecked(CMonstorUnit &unit, int monster) {
     if (!AllyUnit(unit)) {
         SolidColumnMonsterMove(unit, monster);
         SnakeCharmerMonsterMove(unit, monster);
+        UnderworldMonsterMove(unit, monster);
     }
 }
 
