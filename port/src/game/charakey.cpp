@@ -8,8 +8,8 @@
 
 #include "btactstatus.hpp"
 #include "btmisc.hpp"
-#include "charakey.hpp"
 #include "character.hpp"
+#include "charakey.hpp"
 #include "clothread.hpp"
 #include "collisiondata.hpp"
 #include "dataread.hpp"
@@ -26,6 +26,7 @@
 #include "weaponeffect.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/claymore.hpp"
 #include "expanded/weapons/toan/heavens_cloud.hpp"
@@ -115,7 +116,7 @@ void ToanKey_Play() {
 #ifdef CHRONICLE_EXPANDED
     int damage = expanded::PumpedUpAttack(expanded::RoughCounterAttack(expanded::SpringsBlessingAttack(NowWeaponHave->attack)));
 #else
-    int   damage = NowWeaponHave->attack;
+    int damage = NowWeaponHave->attack;
 #endif
 
     if (StatusErrCheck(AILMENT_STAMINA) != 0) {
@@ -990,9 +991,13 @@ void GoroKey_On() {
 void GoroKey_Play() {
     float time = CharaMain.motion_type.state.time;
 #ifdef CHRONICLE_EXPANDED
-    int damage = expanded::SpringsBlessingAttack(NowWeaponHave->attack);
+    int   damage = expanded::ColossusAttack(expanded::SpringsBlessingAttack(NowWeaponHave->attack));
+    float radius = expanded::ColossusHitRadius(5.0f);
+    float kick = expanded::ColossusKickSpeed(2.5f);
 #else
     int   damage = NowWeaponHave->attack;
+    float radius = 5.0f;
+    float kick = 2.5f;
 #endif
 
     if (StatusErrCheck(AILMENT_STAMINA) != 0) {
@@ -1007,26 +1012,30 @@ void GoroKey_Play() {
     sceVu0CopyVector(chara_pos, CharaMain.pos);
 
     if (time >= 99.0f && time <= 102.0f) {
-        NowColData->Set(hit_pos, damage, 1, 5.0f, 0.0f, 2, 2, 0, 0);
+        NowColData->Set(hit_pos, damage, 1, radius, 0.0f, 2, 2, 0, 0);
         basic_damage(0, 2);
-        NowColData->SetKickBack(chara_pos, 2.5f, 0.1f, 2);
+        NowColData->SetKickBack(chara_pos, kick, 0.1f, 2);
     }
 
     if (time >= 462.0f && time <= 482.0f) {
         damage = static_cast<int>(damage * 1.5);
-        NowColData->Set(hit_pos, damage, 1, 5.0f, 0.0f, 2, 2, 0, 0);
+        NowColData->Set(hit_pos, damage, 1, radius, 0.0f, 2, 2, 0, 0);
 
         basic_damage(1, 2);
     }
 
     if (time >= 482.0f && time < 482.4f) {
+#ifdef CHRONICLE_EXPANDED
+        expanded::ColossusImpact(*NowMainEffect, NowMainEffect->Set(hit_pos, shot_vector, 2, -1, 0, nullptr, -1));
+#else
         NowMainEffect->Set(hit_pos, shot_vector, 2, -1, 0, nullptr, -1);
+#endif
         NowMainEffect->SetWepStatus(NowWeaponHave->flags);
         NowMainEffect->SetVsMonster(NowWeaponHave->vs_monster);
         NowMainEffect->SetDmg(static_cast<int>(1.2f * static_cast<float>(damage)));
         NowMainEffect->SetWait(45);
         NowMainEffect->SetAttribute(GetWeaponElementAttr(NowWeaponHave->best_elem));
-        NowColData->SetKickBack(chara_pos, 2.5f, 0.1f, 2);
+        NowColData->SetKickBack(chara_pos, kick, 0.1f, 2);
         BtActStatus.camera_shake = 8.0f;
         BtActStatus.camera_shake_decay = 0.1f;
         BtActStatus.camera_shake_frames = 30;

@@ -1,5 +1,6 @@
 #include "expanded/dungeon/dungeon_hooks.hpp"
 
+#include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/debug/stage.hpp"
@@ -34,6 +35,7 @@
 #include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/goro/battle_ax.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
+#include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/goro/turtle_shell.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/heavens_cloud_shot.hpp"
@@ -193,7 +195,7 @@ void DungeonShotsDrawn() {
 }
 
 bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
-    return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit) || PackHitPassesBy(hit);
+    return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit) || PackHitPassesBy(hit) || ColossusPassesBy(hit);
 }
 
 void PlayerHitReached(COLLISION_HIT &hit) {
@@ -205,6 +207,8 @@ void PlayerHitReached(COLLISION_HIT &hit) {
 
 void PlayerHitReacted(bool blocked, const COLLISION_HIT &hit) {
     DivineGuardBlocked(blocked);
+    ColossusShrugged(blocked);
+    ColossusHitTaken(hit);
     LambGuardBlocked(blocked, hit);
     RoughCounterBlocked(blocked, hit);
 }
@@ -223,6 +227,7 @@ void DungeonMonstersCleared(bool drop_stars) {
     ZeusShotReset();
     OwnSoundsReset();
     ColdStorageCleared();
+    ColossusQuiet();
 }
 
 void DungeonMonstersTick() {
@@ -252,6 +257,7 @@ void DungeonMonstersTick() {
     TornadoChargeStep();
     GuardianGraceStep();
     DesertBloomStep();
+    ColossusStep();
     SnakeCharmerStep();
     BigRockStep();
     CurseOfBabelStep();
@@ -346,7 +352,7 @@ int MonsterHardness(const CMonstorUnit &unit, int monster, int hardness) {
 }
 
 int PlayerDefense(int chara, int defense) {
-    return DefensiveLegacyDefense(chara, HardShellDefense(chara, defense));
+    return ColossusDefense(chara, DefensiveLegacyDefense(chara, HardShellDefense(chara, defense)));
 }
 
 float PlayerLockOnRange(float rate) {
@@ -408,9 +414,10 @@ void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     PumpedUpPelletHit(hit);
 }
 
-void ShotEffectHitSet(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
+void ShotEffectHitSet(CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
     DragonShotHit(effect, slot, hit);
     angel_gear::NoteShotHit(effect, slot, hit);
+    ColossusShotHitSet(effect, slot, hit);
 }
 
 void PelletStepping(CSHOT &shots, int slot) {
@@ -490,7 +497,7 @@ std::optional<MonsterDamageResult> MonsterFriendlyHit(CMonstorUnit &unit, int sp
 }
 
 bool HitWearsWeapon(const COLLISION_HIT &hit) {
-    return !DesertBloomPrick(hit) && !CurseOfBabelCatch(hit) && !UngagaBlastHit(hit) && !BigRockHit(hit);
+    return !DesertBloomPrick(hit) && !CurseOfBabelCatch(hit) && !UngagaBlastHit(hit) && !BigRockHit(hit) && !ColossusTrample(hit);
 }
 
 bool MonsterPathBlockedBy(const CMonstorUnit &unit, int monster, int other) {
@@ -524,15 +531,36 @@ void ScriptPlayerPosition(float *position) {
 }
 
 float MonsterBlockRadius(float radius) {
-    return angel_gear::RingBlockRadius(radius);
+    return angel_gear::RingBlockRadius(ColossusBlockRadius(radius));
+}
+
+float PlayerHurtHeight(float height) {
+    return ColossusHeight(height);
+}
+
+float PlayerHurtReach() {
+    return ColossusHurtReach();
+}
+
+bool PlayerHitShrugged(const COLLISION_HIT &hit) {
+    return ColossusShrugsOff(hit.kind);
+}
+
+int PlayerHitKind(const COLLISION_HIT &hit) {
+    return ColossusHitKind(hit.kind);
+}
+
+bool HitSwitchSteppedOn(int chara_no, const float *pos, float radius) {
+    return ColossusStepsOn(chara_no, pos, radius);
 }
 
 SHOT_COLLISION_RESULT ShotEffectCollision(CSHOT_EFFECT &effect, int slot, float *hit_position, float *position) {
     SHOT_COLLISION_RESULT result = angel_gear::ReflectCollision(effect, slot, hit_position, position);
-    return SolidColumnShot(effect, slot, result, hit_position, position);
+    return ColossusShotCollision(effect, slot, SolidColumnShot(effect, slot, result, hit_position, position));
 }
 
 void ShotPlayerPoint(float *point) {
+    ColossusShotPoint(point);
     GuardianReflectorPlayerPoint(point);
 }
 
@@ -553,6 +581,7 @@ void PlayerMotionStepping(CCharacter &chara, int chara_no) {
     QuickComboMotion(chara, chara_no);
     LockOnSpeedMotion(chara, chara_no);
     FiringLegsStep(chara, chara_no);
+    ColossusMotion(chara, chara_no);
 }
 
 void HealTicked() {

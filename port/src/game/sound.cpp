@@ -49,6 +49,7 @@ struct PendingBank {
 } g_bank;
 
 std::array<std::shared_ptr<audio::Bank>, kSlots>                                  g_slot_banks;
+std::array<std::shared_ptr<audio::Bank>, audio::kPorts>                           g_port_banks; // as bound to each port
 std::array<std::array<std::shared_ptr<audio::SqFile>, kSequencesPerSlot>, kSlots> g_slot_sequences;
 
 // Effect messages are held until Step() sends them.
@@ -60,6 +61,10 @@ struct EffectMessage {
 };
 
 std::vector<EffectMessage> g_effect_queue;
+
+// The shift the effects played now start at, in semitones, as a pitch bend (kBendCentre: their own pitch).
+constexpr int kBendCentre = 8192;
+float         g_effect_semitones = 0.0f;
 
 struct FadeRoute {
     int port;
@@ -130,6 +135,33 @@ void QueueProgram(int port, int bank) {
     });
 }
 
+// The pitch bend that shifts the effect (program as the bank's, note as its tone) by g_effect_semitones: a full bend is
+// the sounding split's own range (two semitones when the bank gives none), as the mixer bends an effect.
+int EffectBend(int port, int program, int note, int velocity) {
+    const audio::Bank *bank = g_port_banks[EffectPort(port)].get();
+    if (g_effect_semitones == 0.0f || bank == nullptr) {
+        return kBendCentre;
+    }
+    std::array<audio::Layer, 8> layers;
+    int                         count = bank->Resolve(program, note, velocity, layers);
+    if (count == 0) {
+        count = bank->ResolveSplit(program, note, velocity, layers);
+    }
+    if (count == 0) {
+        return kBendCentre;
+    }
+    const audio::HdSplit &split = *layers[0].split;
+    int                   range = g_effect_semitones < 0.0f ? split.bend_low : split.bend_high;
+    if (split.bend_low == 0 && split.bend_high == 0) {
+        range = 2 * audio::kFinePerSemitone;
+    }
+    if (range <= 0) {
+        return kBendCentre;
+    }
+    float bend = kBendCentre * (1.0f + g_effect_semitones * audio::kFinePerSemitone / static_cast<float>(range));
+    return std::clamp(static_cast<int>(std::lround(bend)), 0, 2 * kBendCentre - 1);
+}
+
 void QueueExtended(int port, std::array<std::uint8_t, 8> bytes) {
     g_effect_queue.push_back({.port = EffectPort(port), .extended = true, .message = 0, .bytes = bytes});
 }
@@ -190,6 +222,7 @@ void TakeBank(int slot) {
 
 void BindPort(int slot, int port, int attribute) {
     Player().BindBank(port, g_slot_banks[slot]);
+    g_port_banks[port] = g_slot_banks[slot];
     Player().SetAttribute(port, attribute);
     SetPortVolume(port, 0);
 }
@@ -214,6 +247,7 @@ int LoadSlotC(const std::uint8_t *hd, int hd_size, const std::uint8_t *bd, int b
         // The ambient bank is freed with this one, so its port is unbound too.
         FreeSlot(2);
         Player().BindBank(MIDI_PORT_AMBIENT, nullptr);
+        g_port_banks[MIDI_PORT_AMBIENT].reset();
         midi_state.port[2].spu_address = midi_state.port[1].spu_address = 0x7D010;
     }
     g_bank.spu_address = midi_state.port[1].spu_address;
@@ -256,6 +290,7 @@ int LoadSlotI(const std::uint8_t *hd, int hd_size, const std::uint8_t *bd, int b
         FreeSlot(4);
         FreeSlot(3);
         Player().BindBank(MIDI_PORT_UNK_A, nullptr);
+        g_port_banks[MIDI_PORT_UNK_A].reset();
         midi_state.port[3].spu_address = midi_state.port[4].spu_address = 0x16E900;
     }
     g_bank.spu_address = midi_state.port[4].spu_address - (bd_size + 0x10);
@@ -579,6 +614,14 @@ void CSound::SE_Play(int port, int bank, int program, int pan, int velocity, int
     QueueExtended(port, {0xF9, 1, 0, static_cast<std::uint8_t>(pan), 0});
     QueueExtended(port, {0xFD, 0x10, 0, static_cast<std::uint8_t>(program), static_cast<std::uint8_t>(voice),
                          static_cast<std::uint8_t>(velocity), 0});
+    if (int bend = EffectBend(port, bank, program, velocity); bend != kBendCentre) {
+        QueueExtended(port, {0xFD, 0x02, 0, static_cast<std::uint8_t>(program), static_cast<std::uint8_t>(voice),
+                             static_cast<std::uint8_t>(bend & 0x7F), static_cast<std::uint8_t>(bend >> 7), 0});
+    }
+}
+
+void CSound::SE_SetPitch(float semitones) {
+    g_effect_semitones = semitones;
 }
 
 void CSound::SE_Play(int port, int se_no, int voice) {

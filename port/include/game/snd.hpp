@@ -228,6 +228,13 @@ int SndSoundSyncBG();
 void SndSePlay(int se_no, int vol, int voice);
 
 /**
+ * Sets how many semitones the sound effects played from here on are shifted by, and the shift the voice set's take
+ * instead (se 400-499, the member in play's voice); 0 for their own pitch.
+ */
+void SndSetSePitch(float semitones);
+void SndSetVoicePitch(float semitones);
+
+/**
  * Plays a sound effect at a world position, attenuated between a near and a
  * far distance; a negative distance picks the default one.
  */

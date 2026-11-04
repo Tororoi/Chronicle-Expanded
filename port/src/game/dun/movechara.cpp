@@ -1,7 +1,5 @@
 // DunMoveChara, split from dun/gameloop.cpp for size.
 
-#include "dun/gameloop.hpp"
-
 #include <libvu0.h>
 
 #include <cmath>
@@ -18,8 +16,8 @@
 #include "btsysscript.hpp"
 #include "camera.hpp"
 #include "camerafollow.hpp"
-#include "charakey.hpp"
 #include "character.hpp"
+#include "charakey.hpp"
 #include "clothread.hpp"
 #include "clsmes.hpp"
 #include "collision.hpp"
@@ -31,6 +29,7 @@
 #include "dngmessageman.hpp"
 #include "dngstatusdata.hpp"
 #include "dranmapfield.hpp"
+#include "dun/gameloop.hpp"
 #include "dungeoneventman.hpp"
 #include "dungeonmap.hpp"
 #include "edit.hpp"
@@ -95,6 +94,7 @@
 #include "expanded/debug/stage.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/enemies/miniboss_loot.hpp"
+#include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/xiao/bandit_slingshot.hpp"
 #include "expanded/weapons/xiao/dragons_y.hpp"
@@ -252,6 +252,11 @@ void DunMoveChara() {
                     velo__2[0] = move_x * run_speed;
                     velo__2[2] = move_z * run_speed;
                 }
+
+#ifdef CHRONICLE_EXPANDED
+                velo__2[0] *= expanded::ColossusMoveScale();
+                velo__2[2] *= expanded::ColossusMoveScale();
+#endif
 
 #ifdef PAL
                 // In debug mode, Select outside an event opens the debug menu.
@@ -885,7 +890,13 @@ void DunMoveChara() {
                                                             BattleActionPlay_Jinn(&CharaMain, 0);
                                                             break;
                                                         case CHARA_GORO:
+#ifdef CHRONICLE_EXPANDED
+                                                            SndSetSePitch(expanded::ColossusSoundPitch());
+#endif
                                                             GoroKey_Play();
+#ifdef CHRONICLE_EXPANDED
+                                                            SndSetSePitch(0.0f);
+#endif
                                                             break;
                                                         case CHARA_RUBY:
                                                             BattleActionPlay_Ruby(&CharaMain, 0);
@@ -1308,7 +1319,7 @@ void DunMoveChara() {
                                                                         for (int x = 0; x < 20; x++) {
                                                                             CDungeonMap *cmap = NowDngMap;
                                                                             int          parts_no = cmap->cells[x + z * 20]
-                                                                                                        .parts_no;
+                                                                                               .parts_no;
 
                                                                             collision = parts_no == -1 ? nullptr : NowDngMap->parts[parts_no].collision;
                                                                             MAP_CELL *cell = &NowDngMap->cells[x + z * 20];
@@ -1546,8 +1557,8 @@ void DunMoveChara() {
                                                                     NowCamera__3->SetFollow(follow[0], follow[1], follow[2]);
 
                                                                     if (lockOnTargetFlag != 0) {
-                                                                        CCharacter   *locked = &NowMonstorUnit
-                                                                                                    ->chara[lockOnTargetNo][0];
+                                                                        CCharacter *locked = &NowMonstorUnit
+                                                                                                  ->chara[lockOnTargetNo][0];
                                                                         sceVu0FVECTOR to_target;
                                                                         sceVu0FVECTOR target;
 
@@ -1569,14 +1580,18 @@ void DunMoveChara() {
                                                                     }
 #ifdef CHRONICLE_EXPANDED
                                                                     expanded::ZeusCameraHold(*NowCamera__3);
+                                                                    expanded::ColossusCamera(*NowCamera__3, pos);
+                                                                    float zoom_scale = expanded::ColossusCameraScale();
+#else
+                                                                    float zoom_scale = 1.0f;
 #endif
 
                                                                     float normal_near = camera_up_near_dist;
                                                                     float zoom_start_distance = NowCamera__3->GetDistance();
-                                                                    camera_up_near_dist = DungeonZoomNearDistance(NowCamera__3, normal_near, lockOnTargetFlag != 0);
+                                                                    camera_up_near_dist = DungeonZoomNearDistance(NowCamera__3, normal_near * zoom_scale, lockOnTargetFlag != 0, zoom_scale);
                                                                     autoCamTrial();
                                                                     camera_up_near_dist = normal_near;
-                                                                    DungeonZoomApply(NowCamera__3, NowDngMap, lockOnTargetFlag != 0, zoom_start_distance);
+                                                                    DungeonZoomApply(NowCamera__3, NowDngMap, lockOnTargetFlag != 0, zoom_start_distance, zoom_scale);
                                                                 }
                                                             }
                                                         }

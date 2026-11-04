@@ -21,9 +21,9 @@ inline constexpr int         kSmokeShots = 1;
 BT_SHOT_EFFECT *SummonSmokeEffect();
 
 // A poof at spot (its ground), turned to yaw, scale times its own size, for owner (the summon, by any pointer of its
-// own), and its sound; one already playing is put out. False when the smoke is not loaded on this floor (the sound
-// plays all the same).
-bool SummonSmokeStart(const float *spot, float yaw, float scale, const void *owner);
+// own), and its sound; one already playing is put out. tint (red, green, blue, each times its own; null for its own
+// colour) colours it. False when the smoke is not loaded on this floor (the sound plays all the same).
+bool SummonSmokeStart(const float *spot, float yaw, float scale, const void *owner, const float *tint = nullptr);
 // One step (once a frame the monsters step unpaused): held at its spot, at its rate, faded past kSmokeFadeFrom.
 void SummonSmokeStep();
 // Its spot moved to spot (its ground), if it plays for owner: what rises in it walks off in it.

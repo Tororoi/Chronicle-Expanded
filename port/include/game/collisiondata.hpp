@@ -159,7 +159,7 @@ public:
     /**
      * Reports which recorded hit reaches the player.
      */
-    int CheckHitUser(float *position, int mask, float height);
+    int CheckHitUser(float *position, int mask, float height, float reach = 0.0f);
 
     /**
      * Records the push a hit gives whatever it struck.

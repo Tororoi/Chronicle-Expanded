@@ -40,10 +40,11 @@ inline constexpr int kGuardUp = 5;
 bool                 Guarding();
 
 // A monster's hit kind (COLLISION_HIT::kind): a guard-breaking one, which the game lets through all but the guard's hold
-// and knocks the player down with, and a knockback, which any guard stops and an unguarded one throws the player back
-// with.
+// and knocks the player down with, a knockback, which any guard stops and an unguarded one throws the player back
+// with, and a light one, which any guard stops and an unguarded one only makes him flinch.
 inline constexpr int kGuardBreakingHit = 3;
 inline constexpr int kKnockbackHit = 2;
+inline constexpr int kLightHit = 4;
 
 // The monster the player is locked on to while it is on the floor and alive, or -1.
 int LockedTarget();

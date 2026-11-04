@@ -7,6 +7,9 @@
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "dungeonmap.hpp"
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/dungeon_hooks.hpp"
+#endif
 #include "frame.hpp"
 #include "mathutil.hpp"
 
@@ -105,6 +108,12 @@ CDungeonEventData *CDungeonEventMan::CheckCollisionDataHit(int index) {
     if (chara_no == -1) {
         return nullptr;
     }
+
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::HitSwitchSteppedOn(chara_no, event[index].pos, event[index].event->radius)) {
+        return &event[index];
+    }
+#endif
 
     for (int i = 0; i < std::ssize(NowColData->active); i++) {
         if (NowColData->active[i] == 0) {
