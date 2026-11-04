@@ -10,6 +10,9 @@
 #include "cloth.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "dungeoneventdata.hpp"
+#include "dungeoneventman.hpp"
+#include "dungeonparts.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/player_state.hpp"
@@ -27,7 +30,7 @@ namespace {
 // Goro out with weapon_no (attack 100) at the origin, the dungeon playing.
 class Colossus : public ::testing::Test {
 protected:
-    explicit Colossus(int weapon_no = ITEM_WEAPON_TALL_HAMMER) : wielding_(weapon_no) {}
+    explicit Colossus(int weapon_no = ITEM_WEAPON_TALL_HAMMER, int sphere = 0) : wielding_(weapon_no, sphere) {}
 
     void SetUp() override {
         BtActStatus = {};
@@ -90,6 +93,58 @@ class ColossusWithAnotherHammer : public Colossus {
 protected:
     ColossusWithAnotherHammer() : Colossus(ITEM_WEAPON_GAIA_HAMMER) {}
 };
+
+// Xiao out with Super Steve carrying sphere's SynthSphere, the floor's events her own.
+class ColossusXiao : public Colossus {
+protected:
+    explicit ColossusXiao(int sphere = ITEM_WEAPON_TALL_HAMMER) : Colossus(ITEM_WEAPON_SUPER_STEVE, sphere) {}
+
+    void SetUp() override {
+        Colossus::SetUp();
+        floor_.status().cur_chara = CHARA_XIAO;
+        saved_events_ = NowEventMan;
+        NowEventMan = events_.get();
+    }
+
+    void TearDown() override {
+        NowEventMan = saved_events_;
+        Colossus::TearDown();
+    }
+
+    // Her slingshot held drawn, or let go.
+    void Draw(bool held) {
+        BtActStatus.action_on = held ? 1 : 0;
+        BtActStatus.action_no = held ? expanded::kXiaoDraw : 0;
+    }
+
+    void GrowXiao(int frames) {
+        Draw(true);
+        Steps(frames);
+        Draw(false);
+    }
+
+    // The floor's event i: a marker of part parts_id running script_no at x, z.
+    CDungeonEventData &Marker(int i, int parts_id, int script_no, float x, float z) {
+        CDungeonEvent &slot = events_->slot[i];
+        slot.parts_id = parts_id;
+        slot.script_no = script_no;
+        CDungeonEventData &event = events_->event[i];
+        event.event = &slot;
+        event.pos[0] = x;
+        event.pos[2] = z;
+        return event;
+    }
+
+    std::unique_ptr<CDungeonEventMan> events_ = std::make_unique<CDungeonEventMan>();
+    CDungeonEventMan                 *saved_events_ = nullptr;
+};
+
+class ColossusXiaoWithAnotherSphere : public ColossusXiao {
+protected:
+    ColossusXiaoWithAnotherSphere() : ColossusXiao(ITEM_WEAPON_GAIA_HAMMER) {}
+};
+
+constexpr int kOsmondGap = 375, kXiaoJump = 350, kCannotCross = 1900;
 
 } // namespace
 
@@ -479,4 +534,52 @@ TEST_F(Colossus, BelowFullSizeHitsLandAsTheyDo) {
     bite.owner = 200;
     expanded::PlayerHitReacted(false, bite);
     EXPECT_FALSE(expanded::PlayerHitPassesBy(bite));
+}
+
+TEST_F(ColossusXiao, HerShotHeldDrawnGrowsHer) {
+    Draw(true);
+    Steps(30);
+    EXPECT_FLOAT_EQ(expanded::ColossusScale(), 1.0f); // drawn, not yet ready
+    Steps(expanded::kColossusGrowFrames + 30);
+    EXPECT_FLOAT_EQ(expanded::ColossusScale(), expanded::kColossusMost);
+    EXPECT_FLOAT_EQ(CharaMain.scale[1], expanded::kColossusMost);
+    Draw(false);
+    Steps(60);
+    EXPECT_FLOAT_EQ(expanded::ColossusScale(), expanded::kColossusMost); // let go, she keeps it
+}
+
+TEST_F(ColossusXiaoWithAnotherSphere, NoOtherSphereGrowsHer) {
+    GrowXiao(expanded::kColossusGrowFrames + 60);
+    EXPECT_FLOAT_EQ(expanded::ColossusScale(), 1.0f);
+}
+
+TEST_F(ColossusXiao, AtTwiceHerSizeSheLeapsOsmondsGapTowardsItsOtherMarker) {
+    CDungeonEventData &from = Marker(0, MAP_PARTS_KEY_OSMOND, kOsmondGap, 0.0f, 0.0f);
+    Marker(1, MAP_PARTS_KEY_OSMOND, kOsmondGap, 120.0f, 0.0f);
+    EXPECT_EQ(expanded::ColossusGapScript(kOsmondGap, &from), kOsmondGap); // at her own size
+    GrowXiao(expanded::kColossusGrowFrames + 60);
+    EXPECT_EQ(expanded::ColossusGapScript(kOsmondGap, &from), kXiaoJump);
+    EXPECT_NE(expanded::ColossusGapMarker("chr1_3"), nullptr); // where it leaps from
+    EXPECT_EQ(expanded::ColossusGapMarker("chr1_4"), nullptr);
+    EXPECT_EQ(expanded::ColossusGapScript(kOsmondGap, nullptr), kOsmondGap);
+    EXPECT_EQ(expanded::ColossusGapMarker("chr1_3"), nullptr); // no longer set
+    events_->event[1].pos[0] = 200.0f;                         // no marker across a gap's length
+    EXPECT_EQ(expanded::ColossusGapScript(kOsmondGap, &from), kOsmondGap);
+}
+
+TEST_F(ColossusXiao, ShrunkSheIsToldSheCannotJumpHerOwnGap) {
+    CDungeonEventData &jump = Marker(0, MAP_PARTS_KEY_XIAO, kXiaoJump, 0.0f, 0.0f);
+    CDungeonEventData &other = Marker(1, MAP_PARTS_KEY_OSMOND, kOsmondGap, 500.0f, 0.0f);
+    EXPECT_EQ(expanded::ColossusGapScript(kXiaoJump, &jump), kXiaoJump);
+    EXPECT_EQ(expanded::ColossusUserId(CHARA_XIAO), CHARA_XIAO); // at her own size she jumps it
+    GrowXiao(60);
+    Steps(expanded::kColossusFrames + expanded::kColossusShrinkFrames);
+    ASSERT_LT(expanded::ColossusScale(), 1.0f);
+    EXPECT_EQ(expanded::ColossusGapScript(kXiaoJump, &jump), kXiaoJump);
+    EXPECT_EQ(expanded::ColossusUserId(CHARA_XIAO), CHARA_TOAN);                                  // its script told another member is out
+    EXPECT_EQ(expanded::ColossusMessageNo(kCannotCross + CHARA_TOAN), kCannotCross + CHARA_XIAO); // her own line
+    EXPECT_EQ(expanded::ColossusMessageNo(kCannotCross + CHARA_GORO), kCannotCross + CHARA_GORO);
+    EXPECT_EQ(expanded::ColossusGapScript(kOsmondGap, &other), kOsmondGap); // anywhere else she is herself
+    EXPECT_EQ(expanded::ColossusUserId(CHARA_XIAO), CHARA_XIAO);
+    EXPECT_EQ(expanded::ColossusMessageNo(kCannotCross + CHARA_TOAN), kCannotCross + CHARA_TOAN);
 }

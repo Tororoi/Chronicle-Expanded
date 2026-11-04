@@ -3,9 +3,13 @@
 #include "shot_utils.hpp"
 
 namespace dc::game {
+class CCamera;
 class CCameraFollow;
 class CCharacter;
+class CDungeonEventData;
+class CFrame;
 struct COLLISION_HIT;
+class CSHOT;
 class CSHOT_EFFECT;
 } // namespace dc::game
 
@@ -39,7 +43,13 @@ namespace expanded {
 //   - his stride is his size times his own and his walk and run play at his size to the -kColossusStrideRate (a
 //     little slower big, a little quicker small), so a step carries him his size to the 1 - kColossusStrideRate;
 //   - the dungeon camera keeps his size times what it keeps from him (its follow point's rise above him, its distance
-//     and height, and the limits the camera pass keeps them in), so he fills the screen as at his own size.
+//     and height, and the limits the camera pass keeps them in), so he fills the screen as at his own size; a script
+//     event's camera looks at what it would of him his size times as high, from his size times as far;
+//   - a script event's motion (the chasm jump's leap) travels the game's own way, his body at his size.
+// Xiao grown to kColossusMost leaps Osmond's gap in one bound, from the marker she stands at: her chasm's jump made
+// one hop (its first, twice as far and as high, blending into the second's landing on the far side; its script
+// skipping the second, its effort unvoiced), the event's camera following her and holding its view once she lands.
+// Xiao shrunk below her size cannot jump her own gap: she is told, as anyone else is, that she cannot cross.
 // Times are game frames, counted while the dungeon plays (not paused, no event). A change of floor puts him back.
 inline constexpr float kColossusMost = 2.0f, kColossusLeast = 0.5f, kColossusSwitchSize = 1.5f;
 inline constexpr int   kColossusGrowFrames = 300; // from his size to kColossusMost
@@ -78,10 +88,39 @@ void  ColossusQuiet();
 // hits it plants reaching his size times as far (ShotEffectHitSet).
 void ColossusImpact(CSHOT_EFFECT &effect, int slot);
 
+// Xiao's pellet at her size: its damage and its size her size times her own (PelletFired).
+void ColossusPelletFired(CSHOT &shots, int slot);
+
 // How far the stick moves him (movechara, times its velocity), and his walk's play rate at his size (a motion step,
 // PlayerMotionStepping).
 float ColossusMoveScale();
 void  ColossusMotion(CCharacter &chara, int chara_no);
+
+// A dungeon script event's motion at the member's size (motionDrive, once it has stepped): its root's travel (the
+// chasm jump's leap, moved by its root bone, not her position) at the game's own length, her body at her size.
+void ColossusMotionStepped(CCharacter &chara);
+// A scene camera's key during a dungeon script event at the member's size (the motion's step, its value local to
+// frame): what it looks at her size times as high, and the camera her size times as far from it, the same shot of
+// her at her size; false (the game sets the key) at her own size or out of an event.
+bool ColossusSceneCamera(CCamera &camera, CFrame &frame, const float *value, bool target);
+
+// Osmond's gap (his part's two markers, each running the script that tells anyone else they cannot cross): Xiao at
+// kColossusMost leaps it in one bound. The script an event at the marker she stands at runs (event null for none):
+// her chasm's jump, from that marker towards the other, where she is at kColossusMost; script_no otherwise.
+int ColossusGapScript(int script_no, const CDungeonEventData *event);
+// Who the event's script is told is in play (_GET_NOW_USER_ID), chara the one who is: at her own gap's marker, Xiao
+// shrunk below her size is told as another member, its script telling her she cannot cross; and the line an event
+// shows (_MES_MAKE), message_no its own: there, the line it would show that member swapped for her own.
+int ColossusUserId(int chara);
+int ColossusMessageNo(int message_no);
+// The frame the jump's script looks up by name for where it leaps from (all the floor's frames), while the gap's
+// leap is set; null otherwise.
+CFrame *ColossusGapMarker(const char *name);
+// The event loop, before it resumes the event's script: the frames its script is to go on by too (the gap's leap
+// skipping its second hop; 0 for none); then, once they have run, done. Its sounds are unplayed while they run.
+int  ColossusEventSkip();
+void ColossusEventSkipped();
+bool ColossusEventMuted();
 
 // What his size changes, each the game's own as the argument (Goro in play; anyone else's as it is):
 int   ColossusAttack(int attack);

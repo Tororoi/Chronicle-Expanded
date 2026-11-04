@@ -3,19 +3,26 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <format>
 #include <functional>
 #include <iterator>
+#include <utility>
 #include <vector>
 
 #include "bound.hpp"
 #include "bt_shot_effect.hpp"
 #include "btactstatus.hpp"
+#include "camera.hpp"
 #include "camerafollow.hpp"
 #include "character.hpp"
+#include "charaheight.hpp"
 #include "cloth.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "dungeoneventdata.hpp"
+#include "dungeoneventman.hpp"
+#include "dungeonparts.hpp"
 #include "expanded/data/colossus_pop.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/dungeon/collision_hits.hpp"
@@ -23,11 +30,14 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/goro/colossus_look.hpp"
 #include "expanded/weapons/hit_marks.hpp"
+#include "expanded/weapons/pellets.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/weapon_hit.hpp"
+#include "frame.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -41,6 +51,30 @@ namespace {
 // Goro's charge (GoroKey_Play): the held charge, full from its step kFullCharge.
 constexpr int kChargeAction = 13;
 constexpr int kFullCharge = 45;
+// Xiao's shot held drawn this long (with the sphere on Super Steve) grows her as Goro's full charge does.
+constexpr int kColossusShotFrames = 45;
+
+// Osmond's gap: his part's two markers run kGapScript (anyone else is told they cannot cross), kGapLength apart. Xiao's
+// chasm jump (kLeapScript) leaps from its marker kLeapMarker (the floor's frame of that name: where, and which way)
+// kGapLength along it.
+constexpr int   kGapScript = 375;
+constexpr int   kLeapScript = 350;
+constexpr char  kLeapMarker[] = "chr1_3";
+constexpr float kGapLength = 120.0f, kGapSlack = 10.0f;
+// What a chasm's script tells a member who cannot cross: kGapLine plus who they are.
+constexpr int kGapLine = 1900;
+// The jump's motion (c04bjump, motion kLeapMotion, its frames; its root's height and travel in its own units): two
+// hops, to the chasm's rock (landing at kLeapRock) and on to the far side (landing at kLeapLand). Over the gap she
+// makes the first alone: from her take-off (kLeapRise) carried kLeapReach times as far, to the far side, and rising
+// kLeapArc times as high over the line from where she leaves the ground (kLeapRiseY) to where the far side has her
+// (kLeapLandY); where it lands she blends into the second's landing (the motion's own blend, kLeapBlend a step), the
+// event's script on as far as the second hop would have taken, its sounds unplayed on the way, and its camera holding
+// where it was.
+constexpr int   kLeapMotion = 300;
+constexpr float kLeapRise = 27.5f, kLeapRock = 41.0f;
+constexpr int   kLeapLand = 69;
+constexpr float kLeapRiseY = 8.5f, kLeapRockY = 1.9f, kLeapLandY = 4.6f;
+constexpr float kLeapReach = 2.0f, kLeapArc = 2.0f, kLeapBlend = 0.1f;
 
 // The pop's smoke frames as game frames from its start.
 constexpr float kPopFrom = kColossusPopFrom;
@@ -69,10 +103,9 @@ BT_SHOT_EFFECT pop_shot = {"explosion", 0, 0, {}, {}, -1, 0, 0, 3, 0, {0, -1, -1
 // His hammer's swing throw (GoroKey_Play).
 constexpr float kGoroKick = 2.5f, kGoroKickDecay = 0.1f;
 
-constexpr float kWalking = 0.05f;          // how far a step must take him to be walking
-constexpr float kTrampleReach = 2.0f;      // past where the monster stops against him
-constexpr float kSwitchBelow = 5.0f;       // how far under his feet a switch he stands on may lie
-constexpr float kColossusHeightOf = 16.0f; // Goro's height (CharaHeight)
+constexpr float kWalking = 0.05f;     // how far a step must take him to be walking
+constexpr float kTrampleReach = 2.0f; // past where the monster stops against him
+constexpr float kSwitchBelow = 5.0f;  // how far under his feet a switch he stands on may lie
 
 // A monster's melee hit's owner (CMonstorUnit: 200 + its slot times 5), its attack_no the sphere that dealt it.
 constexpr int kMonsterOwner = 200, kMonsterOwnerStride = 5;
@@ -122,6 +155,7 @@ enum class Phase {
 
 struct Colossus {
     Phase                                             phase = Phase::Normal;
+    int                                               owner = -1; // the member who grew: Goro, or Xiao with the sphere
     float                                             scale = 1.0f;
     int                                               grown = 0;                  // frames he has grown for (Grown)
     int                                               frames = 0;                 // in the phase (Grown: since he first grew; Spent: since the shrink began)
@@ -152,6 +186,39 @@ struct Colossus {
 
 Colossus colossus;
 
+// Osmond's gap's leap, while it is set: where she leaps from, facing the other marker.
+struct GapLeap {
+    bool   armed = false;
+    CFrame from;
+    bool   landed = false;   // the first hop has landed, and she blends into the second's landing
+    float  offset[2] = {};   // the bound's height and travel off the motion's as it landed (its units)
+    int    skip = 0;         // frames the event is to go on by
+    bool   skipping = false; // its script going on: its sounds unplayed
+    float  moved[3] = {};    // how far the bound has her from where the motion would (the world), for the camera
+    bool   refused = false;  // her own gap's jump, shrunk: its script told another member is in play
+};
+
+GapLeap gap;
+
+// The shift a script event's motion last put on her (ColossusMotionStepped), and where it left her: taken back off
+// before the next unless the game has put her somewhere since (an event that plays her motion through a sequence sets
+// her every step; one that leaves her standing does not).
+struct EventShift {
+    bool  on = false;
+    float at[3] = {};
+    float shift[3] = {};
+};
+
+EventShift event_shift;
+
+// An event's scene camera's keys this event, local to the frame they come in (the camera's place and what it looks at).
+struct SceneCamera {
+    float pos[3] = {}, ref[3] = {};
+    bool  has_pos = false, has_ref = false;
+};
+
+SceneCamera scene_camera;
+
 const char *PhaseName(Phase phase) {
     switch (phase) {
         case Phase::Normal:
@@ -176,28 +243,52 @@ void Enter(Phase phase) {
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(ColossusReset), true);
 
 [[maybe_unused]] const bool kRegistered =
-    (RegisterWeaponShotEffect(ITEM_WEAPON_TALL_HAMMER, WeaponShotForm::Weapon, &pop_shot, 1, kColossusPopFile), true);
+    (RegisterWeaponShotEffect(ITEM_WEAPON_TALL_HAMMER, WeaponShotForm::Weapon, &pop_shot, 1, kColossusPopFile),
+     RegisterWeaponShotEffect(ITEM_WEAPON_TALL_HAMMER, WeaponShotForm::Sphere, &pop_shot, 1, kColossusPopFile), true);
 
-bool GoroInPlay() {
-    return UserStatus != nullptr && Playing(CHARA_GORO);
+// Xiao's slingshot drawn and held drawn, with the sphere on Super Steve.
+ShotCharge xiao_draw(kColossusShotFrames);
+
+// Whether the member in play carries the Tall Hammer's effect: Goro with it in hand, or Xiao with its SynthSphere on
+// Super Steve.
+bool Carrier() {
+    return UserStatus != nullptr && ((Playing(CHARA_GORO) && WeaponWielded(ITEM_WEAPON_TALL_HAMMER)) ||
+                                     (Playing(CHARA_XIAO) && SuperSteveSphere() == ITEM_WEAPON_TALL_HAMMER));
 }
 
-// The size's effects reach Goro in play at any size but his own.
+// Whether the member who grew is in play (none has, at their own size).
+bool OwnerInPlay() {
+    return UserStatus != nullptr && colossus.owner >= 0 && Playing(colossus.owner);
+}
+
+// The size's effects reach the member who grew, in play, at any size but their own.
 bool Sized() {
-    return GoroInPlay() && colossus.scale != 1.0f;
+    return OwnerInPlay() && colossus.scale != 1.0f;
 }
 
+// Goro's full charge held (GoroKey_Play's held charge past its full step), or Xiao's shot held drawn past ready.
 bool HoldingFullCharge() {
+    if (Playing(CHARA_XIAO)) {
+        return xiao_draw.Holding() && xiao_draw.Drawn() >= kColossusShotFrames;
+    }
     return BtActStatus.action_on == 1 && BtActStatus.action_no == kChargeAction && BtActStatus.action_step >= kFullCharge;
 }
 
+// The member in play's height, as the game has it.
+float Height() {
+    return CharaHeight(UserStatus);
+}
+
 void Grow() {
-    if (colossus.scale >= kColossusMost || !WeaponWielded(ITEM_WEAPON_TALL_HAMMER) || !HoldingFullCharge()) {
+    if (colossus.scale >= kColossusMost || !Carrier() || !HoldingFullCharge()) {
         return;
     }
     if (colossus.phase == Phase::Normal) {
+        colossus.owner = UserStatus->cur_chara;
         Enter(Phase::Grown);
         colossus.frames = 0;
+    } else if (!OwnerInPlay()) {
+        return; // another member's growth
     }
     colossus.grown = std::min(colossus.grown + 1, kColossusGrowFrames);
     if (colossus.grown == kColossusGrowFrames) {
@@ -245,7 +336,7 @@ void Trample() {
 // Where the pop bursts: kColossusPopRise of his height (at the size he is drawn at) over his feet.
 void PopSpot(float *spot) {
     spot[0] = CharaMain.pos[0];
-    spot[1] = CharaMain.pos[1] + kColossusHeightOf * colossus.applied * kColossusPopRise;
+    spot[1] = CharaMain.pos[1] + Height() * colossus.applied * kColossusPopRise;
     spot[2] = CharaMain.pos[2];
 }
 
@@ -289,7 +380,7 @@ float BurstLight(float frame) {
 // The flash while the burst plays: as the burst lights him.
 void FlashStep() {
     CCharacter &burst = colossus.pop->chara[colossus.pop_slot];
-    if (GoroInPlay()) {
+    if (OwnerInPlay()) {
         Flash(BurstLight(burst.motion_type.state.time));
     }
 }
@@ -427,12 +518,12 @@ void SizeCape(float scale) {
 
 // The model at his size while he is in play; another member's at its own.
 void Apply() {
-    float scale = GoroInPlay() ? colossus.scale : 1.0f;
-    if (scale != colossus.applied || (GoroInPlay() && CharaMain.scale[0] != scale)) {
+    float scale = OwnerInPlay() ? colossus.scale : 1.0f;
+    if (scale != colossus.applied || (OwnerInPlay() && CharaMain.scale[0] != scale)) {
         CharaMain.SetScale(scale, scale, scale);
         colossus.applied = scale;
     }
-    if (GoroInPlay() && CharaMain.cloth != nullptr) {
+    if (OwnerInPlay() && CharaMain.cloth != nullptr) {
         SizeCape(scale);
     } else {
         std::fill(std::begin(colossus.cape), std::end(colossus.cape), nullptr); // his cloth went with him
@@ -447,6 +538,80 @@ float StrideRate() {
     return std::pow(colossus.applied, -kColossusStrideRate);
 }
 
+// The motion set playing the gap's leap and its motion's index in it, or null when no leap plays.
+tagMOTION_TYPE *GapLeapMotion(CCharacter &chara, int *index = nullptr) {
+    if (!gap.armed || BtEventMode == 0 || &chara != &CharaMain || chara.motion_no != kLeapMotion) {
+        return nullptr;
+    }
+    int             at = 0, start = 0, end = 0, set = 0;
+    tagMOTION_TYPE *motion = chara.GetMotionParam(chara.motion_no, &at, &start, &end, &set);
+    if (index != nullptr) {
+        *index = at;
+    }
+    return motion;
+}
+
+// Before the motion steps: once the first hop lands, the blend into the second's landing, and how far the event goes
+// on with it (the frames the motion would have taken there, less the blend's).
+void GapLeapStepping(CCharacter &chara) {
+    int             index = 0;
+    tagMOTION_TYPE *motion = GapLeapMotion(chara, &index);
+    if (motion == nullptr) {
+        gap.landed = false;
+        std::fill(std::begin(gap.moved), std::end(gap.moved), 0.0f);
+        return;
+    }
+    MOTION_STATE &state = motion->state;
+    if (gap.landed || state.time < kLeapRock) {
+        return;
+    }
+    float rate = chara.motion_speed >= 0.0f ? chara.motion_speed : motion->motion_info[index].speed;
+    gap.landed = true;
+    state.blending = true;
+    state.blend = 0.0f;
+    state.blend_step = kLeapBlend;
+    state.next_frame = kLeapLand;
+    if (rate > 0.0f) {
+        gap.skip = std::max(0, static_cast<int>(std::lround((kLeapLand - state.time) / rate - 1.0f / kLeapBlend)));
+    }
+}
+
+// Once it has stepped: its root's height and travel (the motion's units) for the bound, off what the motion has.
+void GapLeapStepped(CCharacter &chara, float &height, float &travel) {
+    tagMOTION_TYPE *motion = GapLeapMotion(chara);
+    if (motion == nullptr) {
+        return;
+    }
+    const MOTION_STATE &state = motion->state;
+    if (gap.landed) {
+        float left = state.blending ? 1.0f - state.blend : 0.0f;
+        height += gap.offset[0] * left;
+        travel += gap.offset[1] * left;
+        return;
+    }
+    if (state.time < kLeapRise) {
+        return;
+    }
+    float share = std::min(1.0f, (state.time - kLeapRise) / (kLeapRock - kLeapRise));
+    float rise = height - (kLeapRiseY + share * (kLeapRockY - kLeapRiseY));
+    float bound[2] = {kLeapRiseY + share * (kLeapLandY - kLeapRiseY) + rise * kLeapArc, travel * kLeapReach};
+    gap.offset[0] = bound[0] - height;
+    gap.offset[1] = bound[1] - travel;
+    height = bound[0];
+    travel = bound[1];
+}
+
+// The lowest point of a frame and everything under it, in the world (the feet).
+float Lowest(CFrame *frame) {
+    float lowest = 1e30f;
+    for (; frame != nullptr; frame = frame->brother) {
+        sceVu0FMATRIX world;
+        frame->GetLWMatrix(world);
+        lowest = std::min({lowest, world[3][1], Lowest(frame->child)});
+    }
+    return lowest;
+}
+
 } // namespace
 
 float ColossusScale() {
@@ -454,7 +619,7 @@ float ColossusScale() {
 }
 
 float ColossusSoundPitch() {
-    return GoroInPlay() && colossus.applied != 1.0f ? -kColossusPitch * std::log2(colossus.applied) : 0.0f;
+    return OwnerInPlay() && colossus.applied != 1.0f ? -kColossusPitch * std::log2(colossus.applied) : 0.0f;
 }
 
 float ColossusCameraScale() {
@@ -462,17 +627,18 @@ float ColossusCameraScale() {
 }
 
 float ColossusMoveScale() {
-    return GoroInPlay() ? colossus.applied * StrideRate() : 1.0f;
+    return OwnerInPlay() ? colossus.applied * StrideRate() : 1.0f;
 }
 
 void ColossusMotion(CCharacter &chara, int chara_no) {
+    GapLeapStepping(chara);
     // Ours from last step, or the game's own (-1): a rate anyone else put on it stays.
     bool ours = colossus.stride >= 0.0f && chara.motion_speed == colossus.stride;
     if (!ours && chara.motion_speed >= 0.0f) {
         colossus.stride = -1.0f;
         return;
     }
-    bool walking = chara_no == CHARA_GORO && colossus.applied != 1.0f && chara.motion_type.motion_info != nullptr &&
+    bool walking = chara_no == colossus.owner && colossus.applied != 1.0f && chara.motion_type.motion_info != nullptr &&
                    std::find(std::begin(kStrideMotions), std::end(kStrideMotions), chara.motion_no) != std::end(kStrideMotions);
     if (walking) {
         colossus.stride = chara.motion_type.motion_info[chara.motion_no].speed * StrideRate();
@@ -481,6 +647,141 @@ void ColossusMotion(CCharacter &chara, int chara_no) {
         chara.motion_speed = -1.0f;
         colossus.stride = -1.0f;
     }
+}
+
+void ColossusMotionStepped(CCharacter &chara) {
+    if (&chara != &CharaMain) {
+        return;
+    }
+    if (event_shift.on && chara.pos[0] == event_shift.at[0] && chara.pos[1] == event_shift.at[1] && chara.pos[2] == event_shift.at[2]) {
+        chara.SetPosition(chara.pos[0] - event_shift.shift[0], chara.pos[1] - event_shift.shift[1], chara.pos[2] - event_shift.shift[2]);
+    }
+    event_shift.on = false;
+    if (!Sized() || BtEventMode == 0 || chara.frame == nullptr) {
+        return;
+    }
+    // Under her frame the model's root: the first bone the motion moves (the event pack's g_ctr holds still, its c_ctr
+    // leaps). Its path is to be the game's own and her body her size: its travel across the ground the game's length,
+    // and its height so her feet stand where they would at her own size (her leg, the pose's from that bone down to its
+    // lowest point, her size times as long). The motion's bones skin her as they stepped, so she is moved whole, by
+    // the difference, for this step's drawing, and put back before the next (event_shift).
+    CFrame *root = chara.frame->child;
+    while (root != nullptr && root->local[3][0] == 0.0f && root->local[3][1] == 0.0f && root->local[3][2] == 0.0f) {
+        root = root->child;
+    }
+    if (root == nullptr || root->parent == nullptr) {
+        return;
+    }
+    float         scale = colossus.applied;
+    sceVu0FMATRIX world, parent;
+    root->GetLWMatrix(world);
+    root->parent->GetLWMatrix(parent);
+    float leg = (world[3][1] - Lowest(root->child)) / scale;
+    // The root's height and travel in the motion's units; its parent's space carries her size.
+    float height = root->local[3][1], travel = root->local[3][2];
+    float game[2] = {height, travel};
+    GapLeapStepped(chara, height, travel);
+    if (gap.landed) {
+        game[0] = height; // the event on to the second hop's landing: its camera keeps to her
+        game[1] = travel;
+    }
+    float bound[3] = {0.0f, (height - game[0]) / scale, (travel - game[1]) / scale};
+    float shift[3] = {root->local[3][0] / scale - root->local[3][0], (height - leg) / scale + leg - root->local[3][1],
+                      travel / scale - root->local[3][2]};
+    for (int j = 0; j < 3; j++) {
+        event_shift.shift[j] = 0.0f;
+        gap.moved[j] = 0.0f;
+        for (int i = 0; i < 3; i++) {
+            event_shift.shift[j] += shift[i] * parent[i][j];
+            gap.moved[j] += bound[i] * parent[i][j];
+        }
+    }
+    chara.SetPosition(chara.pos[0] + event_shift.shift[0], chara.pos[1] + event_shift.shift[1], chara.pos[2] + event_shift.shift[2]);
+    event_shift.on = true;
+    std::copy(chara.pos, chara.pos + 3, event_shift.at);
+}
+
+bool ColossusSceneCamera(CCamera &camera, CFrame &frame, const float *value, bool target) {
+    if (!Sized() || BtEventMode == 0 || !OwnerInPlay()) {
+        return false;
+    }
+    if (gap.landed) {
+        return true; // the gap's leap landed: the camera holds the first hop's last view
+    }
+    std::copy_n(value, 3, target ? scene_camera.ref : scene_camera.pos);
+    (target ? scene_camera.has_ref : scene_camera.has_pos) = true;
+    if (!scene_camera.has_ref) {
+        return false;
+    }
+    float         scale = colossus.applied;
+    sceVu0FVECTOR ref = {scene_camera.ref[0], scene_camera.ref[1] * scale, scene_camera.ref[2], 1.0f};
+    sceVu0FVECTOR world;
+    frame.GetWorldPosition(world, ref);
+    camera.SetRef(nullptr, world[0] + gap.moved[0], world[1] + gap.moved[1], world[2] + gap.moved[2]);
+    if (scene_camera.has_pos) {
+        sceVu0FVECTOR pos = {0.0f, 0.0f, 0.0f, 1.0f};
+        for (int i = 0; i < 3; i++) {
+            pos[i] = ref[i] + (scene_camera.pos[i] - scene_camera.ref[i]) * scale;
+        }
+        frame.GetWorldPosition(world, pos);
+        camera.SetPos(nullptr, world[0] + gap.moved[0], world[1] + gap.moved[1], world[2] + gap.moved[2]);
+    }
+    return true;
+}
+
+int ColossusGapScript(int script_no, const CDungeonEventData *event) {
+    gap.armed = false;
+    gap.refused = event != nullptr && event->event != nullptr && event->event->parts_id == MAP_PARTS_KEY_XIAO && OwnerInPlay() &&
+                  colossus.owner == CHARA_XIAO && colossus.applied < 1.0f - 1e-3f;
+    if (event == nullptr || script_no != kGapScript || !OwnerInPlay() || colossus.owner != CHARA_XIAO ||
+        colossus.applied < kColossusMost - 1e-3f || NowEventMan == nullptr) {
+        return script_no;
+    }
+    const CDungeonEventData *other = nullptr;
+    float                    off = kGapSlack;
+    for (const CDungeonEventData &marker : NowEventMan->event) {
+        if (&marker == event || marker.event == nullptr || marker.event->script_no != kGapScript) {
+            continue;
+        }
+        float apart = std::fabs(std::hypot(marker.pos[0] - event->pos[0], marker.pos[2] - event->pos[2]) - kGapLength);
+        if (apart < off) {
+            off = apart;
+            other = &marker;
+        }
+    }
+    if (other == nullptr) {
+        return script_no;
+    }
+    gap.from.SetPosition(event->pos[0], event->pos[1], event->pos[2]);
+    gap.from.SetRotation(0.0f, std::atan2(other->pos[0] - event->pos[0], other->pos[2] - event->pos[2]), 0.0f);
+    gap.armed = true;
+    return kLeapScript;
+}
+
+int ColossusUserId(int chara) {
+    return gap.refused && chara == CHARA_XIAO ? CHARA_TOAN : chara;
+}
+
+int ColossusMessageNo(int message_no) {
+    return gap.refused && message_no == kGapLine + CHARA_TOAN ? kGapLine + CHARA_XIAO : message_no;
+}
+
+CFrame *ColossusGapMarker(const char *name) {
+    return gap.armed && std::strcmp(name, kLeapMarker) == 0 ? &gap.from : nullptr;
+}
+
+int ColossusEventSkip() {
+    int skip = std::exchange(gap.skip, 0);
+    gap.skipping = skip > 0;
+    return skip;
+}
+
+void ColossusEventSkipped() {
+    gap.skipping = false;
+}
+
+bool ColossusEventMuted() {
+    return gap.skipping;
 }
 
 void ColossusCamera(CCameraFollow &camera, const float *pos) {
@@ -500,7 +801,7 @@ int ColossusAttack(int attack) {
 }
 
 int ColossusDefense(int chara, int defense) {
-    if (chara != CHARA_GORO || colossus.scale == 1.0f) {
+    if (chara != colossus.owner || colossus.scale == 1.0f) {
         return defense;
     }
     float share = colossus.scale > 1.0f ? (colossus.scale - 1.0f) / (kColossusMost - 1.0f) : -(1.0f - colossus.scale) / (1.0f - kColossusLeast);
@@ -534,7 +835,7 @@ void ColossusShotPoint(float *point) {
 }
 
 bool AtMost() {
-    return GoroInPlay() && colossus.scale >= kColossusMost;
+    return OwnerInPlay() && colossus.scale >= kColossusMost;
 }
 
 bool ColossusShrugsOff(int kind) {
@@ -659,7 +960,7 @@ void ColossusImpact(CSHOT_EFFECT &effect, int slot) {
     if (slot < 0 || slot >= static_cast<int>(std::size(effect.chara))) {
         return;
     }
-    float size = GoroInPlay() ? colossus.applied : 1.0f;
+    float size = OwnerInPlay() ? colossus.applied : 1.0f;
     effect.chara[slot].SetScale(size, size, size);
     colossus.impact = size != 1.0f ? &effect : nullptr;
     colossus.impact_slot = size != 1.0f ? slot : -1;
@@ -675,21 +976,29 @@ SHOT_COLLISION_RESULT ColossusShotCollision(const CSHOT_EFFECT &effect, int slot
     return effect.phase[slot] < 2 ? SHOT_COLLISION_MAP : result;
 }
 
+void ColossusPelletFired(CSHOT &shots, int slot) {
+    if (slot < 0 || slot >= kPelletSlots || !Sized() || !Playing(CHARA_XIAO)) {
+        return;
+    }
+    shots.damage[slot] = static_cast<int>(std::lround(static_cast<double>(shots.damage[slot]) * colossus.scale));
+    shots.size[slot] *= colossus.scale;
+}
+
 bool ColossusTrample(const COLLISION_HIT &hit) {
     return (hit.weapon_flags & kTrampleMark) != 0;
 }
 
 bool ColossusTriggersSwitches() {
-    return GoroInPlay() && colossus.scale >= kColossusSwitchSize;
+    return OwnerInPlay() && colossus.scale >= kColossusSwitchSize;
 }
 
 bool ColossusStepsOn(int chara_no, const float *pos, float radius) {
-    if (chara_no != CHARA_GORO || !ColossusTriggersSwitches()) {
+    if (chara_no != CHARA_GORO || !ColossusTriggersSwitches()) { // a hammer switch, Goro's, whoever has grown
         return false;
     }
     float rise = pos[1] - CharaMain.pos[1];
     return std::hypot(pos[0] - CharaMain.pos[0], pos[2] - CharaMain.pos[2]) <= radius && rise >= -kSwitchBelow &&
-           rise <= kColossusHeightOf * colossus.scale;
+           rise <= Height() * colossus.scale;
 }
 
 void ColossusStep() {
@@ -697,6 +1006,9 @@ void ColossusStep() {
         return;
     }
     SndSetVoicePitch(ColossusSoundPitch());
+    if (BtEventMode == 0) {
+        scene_camera = {}; // the next event's camera keys are its own
+    }
     if (colossus.impact != nullptr && colossus.impact->active[colossus.impact_slot] == 0) {
         // Its slot done: whatever plays there next is at its own size.
         colossus.impact->chara[colossus.impact_slot].SetScale(1.0f, 1.0f, 1.0f);
@@ -717,18 +1029,19 @@ void ColossusStep() {
             }
         }
         std::erase_if(colossus.spared, [](Spared &spared) { return !GoesOn(spared); });
-        if (GoroInPlay() && colossus.phase != Phase::Shrinking && colossus.phase != Phase::Spent && colossus.phase != Phase::Popping) {
+        xiao_draw.Step(Playing(CHARA_XIAO) && SuperSteveSphere() == ITEM_WEAPON_TALL_HAMMER);
+        if (colossus.phase != Phase::Shrinking && colossus.phase != Phase::Spent && colossus.phase != Phase::Popping) {
             Grow();
         }
         Advance();
-        if (GoroInPlay()) {
+        if (OwnerInPlay()) {
             Trample();
         } else {
             colossus.stood = false;
         }
     }
     Apply();
-    ColossusLookStep(GoroInPlay() ? colossus.applied : 1.0f);
+    ColossusLookStep(OwnerInPlay() ? colossus.applied : 1.0f);
 }
 
 void ColossusQuiet() {
@@ -748,6 +1061,12 @@ void ColossusReset() {
         CharaMain.motion_speed = -1.0f;
     }
     colossus = Colossus{};
+    gap.armed = gap.landed = gap.skipping = gap.refused = false; // its frame (CFrame) is set as it is armed
+    gap.skip = 0;
+    std::fill(std::begin(gap.offset), std::end(gap.offset), 0.0f);
+    std::fill(std::begin(gap.moved), std::end(gap.moved), 0.0f);
+    scene_camera = {};
+    event_shift = {};
 }
 
 } // namespace expanded

@@ -6,42 +6,69 @@
 #include <cstring>
 #include <format>
 #include <optional>
-#include <span>
+#include <string>
 #include <vector>
 
 #include "character.hpp"
 #include "data/data_read.hpp"
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/core/disc_files.hpp"
 #include "expanded/data/goro_shirt.hpp"
 #include "expanded/data/model_parts.hpp"
 #include "expanded/data/tall_hammer_silver.hpp"
+#include "expanded/data/wolf_steve.hpp"
+#include "expanded/data/xiao_colossus.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "gfx/gfx.hpp"
 #include "render/texture_registry.hpp"
 #include "texture.hpp"
+#include "userstatus.hpp"
 
 namespace expanded {
 
 namespace {
 
-// One sheet in its own colours and in its copy (RGBA8, the renderer's alpha), whether it fades as he shrinks (the
-// hammer's) or as he grows (his body's), and the texture last written with the share it was written at.
+// Where a picture is: a pack (the copy the game reads, dcdata's rebuilt one where there is one), its bank and the
+// picture's name in it.
+struct Picture {
+    const char *file;
+    const char *bank;
+    const char *name;
+};
+
+// A sheet the look recolours: whose it is, the texture it is drawn from (its own picture's name), its own picture and
+// its copies as he grows and as he shrinks (none for a sheet the size leaves alone that way).
+struct Source {
+    int         chara;
+    Picture     own;
+    const char *grow_file, *grow_bank;
+    const char *shrink_file, *shrink_bank;
+};
+
+const Source kSources[] = {
+    {CHARA_GORO, {kGoroDungeonFile, kGoroBank, kGoroShirtSheets[0]},   kGoroDungeonFile,  kGoroShirtBank, nullptr,           nullptr              },
+    {CHARA_GORO, {kGoroDungeonFile, kGoroBank, kGoroShirtSheets[1]},   kGoroDungeonFile,  kGoroShirtBank, nullptr,           nullptr              },
+    {CHARA_GORO, {kTallHammerFile, kTallHammerBank, kTallHammerSheet}, nullptr,           nullptr,        kTallHammerFile,   kTallHammerSilverBank},
+    {CHARA_XIAO, {kXiaoDungeonFile, kXiaoBank, kXiaoSheet},            kXiaoColossusFile, kXiaoGrowBank,  kXiaoColossusFile, kXiaoShrinkBank      },
+    {CHARA_XIAO, {kSuperSteveFile, kSuperSteveBank, kSteveSheet},      nullptr,           nullptr,        kXiaoColossusFile, kSteveShrinkBank     },
+};
+
+// A source's pictures (RGBA8, the renderer's alpha; a copy empty where there is none), read once its texture is
+// loaded, and the texture last written with the shares it was written at.
 struct Sheet {
-    const char                *name = nullptr;
-    bool                       shrinking = false;
+    bool                       read = false, missing = false;
     int                        width = 0, height = 0;
-    std::vector<unsigned char> own, copy;
+    std::vector<unsigned char> own, grow, shrink;
     gfx::TextureHandle         texture = gfx::kNullTexture;
-    float                      share = 0.0f;
+    float                      grown = 0.0f, shrunk = 0.0f;
     bool                       refused = false; // a texture at another size: left as it is
 };
 
 struct Look {
-    bool               read = false;
-    bool               lit = false, dimmed = false;
-    std::vector<Sheet> sheets;
+    bool  lit = false, dimmed = false;
+    Sheet sheets[std::size(kSources)];
 };
 
 Look look;
@@ -60,57 +87,69 @@ std::vector<unsigned char> Rgba(const tim8::Picture &picture) {
     return out;
 }
 
-// A built pack's sheets and their copies, added to the look (none without the pack).
-void ReadPack(const char *file, const char *own_bank, const char *copy_bank, std::span<const char *const> sheets, bool shrinking) {
-    std::uintmax_t size = DataFileSize(std::string(kRebuiltDiscFolder) + file);
+// A picture from a pack's bank (the pack the game would read for file), or none.
+std::optional<tim8::Picture> ReadPicture(const char *file, const char *bank_name, const char *name) {
+    std::uintmax_t size = DataFileSize(DiscFile(file)); // what LoadFile2 reads: the rebuilt copy where there is one
     if (size == 0) {
-        return;
+        return std::nullopt;
     }
-    std::vector<u_int> pack((size + 2 * 2048) / sizeof(u_int));
-    char               path[64];
+    std::optional<tim8::Picture> out;
+    std::vector<u_int>           pack((size + 2 * 2048) / sizeof(u_int));
+    char                         path[96];
     std::snprintf(path, sizeof(path), "%s", file);
     if (LoadFile2(path, pack.data(), nullptr, 0) != 0) {
-        auto bank = [&](const char *name) -> std::optional<ImgBank> {
-            char record[32];
-            std::snprintf(record, sizeof(record), "%s", name);
-            int   bytes = 0;
-            auto *data = reinterpret_cast<const unsigned char *>(GetPackFile(pack.data(), record, &bytes));
-            if (data == nullptr || bytes <= 0) {
-                return std::nullopt;
+        char record[32];
+        std::snprintf(record, sizeof(record), "%s", bank_name);
+        int   bytes = 0;
+        auto *data = reinterpret_cast<const unsigned char *>(GetPackFile(pack.data(), record, &bytes));
+        if (data != nullptr && bytes > 0) {
+            try {
+                ImgBank bank = ImgBank::Parse({data, static_cast<std::size_t>(bytes)});
+                out = tim8::Read(bank.Block(name), std::memcmp(bank.magic.data(), "IM2", 3) == 0);
+            } catch (const std::exception &) {
+                out.reset();
             }
-            return ImgBank::Parse({data, static_cast<std::size_t>(bytes)});
-        };
-        try {
-            std::optional<ImgBank> own = bank(own_bank), copy = bank(copy_bank);
-            if (own && copy) {
-                bool own_swizzled = std::memcmp(own->magic.data(), "IM2", 3) == 0;
-                bool copy_swizzled = std::memcmp(copy->magic.data(), "IM2", 3) == 0;
-                for (const char *name : sheets) {
-                    tim8::Picture a = tim8::Read(own->Block(name), own_swizzled), b = tim8::Read(copy->Block(name), copy_swizzled);
-                    if (a.width == b.width && a.height == b.height) {
-                        look.sheets.push_back({name, shrinking, a.width, a.height, Rgba(a), Rgba(b)});
-                    }
-                }
-            }
-        } catch (const std::exception &) {
         }
     }
     DataReadForgetPackCapacities(pack.data());
+    return out;
 }
 
-// His sheets with the shirt's copies, and the hammer's with its silver one (read once).
-void Read() {
-    look.read = true;
-    ReadPack(kGoroDungeonFile, kGoroBank, kGoroShirtBank, kGoroShirtSheets, false);
-    const char *hammer[] = {kTallHammerSheet};
-    ReadPack(kTallHammerFile, kTallHammerBank, kTallHammerSilverBank, hammer, true);
+// A source's pictures, its copies the same size as its own.
+void Read(const Source &source, Sheet &sheet) {
+    sheet.read = true;
+    std::optional<tim8::Picture> own = ReadPicture(source.own.file, source.own.bank, source.own.name);
+    if (!own) {
+        sheet.missing = true;
+        return;
+    }
+    sheet.width = own->width;
+    sheet.height = own->height;
+    sheet.own = Rgba(*own);
+    auto copy = [&](const char *file, const char *bank) -> std::vector<unsigned char> {
+        if (file == nullptr) {
+            return {};
+        }
+        std::optional<tim8::Picture> picture = ReadPicture(file, bank, source.own.name);
+        return picture && picture->width == sheet.width && picture->height == sheet.height ? Rgba(*picture) : std::vector<unsigned char>{};
+    };
+    sheet.grow = copy(source.grow_file, source.grow_bank);
+    sheet.shrink = copy(source.shrink_file, source.shrink_bank);
 }
 
-// The sheet share of the way to its copy, each mip level after the first a box filter of the one before.
-void Write(const Sheet &sheet, std::uint32_t levels, float share) {
+// The sheet grown of the way to its grow copy and shrunk of the way to its shrink copy (only one is ever more than 0),
+// each mip level after the first a box filter of the one before.
+void Write(const Sheet &sheet, std::uint32_t levels, float grown, float shrunk) {
     std::vector<unsigned char> level(sheet.own.size());
     for (std::size_t i = 0; i < level.size(); i++) {
-        level[i] = static_cast<unsigned char>(std::lround(sheet.own[i] + (sheet.copy[i] - sheet.own[i]) * share));
+        float v = sheet.own[i];
+        if (!sheet.grow.empty()) {
+            v += (sheet.grow[i] - sheet.own[i]) * grown;
+        }
+        if (!sheet.shrink.empty()) {
+            v += (sheet.shrink[i] - sheet.own[i]) * shrunk;
+        }
+        level[i] = static_cast<unsigned char>(std::clamp(std::lround(v), 0L, 255L));
     }
     int w = sheet.width, h = sheet.height;
     for (std::uint32_t mip = 0; mip < std::max(levels, 1u); mip++) {
@@ -139,9 +178,9 @@ void Write(const Sheet &sheet, std::uint32_t levels, float share) {
     }
 }
 
-// Goro and the hammer in his hand lit share of the way to the full tint: the game's character tint (CCharacter::Draw
-// adds ambient_offset to a model's ambient, his cape's cloth drawn inside it). Written while it is lit, and once more as
-// it goes out: a member or a weapon it never lit keeps its own.
+// The member in play and the weapon in their hand lit share of the way to the full tint: the game's character tint
+// (CCharacter::Draw adds ambient_offset to a model's ambient, a cape's cloth drawn inside it). Written while it is lit,
+// and once more as it goes out: a member or a weapon it never lit keeps its own.
 void Tint(float share) {
     if (share <= 0.0f && !look.lit) {
         return;
@@ -157,9 +196,9 @@ void Tint(float share) {
     look.lit = share > 0.0f;
 }
 
-// The hammer in his hand dimmed shrink of the way to kColossusHammerDim: the game's own dimming (CCharacter::Draw scales
-// a model's ambient and lights by fade[0], its step easing fade[0] toward fade[3] while fade_out is set, as the Terra
-// Sword's drop dims a monster). Written while it is dim, and once more as it brightens back.
+// The weapon in their hand dimmed shrink of the way to kColossusHammerDim: the game's own dimming (CCharacter::Draw
+// scales a model's ambient and lights by fade[0], its step easing fade[0] toward fade[3] while fade_out is set, as the
+// Terra Sword's drop dims a monster). Written while it is dim, and once more as it brightens back.
 void Dim(float shrink) {
     if (NowWeapon == nullptr || (shrink <= 0.0f && !look.dimmed)) {
         return;
@@ -191,17 +230,17 @@ void ColossusLookStep(float size) {
     float grown = ColossusLookShare(size), shrunk = ColossusLookShrink(size);
     Tint(grown);
     Dim(shrunk);
-    if (!look.read) {
-        // Read once his sheets are loaded (none are without the game's data).
-        if (TexManager.GetTexture(const_cast<char *>(kGoroShirtSheets[0]), -1) == nullptr) {
-            return;
-        }
-        Read();
-    }
-    for (Sheet &sheet : look.sheets) {
-        float     share = sheet.shrinking ? shrunk : grown;
-        CTexture *texture = TexManager.GetTexture(const_cast<char *>(sheet.name), -1);
+    for (std::size_t s = 0; s < std::size(kSources); s++) {
+        const Source &source = kSources[s];
+        Sheet        &sheet = look.sheets[s];
+        CTexture     *texture = TexManager.GetTexture(const_cast<char *>(source.own.name), -1);
         if (texture == nullptr) {
+            continue; // not loaded (none are without the game's data)
+        }
+        if (!sheet.read) {
+            Read(source, sheet);
+        }
+        if (sheet.missing) {
             continue;
         }
         dc::render::PortTextureRef ref = dc::render::PortTextureFromCTexture(texture);
@@ -211,20 +250,24 @@ void ColossusLookStep(float size) {
         if (ref.binding.texture != sheet.texture) {
             // A texture as loaded: its own colours, and checked once for its size.
             sheet.texture = ref.binding.texture;
-            sheet.share = 0.0f;
+            sheet.grown = sheet.shrunk = 0.0f;
             std::optional<gfx::TextureInfo> info = gfx::GetTextureInfo(sheet.texture);
             sheet.refused = !info || info->format != gfx::TextureFormat::Rgba8 || info->pixel_width != static_cast<std::uint32_t>(sheet.width) ||
                             info->pixel_height != static_cast<std::uint32_t>(sheet.height);
             if (sheet.refused) {
-                LogEvent("colossus", std::format("\"look\":\"refused\",\"sheet\":\"{}\"", sheet.name));
+                LogEvent("colossus", std::format("\"look\":\"refused\",\"sheet\":\"{}\"", source.own.name));
             }
         }
-        if (sheet.refused || std::fabs(share - sheet.share) < 1e-4f) {
+        // Only the member in play's own sheets take the size.
+        bool  theirs = UserStatus != nullptr && UserStatus->cur_chara == source.chara;
+        float g = theirs ? grown : 0.0f, k = theirs ? shrunk : 0.0f;
+        if (sheet.refused || (std::fabs(g - sheet.grown) < 1e-4f && std::fabs(k - sheet.shrunk) < 1e-4f)) {
             continue;
         }
         std::optional<gfx::TextureInfo> info = gfx::GetTextureInfo(sheet.texture);
-        Write(sheet, info ? info->mip_levels : 1u, share);
-        sheet.share = share;
+        Write(sheet, info ? info->mip_levels : 1u, g, k);
+        sheet.grown = g;
+        sheet.shrunk = k;
     }
 }
 

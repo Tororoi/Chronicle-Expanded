@@ -21,6 +21,7 @@
 #include "expanded/data/toan_grip.hpp"
 #include "expanded/data/town_model.hpp"
 #include "expanded/data/wolf_steve.hpp"
+#include "expanded/data/xiao_colossus.hpp"
 
 namespace expanded {
 
@@ -47,6 +48,7 @@ const DataKind kDataKinds[] = {
     {"weapon model", WolfSteveBuilds},
     {"weapon model", TallHammerSilverBuilds},
     {"effect", ColossusPopBuilds},
+    {"look", XiaoColossusBuilds},
     {"character model", ToanGripBuilds},
     {"character model", GoroShirtBuilds},
 };

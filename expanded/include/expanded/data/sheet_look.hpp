@@ -55,6 +55,8 @@ std::unordered_map<int, int> MergeColours(const std::vector<int> &keys, const st
 // An 8-bit picture (swizzled: in an IM2 bank's block order) with each texel's colour (0-255) mapped by colour_of, the
 // colours merged with MergeColours and the picture indexed again onto them.
 Bytes RecolourSheet(std::span<const unsigned char> tim, bool swizzled, const std::function<std::array<int, 3>(const std::array<int, 3> &)> &colour_of);
+// As RecolourSheet, colour_of told each texel's place (x, y) too.
+Bytes RecolourSheetAt(std::span<const unsigned char> tim, bool swizzled, const std::function<std::array<int, 3>(int x, int y, const std::array<int, 3> &)> &colour_of);
 
 // The element glow disc: the torch glow (a 64x64 32-bit TIM2) as an 8-bit picture, its luminance ranks on the 128
 // palette entries the GS's CLUT order leaves in place, coloured from core at the centre to outer at its edge, on a
