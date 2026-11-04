@@ -61,7 +61,7 @@ CBoxVu0 Box(const CCameraFollow &camera, float requested) {
     float   radius = std::max({std::fabs(camera.distance), requested,
                                std::hypot(camera.pos[0] - camera.ref[0], camera.pos[2] - camera.ref[2]),
                                std::hypot(camera.next_pos[0] - camera.next_ref[0], camera.next_pos[2] - camera.next_ref[2])}) +
-                     20.0f;
+                   20.0f;
     for (int i = 0; i < 3; ++i) {
         box.min[i] = std::min({camera.pos[i], camera.next_pos[i], camera.ref[i], camera.next_ref[i], camera.follow[i]}) - radius - std::fabs(camera.height);
         box.max[i] = std::max({camera.pos[i], camera.next_pos[i], camera.ref[i], camera.next_ref[i], camera.follow[i]}) + radius + std::fabs(camera.height);
@@ -115,7 +115,7 @@ void TownZoomEnd() {
     }
 }
 
-void DungeonZoomApply(CCameraFollow *camera, CDungeonMap *map, bool lock_on, float previous_distance) {
+void DungeonZoomApply(CCameraFollow *camera, CDungeonMap *map, bool lock_on, float previous_distance, float scale) {
     if (!ConfigGet().mouse_zoom) {
         if (g_dungeon.camera == camera && camera && camera->follow_on && !lock_on && !CCamera::StopCamera) {
             // Turning the option off returns to the dungeon camera's normal starting distance.
@@ -135,24 +135,25 @@ void DungeonZoomApply(CCameraFollow *camera, CDungeonMap *map, bool lock_on, flo
     if (ConfigGet().mouse_zoom) {
         Read(g_dungeon, 60.0f);
     }
-    CBoxVu0 box = Box(*camera, g_dungeon.requested);
+    float   requested = g_dungeon.requested * scale;
+    CBoxVu0 box = Box(*camera, requested);
     int     count = MouseCameraPolys(*map, box, g_polys);
     // Dungeon's default eye can be only 7.6 units above a floor (6-unit follow point + 1.6
     // height). Keep that valid: walls retain ten-unit clearance and floors retain five.
-    camera->SetDistance(MouseCameraClampDistance(*camera, g_dungeon.requested, g_polys.data(), count, 5.0f));
+    camera->SetDistance(MouseCameraClampDistance(*camera, requested, g_polys.data(), count, 5.0f));
     if (!ConfigGet().mouse_zoom) {
         g_dungeon = {};
     }
 }
 
-float DungeonZoomNearDistance(CCameraFollow *camera, float normal, bool lock_on) {
+float DungeonZoomNearDistance(CCameraFollow *camera, float normal, bool lock_on, float scale) {
     if (!camera || !ConfigGet().mouse_zoom || lock_on || g_dungeon.camera != camera ||
         !camera->follow_on || CCamera::StopCamera) {
         return normal;
     }
     // Retail lifts the eye whenever it comes within 60 units of the player. With an
     // intentionally closer zoom that would keep lifting it into a steep overhead view.
-    return std::min(normal, g_dungeon.requested);
+    return std::min(normal, g_dungeon.requested * scale);
 }
 
 } // namespace dc::input

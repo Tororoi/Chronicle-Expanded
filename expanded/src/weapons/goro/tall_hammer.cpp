@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "btactstatus.hpp"
+#include "camerafollow.hpp"
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
@@ -89,6 +90,7 @@ struct Colossus {
     int                                               frames = 0;         // in the phase (Grown: since he first grew; Spent: since the shrink began)
     float                                             shrink_from = 1.0f; // his size as the shrink began
     float                                             applied = 1.0f;     // the size last put on the model
+    float                                             camera = 1.0f;      // the size the camera's distance and height were last kept at
     float                                             last[2] = {};       // where he stood the step before
     bool                                              stood = false;
     int                                               trampled[kFloorMonsters] = {};
@@ -260,6 +262,22 @@ void Apply() {
 
 float ColossusScale() {
     return colossus.scale;
+}
+
+float ColossusCameraScale() {
+    return colossus.applied;
+}
+
+void ColossusCamera(CCameraFollow &camera, const float *pos) {
+    float scale = colossus.applied;
+    if (scale != colossus.camera) {
+        camera.distance *= scale / colossus.camera;
+        camera.height *= scale / colossus.camera;
+        colossus.camera = scale;
+    }
+    for (int i = 0; i < 3; i++) {
+        camera.follow[i] = pos[i] + (camera.follow[i] - pos[i]) * scale;
+    }
 }
 
 int ColossusAttack(int attack) {

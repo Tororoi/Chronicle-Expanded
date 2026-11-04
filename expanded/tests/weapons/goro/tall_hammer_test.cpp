@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "btactstatus.hpp"
+#include "camerafollow.hpp"
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
@@ -269,6 +270,31 @@ TEST_F(Colossus, AShruggedOffHitLeavesHimInWhatHeWasDoing) {
     BtActStatus.action_on = 0;
     expanded::PlayerHitReacted(false, regular);
     EXPECT_EQ(BtActStatus.action_on, 0);
+}
+
+TEST_F(Colossus, TheCameraKeepsHisSizeTimesItsDistanceFromHim) {
+    CCameraFollow camera(60.0f, 5.0f, 0.0f, 8.0f);
+    const float   pos[3] = {10.0f, 2.0f, -4.0f};
+    camera.SetFollow(10.0f, 8.0f, -4.0f);
+    expanded::ColossusCamera(camera, pos);
+    EXPECT_FLOAT_EQ(camera.distance, 60.0f);
+    EXPECT_FLOAT_EQ(camera.follow[1], 8.0f);
+    Grow(expanded::kColossusGrowFrames);
+    ASSERT_FLOAT_EQ(expanded::ColossusCameraScale(), expanded::kColossusMost);
+    camera.SetFollow(10.0f, 8.0f, -4.0f);
+    expanded::ColossusCamera(camera, pos);
+    EXPECT_FLOAT_EQ(camera.distance, 120.0f);
+    EXPECT_FLOAT_EQ(camera.height, 10.0f);
+    EXPECT_FLOAT_EQ(camera.follow[0], 10.0f);
+    EXPECT_FLOAT_EQ(camera.follow[1], 14.0f); // 6 above him, twice over
+    // Kept there while he stays that size, and back as he does.
+    expanded::ColossusCamera(camera, pos);
+    EXPECT_FLOAT_EQ(camera.distance, 120.0f);
+    floor_.status().cur_chara = CHARA_TOAN;
+    Steps(1);
+    expanded::ColossusCamera(camera, pos);
+    EXPECT_FLOAT_EQ(camera.distance, 60.0f);
+    EXPECT_FLOAT_EQ(camera.height, 5.0f);
 }
 
 TEST_F(Colossus, AtFullSizeAMonstersAttackHitsHimOnce) {

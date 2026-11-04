@@ -101,6 +101,7 @@
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/town/ally.hpp"
+#include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/stats.hpp"
@@ -5227,6 +5228,18 @@ void autoCamTrial() {
         return;
     }
 
+#ifdef CHRONICLE_EXPANDED
+    // A player drawn larger keeps the camera that many times further off: its limits, and how it rests above him.
+    const float sized = expanded::ColossusCameraScale();
+#else
+    constexpr float sized = 1.0f;
+#endif
+    const float normal_near = camera_near_dist__2;
+    const float normal_far = camera_far_dist__2;
+
+    camera_near_dist__2 = normal_near * sized;
+    camera_far_dist__2 = normal_far * sized;
+
     NowCamera__3->GetPos(eye);
     NowCamera__3->GetRef(look);
 
@@ -5319,14 +5332,14 @@ void autoCamTrial() {
     sceVu0SubVector(reach, pos, forward);
     sceVu0SubVector(reach, pos, ref);
     sceVu0Normalize(reach, reach);
-    sceVu0ScaleVectorXYZ(reach, reach, 80.0f);
+    sceVu0ScaleVectorXYZ(reach, reach, 80.0f * sized);
     reach[0] += ref[0];
     reach[1] += ref[1];
     reach[2] += ref[2];
 
     int hits = CheckHits(poly, count, ref, reach, 32, hit_poly, hit_point, 1, 0);
 
-    camera_far_dist_limmit = 80.0f;
+    camera_far_dist_limmit = 80.0f * sized;
 
     if (hits > 0) {
         camera_far_dist_limmit = DistVector(ref, hit_point[0]);
@@ -5376,10 +5389,10 @@ void autoCamTrial() {
 
     // The camera keeps its head above whatever floor is under it.
     sceVu0CopyVector(reach, pos);
-    reach[1] += 20.0f;
+    reach[1] += 20.0f * sized;
 
-    if (CheckHitVertical(poly, count, reach, -100.0f, at, 0) >= 0 && pos[1] - at[1] < 25.0f) {
-        pos[1] = 25.0f + at[1];
+    if (CheckHitVertical(poly, count, reach, -100.0f * sized, at, 0) >= 0 && pos[1] - at[1] < 25.0f * sized) {
+        pos[1] = 25.0f * sized + at[1];
         NowCamera__3->SetHeight(pos[1] - ref[1] - 0.01f);
     }
 
@@ -5387,25 +5400,25 @@ void autoCamTrial() {
     NowCamera__3->GetPos(stood);
 
     if (DistVector(chara, stood) < camera_up_near_dist) {
-        NowCamera__3->AddHeight(0.5f);
+        NowCamera__3->AddHeight(0.5f * sized);
 
-        if (NowCamera__3->GetHeight() <= 1.6f) {
-            NowCamera__3->SetHeight(1.6f);
+        if (NowCamera__3->GetHeight() <= 1.6f * sized) {
+            NowCamera__3->SetHeight(1.6f * sized);
         }
     } else {
-        if (NowCamera__3->GetHeight() <= 1.6f) {
-            NowCamera__3->SetHeight(1.6f);
+        if (NowCamera__3->GetHeight() <= 1.6f * sized) {
+            NowCamera__3->SetHeight(1.6f * sized);
         }
 
-        if (!(NowCamera__3->GetHeight() <= 5.0f)) {
+        if (!(NowCamera__3->GetHeight() <= 5.0f * sized)) {
             float rate = 0.05f;
-            float over = NowCamera__3->GetHeight() - 5.0f;
+            float over = NowCamera__3->GetHeight() - 5.0f * sized;
             float step = over * rate;
 
-            step = std::max(step, 0.15f);
+            step = std::max(step, 0.15f * sized);
 
-            if (!(step <= 0.5f)) {
-                step = 0.5f;
+            if (!(step <= 0.5f * sized)) {
+                step = 0.5f * sized;
             }
 
             NowCamera__3->AddHeight(-step);
@@ -5495,6 +5508,9 @@ void autoCamTrial() {
             }
         }
     }
+
+    camera_near_dist__2 = normal_near;
+    camera_far_dist__2 = normal_far;
 }
 
 void DelActiveItem(int slot) {

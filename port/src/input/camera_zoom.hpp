@@ -24,13 +24,14 @@ void TownZoomRead(game::CCameraFollow *camera);
 void TownZoomEnd();
 
 /**
- * Applies collision-validated mouse zoom to the dungeon gameplay camera, never to scripted cameras.
+ * Applies collision-validated mouse zoom to the dungeon gameplay camera, never to scripted cameras. The requested
+ * distance is scale times the wheel's (a player drawn larger).
  */
-void DungeonZoomApply(game::CCameraFollow *camera, game::CDungeonMap *map, bool lock_on, float previous_distance);
+void DungeonZoomApply(game::CCameraFollow *camera, game::CDungeonMap *map, bool lock_on, float previous_distance, float scale = 1.0f);
 
 /**
- * Returns the dungeon eye-lift distance, capped by the requested zoom.
+ * Returns the dungeon eye-lift distance, capped by the requested zoom (scale times the wheel's).
  */
-float DungeonZoomNearDistance(game::CCameraFollow *camera, float normal, bool lock_on);
+float DungeonZoomNearDistance(game::CCameraFollow *camera, float normal, bool lock_on, float scale = 1.0f);
 
 } // namespace dc::input
