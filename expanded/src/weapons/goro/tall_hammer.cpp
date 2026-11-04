@@ -309,6 +309,7 @@ void Pop() {
     int           slot = SpawnStill(*effect, spot);
     if (slot >= 0) {
         effect->chara[slot].SetScale(kColossusPopBurst, kColossusPopBurst, kColossusPopBurst);
+        FadeUnlitFrames(effect->chara[slot].frame, kColossusPopOpacity); // it is drawn added: its colour is its opacity
         colossus.pop = effect;
         colossus.pop_slot = slot;
     }

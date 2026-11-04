@@ -46,8 +46,9 @@ inline constexpr int   kColossusGrowFrames = 300; // from his size to kColossusM
 inline constexpr int   kColossusFrames = 1800, kColossusShrinkFrames = 120, kColossusSpentFrames = 720;
 inline constexpr float kColossusPopFrom = 9.0f, kColossusPopPeakFrame = 16.0f, kColossusPopFrame = 18.0f; // since it began
 inline constexpr float kColossusPopPeak = 3.4f / 3.0f;
-inline constexpr float kColossusPopBurst = 0.3f; // the turquoise explosion's size, of its own
-inline constexpr float kColossusPopRise = 0.25f; // where it bursts, of his height over his feet
+inline constexpr float kColossusPopBurst = 0.3f;   // the turquoise explosion's size, of its own
+inline constexpr float kColossusPopOpacity = 0.8f; // of its own
+inline constexpr float kColossusPopRise = 0.25f;   // where it bursts, of his height over his feet
 // His flash in the burst, his and the hammer's, on the game's character tint (ambient_offset, 0-255), as the burst
 // lights him: up as it bursts out over him, all of it once it covers him, fading as it fades.
 inline constexpr float kColossusPopFlash[3] = {100.0f, 200.0f, 200.0f};
