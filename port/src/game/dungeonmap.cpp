@@ -366,6 +366,9 @@ void CDungeonMap::DrawMap(CCameraFollow *camera, CFrameVu1 * /*player*/) {
     view_delta[3] = 0.0f;
     sceVu0Normalize(view, view_delta);
     ITEM_FREE_AREA *free_area = ItemFreeAreaAll[selectMapNo];
+    // Cells this near the eye draw whichever way it faces: retail's cell, which covers what lies between an eye no
+    // more than half a cell from what it looks at; an eye further out (a larger player's camera, a zoom) widens it.
+    const float near = std::max(kCellSize, 2.0f * std::hypot(view_delta[0], view_delta[2]));
 
     this->ClearNPC_Cash();
     float nearest = 10000.0f;
@@ -435,7 +438,7 @@ void CDungeonMap::DrawMap(CCameraFollow *camera, CFrameVu1 * /*player*/) {
                     if (georama == 5 && cell.parts_no == MAP_PARTS_URA_ROAD) {
                         facing = 1.0f;
                     }
-                    if (facing <= facing_limit && !(dist < kCellSize)) {
+                    if (facing <= facing_limit && !(dist < near)) {
                         draw = false;
                     }
                     if (cell.parts_no >= MAP_PARTS_URA_ENTRANCE_NORTH && cell.parts_no <= MAP_PARTS_URA_ENTRANCE_WEST &&
@@ -458,7 +461,7 @@ void CDungeonMap::DrawMap(CCameraFollow *camera, CFrameVu1 * /*player*/) {
 
             for (int npc_no = 0; npc_no < 4; npc_no++) {
                 if (this->npc[npc_no].parts_no == cell.parts_no && this->npc[npc_no].draw_num < 16 &&
-                    (dist < kCellSize ||
+                    (dist < near ||
                      view[0] * (delta_x - view_delta[0]) + view[2] * (delta_z - view_delta[2]) > 0.0f)) {
                     this->ReservNPC_Draw(npc_no, world_x, 0.0f, world_z, cell.direction);
                 }
