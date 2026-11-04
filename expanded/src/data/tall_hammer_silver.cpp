@@ -25,7 +25,7 @@ std::array<int, 3> TallHammerSilverColour(const std::array<int, 3> &rgb) {
         return HslToRgb(kTallHammerSilverHue, kTallHammerSilverSaturation, l);
     }
     if (TallHammerTurquoiseTexel(rgb)) {
-        return HslToRgb(h, s * kTallHammerDullSaturation, l * kTallHammerDullLightness);
+        return HslToRgb(h, s * kTallHammerDullSaturation, l);
     }
     return rgb;
 }

@@ -30,7 +30,7 @@ constexpr Built kBuilt[] = {
     {"disc/commenu/c04wtes.chr",       607040,  0x739cc23694eba8fbULL},
     {"disc/dun/mainchara/c06b.chr",    1306400, 0x72c14407ec903aaeULL},
     {"disc/commenu/weapon/c04w13.chr", 77312,   0x6292e5a529d33618ULL},
-    {"disc/commenu/weapon/c06w10.chr", 54800,   0x0b3795ffa2ffd290ULL},
+    {"disc/commenu/weapon/c06w10.chr", 54800,   0xe8b20324da855efbULL},
     {"disc/gedit/e03/e03_1.mes",       5598,    0x7f7a938dd5735e38ULL},
     {"disc/gedit/e03/e03talk_1.mes",   47122,   0xfb8f96324c158b40ULL},
     {"disc/gedit/e03/img.pak",         3111888, 0x665f33dfe67d12b8ULL},

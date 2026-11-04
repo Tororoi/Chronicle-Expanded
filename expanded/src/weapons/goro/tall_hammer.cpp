@@ -51,8 +51,8 @@ constexpr float kPopEnd = (kColossusPopFrame - kSmokeClipStart) / kSmokeRate;
 // charging (0x1E) and the walk while guarding (0x21).
 constexpr int kStrideMotions[] = {1, 2, 0x12, 0x13, 0x14, 0x15, 0x16, 0x1E, 0x21};
 
-// His hammer's head, where its swing hits (GoroKey_Play).
-constexpr const char *kHammerHead = "dcol0";
+// The Tall Hammer's head's two faces (c06w10.mds).
+constexpr const char *kHammerFaces[2] = {"dcol2", "dcol3"};
 
 // His hammer's swing throw (GoroKey_Play).
 constexpr float kGoroKick = 2.5f, kGoroKickDecay = 0.1f;
@@ -228,13 +228,21 @@ void Trample() {
     }
 }
 
-// Where the pop's smoke plays: the hammer's head (its dcol0, where its swing hits), or his feet with no hammer out.
+// Where the pop's smoke plays: inside the hammer's head, halfway between its two faces (kHammerFaces), or his feet with no
+// hammer out.
 void SmokeSpot(float *spot) {
-    float at[4] = {CharaMain.pos[0], CharaMain.pos[1], CharaMain.pos[2], 1.0f};
-    if (NowWeapon != nullptr && NowWeapon->frame != nullptr) {
-        getFramePos(static_cast<CFrameVu1 *>(NowWeapon->frame), const_cast<char *>(kHammerHead), at);
+    std::copy(CharaMain.pos, CharaMain.pos + 3, spot);
+    if (NowWeapon == nullptr || NowWeapon->frame == nullptr) {
+        return;
     }
-    std::copy(at, at + 3, spot);
+    float faces[2][4] = {};
+    for (int f = 0; f < 2; f++) {
+        faces[f][3] = 1.0f;
+        getFramePos(static_cast<CFrameVu1 *>(NowWeapon->frame), const_cast<char *>(kHammerFaces[f]), faces[f]);
+    }
+    for (int c = 0; c < 3; c++) {
+        spot[c] = (faces[0][c] + faces[1][c]) / 2.0f;
+    }
 }
 
 void Pop() {
