@@ -51,6 +51,15 @@ constexpr float kPopEnd = kColossusPopFrame;
 // charging (0x1E) and the walk while guarding (0x21).
 constexpr int kStrideMotions[] = {1, 2, 0x12, 0x13, 0x14, 0x15, 0x16, 0x1E, 0x21};
 
+// The burst's material alpha (stored 1 - opacity) and scale at frames 1 to 30 (explosion.chr, grid__czapp6), and the
+// scale at which it has covered him: where its burst-out ends and it starts to fade (frame 11).
+constexpr float kBurstAlpha[30] = {1.0f, 1.0f, 0.86f, 0.56f, 0.22f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.05f, 0.1f, 0.16f, 0.22f,
+                                   0.28f, 0.35f, 0.42f, 0.49f, 0.56f, 0.63f, 0.7f, 0.76f, 0.82f, 0.87f, 0.91f, 0.95f, 0.98f, 0.99f, 1.0f};
+constexpr float kBurstScale[30] = {1.0f, 1.58f, 1.19f, 0.52f, 0.16f, 0.68f, 2.44f, 5.05f, 7.9f, 10.37f,
+                                   11.87f, 12.67f, 13.43f, 14.15f, 14.84f, 15.49f, 16.1f, 16.68f, 17.21f, 17.7f,
+                                   18.16f, 18.56f, 18.93f, 19.24f, 19.51f, 19.74f, 19.92f, 20.04f, 20.12f, 20.15f};
+constexpr float kBurstCovers = 11.87f;
+
 // The pop's burst: the turquoise explosion (data/colossus_pop.hpp), one motion playing once from where it is put, no
 // flight and no hit, as Big Bang's explosion.
 // clang-format off
@@ -130,7 +139,6 @@ struct Colossus {
     int                                               clock = 0;
     CSHOT_EFFECT                                     *pop = nullptr; // the pop's burst while it plays, in its slot
     int                                               pop_slot = -1;
-    float                                             flash_from = -1.0f; // the burst's motion time he was back to his size at
     bool                                              flashing = false;
     bool                                              shrugging = false; // a hit he shrugs off is being reacted to
     BT_ACT_STATUS                                     kept = {};         // what he was doing as it reached him
@@ -261,28 +269,29 @@ void PopOut() {
     }
     colossus.pop = nullptr;
     colossus.pop_slot = -1;
-    colossus.flash_from = -1.0f;
     if (colossus.flashing) {
         Flash(0.0f);
     }
 }
 
-// The flash while the burst plays: all of it until he is back to his size, then fading with what is left of the
-// burst's motion from there, gone as the burst ends.
+// The light the burst casts on him at a frame of its motion: its opacity (its material alpha stored as 1 - opacity)
+// times how far it has grown toward the size at which it covers him (kBurstCovers), from explosion.chr's grid__czapp6
+// (frames 1 to 30), between its keys.
+float BurstLight(float frame) {
+    auto at = [&](const float(&keys)[30]) {
+        float f = std::clamp(frame, 1.0f, 30.0f) - 1.0f;
+        int   i = std::min(static_cast<int>(f), 28);
+        return keys[i] + (keys[i + 1] - keys[i]) * (f - static_cast<float>(i));
+    };
+    return (1.0f - at(kBurstAlpha)) * std::min(1.0f, at(kBurstScale) / kBurstCovers);
+}
+
+// The flash while the burst plays: as the burst lights him.
 void FlashStep() {
     CCharacter &burst = colossus.pop->chara[colossus.pop_slot];
-    if (!GoroInPlay() || burst.motion_type.motion_info == nullptr) {
-        return;
+    if (GoroInPlay()) {
+        Flash(BurstLight(burst.motion_type.state.time));
     }
-    float time = burst.motion_type.state.time, end = static_cast<float>(burst.motion_type.motion_info[pop_shot.motion[0]].end);
-    float k = 1.0f;
-    if (colossus.phase != Phase::Popping) {
-        if (colossus.flash_from < 0.0f) {
-            colossus.flash_from = time;
-        }
-        k = end > colossus.flash_from ? std::clamp((end - time) / (end - colossus.flash_from), 0.0f, 1.0f) : 0.0f;
-    }
-    Flash(k);
 }
 
 void Pop() {
