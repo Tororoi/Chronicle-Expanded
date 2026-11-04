@@ -25,7 +25,6 @@
 #include "expanded/weapons/summon_smoke.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/weapon_hit.hpp"
-#include "hitmark.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -124,7 +123,10 @@ struct Colossus {
     BT_ACT_STATUS                                     kept = {};         // what he was doing as it reached him
     std::vector<Spared>                               spared;
     ShotHit                                           shot_hits[std::size(CCollisionData{}.active)];
-    std::vector<std::pair<const CSHOT_EFFECT *, int>> stopping; // shots that meet him as a wall on their next step
+    std::vector<std::pair<const CSHOT_EFFECT *, int>> stopping;         // shots that meet him as a wall on their next step
+    CSHOT_EFFECT                                     *impact = nullptr; // his charge attack's ground impact, at impact_size
+    int                                               impact_slot = -1;
+    float                                             impact_size = 1.0f;
 };
 
 Colossus colossus;
@@ -362,28 +364,6 @@ float ColossusSoundPitch() {
     return GoroInPlay() && colossus.applied != 1.0f ? -kColossusPitch * std::log2(colossus.applied) : 0.0f;
 }
 
-void ColossusHitMark(CHitMark &mark, const COLLISION_HIT &hit) {
-    float scale = ColossusImpactScale(hit);
-    if (scale == 1.0f) {
-        return;
-    }
-    // The burst as the game threw it, his size times as large and as far: its marks, their throw and pull, and how
-    // fast they shrink (each lasting as long).
-    for (int i = 0; i < HIT_MARK_MAX; i++) {
-        for (int k = 0; k < 3; k++) {
-            mark.offset[i][k] *= scale;
-            mark.velocity[i][k] *= scale;
-        }
-        mark.size[i] *= scale;
-    }
-    mark.gravity *= scale;
-    mark.shrink *= scale;
-}
-
-float ColossusImpactScale(const COLLISION_HIT &hit) {
-    return hit.owner == CHARA_GORO && GoroInPlay() ? colossus.applied : 1.0f;
-}
-
 float ColossusCameraScale() {
     return colossus.applied;
 }
@@ -576,7 +556,21 @@ void ColossusHitTaken(const COLLISION_HIT &hit) {
 void ColossusShotHitSet(CSHOT_EFFECT &effect, int slot, const COLLISION_HIT &hit) {
     if (int record = RecordOf(hit); record >= 0) {
         colossus.shot_hits[record] = {&effect, slot, colossus.clock};
+        if (&effect == colossus.impact && slot == colossus.impact_slot) {
+            NowColData->hit[record].radius *= colossus.impact_size;
+        }
     }
+}
+
+void ColossusImpact(CSHOT_EFFECT &effect, int slot) {
+    if (slot < 0 || slot >= static_cast<int>(std::size(effect.chara))) {
+        return;
+    }
+    float size = GoroInPlay() ? colossus.applied : 1.0f;
+    effect.chara[slot].SetScale(size, size, size);
+    colossus.impact = size != 1.0f ? &effect : nullptr;
+    colossus.impact_slot = size != 1.0f ? slot : -1;
+    colossus.impact_size = size;
 }
 
 SHOT_COLLISION_RESULT ColossusShotCollision(const CSHOT_EFFECT &effect, int slot, SHOT_COLLISION_RESULT result) {
@@ -610,6 +604,12 @@ void ColossusStep() {
         return;
     }
     SndSetVoicePitch(ColossusSoundPitch());
+    if (colossus.impact != nullptr && colossus.impact->active[colossus.impact_slot] == 0) {
+        // Its slot done: whatever plays there next is at its own size.
+        colossus.impact->chara[colossus.impact_slot].SetScale(1.0f, 1.0f, 1.0f);
+        colossus.impact = nullptr;
+        colossus.impact_slot = -1;
+    }
     if (MonstersStepping()) {
         colossus.clock++;
         std::erase_if(colossus.spared, [](Spared &spared) { return !GoesOn(spared); });

@@ -5,7 +5,6 @@
 namespace dc::game {
 class CCameraFollow;
 class CCharacter;
-class CHitMark;
 struct COLLISION_HIT;
 class CSHOT_EFFECT;
 } // namespace dc::game
@@ -33,7 +32,7 @@ namespace expanded {
 //   - his cape drapes at his size;
 //   - his sounds (his voice, and what his motions and his attacks play) sound kColossusPitch semitones lower for each
 //     doubling of his size, as much higher for each halving;
-//   - his weapon's hits throw their sparks and element bursts his size times as large;
+//   - his charge attack's ground impact is his size times as large, and reaches his size times as far;
 //   - his stride is his size times his own and his walk and run play at his size to the -kColossusStrideRate (a
 //     little slower big, a little quicker small), so a step carries him his size to the 1 - kColossusStrideRate;
 //   - the dungeon camera keeps his size times what it keeps from him (its follow point's rise above him, its distance
@@ -67,10 +66,9 @@ void  ColossusCamera(CCameraFollow &camera, const float *pos);
 float ColossusSoundPitch();
 void  ColossusQuiet();
 
-// How many times as large his weapon's hit's impact is (1 for anyone else's), and a hit's sparks (CHitMark, as the game
-// threw them off a monster) made so (CheckDmg).
-float ColossusImpactScale(const COLLISION_HIT &hit);
-void  ColossusHitMark(CHitMark &mark, const COLLISION_HIT &hit);
+// His charge attack's ground impact (his effect pack's slot the smash set, GoroKey_Play) at his size: its model, and the
+// hits it plants reaching his size times as far (ShotEffectHitSet).
+void ColossusImpact(CSHOT_EFFECT &effect, int slot);
 
 // How far the stick moves him (movechara, times its velocity), and his walk's play rate at his size (a motion step,
 // PlayerMotionStepping).

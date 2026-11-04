@@ -1025,7 +1025,11 @@ void GoroKey_Play() {
     }
 
     if (time >= 482.0f && time < 482.4f) {
+#ifdef CHRONICLE_EXPANDED
+        expanded::ColossusImpact(*NowMainEffect, NowMainEffect->Set(hit_pos, shot_vector, 2, -1, 0, nullptr, -1));
+#else
         NowMainEffect->Set(hit_pos, shot_vector, 2, -1, 0, nullptr, -1);
+#endif
         NowMainEffect->SetWepStatus(NowWeaponHave->flags);
         NowMainEffect->SetVsMonster(NowWeaponHave->vs_monster);
         NowMainEffect->SetDmg(static_cast<int>(1.2f * static_cast<float>(damage)));

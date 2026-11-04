@@ -14,7 +14,6 @@
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
-#include "hitmark.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -374,28 +373,27 @@ TEST_F(Colossus, HisSoundsAreLowerBigAndHigherSmall) {
     EXPECT_FLOAT_EQ(expanded::ColossusSoundPitch(), 0.0f);
 }
 
-TEST_F(Colossus, HisHitsThrowSparksAtHisSize) {
-    CHitMark      mark;
-    COLLISION_HIT hit = {};
-    hit.owner = CHARA_GORO;
-    mark.offset[0][0] = 0.25f;
-    mark.velocity[0][1] = 1.0f;
-    mark.size[0] = 0.5f;
-    mark.gravity = 0.02f;
-    mark.shrink = 0.01f;
-    expanded::ColossusHitMark(mark, hit); // at his own size, as thrown
-    EXPECT_FLOAT_EQ(mark.size[0], 0.5f);
+TEST_F(Colossus, HisChargeAttacksImpactIsAtHisSize) {
     Grow(expanded::kColossusGrowFrames);
-    EXPECT_FLOAT_EQ(expanded::ColossusImpactScale(hit), 2.0f);
-    expanded::ColossusHitMark(mark, hit);
-    EXPECT_FLOAT_EQ(mark.offset[0][0], 0.5f);
-    EXPECT_FLOAT_EQ(mark.velocity[0][1], 2.0f);
-    EXPECT_FLOAT_EQ(mark.size[0], 1.0f);
-    EXPECT_FLOAT_EQ(mark.gravity, 0.04f);
-    EXPECT_FLOAT_EQ(mark.shrink, 0.02f);
-    // Anyone else's hit is as the game threw it.
-    hit.owner = CHARA_TOAN;
-    EXPECT_FLOAT_EQ(expanded::ColossusImpactScale(hit), 1.0f);
+    auto effect = std::make_unique<CSHOT_EFFECT>();
+    effect->active[1] = 1;
+    expanded::ColossusImpact(*effect, 1);
+    EXPECT_FLOAT_EQ(effect->chara[1].scale[0], 2.0f);
+    // The hits it plants reach twice as far; another slot's as set.
+    COLLISION_HIT &hit = NowColData->hit[5];
+    hit = {};
+    hit.radius = 10.0f;
+    expanded::ShotEffectHitSet(*effect, 1, hit);
+    EXPECT_FLOAT_EQ(hit.radius, 20.0f);
+    COLLISION_HIT &other = NowColData->hit[6];
+    other = {};
+    other.radius = 10.0f;
+    expanded::ShotEffectHitSet(*effect, 2, other);
+    EXPECT_FLOAT_EQ(other.radius, 10.0f);
+    // Its slot done, it is back at its own size for whatever plays there next.
+    effect->active[1] = 0;
+    Steps(1);
+    EXPECT_FLOAT_EQ(effect->chara[1].scale[0], 1.0f);
 }
 
 TEST_F(Colossus, AtFullSizeAMonstersAttackHitsHimOnce) {
