@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -22,6 +23,8 @@ constexpr int           kBudget = 256;
 double JsRound(double x) {
     return std::floor(x + 0.5);
 }
+
+} // namespace
 
 std::array<double, 3> RgbToHsl(double r, double g, double b) {
     r /= 255;
@@ -59,6 +62,8 @@ std::array<int, 3> HslToRgb(double h, double s, double l) {
     }
     return {int(JsRound((r + m) * 255)), int(JsRound((g + m) * 255)), int(JsRound((b + m) * 255))};
 }
+
+namespace {
 
 int Key(const std::array<int, 3> &c) {
     return (c[0] << 16) | (c[1] << 8) | c[2];
@@ -114,7 +119,9 @@ PictureAt Locate(std::span<const unsigned char> tim) {
 
 // The page's merge: each colour (weighted by its texels) a cluster; the cheapest pair merged into its weighted centroid
 // until 256 are left. Cost = distance x x.sqrt(x), x = 0.12 + the pair's mean luminance, so near-black goes first.
-std::unordered_map<int, int> Merge(const std::vector<int> &keys, const std::unordered_map<int, double> &weight) {
+} // namespace
+
+std::unordered_map<int, int> MergeColours(const std::vector<int> &keys, const std::unordered_map<int, double> &weight) {
     std::unordered_map<int, int> merged;
     int                          n = static_cast<int>(keys.size());
     if (n <= kBudget) {
@@ -188,7 +195,47 @@ std::unordered_map<int, int> Merge(const std::vector<int> &keys, const std::unor
     return merged;
 }
 
-} // namespace
+Bytes RecolourSheet(std::span<const unsigned char> tim, bool swizzled, const std::function<std::array<int, 3>(const std::array<int, 3> &)> &colour_of) {
+    tim8::Picture picture = tim8::Read(tim, swizzled);
+    auto          at = [&](int index) {
+        std::size_t j = static_cast<std::size_t>(tim8::Csm1(index)) * 4;
+        return std::array<int, 3>{picture.clut[j], picture.clut[j + 1], picture.clut[j + 2]};
+    };
+    std::vector<int>                colour(picture.pixels.size());
+    std::unordered_map<int, double> weight;
+    std::vector<int>                order;
+    for (std::size_t i = 0; i < colour.size(); i++) {
+        colour[i] = Key(colour_of(at(picture.pixels[i])));
+        if (weight[colour[i]]++ == 0) {
+            order.push_back(colour[i]);
+        }
+    }
+    std::unordered_map<int, int> merged = MergeColours(order, weight);
+    std::unordered_map<int, int> slot;
+    Bytes                        index(colour.size()), clut(256 * 4, 0);
+    int                          used = 0;
+    for (std::size_t i = 0; i < colour.size(); i++) {
+        int v = colour[i];
+        if (auto m = merged.find(v); m != merged.end()) {
+            v = m->second;
+        }
+        auto [found, added] = slot.try_emplace(v, used);
+        if (added) {
+            if (used >= kBudget) {
+                throw std::runtime_error("recolour: more than 256 colours after merging");
+            }
+            std::size_t j = static_cast<std::size_t>(tim8::Csm1(used)) * 4;
+            clut[j] = static_cast<unsigned char>(v >> 16);
+            clut[j + 1] = static_cast<unsigned char>(v >> 8);
+            clut[j + 2] = static_cast<unsigned char>(v);
+            clut[j + 3] = kOpaque;
+            used++;
+        }
+        index[i] = static_cast<unsigned char>(found->second);
+    }
+    Bytes pixels = swizzled ? tim8::Swizzle(index, picture.width, picture.height) : index;
+    return tim8::Build(tim, picture.width, picture.height, pixels, clut);
+}
 
 SheetLook SheetLook::Parse(std::string_view text) {
     nlohmann::json json = nlohmann::json::parse(text);
@@ -290,7 +337,7 @@ Bytes SheetLook::ApplyToSheet(std::span<const unsigned char> tim) const {
         }
         colour_count[v] += pair_count[key];
     }
-    std::unordered_map<int, int> merged = Merge(colour_order, colour_count);
+    std::unordered_map<int, int> merged = MergeColours(colour_order, colour_count);
     Bytes                        out_index(index.size());
     std::unordered_map<int, int> slot;
     std::vector<int>             out_pal;

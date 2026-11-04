@@ -1,4 +1,5 @@
 #include "expanded/weapons/goro/tall_hammer.hpp"
+#include "sound_effect.h"
 
 #include <algorithm>
 #include <cmath>
@@ -8,21 +9,23 @@
 #include <vector>
 
 #include "bound.hpp"
+#include "bt_shot_effect.hpp"
 #include "btactstatus.hpp"
 #include "camerafollow.hpp"
 #include "character.hpp"
 #include "cloth.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/data/colossus_pop.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/weapons/goro/colossus_look.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/player_state.hpp"
-#include "expanded/weapons/summon_smoke.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/weapon_hit.hpp"
 #include "itemdata.hpp"
@@ -40,13 +43,28 @@ constexpr int kChargeAction = 13;
 constexpr int kFullCharge = 45;
 
 // The pop's smoke frames as game frames from its start.
-constexpr float kPopFrom = (kColossusPopFrom - kSmokeClipStart) / kSmokeRate;
-constexpr float kPopPeak = (kColossusPopPeakFrame - kSmokeClipStart) / kSmokeRate;
-constexpr float kPopEnd = (kColossusPopFrame - kSmokeClipStart) / kSmokeRate;
+constexpr float kPopFrom = kColossusPopFrom;
+constexpr float kPopPeak = kColossusPopPeakFrame;
+constexpr float kPopEnd = kColossusPopFrame;
 
 // The motions his stride plays in: the run (1), the walk (2), the strafes while locked on (0x12-0x16), the walk while
 // charging (0x1E) and the walk while guarding (0x21).
 constexpr int kStrideMotions[] = {1, 2, 0x12, 0x13, 0x14, 0x15, 0x16, 0x1E, 0x21};
+
+// The burst's material alpha (stored 1 - opacity) and scale at frames 1 to 30 (explosion.chr, grid__czapp6), and the
+// scale at which it has covered him: where its burst-out ends and it starts to fade (frame 11).
+constexpr float kBurstAlpha[30] = {1.0f, 1.0f, 0.86f, 0.56f, 0.22f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.05f, 0.1f, 0.16f, 0.22f,
+                                   0.28f, 0.35f, 0.42f, 0.49f, 0.56f, 0.63f, 0.7f, 0.76f, 0.82f, 0.87f, 0.91f, 0.95f, 0.98f, 0.99f, 1.0f};
+constexpr float kBurstScale[30] = {1.0f, 1.58f, 1.19f, 0.52f, 0.16f, 0.68f, 2.44f, 5.05f, 7.9f, 10.37f,
+                                   11.87f, 12.67f, 13.43f, 14.15f, 14.84f, 15.49f, 16.1f, 16.68f, 17.21f, 17.7f,
+                                   18.16f, 18.56f, 18.93f, 19.24f, 19.51f, 19.74f, 19.92f, 20.04f, 20.12f, 20.15f};
+constexpr float kBurstCovers = 11.87f;
+
+// The pop's burst: the turquoise explosion (data/colossus_pop.hpp), one motion playing once from where it is put, no
+// flight and no hit, as Big Bang's explosion.
+// clang-format off
+BT_SHOT_EFFECT pop_shot = {"explosion", 0, 0, {}, {}, -1, 0, 0, 3, 0, {0, -1, -1, -1}, 0, {0, 0}, 1.0f, 0, {-1, -1, -1, -1}};
+// clang-format on
 
 // His hammer's swing throw (GoroKey_Play).
 constexpr float kGoroKick = 2.5f, kGoroKickDecay = 0.1f;
@@ -119,6 +137,9 @@ struct Colossus {
     bool                                              stood = false;
     int                                               trampled[kFloorMonsters] = {};
     int                                               clock = 0;
+    CSHOT_EFFECT                                     *pop = nullptr; // the pop's burst while it plays, in its slot
+    int                                               pop_slot = -1;
+    bool                                              flashing = false;
     bool                                              shrugging = false; // a hit he shrugs off is being reacted to
     BT_ACT_STATUS                                     kept = {};         // what he was doing as it reached him
     std::vector<Spared>                               spared;
@@ -155,7 +176,7 @@ void Enter(Phase phase) {
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(ColossusReset), true);
 
 [[maybe_unused]] const bool kRegistered =
-    (RegisterWeaponShotEffect(ITEM_WEAPON_TALL_HAMMER, WeaponShotForm::Weapon, SummonSmokeEffect(), kSmokeShots, kSummonSmokeFile), true);
+    (RegisterWeaponShotEffect(ITEM_WEAPON_TALL_HAMMER, WeaponShotForm::Weapon, &pop_shot, 1, kColossusPopFile), true);
 
 bool GoroInPlay() {
     return UserStatus != nullptr && Playing(CHARA_GORO);
@@ -221,11 +242,81 @@ void Trample() {
     }
 }
 
+// Where the pop bursts: kColossusPopRise of his height (at the size he is drawn at) over his feet.
+void PopSpot(float *spot) {
+    spot[0] = CharaMain.pos[0];
+    spot[1] = CharaMain.pos[1] + kColossusHeightOf * colossus.applied * kColossusPopRise;
+    spot[2] = CharaMain.pos[2];
+}
+
+// His flash, on him and the hammer in his hand: kColossusPopFlash times k on the game's character tint (0: none).
+void Flash(float k) {
+    for (CCharacter *model : {&CharaMain, NowWeapon}) {
+        if (model == nullptr) {
+            continue;
+        }
+        for (int c = 0; c < 3; c++) {
+            model->ambient_offset[c] = kColossusPopFlash[c] * k;
+        }
+    }
+    colossus.flashing = k > 0.0f;
+}
+
+// The pop's burst put out, if it plays, and his flash with it.
+void PopOut() {
+    if (colossus.pop != nullptr && colossus.pop_slot >= 0) {
+        colossus.pop->active[colossus.pop_slot] = 0;
+    }
+    colossus.pop = nullptr;
+    colossus.pop_slot = -1;
+    if (colossus.flashing) {
+        Flash(0.0f);
+    }
+}
+
+// The light the burst casts on him at a frame of its motion: its opacity (its material alpha stored as 1 - opacity)
+// times how far it has grown toward the size at which it covers him (kBurstCovers), from explosion.chr's grid__czapp6
+// (frames 1 to 30), between its keys.
+float BurstLight(float frame) {
+    auto at = [&](const float(&keys)[30]) {
+        float f = std::clamp(frame, 1.0f, 30.0f) - 1.0f;
+        int   i = std::min(static_cast<int>(f), 28);
+        return keys[i] + (keys[i + 1] - keys[i]) * (f - static_cast<float>(i));
+    };
+    return (1.0f - at(kBurstAlpha)) * std::min(1.0f, at(kBurstScale) / kBurstCovers);
+}
+
+// The flash while the burst plays: as the burst lights him.
+void FlashStep() {
+    CCharacter &burst = colossus.pop->chara[colossus.pop_slot];
+    if (GoroInPlay()) {
+        Flash(BurstLight(burst.motion_type.state.time));
+    }
+}
+
 void Pop() {
     Enter(Phase::Popping);
     colossus.frames = 0;
-    float spot[3] = {CharaMain.pos[0], CharaMain.pos[1], CharaMain.pos[2]};
-    SummonSmokeStart(spot, PlayerYaw(), kColossusPopSmokeScale, &colossus, kColossusSmokeTint);
+    SndSePlay(SE_BOX_OPEN, -1, 0);
+    PopOut();
+}
+
+// The pop's burst, kColossusPopBurstDelay frames into the pop.
+void Burst() {
+    int index = ShotEffectIndex(&pop_shot);
+    if (index < 0) {
+        return;
+    }
+    float spot[3];
+    PopSpot(spot);
+    CSHOT_EFFECT *effect = ShotEffectAt(index);
+    int           slot = SpawnStill(*effect, spot);
+    if (slot >= 0) {
+        effect->chara[slot].SetScale(kColossusPopBurst, kColossusPopBurst, kColossusPopBurst);
+        FadeUnlitFrames(effect->chara[slot].frame, kColossusPopOpacity); // it is drawn added: its colour is its opacity
+        colossus.pop = effect;
+        colossus.pop_slot = slot;
+    }
 }
 
 // The pop's size: small in the smoke, then past his size and back to it, evenly in time.
@@ -265,7 +356,9 @@ void Advance() {
             }
             break;
         case Phase::Popping:
-            SummonSmokeStep();
+            if (colossus.frames == kColossusPopBurstDelay) {
+                Burst();
+            }
             colossus.scale = PopScale(static_cast<float>(colossus.frames));
             if (static_cast<float>(colossus.frames) >= kPopEnd) {
                 colossus.scale = 1.0f;
@@ -612,6 +705,17 @@ void ColossusStep() {
     }
     if (MonstersStepping()) {
         colossus.clock++;
+        // The pop's burst held on him as he grows back, until it has played.
+        if (colossus.pop != nullptr) {
+            if (colossus.pop->active[colossus.pop_slot] == 0) {
+                PopOut();
+            } else {
+                FlashStep();
+                float spot[3];
+                PopSpot(spot);
+                colossus.pop->chara[colossus.pop_slot].SetPosition(spot[0], spot[1], spot[2]);
+            }
+        }
         std::erase_if(colossus.spared, [](Spared &spared) { return !GoesOn(spared); });
         if (GoroInPlay() && colossus.phase != Phase::Shrinking && colossus.phase != Phase::Spent && colossus.phase != Phase::Popping) {
             Grow();
@@ -624,6 +728,7 @@ void ColossusStep() {
         }
     }
     Apply();
+    ColossusLookStep(GoroInPlay() ? colossus.applied : 1.0f);
 }
 
 void ColossusQuiet() {
@@ -631,7 +736,7 @@ void ColossusQuiet() {
 }
 
 void ColossusReset() {
-    SummonSmokeEnd(&colossus);
+    PopOut();
     ColossusQuiet();
     if (colossus.applied != 1.0f) {
         CharaMain.SetScale(1.0f, 1.0f, 1.0f);

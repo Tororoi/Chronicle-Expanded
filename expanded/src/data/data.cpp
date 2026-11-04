@@ -6,17 +6,20 @@
 #include <vector>
 
 #include "expanded/data/boss_model.hpp"
+#include "expanded/data/colossus_pop.hpp"
 #include "expanded/data/data_build.hpp"
 #include "expanded/data/fishing_poses.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/data/gemron_models.hpp"
+#include "expanded/data/goro_shirt.hpp"
 #include "expanded/data/monster_scripts.hpp"
 #include "expanded/data/prop_models.hpp"
 #include "expanded/data/queens_canal.hpp"
 #include "expanded/data/script_damage.hpp"
 #include "expanded/data/spirit_cat.hpp"
-#include "expanded/data/town_model.hpp"
+#include "expanded/data/tall_hammer_silver.hpp"
 #include "expanded/data/toan_grip.hpp"
+#include "expanded/data/town_model.hpp"
 #include "expanded/data/wolf_steve.hpp"
 
 namespace expanded {
@@ -42,7 +45,10 @@ const DataKind kDataKinds[] = {
     {"fishing pose", FishingPoseBuilds},
     {"queens canal", QueensCanalBuilds},
     {"weapon model", WolfSteveBuilds},
+    {"weapon model", TallHammerSilverBuilds},
+    {"effect", ColossusPopBuilds},
     {"character model", ToanGripBuilds},
+    {"character model", GoroShirtBuilds},
 };
 
 } // namespace

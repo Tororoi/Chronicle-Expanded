@@ -15,9 +15,10 @@ namespace expanded {
 // him) evenly from his size to kColossusMost times it over kColossusGrowFrames; letting go keeps the size he reached,
 // and charging again grows him on. kColossusFrames after he first grew he shrinks to kColossusLeast times his size over
 // kColossusShrinkFrames, and kColossusSpentFrames after the shrink began he pops back to his size as the Cactus's copy
-// rises (out of the summon smoke, turquoise, holding small until the smoke's frame kColossusPopFrom, past his size to
-// kColossusPopPeak of it by kColossusPopPeakFrame and settled by kColossusPopFrame); from the shrink to the pop he
-// cannot grow. At any size but his own:
+// rises (in a turquoise explosion kColossusPopBurstDelay frames in, kColossusPopBurst of its size, kColossusPopRise of
+// his height up him, with a kColossusPopFlash flash on him and the hammer; holding small until kColossusPopFrom frames
+// into the pop, past his size to kColossusPopPeak of it by kColossusPopPeakFrame and settled by kColossusPopFrame); from
+// the shrink to the pop he cannot grow. At any size but his own:
 //   - his attack is his size times his weapon's;
 //   - his defense rises by up to kColossusDefense at kColossusMost and falls by as much at kColossusLeast;
 //   - his hammer's hits reach his size times as far, and throw monsters his size times as far (their first step's speed
@@ -32,6 +33,8 @@ namespace expanded {
 //   - his cape drapes at his size;
 //   - his sounds (his voice, and what his motions and his attacks play) sound kColossusPitch semitones lower for each
 //     doubling of his size, as much higher for each halving;
+//   - his shirt turns turquoise and he and his hammer are lit a light gold, all the more the bigger he is
+//     (colossus_look.hpp);
 //   - his charge attack's ground impact is his size times as large, and reaches his size times as far;
 //   - his stride is his size times his own and his walk and run play at his size to the -kColossusStrideRate (a
 //     little slower big, a little quicker small), so a step carries him his size to the 1 - kColossusStrideRate;
@@ -41,10 +44,15 @@ namespace expanded {
 inline constexpr float kColossusMost = 2.0f, kColossusLeast = 0.5f, kColossusSwitchSize = 1.5f;
 inline constexpr int   kColossusGrowFrames = 300; // from his size to kColossusMost
 inline constexpr int   kColossusFrames = 1800, kColossusShrinkFrames = 120, kColossusSpentFrames = 720;
-inline constexpr float kColossusPopFrom = 6.5f, kColossusPopPeakFrame = 10.6f, kColossusPopFrame = 12.0f; // the smoke's
+inline constexpr float kColossusPopFrom = 9.0f, kColossusPopPeakFrame = 16.0f, kColossusPopFrame = 18.0f; // since it began
 inline constexpr float kColossusPopPeak = 3.4f / 3.0f;
-inline constexpr float kColossusPopSmokeScale = 0.5f;
-inline constexpr float kColossusSmokeTint[3] = {0.3f, 1.6f, 1.4f}; // the smoke's pink to turquoise
+inline constexpr float kColossusPopBurst = 0.3f;   // the turquoise explosion's size, of its own
+inline constexpr float kColossusPopOpacity = 0.5f; // of its own
+inline constexpr int   kColossusPopBurstDelay = 2; // frames into the pop
+inline constexpr float kColossusPopRise = 0.25f;   // where it bursts, of his height over his feet
+// His flash in the burst, his and the hammer's, on the game's character tint (ambient_offset, 0-255), as the burst
+// lights him: up as it bursts out over him, all of it once it covers him, fading as it fades.
+inline constexpr float kColossusPopFlash[3] = {100.0f, 200.0f, 200.0f};
 inline constexpr int   kColossusDefense = 15;
 inline constexpr int   kColossusTrampleFrames = 30;
 inline constexpr float kColossusTrampleShare = 0.25f;
