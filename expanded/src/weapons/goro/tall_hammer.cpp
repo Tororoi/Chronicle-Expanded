@@ -299,6 +299,10 @@ void Pop() {
     colossus.frames = 0;
     SndSePlay(SE_BOX_OPEN, -1, 0);
     PopOut();
+}
+
+// The pop's burst, kColossusPopBurstDelay frames into the pop.
+void Burst() {
     int index = ShotEffectIndex(&pop_shot);
     if (index < 0) {
         return;
@@ -352,6 +356,9 @@ void Advance() {
             }
             break;
         case Phase::Popping:
+            if (colossus.frames == kColossusPopBurstDelay) {
+                Burst();
+            }
             colossus.scale = PopScale(static_cast<float>(colossus.frames));
             if (static_cast<float>(colossus.frames) >= kPopEnd) {
                 colossus.scale = 1.0f;
