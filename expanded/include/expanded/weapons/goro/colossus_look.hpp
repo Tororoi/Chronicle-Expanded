@@ -7,10 +7,9 @@ namespace expanded {
 // game's frame tint, kColossusTint, and the hammer the character tint, kColossusHammerTint, each by his share of the way
 // from his size to kColossusMost (none at his size or smaller, all of it at kColossusMost). The sheets are drawn from
 // their baked pictures, so the fade is written into those (a sheet at another size, a texture pack's, is left as it is).
-inline constexpr float kColossusTint[3] = {140.0f, 120.0f, 70.0f}; // light gold, added to the ambient (0-255) at kColossusMost
-// The hammer in his hand, lit whole by the game's character tint (its ambient_offset) the same way: kColossusHammerTint at
-// kColossusMost.
-inline constexpr float kColossusHammerTint[3] = {100.0f, 100.0f, 100.0f};
+inline constexpr float kColossusTint[3] = {70.0f, 60.0f, 35.0f}; // light gold, added to the ambient (0-255) at kColossusMost
+// The hammer in his hand, lit whole by the game's character tint (its ambient_offset) in the same light gold.
+inline constexpr const float (&kColossusHammerTint)[3] = kColossusTint;
 
 // His share of the look at a size (1: his own).
 float ColossusLookShare(float size);
