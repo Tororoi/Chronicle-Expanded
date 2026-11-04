@@ -15,9 +15,10 @@ namespace expanded {
 // him) evenly from his size to kColossusMost times it over kColossusGrowFrames; letting go keeps the size he reached,
 // and charging again grows him on. kColossusFrames after he first grew he shrinks to kColossusLeast times his size over
 // kColossusShrinkFrames, and kColossusSpentFrames after the shrink began he pops back to his size as the Cactus's copy
-// rises (in a turquoise explosion, kColossusPopBurst of its size, on the middle of him; holding small until
-// kColossusPopFrom frames into the pop, past his size to kColossusPopPeak of it by kColossusPopPeakFrame and settled by
-// kColossusPopFrame); from the shrink to the pop he cannot grow. At any size but his own:
+// rises (in a turquoise explosion, kColossusPopBurst of its size, kColossusPopRise of his height up him, with a
+// kColossusPopFlash flash on him; holding small until kColossusPopFrom frames into the pop, past his size to
+// kColossusPopPeak of it by kColossusPopPeakFrame and settled by kColossusPopFrame); from the shrink to the pop he
+// cannot grow. At any size but his own:
 //   - his attack is his size times his weapon's;
 //   - his defense rises by up to kColossusDefense at kColossusMost and falls by as much at kColossusLeast;
 //   - his hammer's hits reach his size times as far, and throw monsters his size times as far (their first step's speed
@@ -45,7 +46,11 @@ inline constexpr int   kColossusGrowFrames = 300; // from his size to kColossusM
 inline constexpr int   kColossusFrames = 1800, kColossusShrinkFrames = 120, kColossusSpentFrames = 720;
 inline constexpr float kColossusPopFrom = 9.0f, kColossusPopPeakFrame = 16.0f, kColossusPopFrame = 18.0f; // since it began
 inline constexpr float kColossusPopPeak = 3.4f / 3.0f;
-inline constexpr float kColossusPopBurst = 0.48f; // the turquoise explosion's size, of its own
+inline constexpr float kColossusPopBurst = 0.384f; // the turquoise explosion's size, of its own
+inline constexpr float kColossusPopRise = 0.35f;   // where it bursts, of his height over his feet
+// His flash in the burst, on the game's character tint (ambient_offset, 0-255): all of it until he is back to his size,
+// then fading with the rest of the burst, gone as it ends.
+inline constexpr float kColossusPopFlash[3] = {100.0f, 200.0f, 200.0f};
 inline constexpr int   kColossusDefense = 15;
 inline constexpr int   kColossusTrampleFrames = 30;
 inline constexpr float kColossusTrampleShare = 0.25f;

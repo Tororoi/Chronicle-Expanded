@@ -130,6 +130,8 @@ struct Colossus {
     int                                               clock = 0;
     CSHOT_EFFECT                                     *pop = nullptr; // the pop's burst while it plays, in its slot
     int                                               pop_slot = -1;
+    float                                             flash_from = -1.0f; // the burst's motion time he was back to his size at
+    bool                                              flashing = false;
     bool                                              shrugging = false; // a hit he shrugs off is being reacted to
     BT_ACT_STATUS                                     kept = {};         // what he was doing as it reached him
     std::vector<Spared>                               spared;
@@ -232,20 +234,50 @@ void Trample() {
     }
 }
 
-// Where the pop bursts: the middle of him, half his height (at the size he is drawn at) over his feet.
+// Where the pop bursts: kColossusPopRise of his height (at the size he is drawn at) over his feet.
 void PopSpot(float *spot) {
     spot[0] = CharaMain.pos[0];
-    spot[1] = CharaMain.pos[1] + kColossusHeightOf * colossus.applied / 2.0f;
+    spot[1] = CharaMain.pos[1] + kColossusHeightOf * colossus.applied * kColossusPopRise;
     spot[2] = CharaMain.pos[2];
 }
 
-// The pop's burst put out, if it plays.
+// His flash: kColossusPopFlash times k on the game's character tint (0: none).
+void Flash(float k) {
+    for (int c = 0; c < 3; c++) {
+        CharaMain.ambient_offset[c] = kColossusPopFlash[c] * k;
+    }
+    colossus.flashing = k > 0.0f;
+}
+
+// The pop's burst put out, if it plays, and his flash with it.
 void PopOut() {
     if (colossus.pop != nullptr && colossus.pop_slot >= 0) {
         colossus.pop->active[colossus.pop_slot] = 0;
     }
     colossus.pop = nullptr;
     colossus.pop_slot = -1;
+    colossus.flash_from = -1.0f;
+    if (colossus.flashing) {
+        Flash(0.0f);
+    }
+}
+
+// The flash while the burst plays: all of it until he is back to his size, then fading with what is left of the
+// burst's motion from there, gone as the burst ends.
+void FlashStep() {
+    CCharacter &burst = colossus.pop->chara[colossus.pop_slot];
+    if (!GoroInPlay() || burst.motion_type.motion_info == nullptr) {
+        return;
+    }
+    float time = burst.motion_type.state.time, end = static_cast<float>(burst.motion_type.motion_info[pop_shot.motion[0]].end);
+    float k = 1.0f;
+    if (colossus.phase != Phase::Popping) {
+        if (colossus.flash_from < 0.0f) {
+            colossus.flash_from = time;
+        }
+        k = end > colossus.flash_from ? std::clamp((end - time) / (end - colossus.flash_from), 0.0f, 1.0f) : 0.0f;
+    }
+    Flash(k);
 }
 
 void Pop() {
@@ -654,9 +686,9 @@ void ColossusStep() {
         // The pop's burst held on him as he grows back, until it has played.
         if (colossus.pop != nullptr) {
             if (colossus.pop->active[colossus.pop_slot] == 0) {
-                colossus.pop = nullptr;
-                colossus.pop_slot = -1;
+                PopOut();
             } else {
+                FlashStep();
                 float spot[3];
                 PopSpot(spot);
                 colossus.pop->chara[colossus.pop_slot].SetPosition(spot[0], spot[1], spot[2]);
