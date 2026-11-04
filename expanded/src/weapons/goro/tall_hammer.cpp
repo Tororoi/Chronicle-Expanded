@@ -14,6 +14,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/summon_smoke.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -52,16 +53,18 @@ enum class Phase {
 };
 
 struct Colossus {
-    Phase phase = Phase::Normal;
-    float scale = 1.0f;
-    int   grown = 0;          // frames he has grown for (Grown)
-    int   frames = 0;         // in the phase (Grown: since he first grew; Spent: since the shrink began)
-    float shrink_from = 1.0f; // his size as the shrink began
-    float applied = 1.0f;     // the size last put on the model
-    float last[2] = {};       // where he stood the step before
-    bool  stood = false;
-    int   trampled[kFloorMonsters] = {};
-    int   clock = 0;
+    Phase         phase = Phase::Normal;
+    float         scale = 1.0f;
+    int           grown = 0;          // frames he has grown for (Grown)
+    int           frames = 0;         // in the phase (Grown: since he first grew; Spent: since the shrink began)
+    float         shrink_from = 1.0f; // his size as the shrink began
+    float         applied = 1.0f;     // the size last put on the model
+    float         last[2] = {};       // where he stood the step before
+    bool          stood = false;
+    int           trampled[kFloorMonsters] = {};
+    int           clock = 0;
+    bool          shrugging = false; // a hit he shrugs off is being reacted to
+    BT_ACT_STATUS kept = {};         // what he was doing as it reached him
 };
 
 Colossus colossus;
@@ -143,10 +146,12 @@ void Trample() {
         }
         float          centre[4];
         float          radius = MonsterBodyCentre(unit, monster, centre);
-        COLLISION_HIT *hit = PlantWeaponHit(centre, ColossusAttack(NowWeaponHave->attack), 1, radius);
+        int            damage = std::max(1, static_cast<int>(std::lround(ColossusAttack(NowWeaponHave->attack) * kColossusTrampleShare)));
+        COLLISION_HIT *hit = PlantWeaponHit(centre, damage, 1, radius);
         if (hit == nullptr) {
             return;
         }
+        hit->weapon_flags |= kTrampleMark;
         colossus.trampled[monster] = colossus.clock;
         LogEvent("colossus", std::format("\"trample\":{}", monster));
         float origin[4] = {CharaMain.pos[0], CharaMain.pos[1], CharaMain.pos[2], 1.0f};
@@ -260,6 +265,37 @@ void ColossusShotPoint(float *point) {
     if (Sized()) {
         point[1] = CharaMain.pos[1] + (point[1] - CharaMain.pos[1]) * colossus.scale;
     }
+}
+
+bool AtMost() {
+    return GoroInPlay() && colossus.scale >= kColossusMost;
+}
+
+bool ColossusShrugsOff(int kind) {
+    colossus.shrugging = AtMost() && kind == kLightHit;
+    if (colossus.shrugging) {
+        colossus.kept = BtActStatus;
+    }
+    return colossus.shrugging;
+}
+
+void ColossusShrugged(bool blocked) {
+    if (colossus.shrugging && blocked) {
+        BtActStatus = colossus.kept;
+    }
+    colossus.shrugging = false;
+}
+
+int ColossusHitKind(int kind) {
+    if (!AtMost()) {
+        return kind;
+    }
+    return kind == kGuardBreakingHit ? kKnockbackHit : kind == kKnockbackHit ? kLightHit
+                                                                             : kind;
+}
+
+bool ColossusTrample(const COLLISION_HIT &hit) {
+    return (hit.weapon_flags & kTrampleMark) != 0;
 }
 
 bool ColossusTriggersSwitches() {

@@ -199,6 +199,12 @@ float MonsterBlockRadius(float radius);
 float PlayerHurtHeight(float height);
 float PlayerHurtReach();
 
+// A monster's hit reaching the player (BtCheckDamageProc): whether it is blocked as the guard blocks it (asked before the
+// game takes the player out of his action, which a feature that blocks it may keep: PlayerHitReacted), and the kind it
+// lands as (COLLISION_HIT::kind: 3 guard-breaking, 2 knockback, 4 light), the hit's own as the features change them.
+bool PlayerHitShrugged(const COLLISION_HIT &hit);
+int  PlayerHitKind(const COLLISION_HIT &hit);
+
 // Whether the player stands on a hit switch (a door's PT_HIT_MARKER event at pos, radius its own, for chara_no) and
 // sets it off as a hit on it would (CDungeonEventMan::CheckCollisionDataHit).
 bool HitSwitchSteppedOn(int chara_no, const float *pos, float radius);

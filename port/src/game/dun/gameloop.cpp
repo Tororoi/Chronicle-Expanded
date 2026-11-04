@@ -3990,6 +3990,11 @@ int BtCheckDamageProc() {
             if (BtActStatus.action_on == 6) {
                 blown = taken;
             }
+#ifdef CHRONICLE_EXPANDED
+            if (expanded::PlayerHitShrugged(NowColData->hit[hit_no])) {
+                blown = 1;
+            }
+#endif
 
             BombInfo.aiming = false;
             BombInfo.throw_step = -1;
@@ -4016,9 +4021,11 @@ int BtCheckDamageProc() {
             int            damage = NowColData->Get(hit_no)->damage;
             int            guard = UserStatus->defense[static_cast<int>(UserStatus->cur_chara)];
             COLLISION_HIT *hit = &NowColData->hit[hit_no];
+            int            kind = hit->kind;
 #ifdef CHRONICLE_EXPANDED
             expanded::PlayerHitReached(*hit);
             guard = expanded::PlayerDefense(UserStatus->cur_chara, guard);
+            kind = expanded::PlayerHitKind(*hit);
 #endif
 
             if (StatusErrCheck(AILMENT_STAMINA) != 0) {
@@ -4123,7 +4130,7 @@ int BtCheckDamageProc() {
                 damage = UserStatus->max_hp[static_cast<int>(UserStatus->cur_chara)] >> 1;
             }
 
-            if (hit->kind == 3) {
+            if (kind == 3) {
                 sceVu0CopyVector(blow, hit->pos);
                 GamePad.SetVibration(1, 0xE6, 0x16);
 
@@ -4175,7 +4182,7 @@ int BtCheckDamageProc() {
                 }
             }
 
-            if (hit->kind == 2 || hit->kind == 4) {
+            if (kind == 2 || kind == 4) {
                 sceVu0FVECTOR at;
                 sceVu0FVECTOR away;
 
@@ -4252,7 +4259,7 @@ int BtCheckDamageProc() {
                     driveNoInterpolate = 1;
                     BtActStatus.recoil_frames = 0x50;
 
-                    if (hit->kind == 4) {
+                    if (kind == 4) {
                         BtActStatus.recoil_frames = 8;
                         setUnitAmbientAnime(10.0f, 1.0f, 255.0f, 0.0f, 0.0f);
                     } else {
@@ -4263,7 +4270,7 @@ int BtCheckDamageProc() {
 
 #ifdef CHRONICLE_EXPANDED
             // Blocked: a knockback by the guard, or a guard-breaking hit by its hold.
-            expanded::PlayerHitReacted((blown != 0 && (hit->kind == 2 || hit->kind == 4)) || (hit->kind == 3 && BtActStatus.action_no == 9), *hit);
+            expanded::PlayerHitReacted((blown != 0 && (kind == 2 || kind == 4)) || (kind == 3 && BtActStatus.action_no == 9), *hit);
 #endif
         }
     }

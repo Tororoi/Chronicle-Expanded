@@ -9,6 +9,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
@@ -184,7 +185,8 @@ TEST_F(Colossus, AtFullSizeAMonsterHeWalksIntoTakesAHammerHit) {
     ASSERT_EQ(Hits(), 1);
     for (int i = 0; i < 96; i++) {
         if (NowColData->active[i] != 0) {
-            EXPECT_EQ(NowColData->hit[i].damage, 200);
+            EXPECT_EQ(NowColData->hit[i].damage, 50); // a quarter of a hammer hit at twice his attack
+            EXPECT_FALSE(expanded::HitWearsWeapon(NowColData->hit[i]));
         }
     }
     CharaMain.pos[2] -= 1.0f;
@@ -224,4 +226,46 @@ TEST_F(Colossus, AnotherMemberIsDrawnAtHisOwnSize) {
     floor_.status().cur_chara = CHARA_GORO;
     Steps(1);
     EXPECT_FLOAT_EQ(CharaMain.scale[1], expanded::kColossusMost);
+}
+
+TEST_F(Colossus, AtTwiceHisSizeMonstersHitsLandATierLighter) {
+    COLLISION_HIT heavy = {}, regular = {}, light = {};
+    heavy.kind = expanded::kGuardBreakingHit;
+    regular.kind = expanded::kKnockbackHit;
+    light.kind = expanded::kLightHit;
+    Grow(expanded::kColossusGrowFrames - 1);
+    for (const COLLISION_HIT *hit : {&heavy, &regular, &light}) {
+        EXPECT_EQ(expanded::PlayerHitKind(*hit), hit->kind); // not yet at his full size
+        EXPECT_FALSE(expanded::PlayerHitShrugged(*hit));
+    }
+    Grow(1);
+    EXPECT_EQ(expanded::PlayerHitKind(heavy), expanded::kKnockbackHit);
+    EXPECT_EQ(expanded::PlayerHitKind(regular), expanded::kLightHit);
+    EXPECT_FALSE(expanded::PlayerHitShrugged(heavy));
+    EXPECT_FALSE(expanded::PlayerHitShrugged(regular));
+    EXPECT_TRUE(expanded::PlayerHitShrugged(light));
+    floor_.status().cur_chara = CHARA_TOAN;
+    EXPECT_EQ(expanded::PlayerHitKind(heavy), expanded::kGuardBreakingHit);
+    EXPECT_FALSE(expanded::PlayerHitShrugged(light));
+}
+
+TEST_F(Colossus, AShruggedOffHitLeavesHimInWhatHeWasDoing) {
+    Grow(expanded::kColossusGrowFrames);
+    Charge(true);
+    COLLISION_HIT light = {};
+    light.kind = expanded::kLightHit;
+    ASSERT_TRUE(expanded::PlayerHitShrugged(light));
+    BtActStatus.action_on = 0; // the game takes him out of his action
+    BtActStatus.action_gauge = 100.0f;
+    expanded::PlayerHitReacted(true, light);
+    EXPECT_EQ(BtActStatus.action_on, 1);
+    EXPECT_EQ(BtActStatus.action_no, 13);
+    EXPECT_EQ(BtActStatus.action_step, 46);
+    // A hit that lands takes him out of it as the game does.
+    COLLISION_HIT regular = {};
+    regular.kind = expanded::kKnockbackHit;
+    ASSERT_FALSE(expanded::PlayerHitShrugged(regular));
+    BtActStatus.action_on = 0;
+    expanded::PlayerHitReacted(false, regular);
+    EXPECT_EQ(BtActStatus.action_on, 0);
 }

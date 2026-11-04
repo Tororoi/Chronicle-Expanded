@@ -1,5 +1,9 @@
 #pragma once
 
+namespace dc::game {
+struct COLLISION_HIT;
+} // namespace dc::game
+
 namespace expanded {
 
 // Tall Hammer "Colossus": with the Tall Hammer in Goro's hand, holding a full charge grows Goro (and the hammer with
@@ -15,7 +19,10 @@ namespace expanded {
 //     times its square root: a throw carries speed^2 over twice its decay);
 //   - the height monsters' hits and shots find him at is his size times his own, his body (where monsters stop) his
 //     size times as wide, and a hit reaches him (his size - 1) times that width further out;
-//   - at kColossusMost, a monster he walks into takes a hammer hit, once every kColossusTrampleFrames;
+//   - at kColossusMost, a monster he walks into takes kColossusTrampleShare of a hammer hit (his attack at his size),
+//     wearing no weapon HP, once every kColossusTrampleFrames;
+//   - at kColossusMost, monsters' hits land a tier lighter: a guard-breaking hit as a knockback, a knockback as a light
+//     hit, and a light hit blocked as his guard would block it, without taking him out of what he was doing;
 //   - at kColossusSwitchSize or more, stepping onto a hammer switch sets it off.
 // Times are game frames, counted while the dungeon plays (not paused, no event). A change of floor puts him back.
 inline constexpr float kColossusMost = 2.0f, kColossusLeast = 0.5f, kColossusSwitchSize = 1.5f;
@@ -27,6 +34,7 @@ inline constexpr float kColossusPopSmokeScale = 0.5f;
 inline constexpr float kColossusSmokeTint[3] = {0.3f, 1.6f, 1.4f}; // the smoke's pink to turquoise
 inline constexpr int   kColossusDefense = 15;
 inline constexpr int   kColossusTrampleFrames = 30;
+inline constexpr float kColossusTrampleShare = 0.25f;
 inline constexpr float kColossusBodyRadius = 6.0f; // the player's body, as monsters stop at it (MoveCheck2)
 
 // Goro's size now (1: his own).
@@ -41,6 +49,16 @@ float ColossusHeight(float height);
 float ColossusHurtReach();
 float ColossusBlockRadius(float radius);
 void  ColossusShotPoint(float *point);
+// A monster's hit on him: whether it is blocked, and the kind (COLLISION_HIT::kind) it lands as, kind its own. A hit he
+// shrugs off leaves him in what he was doing: ColossusShrugsOff, asked before the game takes him out of his action,
+// keeps it, and ColossusShrugged, once the game has reacted (blocked: the guard's push-back, sound and spark), puts it
+// back.
+bool ColossusShrugsOff(int kind);
+void ColossusShrugged(bool blocked);
+int  ColossusHitKind(int kind);
+// Whether a hit is one of his walk-in hits (it wears no weapon HP).
+bool ColossusTrample(const COLLISION_HIT &hit);
+
 // Whether he stands big enough to set off a hammer switch, and on the one for chara_no at pos, radius its own (within
 // its radius across, its height within his).
 bool ColossusTriggersSwitches();

@@ -1,5 +1,6 @@
 #include "expanded/dungeon/dungeon_hooks.hpp"
 
+#include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/debug/stage.hpp"
@@ -206,6 +207,7 @@ void PlayerHitReached(COLLISION_HIT &hit) {
 
 void PlayerHitReacted(bool blocked, const COLLISION_HIT &hit) {
     DivineGuardBlocked(blocked);
+    ColossusShrugged(blocked);
     LambGuardBlocked(blocked, hit);
     RoughCounterBlocked(blocked, hit);
 }
@@ -492,7 +494,7 @@ std::optional<MonsterDamageResult> MonsterFriendlyHit(CMonstorUnit &unit, int sp
 }
 
 bool HitWearsWeapon(const COLLISION_HIT &hit) {
-    return !DesertBloomPrick(hit) && !CurseOfBabelCatch(hit) && !UngagaBlastHit(hit) && !BigRockHit(hit);
+    return !DesertBloomPrick(hit) && !CurseOfBabelCatch(hit) && !UngagaBlastHit(hit) && !BigRockHit(hit) && !ColossusTrample(hit);
 }
 
 bool MonsterPathBlockedBy(const CMonstorUnit &unit, int monster, int other) {
@@ -535,6 +537,14 @@ float PlayerHurtHeight(float height) {
 
 float PlayerHurtReach() {
     return ColossusHurtReach();
+}
+
+bool PlayerHitShrugged(const COLLISION_HIT &hit) {
+    return ColossusShrugsOff(hit.kind);
+}
+
+int PlayerHitKind(const COLLISION_HIT &hit) {
+    return ColossusHitKind(hit.kind);
 }
 
 bool HitSwitchSteppedOn(int chara_no, const float *pos, float radius) {
