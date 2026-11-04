@@ -890,7 +890,13 @@ void DunMoveChara() {
                                                             BattleActionPlay_Jinn(&CharaMain, 0);
                                                             break;
                                                         case CHARA_GORO:
+#ifdef CHRONICLE_EXPANDED
+                                                            SndSetSePitch(expanded::ColossusSoundPitch());
+#endif
                                                             GoroKey_Play();
+#ifdef CHRONICLE_EXPANDED
+                                                            SndSetSePitch(0.0f);
+#endif
                                                             break;
                                                         case CHARA_RUBY:
                                                             BattleActionPlay_Ruby(&CharaMain, 0);

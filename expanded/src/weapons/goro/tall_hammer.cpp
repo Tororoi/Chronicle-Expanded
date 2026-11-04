@@ -25,9 +25,11 @@
 #include "expanded/weapons/summon_smoke.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/weapon_hit.hpp"
+#include "hitmark.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
+#include "snd.hpp"
 #include "userstatus.hpp"
 
 namespace expanded {
@@ -356,6 +358,32 @@ float ColossusScale() {
     return colossus.scale;
 }
 
+float ColossusSoundPitch() {
+    return GoroInPlay() && colossus.applied != 1.0f ? -kColossusPitch * std::log2(colossus.applied) : 0.0f;
+}
+
+void ColossusHitMark(CHitMark &mark, const COLLISION_HIT &hit) {
+    float scale = ColossusImpactScale(hit);
+    if (scale == 1.0f) {
+        return;
+    }
+    // The burst as the game threw it, his size times as large and as far: its marks, their throw and pull, and how
+    // fast they shrink (each lasting as long).
+    for (int i = 0; i < HIT_MARK_MAX; i++) {
+        for (int k = 0; k < 3; k++) {
+            mark.offset[i][k] *= scale;
+            mark.velocity[i][k] *= scale;
+        }
+        mark.size[i] *= scale;
+    }
+    mark.gravity *= scale;
+    mark.shrink *= scale;
+}
+
+float ColossusImpactScale(const COLLISION_HIT &hit) {
+    return hit.owner == CHARA_GORO && GoroInPlay() ? colossus.applied : 1.0f;
+}
+
 float ColossusCameraScale() {
     return colossus.applied;
 }
@@ -581,6 +609,7 @@ void ColossusStep() {
     if (UserStatus == nullptr) {
         return;
     }
+    SndSetVoicePitch(ColossusSoundPitch());
     if (MonstersStepping()) {
         colossus.clock++;
         std::erase_if(colossus.spared, [](Spared &spared) { return !GoesOn(spared); });
@@ -597,8 +626,13 @@ void ColossusStep() {
     Apply();
 }
 
+void ColossusQuiet() {
+    SndSetVoicePitch(0.0f);
+}
+
 void ColossusReset() {
     SummonSmokeEnd(&colossus);
+    ColossusQuiet();
     if (colossus.applied != 1.0f) {
         CharaMain.SetScale(1.0f, 1.0f, 1.0f);
     }

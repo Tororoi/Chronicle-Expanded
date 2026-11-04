@@ -227,6 +227,7 @@ void DungeonMonstersCleared(bool drop_stars) {
     ZeusShotReset();
     OwnSoundsReset();
     ColdStorageCleared();
+    ColossusQuiet();
 }
 
 void DungeonMonstersTick() {

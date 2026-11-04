@@ -5,6 +5,7 @@
 namespace dc::game {
 class CCameraFollow;
 class CCharacter;
+class CHitMark;
 struct COLLISION_HIT;
 class CSHOT_EFFECT;
 } // namespace dc::game
@@ -30,6 +31,9 @@ namespace expanded {
 //     hit, and a light hit blocked as his guard would block it, without taking him out of what he was doing;
 //   - at kColossusSwitchSize or more, stepping onto a hammer switch sets it off;
 //   - his cape drapes at his size;
+//   - his sounds (his voice, and what his motions and his attacks play) sound kColossusPitch semitones lower for each
+//     doubling of his size, as much higher for each halving;
+//   - his weapon's hits throw their sparks and element bursts his size times as large;
 //   - his stride is his size times his own and his walk and run play at his size to the -kColossusStrideRate (a
 //     little slower big, a little quicker small), so a step carries him his size to the 1 - kColossusStrideRate;
 //   - the dungeon camera keeps his size times what it keeps from him (its follow point's rise above him, its distance
@@ -46,6 +50,7 @@ inline constexpr int   kColossusDefense = 15;
 inline constexpr int   kColossusTrampleFrames = 30;
 inline constexpr float kColossusTrampleShare = 0.25f;
 inline constexpr float kColossusStrideRate = 0.25f;
+inline constexpr float kColossusPitch = 2.0f;      // semitones per doubling of his size
 inline constexpr float kColossusBodyRadius = 6.0f; // the player's body, as monsters stop at it (MoveCheck2)
 
 // Goro's size now (1: his own).
@@ -56,6 +61,16 @@ float ColossusScale();
 // Hook: the dungeon camera follows him (movechara), before the camera pass (autoCamTrial) keeps it in its limits.
 float ColossusCameraScale();
 void  ColossusCamera(CCameraFollow &camera, const float *pos);
+
+// How many semitones his sounds are shifted by at his size (0 with another member out, or at his own); his voice
+// shifted every dungeon step (ColossusStep) and not as the floor is left (ColossusQuiet, DungeonMonstersCleared).
+float ColossusSoundPitch();
+void  ColossusQuiet();
+
+// How many times as large his weapon's hit's impact is (1 for anyone else's), and a hit's sparks (CHitMark, as the game
+// threw them off a monster) made so (CheckDmg).
+float ColossusImpactScale(const COLLISION_HIT &hit);
+void  ColossusHitMark(CHitMark &mark, const COLLISION_HIT &hit);
 
 // How far the stick moves him (movechara, times its velocity), and his walk's play rate at his size (a motion step,
 // PlayerMotionStepping).

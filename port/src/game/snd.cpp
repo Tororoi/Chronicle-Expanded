@@ -2390,10 +2390,36 @@ int SndSoundSyncBG() {
     return 0;
 }
 
+namespace {
+
+float g_se_pitch = 0.0f;
+float g_voice_pitch = 0.0f;
+
+// The member in play's voice set.
+bool VoiceSe(int se_no) {
+    return se_no >= 400 && se_no < 500;
+}
+
+// The shift the effect se_no plays at, set on the sound until the next.
+void SetEffectPitch(int se_no) {
+    CSnd.SE_SetPitch(VoiceSe(se_no) ? g_voice_pitch : g_se_pitch);
+}
+
+} // namespace
+
+void SndSetSePitch(float semitones) {
+    g_se_pitch = semitones;
+}
+
+void SndSetVoicePitch(float semitones) {
+    g_voice_pitch = semitones;
+}
+
 void SndSePlay(int se_no, int vol, int voice) {
     const SND_SE_INFO *info = GetSeInfo(se_no);
 
     if (info != nullptr) {
+        SetEffectPitch(se_no);
         if (info->vol_no < 0) {
             vol = 127;
         }
@@ -2405,6 +2431,8 @@ void SndSePlay(int se_no, int vol, int voice) {
         } else {
             CSnd.SE_Play(port, info->bank, info->prog, vol, voice);
         }
+
+        CSnd.SE_SetPitch(0.0f);
     }
 }
 
@@ -2424,7 +2452,9 @@ void SndSePlay(int se_no, float volume, float pan, int voice) {
             vol = 127;
         }
 
+        SetEffectPitch(se_no);
         CSnd.SE_Play(GetPortNo(se_no), info->bank, info->prog, hw_pan, 127, vol, voice);
+        CSnd.SE_SetPitch(0.0f);
     }
 }
 

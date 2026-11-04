@@ -2899,8 +2899,12 @@ void motionDrive() {
 
 #ifdef CHRONICLE_EXPANDED
         expanded::PlayerMotionStepping(CharaMain, chara);
+        SndSetSePitch(expanded::ColossusSoundPitch());
 #endif
         CharaMain.Step();
+#ifdef CHRONICLE_EXPANDED
+        SndSetSePitch(0.0f);
+#endif
 
         if (chara == CHARA_XIAO) {
             NowWeapon->Step();

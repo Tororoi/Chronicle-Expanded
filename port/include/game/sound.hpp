@@ -199,6 +199,12 @@ public:
     void SE_Play(int port, int bank, int program, int voice);
 
     /**
+     * Sets how many semitones the effects played from here on sound above their own pitch (below for a negative
+     * shift), as a pitch bend over each sounding split's own range; 0 for their own.
+     */
+    void SE_SetPitch(float semitones);
+
+    /**
      * Sets the volume of a sounding effect.
      */
     void SE_SetVol(int port, int bank, int program, int volume, int voice);

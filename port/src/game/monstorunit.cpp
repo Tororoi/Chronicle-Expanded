@@ -57,6 +57,7 @@
 #include "expanded/enemies/species.hpp"
 #include "expanded/status/confuse.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/toan/drain_seeker.hpp"
 #endif
 
@@ -1372,6 +1373,9 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
                                 guard_direction[2] = 0;
                                 guard_direction[3] = 1;
                                 HitMark[hitCnt].Set(effect[current_monster].position[i], guard_direction, HIT_MARK_GUARD, 0.8f, 0.005f, 0.02f, 1.3f, 32, monster[current_monster].ground_y);
+#ifdef CHRONICLE_EXPANDED
+                                expanded::ColossusHitMark(HitMark[hitCnt], NowColData->hit[hit]);
+#endif
                                 HitPointMark[hitCnt].Set(effect[current_monster].position[i]);
                                 SndSePlay(SE_HIT_BLOCKED, -1, 0);
 #ifdef CHRONICLE_EXPANDED
@@ -1505,6 +1509,9 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
                     const float mark_scale = 1.0f;
                     const float mark_spread = 1.0f / 2.0f;
                     HitMark[hitCnt].Set(effect[current_monster].position[i], hit_direction, HIT_MARK_HIT, mark_spread, 0.01f, 0.02f, mark_scale, 32, monster[current_monster].ground_y);
+#ifdef CHRONICLE_EXPANDED
+                    expanded::ColossusHitMark(HitMark[hitCnt], *record);
+#endif
                     HitPointMark[hitCnt].Set(effect[current_monster].position[i]);
 
                     if (hitCnt == 15) {
@@ -1518,7 +1525,12 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
                         WEAPON_HAVE *weapon = &status->chara_weapons[owner][status->equipped_weapon_slot[owner]];
                         auto         strength = static_cast<float>(weapon->elem[weapon->best_elem]);
                         static int   element_fx_slot = 0;
-                        CWeaponElFx[element_fx_slot].Set(&effect[current_monster].position[i], effect[current_monster].position[i], strength, element, monster[current_monster].body_radius);
+#ifdef CHRONICLE_EXPANDED
+                        float radius = monster[current_monster].body_radius * expanded::ColossusImpactScale(*record);
+#else
+                        float radius = monster[current_monster].body_radius;
+#endif
+                        CWeaponElFx[element_fx_slot].Set(&effect[current_monster].position[i], effect[current_monster].position[i], strength, element, radius);
 
                         if (element_fx_slot >= 3) {
                             element_fx_slot = 0;
@@ -1629,7 +1641,7 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
                         }
                     }
 
-                    int  index = GetCurrentMonsterIndex();
+                    int index = GetCurrentMonsterIndex();
 #ifdef CHRONICLE_EXPANDED
                     float defense = (float) expanded::MonsterDefense(*this, index, monster[index].defense);
 #else
@@ -1678,7 +1690,7 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
 #ifdef CHRONICLE_EXPANDED
                         multiplier = expanded::MonsterSpherePercent(*this, index, i, owner, NowColData->hit[hit], multiplier);
 #endif
-                        auto  damage_scale = static_cast<float>(multiplier);
+                        auto damage_scale = static_cast<float>(multiplier);
                         damage = damage / 100.0f * damage_scale;
 
                         if (damage <= 0.0f) {
@@ -2612,8 +2624,8 @@ int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDat
 #else
     MONSTOR_MODEL *description = &MonstorTable[model_no];
 #endif
-    CFrameAttr     attr;
-    int            file_size = 0;
+    CFrameAttr attr;
+    int        file_size = 0;
     attr.fog_enable = true;
     std::string filename = MonstorFilePath(description->model_name[0], "chr");
 #ifdef CHRONICLE_EXPANDED

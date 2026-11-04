@@ -14,6 +14,7 @@
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "hitmark.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -358,6 +359,43 @@ TEST_F(Colossus, HisCapeDrapesAtHisSize) {
     EXPECT_FLOAT_EQ(cape.rest[2][3][0], 1.5f);
     EXPECT_FLOAT_EQ(bound.extent[0], 4.0f);
     CharaMain.cloth = saved;
+}
+
+TEST_F(Colossus, HisSoundsAreLowerBigAndHigherSmall) {
+    EXPECT_FLOAT_EQ(expanded::ColossusSoundPitch(), 0.0f);
+    Grow(expanded::kColossusGrowFrames);
+    EXPECT_FLOAT_EQ(expanded::ColossusSoundPitch(), -expanded::kColossusPitch);
+    // Shrunk to half his size, higher by as much.
+    Steps(expanded::kColossusFrames + expanded::kColossusShrinkFrames);
+    ASSERT_FLOAT_EQ(expanded::ColossusCameraScale(), expanded::kColossusLeast);
+    EXPECT_FLOAT_EQ(expanded::ColossusSoundPitch(), expanded::kColossusPitch);
+    // Another member's are their own.
+    floor_.status().cur_chara = CHARA_TOAN;
+    EXPECT_FLOAT_EQ(expanded::ColossusSoundPitch(), 0.0f);
+}
+
+TEST_F(Colossus, HisHitsThrowSparksAtHisSize) {
+    CHitMark      mark;
+    COLLISION_HIT hit = {};
+    hit.owner = CHARA_GORO;
+    mark.offset[0][0] = 0.25f;
+    mark.velocity[0][1] = 1.0f;
+    mark.size[0] = 0.5f;
+    mark.gravity = 0.02f;
+    mark.shrink = 0.01f;
+    expanded::ColossusHitMark(mark, hit); // at his own size, as thrown
+    EXPECT_FLOAT_EQ(mark.size[0], 0.5f);
+    Grow(expanded::kColossusGrowFrames);
+    EXPECT_FLOAT_EQ(expanded::ColossusImpactScale(hit), 2.0f);
+    expanded::ColossusHitMark(mark, hit);
+    EXPECT_FLOAT_EQ(mark.offset[0][0], 0.5f);
+    EXPECT_FLOAT_EQ(mark.velocity[0][1], 2.0f);
+    EXPECT_FLOAT_EQ(mark.size[0], 1.0f);
+    EXPECT_FLOAT_EQ(mark.gravity, 0.04f);
+    EXPECT_FLOAT_EQ(mark.shrink, 0.02f);
+    // Anyone else's hit is as the game threw it.
+    hit.owner = CHARA_TOAN;
+    EXPECT_FLOAT_EQ(expanded::ColossusImpactScale(hit), 1.0f);
 }
 
 TEST_F(Colossus, AtFullSizeAMonstersAttackHitsHimOnce) {
