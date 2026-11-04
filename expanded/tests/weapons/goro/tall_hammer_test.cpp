@@ -13,6 +13,7 @@
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
+#include "shot_effect.hpp"
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
@@ -268,4 +269,52 @@ TEST_F(Colossus, AShruggedOffHitLeavesHimInWhatHeWasDoing) {
     BtActStatus.action_on = 0;
     expanded::PlayerHitReacted(false, regular);
     EXPECT_EQ(BtActStatus.action_on, 0);
+}
+
+TEST_F(Colossus, AtFullSizeAMonstersAttackHitsHimOnce) {
+    Grow(expanded::kColossusGrowFrames);
+    COLLISION_HIT &bite = NowColData->hit[3];
+    bite = {};
+    bite.kind = expanded::kGuardBreakingHit;
+    bite.owner = 200 + 2 * 5; // monster 2's
+    EXPECT_FALSE(expanded::PlayerHitPassesBy(bite));
+    expanded::PlayerHitReacted(false, bite);
+    // The same monster's next hits pass him by for as long as the knockdown would have kept him from them.
+    COLLISION_HIT &again = NowColData->hit[7];
+    again = bite;
+    EXPECT_TRUE(expanded::PlayerHitPassesBy(again));
+    COLLISION_HIT &other = NowColData->hit[8];
+    other = bite;
+    other.owner = 200 + 3 * 5;
+    EXPECT_FALSE(expanded::PlayerHitPassesBy(other));
+    Steps(0xA0 - 1);
+    EXPECT_TRUE(expanded::PlayerHitPassesBy(again));
+    Steps(1);
+    EXPECT_FALSE(expanded::PlayerHitPassesBy(again));
+}
+
+TEST_F(Colossus, AShotThatHitsHimAtFullSizeStopsAsAtAWall) {
+    Grow(expanded::kColossusGrowFrames);
+    auto effect = std::make_unique<CSHOT_EFFECT>();
+    effect->phase[1] = 1; // in flight
+    effect->life_time[1] = -1;
+    COLLISION_HIT &hit = NowColData->hit[4];
+    hit = {};
+    hit.kind = expanded::kKnockbackHit;
+    expanded::ShotEffectHitSet(*effect, 1, hit);
+    expanded::PlayerHitReacted(false, hit);
+    EXPECT_EQ(effect->life_time[1], 0); // it hits nothing more
+    EXPECT_TRUE(expanded::PlayerHitPassesBy(hit));
+    EXPECT_EQ(expanded::ColossusShotCollision(*effect, 1, SHOT_COLLISION_NONE), SHOT_COLLISION_MAP);
+    EXPECT_EQ(expanded::ColossusShotCollision(*effect, 1, SHOT_COLLISION_NONE), SHOT_COLLISION_NONE); // once
+}
+
+TEST_F(Colossus, BelowFullSizeHitsLandAsTheyDo) {
+    Grow(expanded::kColossusGrowFrames - 1);
+    COLLISION_HIT &bite = NowColData->hit[3];
+    bite = {};
+    bite.kind = expanded::kGuardBreakingHit;
+    bite.owner = 200;
+    expanded::PlayerHitReacted(false, bite);
+    EXPECT_FALSE(expanded::PlayerHitPassesBy(bite));
 }

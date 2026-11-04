@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <cmath>
 #include <format>
+#include <functional>
+#include <iterator>
+#include <vector>
 
 #include "btactstatus.hpp"
 #include "character.hpp"
@@ -21,6 +24,7 @@
 #include "expanded/weapons/weapon_hit.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
+#include "shot_effect.hpp"
 #include "userstatus.hpp"
 
 namespace expanded {
@@ -44,6 +48,33 @@ constexpr float kTrampleReach = 2.0f;      // past where the monster stops again
 constexpr float kSwitchBelow = 5.0f;       // how far under his feet a switch he stands on may lie
 constexpr float kColossusHeightOf = 16.0f; // Goro's height (CharaHeight)
 
+// How long a hit's kind keeps the player from being hit again (BtCheckDamageProc's recoil): the guard-breaking hit's
+// knockdown, the knockback's stagger, the light hit's flinch.
+constexpr int kKnockdownFrames = 0xA0, kStaggerFrames = 0x50, kFlinchFrames = 8;
+
+// A monster's melee hit's owner (CMonstorUnit: 200 + its slot times 5).
+constexpr int kMonsterOwner = 200, kMonsterOwnerStride = 5;
+
+// How long a shot's hit record stays its (CSHOT_EFFECT::Step sets it for 2 frames).
+constexpr int kShotHitLife = 2;
+
+// What has hit him at his full size, whose hits pass him by until a step of his clock: a monster, a shot or, for
+// anything else, the hit record.
+struct Spared {
+    int                 monster = -1;
+    const CSHOT_EFFECT *effect = nullptr;
+    int                 slot = -1;
+    int                 record = -1;
+    int                 until = 0;
+};
+
+// The shot that set a hit record, and when.
+struct ShotHit {
+    CSHOT_EFFECT *effect = nullptr;
+    int           slot = -1;
+    int           at = -1;
+};
+
 enum class Phase {
     Normal,
     Grown,
@@ -53,18 +84,21 @@ enum class Phase {
 };
 
 struct Colossus {
-    Phase         phase = Phase::Normal;
-    float         scale = 1.0f;
-    int           grown = 0;          // frames he has grown for (Grown)
-    int           frames = 0;         // in the phase (Grown: since he first grew; Spent: since the shrink began)
-    float         shrink_from = 1.0f; // his size as the shrink began
-    float         applied = 1.0f;     // the size last put on the model
-    float         last[2] = {};       // where he stood the step before
-    bool          stood = false;
-    int           trampled[kFloorMonsters] = {};
-    int           clock = 0;
-    bool          shrugging = false; // a hit he shrugs off is being reacted to
-    BT_ACT_STATUS kept = {};         // what he was doing as it reached him
+    Phase                                             phase = Phase::Normal;
+    float                                             scale = 1.0f;
+    int                                               grown = 0;          // frames he has grown for (Grown)
+    int                                               frames = 0;         // in the phase (Grown: since he first grew; Spent: since the shrink began)
+    float                                             shrink_from = 1.0f; // his size as the shrink began
+    float                                             applied = 1.0f;     // the size last put on the model
+    float                                             last[2] = {};       // where he stood the step before
+    bool                                              stood = false;
+    int                                               trampled[kFloorMonsters] = {};
+    int                                               clock = 0;
+    bool                                              shrugging = false; // a hit he shrugs off is being reacted to
+    BT_ACT_STATUS                                     kept = {};         // what he was doing as it reached him
+    std::vector<Spared>                               spared;
+    ShotHit                                           shot_hits[std::size(CCollisionData{}.active)];
+    std::vector<std::pair<const CSHOT_EFFECT *, int>> stopping; // shots that meet him as a wall on their next step
 };
 
 Colossus colossus;
@@ -292,6 +326,89 @@ int ColossusHitKind(int kind) {
     }
     return kind == kGuardBreakingHit ? kKnockbackHit : kind == kKnockbackHit ? kLightHit
                                                                              : kind;
+}
+
+// The hit's record in the hit table, or -1 for a hit outside it.
+int RecordOf(const COLLISION_HIT &hit) {
+    if (NowColData == nullptr) {
+        return -1;
+    }
+    const COLLISION_HIT *first = std::begin(NowColData->hit);
+    const COLLISION_HIT *end = std::end(NowColData->hit);
+    bool                 inside = !std::less<const COLLISION_HIT *>{}(&hit, first) && std::less<const COLLISION_HIT *>{}(&hit, end);
+    return inside ? static_cast<int>(&hit - first) : -1;
+}
+
+// The shot that set the hit's record, if one set it just now.
+ShotHit *ShotOf(int record) {
+    if (record < 0) {
+        return nullptr;
+    }
+    ShotHit &shot = colossus.shot_hits[record];
+    return shot.effect != nullptr && colossus.clock - shot.at <= kShotHitLife ? &shot : nullptr;
+}
+
+bool ColossusPassesBy(const COLLISION_HIT &hit) {
+    if (colossus.spared.empty()) {
+        return false;
+    }
+    int            record = RecordOf(hit);
+    const ShotHit *shot = ShotOf(record);
+    bool           by_shot = shot != nullptr;
+    int            monster = hit.owner >= kMonsterOwner ? (hit.owner - kMonsterOwner) / kMonsterOwnerStride : -1;
+    for (const Spared &spared : colossus.spared) {
+        if (colossus.clock >= spared.until) {
+            continue;
+        }
+        if (by_shot        ? spared.effect == shot->effect && spared.slot == shot->slot
+            : monster >= 0 ? spared.monster == monster
+                           : spared.record == record) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ColossusHitTaken(const COLLISION_HIT &hit) {
+    if (!AtMost()) {
+        return;
+    }
+    std::erase_if(colossus.spared, [](const Spared &spared) { return colossus.clock >= spared.until; });
+    int    record = RecordOf(hit);
+    Spared spared;
+    spared.until = colossus.clock + (hit.kind == kGuardBreakingHit ? kKnockdownFrames : hit.kind == kKnockbackHit ? kStaggerFrames
+                                                                                                                  : kFlinchFrames);
+    if (const ShotHit *shot = ShotOf(record); shot != nullptr) {
+        // A shot: it hits nothing more and, still in flight, meets him as a wall.
+        spared.effect = shot->effect;
+        spared.slot = shot->slot;
+        shot->effect->life_time[shot->slot] = 0;
+        if (shot->effect->phase[shot->slot] < 2) {
+            colossus.stopping.emplace_back(shot->effect, shot->slot);
+        }
+    } else if (hit.owner >= kMonsterOwner) {
+        spared.monster = (hit.owner - kMonsterOwner) / kMonsterOwnerStride;
+    } else if (record >= 0) {
+        spared.record = record;
+    } else {
+        return;
+    }
+    colossus.spared.push_back(spared);
+}
+
+void ColossusShotHitSet(CSHOT_EFFECT &effect, int slot, const COLLISION_HIT &hit) {
+    if (int record = RecordOf(hit); record >= 0) {
+        colossus.shot_hits[record] = {&effect, slot, colossus.clock};
+    }
+}
+
+SHOT_COLLISION_RESULT ColossusShotCollision(const CSHOT_EFFECT &effect, int slot, SHOT_COLLISION_RESULT result) {
+    auto stopping = std::find(colossus.stopping.begin(), colossus.stopping.end(), std::pair{&effect, slot});
+    if (stopping == colossus.stopping.end()) {
+        return result;
+    }
+    colossus.stopping.erase(stopping);
+    return effect.phase[slot] < 2 ? SHOT_COLLISION_MAP : result;
 }
 
 bool ColossusTrample(const COLLISION_HIT &hit) {

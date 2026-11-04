@@ -195,7 +195,7 @@ void DungeonShotsDrawn() {
 }
 
 bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
-    return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit) || PackHitPassesBy(hit);
+    return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit) || PackHitPassesBy(hit) || ColossusPassesBy(hit);
 }
 
 void PlayerHitReached(COLLISION_HIT &hit) {
@@ -208,6 +208,7 @@ void PlayerHitReached(COLLISION_HIT &hit) {
 void PlayerHitReacted(bool blocked, const COLLISION_HIT &hit) {
     DivineGuardBlocked(blocked);
     ColossusShrugged(blocked);
+    ColossusHitTaken(hit);
     LambGuardBlocked(blocked, hit);
     RoughCounterBlocked(blocked, hit);
 }
@@ -412,9 +413,10 @@ void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     PumpedUpPelletHit(hit);
 }
 
-void ShotEffectHitSet(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
+void ShotEffectHitSet(CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
     DragonShotHit(effect, slot, hit);
     angel_gear::NoteShotHit(effect, slot, hit);
+    ColossusShotHitSet(effect, slot, hit);
 }
 
 void PelletStepping(CSHOT &shots, int slot) {
@@ -553,7 +555,7 @@ bool HitSwitchSteppedOn(int chara_no, const float *pos, float radius) {
 
 SHOT_COLLISION_RESULT ShotEffectCollision(CSHOT_EFFECT &effect, int slot, float *hit_position, float *position) {
     SHOT_COLLISION_RESULT result = angel_gear::ReflectCollision(effect, slot, hit_position, position);
-    return SolidColumnShot(effect, slot, result, hit_position, position);
+    return ColossusShotCollision(effect, slot, SolidColumnShot(effect, slot, result, hit_position, position));
 }
 
 void ShotPlayerPoint(float *point) {

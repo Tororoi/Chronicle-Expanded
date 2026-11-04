@@ -1,7 +1,10 @@
 #pragma once
 
+#include "shot_utils.hpp"
+
 namespace dc::game {
 struct COLLISION_HIT;
+class CSHOT_EFFECT;
 } // namespace dc::game
 
 namespace expanded {
@@ -56,6 +59,16 @@ void  ColossusShotPoint(float *point);
 bool ColossusShrugsOff(int kind);
 void ColossusShrugged(bool blocked);
 int  ColossusHitKind(int kind);
+// At his full size, what hits him hits once: a monster's hits pass him by for as long as the hit's own kind would have
+// kept him from being hit again (the guard-breaking hit's knockdown, the knockback's stagger, the light hit's flinch),
+// and a shot hits nothing more and, still in flight, meets him as a wall on its next step (its impact, or its burst).
+// Hooks: whether a hit passes him by (BtCheckDamageProc), a hit reached him (after the game reacts to it), a shot set a
+// hit record (ShotEffectHitSet) and a shot's collision test (ShotEffectCollision).
+bool                  ColossusPassesBy(const COLLISION_HIT &hit);
+void                  ColossusHitTaken(const COLLISION_HIT &hit);
+void                  ColossusShotHitSet(CSHOT_EFFECT &effect, int slot, const COLLISION_HIT &hit);
+SHOT_COLLISION_RESULT ColossusShotCollision(const CSHOT_EFFECT &effect, int slot, SHOT_COLLISION_RESULT result);
+
 // Whether a hit is one of his walk-in hits (it wears no weapon HP).
 bool ColossusTrample(const COLLISION_HIT &hit);
 
