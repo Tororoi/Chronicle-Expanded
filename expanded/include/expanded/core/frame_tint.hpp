@@ -12,11 +12,9 @@ namespace expanded {
 
 // Adds to a frame's ambient (in the ambient's 0-255 units); 0, 0, 0 stops.
 void SetFrameTint(const CFrame *frame, float red, float green, float blue);
-// As SetFrameTint for whatever frame draws a visual: a cloth, drawn through a frame of its own each draw.
-void SetVisualTint(const void *visual, float red, float green, float blue);
 
 // Hooks: CFrame::DrawVu1 around its visual's draw; Begin gives back whether it tinted (saved holds the ambient).
-bool FrameTintBegin(const CFrame *frame, const void *visual, float *ambient, float *saved);
+bool FrameTintBegin(const CFrame *frame, float *ambient, float *saved);
 void FrameTintEnd(float *ambient, const float *saved);
 
 } // namespace expanded

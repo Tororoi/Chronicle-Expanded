@@ -9,13 +9,10 @@
 #include <vector>
 
 #include "character.hpp"
-#include "cloth.hpp"
 #include "data/data_read.hpp"
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
-#include "expanded/core/frame_tint.hpp"
-#include "expanded/core/frames.hpp"
-#include "expanded/data/goro_gold.hpp"
+#include "expanded/data/goro_shirt.hpp"
 #include "expanded/data/model_parts.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
@@ -27,12 +24,12 @@ namespace expanded {
 
 namespace {
 
-// One body sheet in its own colours and in its gold copy (RGBA8, the renderer's alpha), and the texture last written
+// One body sheet in its own colours and in its shirt copy (RGBA8, the renderer's alpha), and the texture last written
 // with the share it was written at.
 struct Sheet {
     const char                *name = nullptr;
     int                        width = 0, height = 0;
-    std::vector<unsigned char> own, gold;
+    std::vector<unsigned char> own, copy;
     gfx::TextureHandle         texture = gfx::kNullTexture;
     float                      share = 0.0f;
     bool                       refused = false; // a texture at another size: left as it is
@@ -40,7 +37,7 @@ struct Sheet {
 
 struct Look {
     bool               read = false;
-    bool               hammer_lit = false;
+    bool               lit = false;
     std::vector<Sheet> sheets;
 };
 
@@ -80,12 +77,12 @@ void Read() {
             return ImgBank::Parse({data, static_cast<std::size_t>(bytes)});
         };
         try {
-            std::optional<ImgBank> own = bank(kGoroBank), gold = bank(kGoroGoldBank);
-            if (own && gold) {
+            std::optional<ImgBank> own = bank(kGoroBank), copy = bank(kGoroShirtBank);
+            if (own && copy) {
                 bool own_swizzled = std::memcmp(own->magic.data(), "IM2", 3) == 0;
-                bool gold_swizzled = std::memcmp(gold->magic.data(), "IM2", 3) == 0;
-                for (const char *name : kGoroGoldSheets) {
-                    tim8::Picture a = tim8::Read(own->Block(name), own_swizzled), b = tim8::Read(gold->Block(name), gold_swizzled);
+                bool copy_swizzled = std::memcmp(copy->magic.data(), "IM2", 3) == 0;
+                for (const char *name : kGoroShirtSheets) {
+                    tim8::Picture a = tim8::Read(own->Block(name), own_swizzled), b = tim8::Read(copy->Block(name), copy_swizzled);
                     if (a.width == b.width && a.height == b.height) {
                         look.sheets.push_back({name, a.width, a.height, Rgba(a), Rgba(b)});
                     }
@@ -102,7 +99,7 @@ void Read() {
 void Write(const Sheet &sheet, std::uint32_t levels, float share) {
     std::vector<unsigned char> level(sheet.own.size());
     for (std::size_t i = 0; i < level.size(); i++) {
-        level[i] = static_cast<unsigned char>(std::lround(sheet.own[i] + (sheet.gold[i] - sheet.own[i]) * share));
+        level[i] = static_cast<unsigned char>(std::lround(sheet.own[i] + (sheet.copy[i] - sheet.own[i]) * share));
     }
     int w = sheet.width, h = sheet.height;
     for (std::uint32_t mip = 0; mip < std::max(levels, 1u); mip++) {
@@ -131,32 +128,22 @@ void Write(const Sheet &sheet, std::uint32_t levels, float share) {
     }
 }
 
-// The gold parts lit share of the way to the full tint (the gold frame, the cape's frame and the cloth drawing it), and
-// the hammer.
+// Goro and the hammer in his hand lit share of the way to the full tint: the game's character tint (CCharacter::Draw
+// adds ambient_offset to a model's ambient, his cape's cloth drawn inside it). Written while it is lit, and once more as
+// it goes out: a member or a weapon it never lit keeps its own.
 void Tint(float share) {
-    float add[3];
-    for (int c = 0; c < 3; c++) {
-        add[c] = kColossusTint[c] * share;
+    if (share <= 0.0f && !look.lit) {
+        return;
     }
-    for (const char *name : {kGoroGoldBody, kGoroCape}) {
-        if (CFrame *frame = FrameNamed(CharaMain.frame, name); frame != nullptr) {
-            SetFrameTint(frame, add[0], add[1], add[2]);
+    for (CCharacter *model : {&CharaMain, NowWeapon}) {
+        if (model == nullptr) {
+            continue;
         }
-    }
-    if (CharaMain.cloth != nullptr) {
-        for (int i = 0; i < CHARA_CLOTH_MAX; i++) {
-            if (CharaMain.cloth[i] != nullptr) {
-                SetVisualTint(CharaMain.cloth[i], add[0], add[1], add[2]);
-            }
-        }
-    }
-    // Written while it is lit, and once more as it goes out: a weapon it never lit keeps its own.
-    if (NowWeapon != nullptr && (share > 0.0f || look.hammer_lit)) {
         for (int c = 0; c < 3; c++) {
-            NowWeapon->ambient_offset[c] = kColossusHammerTint[c] * share;
+            model->ambient_offset[c] = kColossusTint[c] * share;
         }
-        look.hammer_lit = share > 0.0f;
     }
+    look.lit = share > 0.0f;
 }
 
 } // namespace
@@ -170,7 +157,7 @@ void ColossusLookStep(float size) {
     Tint(share);
     if (!look.read) {
         // Read once his sheets are loaded (none are without the game's data).
-        if (TexManager.GetTexture(const_cast<char *>(kGoroGoldSheets[0]), -1) == nullptr) {
+        if (TexManager.GetTexture(const_cast<char *>(kGoroShirtSheets[0]), -1) == nullptr) {
             return;
         }
         Read();

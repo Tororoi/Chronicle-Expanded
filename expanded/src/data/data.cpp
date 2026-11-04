@@ -10,7 +10,7 @@
 #include "expanded/data/fishing_poses.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/data/gemron_models.hpp"
-#include "expanded/data/goro_gold.hpp"
+#include "expanded/data/goro_shirt.hpp"
 #include "expanded/data/monster_scripts.hpp"
 #include "expanded/data/prop_models.hpp"
 #include "expanded/data/queens_canal.hpp"
@@ -44,7 +44,7 @@ const DataKind kDataKinds[] = {
     {"queens canal", QueensCanalBuilds},
     {"weapon model", WolfSteveBuilds},
     {"character model", ToanGripBuilds},
-    {"character model", GoroGoldBuilds},
+    {"character model", GoroShirtBuilds},
 };
 
 } // namespace

@@ -16,11 +16,11 @@ TEST(FrameTint, AddsToTheAmbientForItsFrameAlone) {
     expanded::test::TestFloor floor;
     floor.SetUpModel(0, expanded::Monster::WEREWOLF); // a new floor: no tints
     float ambient[4] = {10, 20, 30, 128}, saved[4];
-    EXPECT_FALSE(expanded::FrameTintBegin(Frame(0), nullptr, ambient, saved));
+    EXPECT_FALSE(expanded::FrameTintBegin(Frame(0), ambient, saved));
 
     expanded::SetFrameTint(Frame(0), 5, 6, 7);
-    EXPECT_FALSE(expanded::FrameTintBegin(Frame(1), nullptr, ambient, saved));
-    ASSERT_TRUE(expanded::FrameTintBegin(Frame(0), nullptr, ambient, saved));
+    EXPECT_FALSE(expanded::FrameTintBegin(Frame(1), ambient, saved));
+    ASSERT_TRUE(expanded::FrameTintBegin(Frame(0), ambient, saved));
     EXPECT_EQ(ambient[0], 15);
     EXPECT_EQ(ambient[1], 26);
     EXPECT_EQ(ambient[2], 37);
@@ -31,11 +31,11 @@ TEST(FrameTint, AddsToTheAmbientForItsFrameAlone) {
 
     // A new tint replaces the frame's; none stops it.
     expanded::SetFrameTint(Frame(0), 1, 1, 1);
-    ASSERT_TRUE(expanded::FrameTintBegin(Frame(0), nullptr, ambient, saved));
+    ASSERT_TRUE(expanded::FrameTintBegin(Frame(0), ambient, saved));
     EXPECT_EQ(ambient[0], 11);
     expanded::FrameTintEnd(ambient, saved);
     expanded::SetFrameTint(Frame(0), 0, 0, 0);
-    EXPECT_FALSE(expanded::FrameTintBegin(Frame(0), nullptr, ambient, saved));
+    EXPECT_FALSE(expanded::FrameTintBegin(Frame(0), ambient, saved));
 }
 
 TEST(FrameTint, ANewFloorForgetsEveryTint) {
@@ -44,25 +44,10 @@ TEST(FrameTint, ANewFloorForgetsEveryTint) {
     expanded::SetFrameTint(Frame(2), 5, 5, 5);
     floor.SetUpModel(3, expanded::Monster::WEREWOLF); // a kind set up mid-floor keeps them
     float ambient[4] = {}, saved[4];
-    EXPECT_TRUE(expanded::FrameTintBegin(Frame(1), nullptr, ambient, saved));
+    EXPECT_TRUE(expanded::FrameTintBegin(Frame(1), ambient, saved));
     expanded::FrameTintEnd(ambient, saved);
 
     floor.SetUpModel(0, expanded::Monster::WEREWOLF);
-    EXPECT_FALSE(expanded::FrameTintBegin(Frame(1), nullptr, ambient, saved));
-    EXPECT_FALSE(expanded::FrameTintBegin(Frame(2), nullptr, ambient, saved));
-}
-
-TEST(FrameTint, AVisualsTintReachesWhateverFrameDrawsIt) {
-    expanded::test::TestFloor floor;
-    floor.SetUpModel(0, expanded::Monster::WEREWOLF);
-    static const char cloth = 0;
-    float             ambient[4] = {10, 10, 10, 128}, saved[4];
-    expanded::SetVisualTint(&cloth, 3, 4, 5);
-    EXPECT_FALSE(expanded::FrameTintBegin(Frame(0), nullptr, ambient, saved));
-    ASSERT_TRUE(expanded::FrameTintBegin(Frame(0), &cloth, ambient, saved)); // a frame of the cloth's own
-    EXPECT_EQ(ambient[0], 13);
-    EXPECT_EQ(ambient[2], 15);
-    expanded::FrameTintEnd(ambient, saved);
-    expanded::SetVisualTint(&cloth, 0, 0, 0);
-    EXPECT_FALSE(expanded::FrameTintBegin(Frame(0), &cloth, ambient, saved));
+    EXPECT_FALSE(expanded::FrameTintBegin(Frame(1), ambient, saved));
+    EXPECT_FALSE(expanded::FrameTintBegin(Frame(2), ambient, saved));
 }

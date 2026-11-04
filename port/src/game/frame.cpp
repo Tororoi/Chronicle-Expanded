@@ -956,7 +956,7 @@ int CFrameVu1::DrawVu1(unsigned int *packet, RenderInfo *info) {
 
 #ifdef CHRONICLE_EXPANDED
         float tint_saved[4];
-        bool  tinted = expanded::FrameTintBegin(this, visual, info->ambient, tint_saved);
+        bool  tinted = expanded::FrameTintBegin(this, info->ambient, tint_saved);
 #endif
         {
             Draw3DIdentityScope identity(this, kDraw3DTeleportDistance);
@@ -1087,7 +1087,7 @@ int CFrame::PickUpNearPoly(CCPoly *poly, const CBoxVu0 &box) {
 
     if (collision != nullptr && (flags & 1) != 0) {
         GetLWMatrix(world_matrix);
-        float(*inverse_matrix)[4] = GetInverseMatrix();
+        float (*inverse_matrix)[4] = GetInverseMatrix();
 
         std::ranges::copy(box.min, extent[0]);
         std::ranges::copy(box.max, extent[1]);
