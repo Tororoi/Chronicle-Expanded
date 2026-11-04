@@ -201,10 +201,10 @@ TEST(QueensCanal, OnlyTheMistLeansSpray) {
 
 TEST(QueensCanal, TheWaterfallsWriteDepth) {
     // Their frames' last letter, z (no depth write), made x (no effect); the rest of the scene left as it is.
-    const std::string     scene = std::string("head obj48__a01z\0 mid taki2__a01z\0 obj48__a01z\0 tail", 54);
+    const std::string     scene = std::string("head obj48__a01z\0 mid taki2__a01z\0 obj48__a01z\0 tail", 52);
     const expanded::Bytes out = expanded::WaterfallsWriteDepth(expanded::Bytes(scene.begin(), scene.end()));
     const std::string     made(out.begin(), out.end());
-    EXPECT_EQ(made, std::string("head obj48__a01x\0 mid taki2__a01x\0 obj48__a01x\0 tail", 54));
+    EXPECT_EQ(made, std::string("head obj48__a01x\0 mid taki2__a01x\0 obj48__a01x\0 tail", 52));
     // A scene without them is not Queens'.
     const std::string other = "no falls here";
     EXPECT_THROW(expanded::WaterfallsWriteDepth(expanded::Bytes(other.begin(), other.end())), std::exception);
