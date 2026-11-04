@@ -46,6 +46,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/door_keys.hpp"
+#include "expanded/weapons/goro/tall_hammer.hpp"
 #endif
 
 namespace dc::game {
@@ -383,6 +384,11 @@ int _GET_OBJHDL(RS_STACKDATA *stack, int /*argument_count*/) {
         }
     } else {
         CFrame *frame = NowDngMap->GetFrameSearch(name);
+#ifdef CHRONICLE_EXPANDED
+        if (CFrame *leap = expanded::ColossusGapMarker(name)) {
+            frame = leap;
+        }
+#endif
 
         if (frame != nullptr) {
             handle->frame = frame;
@@ -695,6 +701,9 @@ int _SET_IBOX(RS_STACKDATA *stack, int /*argument_count*/) {
 
 int _GET_NOW_USER_ID(RS_STACKDATA *stack, int /*argument_count*/) {
     int cur_chara = UserStatus->cur_chara;
+#ifdef CHRONICLE_EXPANDED
+    cur_chara = expanded::ColossusUserId(cur_chara);
+#endif
     std::println("get id = {}", cur_chara);
     SetStack(stack, cur_chara);
     return 1;

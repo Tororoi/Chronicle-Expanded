@@ -44,6 +44,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/core/motion_keys.hpp"
 #include "expanded/core/motion_layer.hpp"
+#include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/serpent_sword.hpp"
 #endif
@@ -371,6 +372,11 @@ Mot_List *MotionProc(CFrame *frame, MOTION_STATE *state, Mot_List *list) {
             case MOTION_KEY_CAMERA_POSITION:
                 if (state->camera != nullptr) {
                     sceVu0InterVectorXYZ(value, list->keys[next].value, list->keys[key].value, t);
+#ifdef CHRONICLE_EXPANDED
+                    if (expanded::ColossusSceneCamera(*state->camera, *frame, value, false)) {
+                        break;
+                    }
+#endif
                     frame->GetWorldPosition(value, value);
                     state->camera->SetPos(nullptr, value[0], value[1], value[2]);
                 }
@@ -379,6 +385,11 @@ Mot_List *MotionProc(CFrame *frame, MOTION_STATE *state, Mot_List *list) {
             case MOTION_KEY_CAMERA_TARGET:
                 if (state->camera != nullptr) {
                     sceVu0InterVectorXYZ(value, list->keys[next].value, list->keys[key].value, t);
+#ifdef CHRONICLE_EXPANDED
+                    if (expanded::ColossusSceneCamera(*state->camera, *frame, value, true)) {
+                        break;
+                    }
+#endif
                     frame->GetWorldPosition(value, value);
                     state->camera->SetRef(nullptr, value[0], value[1], value[2]);
                 }

@@ -48,6 +48,7 @@ constexpr Built kBuilt[] = {
     {"effect/colossus_pop.chr",        46528,   0x2e2edd95095dd8ccULL},
     {"effect/babel_beam.chr",          59744,                    0xc8e2a64f097d90a3ULL},
     {"effect/bomb_throw.chr",          46544,                    0x141e8686c98c4655ULL},
+    {"look/xiao_colossus.chr",         151232,                   0xbdb4e3ab3699fcd3ULL},
     {"enemies/script_damage.txt",      2475,                     0x95ea0a4a8b6351fdULL},
     {"fishing/e03.col",                25684,                    0x88799f90c4c174bdULL},
     {"fishing/s04.col",                7404,                     0xcb314e0a7bd3084eULL},

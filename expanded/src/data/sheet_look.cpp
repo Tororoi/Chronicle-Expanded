@@ -196,6 +196,10 @@ std::unordered_map<int, int> MergeColours(const std::vector<int> &keys, const st
 }
 
 Bytes RecolourSheet(std::span<const unsigned char> tim, bool swizzled, const std::function<std::array<int, 3>(const std::array<int, 3> &)> &colour_of) {
+    return RecolourSheetAt(tim, swizzled, [&](int, int, const std::array<int, 3> &rgb) { return colour_of(rgb); });
+}
+
+Bytes RecolourSheetAt(std::span<const unsigned char> tim, bool swizzled, const std::function<std::array<int, 3>(int x, int y, const std::array<int, 3> &)> &colour_of) {
     tim8::Picture picture = tim8::Read(tim, swizzled);
     auto          at = [&](int index) {
         std::size_t j = static_cast<std::size_t>(tim8::Csm1(index)) * 4;
@@ -205,7 +209,7 @@ Bytes RecolourSheet(std::span<const unsigned char> tim, bool swizzled, const std
     std::unordered_map<int, double> weight;
     std::vector<int>                order;
     for (std::size_t i = 0; i < colour.size(); i++) {
-        colour[i] = Key(colour_of(at(picture.pixels[i])));
+        colour[i] = Key(colour_of(static_cast<int>(i % std::size_t(picture.width)), static_cast<int>(i / std::size_t(picture.width)), at(picture.pixels[i])));
         if (weight[colour[i]]++ == 0) {
             order.push_back(colour[i]);
         }

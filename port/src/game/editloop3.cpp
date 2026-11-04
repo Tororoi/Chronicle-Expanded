@@ -73,6 +73,7 @@
 #include "expanded/debug/stage.hpp"
 #include "expanded/town/ally.hpp"
 #include "expanded/town/fishing.hpp"
+#include "expanded/weapons/goro/tall_hammer.hpp"
 #endif
 
 namespace dc::game {
@@ -5288,6 +5289,9 @@ int _MES_MAKE(RS_STACKDATA *stack, int argument_count) {
     }
 
     int message_no = GetStackInt(stack++);
+#ifdef CHRONICLE_EXPANDED
+    message_no = expanded::ColossusMessageNo(message_no);
+#endif
 
     if (argument_count >= 3) {
         message->value = GetStackInt(stack++);
@@ -7784,6 +7788,11 @@ int _SET_AMB_VOLF(RS_STACKDATA *stack, int argument_count) {
 
 int _PLAY_SE(RS_STACKDATA *stack, int argument_count) {
     int sound = GetStackInt(stack++);
+#ifdef CHRONICLE_EXPANDED
+    if (expanded::ColossusEventMuted()) {
+        return 1;
+    }
+#endif
 
     if (argument_count >= 4) {
         float position[4];
@@ -9041,6 +9050,14 @@ int EdEventMode(CCameraFollow *camera, int kind) {
 
     if (menu_mode == ED_MENU_NONE) {
         menu_mode_status = -1;
+#ifdef CHRONICLE_EXPANDED
+        if (int skip = expanded::ColossusEventSkip(); skip > 0) {
+            for (; skip > 0; skip--) {
+                EdResumeEvent();
+            }
+            expanded::ColossusEventSkipped();
+        }
+#endif
         EdResumeEvent();
 
         if (menu_mode != ED_MENU_NONE) {

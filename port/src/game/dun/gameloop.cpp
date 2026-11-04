@@ -2913,6 +2913,9 @@ void motionDrive() {
         if (BtActStatus.shadow_visible != 0) {
             CharaMain.ShadowStep();
         }
+#ifdef CHRONICLE_EXPANDED
+        expanded::ColossusMotionStepped(CharaMain);
+#endif
     }
 
     if ((CharaMainHandViewFlag != 0 && UserStatus->cur_chara == CHARA_XIAO) || UserStatus->cur_chara == CHARA_RUBY) {

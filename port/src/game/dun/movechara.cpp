@@ -678,6 +678,9 @@ void DunMoveChara() {
                                             sceVu0CopyVector(BtEventInfo.position, slot_pos);
                                             sceVu0CopyVector(BtEventInfo.direction, slot_dir);
                                         }
+#ifdef CHRONICLE_EXPANDED
+                                        BtEventInfo.script_no = expanded::ColossusGapScript(BtEventInfo.script_no, state);
+#endif
 
                                         if (BtEventInfo.script_no != -1) {
                                             if (state->event->chara_no != -1 && GamePad.Down(PadInput_OK) != 0) {
@@ -887,7 +890,13 @@ void DunMoveChara() {
                                                             ToanKey_Play();
                                                             break;
                                                         case CHARA_XIAO:
+#ifdef CHRONICLE_EXPANDED
+                                                            SndSetSePitch(expanded::ColossusSoundPitch());
+#endif
                                                             BattleActionPlay_Jinn(&CharaMain, 0);
+#ifdef CHRONICLE_EXPANDED
+                                                            SndSetSePitch(0.0f);
+#endif
                                                             break;
                                                         case CHARA_GORO:
 #ifdef CHRONICLE_EXPANDED

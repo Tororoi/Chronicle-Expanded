@@ -384,6 +384,7 @@ void PelletFired(CSHOT &shots, int slot) {
     GemShotFired(shots, slot);
     ZeusShotFired(shots, slot);
     TyphoonShotFired(shots, slot);
+    ColossusPelletFired(shots, slot);
     StealShotFired(shots, slot);
     RicochetShotFired(slot);
     DoubleImpactFired(shots, slot);
