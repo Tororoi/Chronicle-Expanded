@@ -26,7 +26,6 @@ struct Puff {
     float         spot[3] = {};
     const void   *owner = nullptr;
     const float  *tint = nullptr;
-    float         opacity = 1.0f;
 };
 
 Puff puff;
@@ -55,7 +54,7 @@ BT_SHOT_EFFECT *SummonSmokeEffect() {
     return &smoke;
 }
 
-bool SummonSmokeStart(const float *spot, float yaw, float scale, const void *owner, const float *tint, float opacity) {
+bool SummonSmokeStart(const float *spot, float yaw, float scale, const void *owner, const float *tint) {
     PutOut();
     SndSePlay(SE_BOX_OPEN, -1, 0);
     int index = ShotEffectIndex(&smoke);
@@ -72,13 +71,12 @@ bool SummonSmokeStart(const float *spot, float yaw, float scale, const void *own
     puff.slot = slot;
     puff.owner = owner;
     puff.tint = tint;
-    puff.opacity = opacity;
     std::copy(spot, spot + 3, puff.spot);
     CCharacter &model = effect->chara[slot];
     model.SetScale(scale, scale, scale);
     model.SetRotation(0.0f, yaw, 0.0f);
     model.motion_speed = kSmokeRate;
-    FadeUnlitFrames(model.frame, opacity, tint); // a slot an earlier smoke faded, back to its own
+    FadeUnlitFrames(model.frame, 1.0f, tint); // a slot an earlier smoke faded, back to full
     return true;
 }
 
@@ -95,7 +93,7 @@ void SummonSmokeStep() {
     model.motion_speed = kSmokeRate;
     float frame = model.motion_type.state.time;
     if (frame >= kSmokeFadeFrom) {
-        FadeUnlitFrames(model.frame, puff.opacity * (1.0f - std::clamp((frame - kSmokeFadeFrom) / (kSmokeClipEnd - kSmokeFadeFrom), 0.0f, 1.0f)), puff.tint);
+        FadeUnlitFrames(model.frame, 1.0f - std::clamp((frame - kSmokeFadeFrom) / (kSmokeClipEnd - kSmokeFadeFrom), 0.0f, 1.0f), puff.tint);
     }
 }
 

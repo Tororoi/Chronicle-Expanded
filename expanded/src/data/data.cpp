@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "expanded/data/boss_model.hpp"
+#include "expanded/data/colossus_pop.hpp"
 #include "expanded/data/data_build.hpp"
 #include "expanded/data/fishing_poses.hpp"
 #include "expanded/data/fishing_spots.hpp"
@@ -45,6 +46,7 @@ const DataKind kDataKinds[] = {
     {"queens canal", QueensCanalBuilds},
     {"weapon model", WolfSteveBuilds},
     {"weapon model", TallHammerSilverBuilds},
+    {"effect", ColossusPopBuilds},
     {"character model", ToanGripBuilds},
     {"character model", GoroShirtBuilds},
 };
