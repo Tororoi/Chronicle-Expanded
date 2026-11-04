@@ -32,6 +32,8 @@ namespace expanded {
 //   - his cape drapes at his size;
 //   - his sounds (his voice, and what his motions and his attacks play) sound kColossusPitch semitones lower for each
 //     doubling of his size, as much higher for each halving;
+//   - his animal skin and leather turn gold and his shirt turquoise, the gold lit a light gold, all the more the bigger he
+//     is (colossus_look.hpp);
 //   - his charge attack's ground impact is his size times as large, and reaches his size times as far;
 //   - his stride is his size times his own and his walk and run play at his size to the -kColossusStrideRate (a
 //     little slower big, a little quicker small), so a step carries him his size to the 1 - kColossusStrideRate;

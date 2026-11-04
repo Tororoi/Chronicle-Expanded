@@ -20,6 +20,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/poison.hpp"
+#include "expanded/weapons/goro/colossus_look.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/summon_smoke.hpp"
@@ -624,6 +625,9 @@ void ColossusStep() {
         }
     }
     Apply();
+    if (GoroInPlay()) {
+        ColossusLookStep(colossus.applied);
+    }
 }
 
 void ColossusQuiet() {
