@@ -14,12 +14,20 @@ bool TallHammerGoldTexel(const std::array<int, 3> &rgb) {
     return h >= 20 && h < 70 && s > 25;
 }
 
-std::array<int, 3> TallHammerSilverColour(const std::array<int, 3> &rgb) {
-    if (!TallHammerGoldTexel(rgb)) {
-        return rgb;
-    }
+bool TallHammerTurquoiseTexel(const std::array<int, 3> &rgb) {
     auto [h, s, l] = RgbToHsl(rgb[0], rgb[1], rgb[2]);
-    return HslToRgb(kTallHammerSilverHue, kTallHammerSilverSaturation, l);
+    return h >= 150 && h < 240 && s > 25;
+}
+
+std::array<int, 3> TallHammerSilverColour(const std::array<int, 3> &rgb) {
+    auto [h, s, l] = RgbToHsl(rgb[0], rgb[1], rgb[2]);
+    if (TallHammerGoldTexel(rgb)) {
+        return HslToRgb(kTallHammerSilverHue, kTallHammerSilverSaturation, l);
+    }
+    if (TallHammerTurquoiseTexel(rgb)) {
+        return HslToRgb(kTallHammerSilverHue, kTallHammerSilverSaturation, l * kTallHammerDarkGrey);
+    }
+    return rgb;
 }
 
 Bytes BuildTallHammerSilver(std::span<const unsigned char> hammer) {

@@ -120,6 +120,7 @@ struct Colossus {
     bool                                              stood = false;
     int                                               trampled[kFloorMonsters] = {};
     int                                               clock = 0;
+    bool                                              smoking = false;   // the pop's smoke still plays
     bool                                              shrugging = false; // a hit he shrugs off is being reacted to
     BT_ACT_STATUS                                     kept = {};         // what he was doing as it reached him
     std::vector<Spared>                               spared;
@@ -226,7 +227,7 @@ void Pop() {
     Enter(Phase::Popping);
     colossus.frames = 0;
     float spot[3] = {CharaMain.pos[0], CharaMain.pos[1], CharaMain.pos[2]};
-    SummonSmokeStart(spot, PlayerYaw(), kColossusPopSmokeScale, &colossus, kColossusSmokeTint);
+    colossus.smoking = SummonSmokeStart(spot, PlayerYaw(), kColossusPopSmokeScale, &colossus, kColossusSmokeTint);
 }
 
 // The pop's size: small in the smoke, then past his size and back to it, evenly in time.
@@ -266,7 +267,6 @@ void Advance() {
             }
             break;
         case Phase::Popping:
-            SummonSmokeStep();
             colossus.scale = PopScale(static_cast<float>(colossus.frames));
             if (static_cast<float>(colossus.frames) >= kPopEnd) {
                 colossus.scale = 1.0f;
@@ -613,6 +613,13 @@ void ColossusStep() {
     }
     if (MonstersStepping()) {
         colossus.clock++;
+        // The pop's smoke plays out (it fades and ends itself), on past the pop.
+        if (colossus.smoking) {
+            colossus.smoking = SummonSmokePlaying();
+            if (colossus.smoking) {
+                SummonSmokeStep();
+            }
+        }
         std::erase_if(colossus.spared, [](Spared &spared) { return !GoesOn(spared); });
         if (GoroInPlay() && colossus.phase != Phase::Shrinking && colossus.phase != Phase::Spent && colossus.phase != Phase::Popping) {
             Grow();

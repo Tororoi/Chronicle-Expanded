@@ -45,8 +45,8 @@ inline constexpr int   kColossusGrowFrames = 300; // from his size to kColossusM
 inline constexpr int   kColossusFrames = 1800, kColossusShrinkFrames = 120, kColossusSpentFrames = 720;
 inline constexpr float kColossusPopFrom = 6.5f, kColossusPopPeakFrame = 10.6f, kColossusPopFrame = 12.0f; // the smoke's
 inline constexpr float kColossusPopPeak = 3.4f / 3.0f;
-inline constexpr float kColossusPopSmokeScale = 0.5f;
-inline constexpr float kColossusSmokeTint[3] = {0.3f, 1.6f, 1.4f}; // the smoke's pink to turquoise
+inline constexpr float kColossusPopSmokeScale = 0.35f;
+inline constexpr float kColossusSmokeTint[3] = {0.6f, 1.2f, 1.15f}; // the smoke's pink to a soft turquoise
 inline constexpr int   kColossusDefense = 15;
 inline constexpr int   kColossusTrampleFrames = 30;
 inline constexpr float kColossusTrampleShare = 0.25f;
