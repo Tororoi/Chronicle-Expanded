@@ -6,8 +6,9 @@
 //
 // The sheet's copy (the same name in kTallHammerSilverBank, a record the cfg does not load): its gold texels
 // (TallHammerGoldTexel) as silver, kTallHammerSilverHue at kTallHammerSilverSaturation, their lightness their own; its
-// turquoise (TallHammerTurquoiseTexel) the same grey at kTallHammerDarkGrey of its lightness; the rest as it is; the
-// colours merged back to 256 as the look pages merge them.
+// turquoise (TallHammerTurquoiseTexel) dulled, its hue its own at kTallHammerDullSaturation of its saturation and
+// kTallHammerDullLightness of its lightness; the rest as it is; the colours merged back to 256 as the look pages merge
+// them.
 
 #include <array>
 #include <span>
@@ -23,7 +24,7 @@ inline constexpr const char *kTallHammerBank = "c06w10.img";
 inline constexpr const char *kTallHammerSheet = "c06w10";
 inline constexpr const char *kTallHammerSilverBank = "c06silver.img";
 inline constexpr double      kTallHammerSilverHue = 210.0, kTallHammerSilverSaturation = 8.0; // a cool grey (degrees, percent)
-inline constexpr double      kTallHammerDarkGrey = 0.7;
+inline constexpr double      kTallHammerDullSaturation = 0.35, kTallHammerDullLightness = 0.9;
 
 // Whether a colour (0-255) is the hammer's gold, or its turquoise, and a colour in the copy.
 bool               TallHammerGoldTexel(const std::array<int, 3> &rgb);

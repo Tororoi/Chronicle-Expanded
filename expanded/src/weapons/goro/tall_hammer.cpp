@@ -9,6 +9,7 @@
 
 #include "bound.hpp"
 #include "btactstatus.hpp"
+#include "btmisc.hpp"
 #include "camerafollow.hpp"
 #include "character.hpp"
 #include "cloth.hpp"
@@ -26,6 +27,7 @@
 #include "expanded/weapons/summon_smoke.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/weapon_hit.hpp"
+#include "framevu1.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "shot_effect.hpp"
@@ -48,6 +50,9 @@ constexpr float kPopEnd = (kColossusPopFrame - kSmokeClipStart) / kSmokeRate;
 // The motions his stride plays in: the run (1), the walk (2), the strafes while locked on (0x12-0x16), the walk while
 // charging (0x1E) and the walk while guarding (0x21).
 constexpr int kStrideMotions[] = {1, 2, 0x12, 0x13, 0x14, 0x15, 0x16, 0x1E, 0x21};
+
+// His hammer's head, where its swing hits (GoroKey_Play).
+constexpr const char *kHammerHead = "dcol0";
 
 // His hammer's swing throw (GoroKey_Play).
 constexpr float kGoroKick = 2.5f, kGoroKickDecay = 0.1f;
@@ -223,10 +228,20 @@ void Trample() {
     }
 }
 
+// Where the pop's smoke plays: the hammer's head (its dcol0, where its swing hits), or his feet with no hammer out.
+void SmokeSpot(float *spot) {
+    float at[4] = {CharaMain.pos[0], CharaMain.pos[1], CharaMain.pos[2], 1.0f};
+    if (NowWeapon != nullptr && NowWeapon->frame != nullptr) {
+        getFramePos(static_cast<CFrameVu1 *>(NowWeapon->frame), const_cast<char *>(kHammerHead), at);
+    }
+    std::copy(at, at + 3, spot);
+}
+
 void Pop() {
     Enter(Phase::Popping);
     colossus.frames = 0;
-    float spot[3] = {CharaMain.pos[0], CharaMain.pos[1], CharaMain.pos[2]};
+    float spot[3];
+    SmokeSpot(spot);
     colossus.smoking = SummonSmokeStart(spot, PlayerYaw(), kColossusPopSmokeScale, &colossus, kColossusSmokeTint);
 }
 
@@ -617,6 +632,9 @@ void ColossusStep() {
         if (colossus.smoking) {
             colossus.smoking = SummonSmokePlaying();
             if (colossus.smoking) {
+                float spot[3];
+                SmokeSpot(spot); // on the hammer as it moves
+                SummonSmokeMove(spot, &colossus);
                 SummonSmokeStep();
             }
         }

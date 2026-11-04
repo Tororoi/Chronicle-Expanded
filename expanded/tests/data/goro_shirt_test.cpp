@@ -42,6 +42,7 @@ TEST(GoroShirt, AsHeShrinksTheHammersGoldTurnsSilver) {
     EXPECT_NEAR(hsl[2], was[2], 1.0);
     auto grey = expanded::TallHammerSilverColour(kTurquoise);
     auto g = expanded::RgbToHsl(grey[0], grey[1], grey[2]), t = expanded::RgbToHsl(kTurquoise[0], kTurquoise[1], kTurquoise[2]);
-    EXPECT_LT(g[1], 10.0);                                        // its turquoise a dark grey
-    EXPECT_NEAR(g[2], t[2] * expanded::kTallHammerDarkGrey, 1.0); // darker than it was
+    EXPECT_NEAR(g[0], t[0], 3.0);                                       // its turquoise still turquoise
+    EXPECT_NEAR(g[1], t[1] * expanded::kTallHammerDullSaturation, 3.0); // dulled
+    EXPECT_NEAR(g[2], t[2] * expanded::kTallHammerDullLightness, 1.0);
 }
