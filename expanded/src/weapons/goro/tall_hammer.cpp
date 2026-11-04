@@ -241,10 +241,15 @@ void PopSpot(float *spot) {
     spot[2] = CharaMain.pos[2];
 }
 
-// His flash: kColossusPopFlash times k on the game's character tint (0: none).
+// His flash, on him and the hammer in his hand: kColossusPopFlash times k on the game's character tint (0: none).
 void Flash(float k) {
-    for (int c = 0; c < 3; c++) {
-        CharaMain.ambient_offset[c] = kColossusPopFlash[c] * k;
+    for (CCharacter *model : {&CharaMain, NowWeapon}) {
+        if (model == nullptr) {
+            continue;
+        }
+        for (int c = 0; c < 3; c++) {
+            model->ambient_offset[c] = kColossusPopFlash[c] * k;
+        }
     }
     colossus.flashing = k > 0.0f;
 }

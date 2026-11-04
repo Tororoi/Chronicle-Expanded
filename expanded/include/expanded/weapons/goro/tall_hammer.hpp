@@ -16,8 +16,8 @@ namespace expanded {
 // and charging again grows him on. kColossusFrames after he first grew he shrinks to kColossusLeast times his size over
 // kColossusShrinkFrames, and kColossusSpentFrames after the shrink began he pops back to his size as the Cactus's copy
 // rises (in a turquoise explosion, kColossusPopBurst of its size, kColossusPopRise of his height up him, with a
-// kColossusPopFlash flash on him; holding small until kColossusPopFrom frames into the pop, past his size to
-// kColossusPopPeak of it by kColossusPopPeakFrame and settled by kColossusPopFrame); from the shrink to the pop he
+// kColossusPopFlash flash on him and the hammer; holding small until kColossusPopFrom frames into the pop, past his size
+// to kColossusPopPeak of it by kColossusPopPeakFrame and settled by kColossusPopFrame); from the shrink to the pop he
 // cannot grow. At any size but his own:
 //   - his attack is his size times his weapon's;
 //   - his defense rises by up to kColossusDefense at kColossusMost and falls by as much at kColossusLeast;
@@ -46,9 +46,9 @@ inline constexpr int   kColossusGrowFrames = 300; // from his size to kColossusM
 inline constexpr int   kColossusFrames = 1800, kColossusShrinkFrames = 120, kColossusSpentFrames = 720;
 inline constexpr float kColossusPopFrom = 9.0f, kColossusPopPeakFrame = 16.0f, kColossusPopFrame = 18.0f; // since it began
 inline constexpr float kColossusPopPeak = 3.4f / 3.0f;
-inline constexpr float kColossusPopBurst = 0.384f; // the turquoise explosion's size, of its own
-inline constexpr float kColossusPopRise = 0.35f;   // where it bursts, of his height over his feet
-// His flash in the burst, on the game's character tint (ambient_offset, 0-255): all of it until he is back to his size,
+inline constexpr float kColossusPopBurst = 0.3f; // the turquoise explosion's size, of its own
+inline constexpr float kColossusPopRise = 0.25f; // where it bursts, of his height over his feet
+// His flash in the burst, his and the hammer's, on the game's character tint (ambient_offset, 0-255): all of it until he is back to his size,
 // then fading with the rest of the burst, gone as it ends.
 inline constexpr float kColossusPopFlash[3] = {100.0f, 200.0f, 200.0f};
 inline constexpr int   kColossusDefense = 15;
