@@ -51,8 +51,11 @@ constexpr float kPopEnd = (kColossusPopFrame - kSmokeClipStart) / kSmokeRate;
 // charging (0x1E) and the walk while guarding (0x21).
 constexpr int kStrideMotions[] = {1, 2, 0x12, 0x13, 0x14, 0x15, 0x16, 0x1E, 0x21};
 
-// The Tall Hammer's head's two faces (c06w10.mds).
+// The Tall Hammer's head (c06w10.mds): its two faces, halfway between which (z 6.99) is its centre; two points along
+// its handle's axis (z 4.63 to 9.36); and its top, z 10, past the centre that share of the way between them.
 constexpr const char *kHammerFaces[2] = {"dcol2", "dcol3"};
+constexpr const char *kHammerAxis[2] = {"dcol0", "dcol1"};
+constexpr float       kHammerTopReach = (10.0f - 6.985f) / (9.36f - 4.63f);
 
 // His hammer's swing throw (GoroKey_Play).
 constexpr float kGoroKick = 2.5f, kGoroKickDecay = 0.1f;
@@ -228,20 +231,25 @@ void Trample() {
     }
 }
 
-// Where the pop's smoke plays: inside the hammer's head, halfway between its two faces (kHammerFaces), or his feet with no
-// hammer out.
+// Where the pop's smoke plays: the top of the hammer's head, on its axis (from halfway between the head's two faces,
+// kHammerFaces, along the handle, the way from kHammerAxis[0] to kHammerAxis[1], kHammerTopReach of that way), or his
+// feet with no hammer out.
 void SmokeSpot(float *spot) {
     std::copy(CharaMain.pos, CharaMain.pos + 3, spot);
     if (NowWeapon == nullptr || NowWeapon->frame == nullptr) {
         return;
     }
-    float faces[2][4] = {};
+    auto at = [](const char *name, float *out) {
+        out[3] = 1.0f;
+        getFramePos(static_cast<CFrameVu1 *>(NowWeapon->frame), const_cast<char *>(name), out);
+    };
+    float faces[2][4], axis[2][4];
     for (int f = 0; f < 2; f++) {
-        faces[f][3] = 1.0f;
-        getFramePos(static_cast<CFrameVu1 *>(NowWeapon->frame), const_cast<char *>(kHammerFaces[f]), faces[f]);
+        at(kHammerFaces[f], faces[f]);
+        at(kHammerAxis[f], axis[f]);
     }
     for (int c = 0; c < 3; c++) {
-        spot[c] = (faces[0][c] + faces[1][c]) / 2.0f;
+        spot[c] = (faces[0][c] + faces[1][c]) / 2.0f + (axis[1][c] - axis[0][c]) * kHammerTopReach;
     }
 }
 
@@ -250,7 +258,7 @@ void Pop() {
     colossus.frames = 0;
     float spot[3];
     SmokeSpot(spot);
-    colossus.smoking = SummonSmokeStart(spot, PlayerYaw(), kColossusPopSmokeScale, &colossus, kColossusSmokeTint);
+    colossus.smoking = SummonSmokeStart(spot, PlayerYaw(), kColossusPopSmokeScale, &colossus, kColossusSmokeTint, kColossusPopSmokeOpacity);
 }
 
 // The pop's size: small in the smoke, then past his size and back to it, evenly in time.
