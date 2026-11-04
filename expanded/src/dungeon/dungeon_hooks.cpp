@@ -580,6 +580,7 @@ void PlayerMotionStepping(CCharacter &chara, int chara_no) {
     QuickComboMotion(chara, chara_no);
     LockOnSpeedMotion(chara, chara_no);
     FiringLegsStep(chara, chara_no);
+    ColossusMotion(chara, chara_no);
 }
 
 void HealTicked() {

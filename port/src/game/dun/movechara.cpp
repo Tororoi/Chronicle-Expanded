@@ -253,6 +253,11 @@ void DunMoveChara() {
                     velo__2[2] = move_z * run_speed;
                 }
 
+#ifdef CHRONICLE_EXPANDED
+                velo__2[0] *= expanded::ColossusMoveScale();
+                velo__2[2] *= expanded::ColossusMoveScale();
+#endif
+
 #ifdef PAL
                 // In debug mode, Select outside an event opens the debug menu.
                 if (DebugMode != 0 && GamePad.Down(PAD_R3) != 0 && BtEventMode == 0) {

@@ -7,9 +7,11 @@
 #include <iterator>
 #include <vector>
 
+#include "bound.hpp"
 #include "btactstatus.hpp"
 #include "camerafollow.hpp"
 #include "character.hpp"
+#include "cloth.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/debug/event_log.hpp"
@@ -40,6 +42,10 @@ constexpr int kFullCharge = 45;
 constexpr float kPopFrom = (kColossusPopFrom - kSmokeClipStart) / kSmokeRate;
 constexpr float kPopPeak = (kColossusPopPeakFrame - kSmokeClipStart) / kSmokeRate;
 constexpr float kPopEnd = (kColossusPopFrame - kSmokeClipStart) / kSmokeRate;
+
+// The motions his stride plays in: the run (1), the walk (2), the strafes while locked on (0x12-0x16), the walk while
+// charging (0x1E) and the walk while guarding (0x21).
+constexpr int kStrideMotions[] = {1, 2, 0x12, 0x13, 0x14, 0x15, 0x16, 0x1E, 0x21};
 
 // His hammer's swing throw (GoroKey_Play).
 constexpr float kGoroKick = 2.5f, kGoroKickDecay = 0.1f;
@@ -75,6 +81,18 @@ struct ShotHit {
     int           at = -1;
 };
 
+// A cloth's ties (to its neighbours across and down) and wind at his own size, and a bound's extents.
+struct CapeBase {
+    CCloth *cloth = nullptr;
+    float   rest[16][16][2] = {};
+    float   wind = 0.0f;
+};
+
+struct BoundBase {
+    CBound *bound = nullptr;
+    float   extent[3] = {};
+};
+
 enum class Phase {
     Normal,
     Grown,
@@ -86,12 +104,17 @@ enum class Phase {
 struct Colossus {
     Phase                                             phase = Phase::Normal;
     float                                             scale = 1.0f;
-    int                                               grown = 0;          // frames he has grown for (Grown)
-    int                                               frames = 0;         // in the phase (Grown: since he first grew; Spent: since the shrink began)
-    float                                             shrink_from = 1.0f; // his size as the shrink began
-    float                                             applied = 1.0f;     // the size last put on the model
-    float                                             camera = 1.0f;      // the size the camera's distance and height were last kept at
-    float                                             last[2] = {};       // where he stood the step before
+    int                                               grown = 0;                  // frames he has grown for (Grown)
+    int                                               frames = 0;                 // in the phase (Grown: since he first grew; Spent: since the shrink began)
+    float                                             shrink_from = 1.0f;         // his size as the shrink began
+    float                                             applied = 1.0f;             // the size last put on the model
+    float                                             camera = 1.0f;              // the size the camera's distance and height were last kept at
+    CCloth                                           *cape[CHARA_CLOTH_MAX] = {}; // the cloth he wore when it was last sized
+    float                                             cape_size = 1.0f;           // the size its ties and bounds were last kept at
+    std::vector<CapeBase>                             cape_base;                  // its ties and wind at his own size
+    std::vector<BoundBase>                            bound_base;                 // the bounds it drapes over, at his own size
+    float                                             stride = -1.0f;             // the play rate last put on his walk, or -1
+    float                                             last[2] = {};               // where he stood the step before
     bool                                              stood = false;
     int                                               trampled[kFloorMonsters] = {};
     int                                               clock = 0;
@@ -249,6 +272,62 @@ void Advance() {
     }
 }
 
+// His cape at his size. Its ties and the bounds it drapes over were measured once, in his own units, and its pinned
+// edge and the sheet it pulls toward come through his scaled frame (the Spirit Cape's sizing): ties, bounds and wind
+// are his size times what they were at his own, read when he first wore it. A cloth he did not wear when it was last
+// sized (another member's, a reload) is read afresh.
+void SizeCape(float scale) {
+    if (!std::equal(std::begin(colossus.cape), std::end(colossus.cape), CharaMain.cloth, CharaMain.cloth + CHARA_CLOTH_MAX)) {
+        std::copy(CharaMain.cloth, CharaMain.cloth + CHARA_CLOTH_MAX, colossus.cape);
+        colossus.cape_size = 1.0f;
+        colossus.cape_base.clear();
+        colossus.bound_base.clear();
+        for (CCloth *cloth : colossus.cape) {
+            if (cloth == nullptr) {
+                continue;
+            }
+            CapeBase &base = colossus.cape_base.emplace_back();
+            base.cloth = cloth;
+            base.wind = cloth->wind_effect;
+            for (int i = 0; i < cloth->num_i; i++) {
+                for (int j = 0; j < cloth->num_j; j++) {
+                    base.rest[i][j][0] = cloth->rest[i][j][0];
+                    base.rest[i][j][1] = cloth->rest[i][j][1];
+                }
+            }
+            for (CBound *bound = cloth->bound; bound != nullptr; bound = bound->next) {
+                auto seen = [bound](const BoundBase &other) { return other.bound == bound; };
+                if (std::find_if(colossus.bound_base.begin(), colossus.bound_base.end(), seen) != colossus.bound_base.end()) {
+                    break; // a tail another piece shares
+                }
+                colossus.bound_base.push_back({
+                    bound, {bound->extent[0], bound->extent[1], bound->extent[2]}
+                });
+            }
+        }
+    }
+    if (scale == colossus.cape_size) {
+        return;
+    }
+    for (const CapeBase &base : colossus.cape_base) {
+        CCloth *cloth = base.cloth;
+        for (int i = 0; i < cloth->num_i; i++) {
+            for (int j = 0; j < cloth->num_j; j++) {
+                cloth->rest[i][j][0] = base.rest[i][j][0] * scale;
+                cloth->rest[i][j][1] = base.rest[i][j][1] * scale;
+            }
+        }
+        cloth->wind_effect = base.wind * scale;
+    }
+    for (const BoundBase &base : colossus.bound_base) {
+        for (int k = 0; k < 3; k++) {
+            base.bound->extent[k] = base.extent[k] * scale;
+            base.bound->reciprocal[k] = base.bound->extent[k] > 0.0f ? 1.0f / base.bound->extent[k] : 0.0f;
+        }
+    }
+    colossus.cape_size = scale;
+}
+
 // The model at his size while he is in play; another member's at its own.
 void Apply() {
     float scale = GoroInPlay() ? colossus.scale : 1.0f;
@@ -256,6 +335,19 @@ void Apply() {
         CharaMain.SetScale(scale, scale, scale);
         colossus.applied = scale;
     }
+    if (GoroInPlay() && CharaMain.cloth != nullptr) {
+        SizeCape(scale);
+    } else {
+        std::fill(std::begin(colossus.cape), std::end(colossus.cape), nullptr); // his cloth went with him
+        colossus.cape_size = 1.0f;
+        colossus.cape_base.clear();
+        colossus.bound_base.clear();
+    }
+}
+
+// His walk's play rate at his size, and how far a step takes him: his stride is his size times his own.
+float StrideRate() {
+    return std::pow(colossus.applied, -kColossusStrideRate);
 }
 
 } // namespace
@@ -266,6 +358,28 @@ float ColossusScale() {
 
 float ColossusCameraScale() {
     return colossus.applied;
+}
+
+float ColossusMoveScale() {
+    return GoroInPlay() ? colossus.applied * StrideRate() : 1.0f;
+}
+
+void ColossusMotion(CCharacter &chara, int chara_no) {
+    // Ours from last step, or the game's own (-1): a rate anyone else put on it stays.
+    bool ours = colossus.stride >= 0.0f && chara.motion_speed == colossus.stride;
+    if (!ours && chara.motion_speed >= 0.0f) {
+        colossus.stride = -1.0f;
+        return;
+    }
+    bool walking = chara_no == CHARA_GORO && colossus.applied != 1.0f && chara.motion_type.motion_info != nullptr &&
+                   std::find(std::begin(kStrideMotions), std::end(kStrideMotions), chara.motion_no) != std::end(kStrideMotions);
+    if (walking) {
+        colossus.stride = chara.motion_type.motion_info[chara.motion_no].speed * StrideRate();
+        chara.motion_speed = colossus.stride;
+    } else if (ours) {
+        chara.motion_speed = -1.0f;
+        colossus.stride = -1.0f;
+    }
 }
 
 void ColossusCamera(CCameraFollow &camera, const float *pos) {
@@ -487,6 +601,12 @@ void ColossusReset() {
     SummonSmokeEnd(&colossus);
     if (colossus.applied != 1.0f) {
         CharaMain.SetScale(1.0f, 1.0f, 1.0f);
+    }
+    if (CharaMain.cloth != nullptr) {
+        SizeCape(1.0f);
+    }
+    if (colossus.stride >= 0.0f && CharaMain.motion_speed == colossus.stride) {
+        CharaMain.motion_speed = -1.0f;
     }
     colossus = Colossus{};
 }

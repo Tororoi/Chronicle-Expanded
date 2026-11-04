@@ -4,6 +4,7 @@
 
 namespace dc::game {
 class CCameraFollow;
+class CCharacter;
 struct COLLISION_HIT;
 class CSHOT_EFFECT;
 } // namespace dc::game
@@ -28,6 +29,9 @@ namespace expanded {
 //   - at kColossusMost, monsters' hits land a tier lighter: a guard-breaking hit as a knockback, a knockback as a light
 //     hit, and a light hit blocked as his guard would block it, without taking him out of what he was doing;
 //   - at kColossusSwitchSize or more, stepping onto a hammer switch sets it off;
+//   - his cape drapes at his size;
+//   - his stride is his size times his own and his walk and run play at his size to the -kColossusStrideRate (a
+//     little slower big, a little quicker small), so a step carries him his size to the 1 - kColossusStrideRate;
 //   - the dungeon camera keeps his size times what it keeps from him (its follow point's rise above him, its distance
 //     and height, and the limits the camera pass keeps them in), so he fills the screen as at his own size.
 // Times are game frames, counted while the dungeon plays (not paused, no event). A change of floor puts him back.
@@ -41,6 +45,7 @@ inline constexpr float kColossusSmokeTint[3] = {0.3f, 1.6f, 1.4f}; // the smoke'
 inline constexpr int   kColossusDefense = 15;
 inline constexpr int   kColossusTrampleFrames = 30;
 inline constexpr float kColossusTrampleShare = 0.25f;
+inline constexpr float kColossusStrideRate = 0.25f;
 inline constexpr float kColossusBodyRadius = 6.0f; // the player's body, as monsters stop at it (MoveCheck2)
 
 // Goro's size now (1: his own).
@@ -51,6 +56,11 @@ float ColossusScale();
 // Hook: the dungeon camera follows him (movechara), before the camera pass (autoCamTrial) keeps it in its limits.
 float ColossusCameraScale();
 void  ColossusCamera(CCameraFollow &camera, const float *pos);
+
+// How far the stick moves him (movechara, times its velocity), and his walk's play rate at his size (a motion step,
+// PlayerMotionStepping).
+float ColossusMoveScale();
+void  ColossusMotion(CCharacter &chara, int chara_no);
 
 // What his size changes, each the game's own as the argument (Goro in play; anyone else's as it is):
 int   ColossusAttack(int attack);

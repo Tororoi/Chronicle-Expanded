@@ -3,9 +3,11 @@
 #include <cmath>
 #include <memory>
 
+#include "bound.hpp"
 #include "btactstatus.hpp"
 #include "camerafollow.hpp"
 #include "character.hpp"
+#include "cloth.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
@@ -295,6 +297,67 @@ TEST_F(Colossus, TheCameraKeepsHisSizeTimesItsDistanceFromHim) {
     expanded::ColossusCamera(camera, pos);
     EXPECT_FLOAT_EQ(camera.distance, 60.0f);
     EXPECT_FLOAT_EQ(camera.height, 5.0f);
+}
+
+TEST_F(Colossus, HisStrideIsHisSizeAndHisWalkPlaysALittleSlowerBig) {
+    MOTION_INFO motions[40] = {};
+    motions[2].speed = 0.6f;
+    motions[0].speed = 0.05f;
+    CCharacter chara;
+    chara.motion_type.motion_info = motions;
+    chara.motion_no = 2;
+    chara.motion_speed = -1.0f;
+    expanded::ColossusMotion(chara, CHARA_GORO);
+    EXPECT_FLOAT_EQ(chara.motion_speed, -1.0f); // at his own size, the game's
+    EXPECT_FLOAT_EQ(expanded::ColossusMoveScale(), 1.0f);
+
+    Grow(expanded::kColossusGrowFrames);
+    float rate = std::pow(2.0f, -expanded::kColossusStrideRate);
+    EXPECT_LT(rate, 1.0f);
+    EXPECT_FLOAT_EQ(expanded::ColossusMoveScale(), 2.0f * rate);
+    expanded::ColossusMotion(chara, CHARA_GORO);
+    EXPECT_FLOAT_EQ(chara.motion_speed, 0.6f * rate);
+    // Following the walk's own rate as the stick changes it.
+    motions[2].speed = 0.3f;
+    expanded::ColossusMotion(chara, CHARA_GORO);
+    EXPECT_FLOAT_EQ(chara.motion_speed, 0.3f * rate);
+    // Not his walk: the game's own again.
+    chara.motion_no = 0;
+    expanded::ColossusMotion(chara, CHARA_GORO);
+    EXPECT_FLOAT_EQ(chara.motion_speed, -1.0f);
+    // A rate someone else put on it stays.
+    chara.motion_no = 2;
+    chara.motion_speed = 0.9f;
+    expanded::ColossusMotion(chara, CHARA_GORO);
+    EXPECT_FLOAT_EQ(chara.motion_speed, 0.9f);
+}
+
+TEST_F(Colossus, HisCapeDrapesAtHisSize) {
+    CCloth   cape(3, 4, 1.0f);
+    CBound   bound(4.0f, 1.0f, 1.0f);
+    CCloth  *worn[CHARA_CLOTH_MAX] = {&cape};
+    CCloth **saved = CharaMain.cloth;
+    CharaMain.cloth = worn;
+    cape.rest[2][3][0] = 1.5f;
+    cape.rest[2][3][1] = 2.0f;
+    cape.wind_effect = 0.5f;
+    cape.bound = &bound;
+    bound.next = nullptr;
+    bound.extent[0] = 4.0f;
+    bound.reciprocal[0] = 0.25f;
+
+    Grow(expanded::kColossusGrowFrames);
+    EXPECT_FLOAT_EQ(cape.rest[2][3][0], 3.0f);
+    EXPECT_FLOAT_EQ(cape.rest[2][3][1], 4.0f);
+    EXPECT_FLOAT_EQ(cape.wind_effect, 1.0f);
+    EXPECT_FLOAT_EQ(bound.extent[0], 8.0f);
+    EXPECT_FLOAT_EQ(bound.reciprocal[0], 0.125f);
+    Steps(1); // kept there
+    EXPECT_FLOAT_EQ(cape.rest[2][3][0], 3.0f);
+    expanded::ColossusReset(); // the floor changed: back to his own
+    EXPECT_FLOAT_EQ(cape.rest[2][3][0], 1.5f);
+    EXPECT_FLOAT_EQ(bound.extent[0], 4.0f);
+    CharaMain.cloth = saved;
 }
 
 TEST_F(Colossus, AtFullSizeAMonstersAttackHitsHimOnce) {
