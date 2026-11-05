@@ -87,10 +87,10 @@ void Collect(CFrame *frame) {
     }
 }
 
-// Somewhere on a monster as it stands this frame, any part of it alike: one of its meshes' vertices (each as likely),
-// else a point inside one of its frames' bounds (each as likely by its room; the game keeps no monster's vertices),
-// else inside one of its posed hurt spheres.
-bool BodyPoint(CMonstorUnit &unit, int monster, float *point) {
+// Somewhere on a monster's model as it stands this frame, any part of it alike, where its frames' world matrices put
+// it: one of its meshes' vertices (each as likely), else a point inside one of its frames' bounds (each as likely by
+// its room; the game keeps no monster's vertices). False with neither.
+bool FramePoint(CMonstorUnit &unit, int monster, float *point) {
     meshes.clear();
     bounds.clear();
     Collect(unit.chara[monster][0].frame);
@@ -127,9 +127,14 @@ bool BodyPoint(CMonstorUnit &unit, int monster, float *point) {
             pick -= bound.volume;
         }
     }
+    return false;
+}
+
+// Somewhere inside one of a monster's posed hurt spheres, false with none.
+bool SpherePoint(const CMonstorUnit &unit, int monster, float *point) {
     const MONSTOR_EFFECT_STATE &body = unit.effect[monster];
     float                       root[4];
-    unit.chara[monster][0].GetPosition(root);
+    const_cast<CMonstorUnit &>(unit).chara[monster][0].GetPosition(root);
     std::array<int, kMonsterSpheres> posed{};
     int                              count = 0;
     for (int i = 0; i < kMonsterSpheres; i++) {
@@ -147,6 +152,23 @@ bool BodyPoint(CMonstorUnit &unit, int monster, float *point) {
     point[0] = body.position[i][0] + radius * across * std::cos(angle);
     point[1] = body.position[i][1] + radius * y;
     point[2] = body.position[i][2] + radius * across * std::sin(angle);
+    return true;
+}
+
+// Somewhere on a monster: a point on its model, else in its hurt spheres. Its frames' world matrices place the model
+// off where the monster stands (by the floor's offset), so a model's point is taken relative to its root frame and set
+// on the monster's position.
+bool BodyPoint(CMonstorUnit &unit, int monster, float *point) {
+    if (!FramePoint(unit, monster, point)) {
+        return SpherePoint(unit, monster, point);
+    }
+    CFrame *root = unit.chara[monster][0].frame;
+    float   origin[4] = {0.0f, 0.0f, 0.0f, 1.0f}, local[4] = {0.0f, 0.0f, 0.0f, 1.0f}, at[4];
+    root->GetWorldPosition(origin, local);
+    unit.chara[monster][0].GetPosition(at);
+    for (int c = 0; c < 3; c++) {
+        point[c] += at[c] - origin[c];
+    }
     return true;
 }
 
@@ -206,10 +228,13 @@ float Distance(const Spark &spark) {
 }
 
 int Alpha(const Spark &spark) {
-    float distance = Distance(spark);
-    float share = std::min(1.0f, (spark.from - distance) / kSparkFadeIn);
+    // Its fades in and out each take no more than a quarter of its way in, so one starting near him (off a monster at
+    // his side) still shows at full between them.
+    float distance = Distance(spark), stop = kSparkNear * 0.5f;
+    float quarter = std::max(0.25f * (spark.from - stop), 0.01f);
+    float share = std::min(1.0f, (spark.from - distance) / std::min(kSparkFadeIn, quarter));
     share = std::min(share, static_cast<float>(kSparkLife - spark.age) / kSparkFadeOut);
-    share = std::min(share, (distance - kSparkNear * 0.5f) / (kSparkNear * 0.5f));
+    share = std::min(share, (distance - stop) / std::min(stop, quarter));
     return static_cast<int>(kSparkAlpha * std::clamp(share, 0.0f, 1.0f) * static_cast<float>(spark.left) / kSparkFadeOut);
 }
 

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <vector>
@@ -207,8 +208,8 @@ TEST_F(UnderworldSparks, APulledMonsterGivesOffSparksFromItsBody) {
     std::vector<std::array<float, 3>> risen = Risen();
     ASSERT_EQ(static_cast<int>(risen.size()), static_cast<int>(4 * expanded::kBodySparkPerFrame));
     for (const auto &at : risen) {
-        // Within the sphere, drawn in a step or two since.
-        EXPECT_LT(std::hypot(at[0] - 40.0f, at[1] - 10.0f, at[2]), 4.0f + 1.0f);
+        // Within the sphere, drawn in up to three steps since, as a ground spark there is.
+        EXPECT_LT(std::hypot(at[0] - 40.0f, at[1] - 10.0f, at[2]), 4.0f + 3.0f * (expanded::UnderworldPullAt(36.0f) + expanded::kSparkCreep));
     }
 }
 
@@ -253,5 +254,22 @@ TEST_F(UnderworldSparks, ABodysSparkWithinHisHeightKeepsItsOwn) {
     for (const auto &at : risen) {
         EXPECT_NEAR(at[1], 9.0f, 0.5f + 1e-3f);
         EXPECT_LT(std::hypot(at[0], at[2]), 30.0f);
+    }
+}
+
+TEST_F(UnderworldSparks, ABodysSparkIsDrawnInAsAGroundSparkThereIs) {
+    Place(40.0f, 0.0f, 9.0f, 0.5f);
+    Acting(14);
+    PulledSteps(2);
+    floor_.unit().monster[0].knockback[2] = 0.0f; // no more from it
+    std::vector<std::array<float, 3>> before = Risen();
+    ASSERT_FALSE(before.empty());
+    PulledSteps(1);
+    std::vector<std::array<float, 3>> after = Risen();
+    ASSERT_EQ(after.size(), before.size());
+    for (std::size_t i = 0; i < before.size(); i++) {
+        float was = std::hypot(before[i][0], before[i][2]), now = std::hypot(after[i][0], after[i][2]);
+        // Its sway across its path moves it off its line by a hair.
+        EXPECT_NEAR(was - now, expanded::UnderworldPullAt(was) + expanded::kSparkCreep, 0.02f) << was;
     }
 }
