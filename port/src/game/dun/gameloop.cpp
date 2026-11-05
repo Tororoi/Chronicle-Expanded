@@ -2631,6 +2631,9 @@ void DunMainDraw() {
             CWeaponFx.Draw();
             CRunFx__2.Step();
             CRunFx__2.Draw();
+#ifdef CHRONICLE_EXPANDED
+            expanded::DungeonRunDustDrawn();
+#endif
             MGSetGsALPHA(nullptr);
             MGSetGsZBUF(nullptr);
         }

@@ -36,6 +36,7 @@
 #include "expanded/weapons/goro/battle_ax.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
+#include "expanded/weapons/goro/satans_ax/underworld_sparks.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/goro/turtle_shell.hpp"
 #include "expanded/weapons/heal.hpp"
@@ -195,6 +196,10 @@ void DungeonShotsDrawn() {
     ShootingStarsDraw();
 }
 
+void DungeonRunDustDrawn() {
+    UnderworldSparksDraw();
+}
+
 bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
     return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit) || PackHitPassesBy(hit) || ColossusPassesBy(hit);
 }
@@ -260,6 +265,7 @@ void DungeonMonstersTick() {
     DesertBloomStep();
     ColossusStep();
     SnakeCharmerStep();
+    UnderworldSparksStep();
     BigRockStep();
     CurseOfBabelStep();
     AirStrikeStep();

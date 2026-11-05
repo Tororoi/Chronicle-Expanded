@@ -44,14 +44,15 @@ void DungeonStatusReady();
 void DungeonFrameBegins();
 
 // The dungeon's draw (MainDraw), where features draw over the game's: after the units' shadows (player, the player's
-// position), the monsters, the event's characters, the shot effects (before the main effect), the map's raster and the
-// player's shots.
+// position), the monsters, the event's characters, the shot effects (before the main effect), the map's raster, the
+// player's shots and the run dust.
 void DungeonShadowsDrawn(const float *player);
 void DungeonMonstersDrawn();
 void DungeonNpcsDrawn();
 void DungeonEffectsDrawn();
 void DungeonRasterDrawn();
 void DungeonShotsDrawn();
+void DungeonRunDustDrawn();
 
 // A monster's hit reaching the player (BtCheckDamageProc): whether it passes him by, the hit before its damage is
 // worked out, and the reaction it gave (blocked: his guard took it).
