@@ -25,6 +25,7 @@ protected:
         for (int i = 0; i < 3; i++) {
             saved_pos_[i] = CharaMain.pos[i];
         }
+        saved_time_ = CharaMain.motion_type.state.time;
         CharaMain.SetPosition(0.0f, 0.0f, 0.0f);
         expanded::SeedModRandom(7);
         expanded::UnderworldSparksReset();
@@ -33,6 +34,7 @@ protected:
     void TearDown() override {
         expanded::UnderworldSparksReset();
         CharaMain.SetPosition(saved_pos_[0], saved_pos_[1], saved_pos_[2]);
+        CharaMain.motion_type.state.time = saved_time_;
         BtActStatus = {};
     }
 
@@ -40,6 +42,7 @@ protected:
     void Acting(int action) {
         BtActStatus.action_on = 1;
         BtActStatus.action_no = action;
+        CharaMain.motion_type.state.time = expanded::kUnderworldSmashLands - 20.0f; // short of the ground
     }
 
     void Steps(int count) {
@@ -60,6 +63,7 @@ protected:
     expanded::test::TestFloor floor_;
     expanded::test::Wielding  wielding_;
     float                     saved_pos_[3] = {};
+    float                     saved_time_ = 0.0f;
 };
 
 } // namespace

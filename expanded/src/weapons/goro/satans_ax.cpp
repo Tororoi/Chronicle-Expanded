@@ -65,7 +65,8 @@ float UnderworldStrength() {
         return 0.0f;
     }
     if (BtActStatus.action_no == kSmashAction) {
-        return 1.0f;
+        // Until it hits the ground, not until he can act again.
+        return CharaMain.motion_type.state.time < kUnderworldSmashLands ? 1.0f : 0.0f;
     }
     return BtActStatus.action_no == kChargeAction ? kUnderworldChargeShare : 0.0f;
 }

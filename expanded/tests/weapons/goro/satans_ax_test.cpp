@@ -29,6 +29,7 @@ protected:
         for (int i = 0; i < 3; i++) {
             saved_pos_[i] = CharaMain.pos[i];
         }
+        saved_time_ = CharaMain.motion_type.state.time;
         CharaMain.SetPosition(0.0f, 0.0f, 0.0f);
         Smash(true);
         expanded::UnderworldReset();
@@ -37,12 +38,15 @@ protected:
     void TearDown() override {
         expanded::UnderworldReset();
         CharaMain.SetPosition(saved_pos_[0], saved_pos_[1], saved_pos_[2]);
+        CharaMain.motion_type.state.time = saved_time_;
         BtActStatus = {};
     }
 
+    // Smashing, short of the ground.
     void Smash(bool on) {
         BtActStatus.action_on = on ? 1 : 0;
         BtActStatus.action_no = on ? 14 : 0;
+        CharaMain.motion_type.state.time = expanded::kUnderworldSmashLands - 20.0f;
     }
 
     // A monster of kind in slot at (x, z), standing still; its weight its kind's (SetupViewMonstor's).
@@ -69,6 +73,7 @@ protected:
     expanded::test::Wielding      wielding_;
     expanded::test::StepsUnpaused unpaused_;
     float                         saved_pos_[3] = {};
+    float                         saved_time_ = 0.0f;
 };
 
 class UnderworldWithAnotherAx : public UnderworldPull {
@@ -151,6 +156,16 @@ TEST_F(UnderworldPull, OnlyWhileHisChargeOrSmashLasts) {
     floor_.status().cur_chara = CHARA_XIAO;
     Smash(true);
     EXPECT_FLOAT_EQ(expanded::UnderworldStrength(), 0.0f); // Goro's alone
+}
+
+TEST_F(UnderworldPull, ItEndsTheMomentHisSmashLands) {
+    Place(0, Monster::SKELETON_SOLDIER, 30.0f, 0.0f);
+    CharaMain.motion_type.state.time = expanded::kUnderworldSmashLands - 0.4f;
+    EXPECT_FLOAT_EQ(expanded::UnderworldStrength(), 1.0f);
+    EXPECT_LT(Step(0)[0], 0.0f);
+    CharaMain.motion_type.state.time = expanded::kUnderworldSmashLands; // the ground hit; still smashing, still unhurt
+    EXPECT_FLOAT_EQ(expanded::UnderworldStrength(), 0.0f);
+    EXPECT_FLOAT_EQ(Step(0)[0], 0.0f);
 }
 
 TEST_F(UnderworldWithAnotherAx, NoOtherAxPulls) {
