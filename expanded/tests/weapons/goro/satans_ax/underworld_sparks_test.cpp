@@ -1,16 +1,21 @@
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cmath>
 #include <vector>
 
 #include "btactstatus.hpp"
 #include "character.hpp"
+#include "charaheight.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
+#include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_sparks.hpp"
 #include "itemdata.hpp"
+#include "monstorunit.hpp"
 #include "test_support.hpp"
+#include "userstatus.hpp"
 
 namespace {
 
@@ -49,6 +54,46 @@ protected:
         for (int i = 0; i < count; i++) {
             expanded::UnderworldSparksStep();
         }
+    }
+
+    // A monster at (x, 0, z) the pull can draw, its one hurt sphere radius across at height y; its model has no frames,
+    // so its sparks rise from inside that sphere.
+    void Place(float x, float z, float y, float radius) {
+        floor_.SetUpModel(0, expanded::Monster::SKELETON_SOLDIER);
+        floor_.Spawn(0, 0);
+        CMonstorUnit &unit = floor_.unit();
+        MONSTOR      &live = unit.monster[0];
+        live.state = 2;
+        live.revealed = -1;
+        live.knockback[2] = 1.0f;
+        live.movement_speed = 0.0f;
+        unit.chara[0][0].frame = nullptr;
+        unit.chara[0][0].SetPosition(x, 0.0f, z);
+        unit.effect[0].timer[0] = 1;
+        unit.effect[0].radius[0] = radius;
+        unit.effect[0].position[0][0] = x;
+        unit.effect[0].position[0][1] = y;
+        unit.effect[0].position[0][2] = z;
+    }
+
+    // A step of the monster's pull, then of the sparks.
+    void PulledSteps(int count) {
+        for (int i = 0; i < count; i++) {
+            expanded::UnderworldMonsterMove(floor_.unit(), 0);
+            expanded::UnderworldSparksStep();
+        }
+    }
+
+    // The sparks off the ground (the body's), where they are.
+    std::vector<std::array<float, 3>> Risen() {
+        std::vector<std::array<float, 3>> risen;
+        float                             at[3];
+        for (int i = 0; expanded::UnderworldSparkAt(i, at); i++) {
+            if (at[1] > expanded::kSparkLift + 0.5f) {
+                risen.push_back({at[0], at[1], at[2]});
+            }
+        }
+        return risen;
     }
 
     std::vector<float> Distances() {
@@ -151,4 +196,62 @@ TEST_F(UnderworldSparks, NoSparkOutlivesItsLife) {
     Steps(expanded::kSparkLife * 2);
     EXPECT_LE(expanded::UnderworldSparksLive(), expanded::kSparkCount);
     EXPECT_GT(expanded::UnderworldSparksLive(), 0);
+}
+
+TEST_F(UnderworldSparks, APulledMonsterGivesOffSparksFromItsBody) {
+    Place(40.0f, 0.0f, 10.0f, 4.0f);
+    Acting(14);
+    PulledSteps(1);
+    ASSERT_TRUE(expanded::UnderworldPulling(0));
+    PulledSteps(3); // kBodySparkPerFrame a frame
+    std::vector<std::array<float, 3>> risen = Risen();
+    ASSERT_EQ(static_cast<int>(risen.size()), static_cast<int>(4 * expanded::kBodySparkPerFrame));
+    for (const auto &at : risen) {
+        // Within the sphere, drawn in a step or two since.
+        EXPECT_LT(std::hypot(at[0] - 40.0f, at[1] - 10.0f, at[2]), 4.0f + 1.0f);
+    }
+}
+
+TEST_F(UnderworldSparks, NoneFromAMonsterThePullLeaves) {
+    Place(40.0f, 0.0f, 10.0f, 4.0f);
+    Acting(14);
+    floor_.unit().monster[0].knockback[2] = 0.0f; // one hits never move
+    PulledSteps(10);
+    EXPECT_FALSE(expanded::UnderworldPulling(0));
+    EXPECT_TRUE(Risen().empty());
+}
+
+TEST_F(UnderworldSparks, ABodysSparkHeadsForTheHeightOnHimNearestItsOwn) {
+    // Its body above his head: it comes down toward the top of him as it comes in, along the line between.
+    Place(30.0f, 0.0f, 40.0f, 1.0f);
+    Acting(14);
+    PulledSteps(2);
+    floor_.unit().monster[0].knockback[2] = 0.0f; // no more from it
+    float                             top = CharaHeight(UserStatus);
+    std::vector<std::array<float, 3>> start = Risen();
+    ASSERT_FALSE(start.empty());
+    PulledSteps(8);
+    std::vector<std::array<float, 3>> now = Risen();
+    ASSERT_EQ(now.size(), start.size());
+    for (std::size_t i = 0; i < now.size(); i++) {
+        float was = std::hypot(start[i][0], start[i][2]), across = std::hypot(now[i][0], now[i][2]);
+        EXPECT_LT(across, was - 5.0f);
+        EXPECT_LT(now[i][1], start[i][1] - 3.0f);
+        // Its height above his top shrinks with its distance (its sway bends the line a little).
+        EXPECT_NEAR((now[i][1] - top) / across, (start[i][1] - top) / was, 0.05f);
+    }
+}
+
+TEST_F(UnderworldSparks, ABodysSparkWithinHisHeightKeepsItsOwn) {
+    Place(30.0f, 0.0f, 9.0f, 0.5f);
+    Acting(14);
+    PulledSteps(2);
+    floor_.unit().monster[0].knockback[2] = 0.0f;
+    PulledSteps(8); // still on its way: the pull brings it to him in about 15
+    std::vector<std::array<float, 3>> risen = Risen();
+    ASSERT_FALSE(risen.empty());
+    for (const auto &at : risen) {
+        EXPECT_NEAR(at[1], 9.0f, 0.5f + 1e-3f);
+        EXPECT_LT(std::hypot(at[0], at[2]), 30.0f);
+    }
 }

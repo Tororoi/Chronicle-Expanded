@@ -37,6 +37,7 @@
 #include "expanded/weapons/goro/frozen_tuna.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_sparks.hpp"
+#include "expanded/weapons/goro/satans_ax/underworld_tint.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/goro/turtle_shell.hpp"
 #include "expanded/weapons/heal.hpp"
@@ -266,6 +267,7 @@ void DungeonMonstersTick() {
     ColossusStep();
     SnakeCharmerStep();
     UnderworldSparksStep();
+    UnderworldTintStep();
     BigRockStep();
     CurseOfBabelStep();
     AirStrikeStep();

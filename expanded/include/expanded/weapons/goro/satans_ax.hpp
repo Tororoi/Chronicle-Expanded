@@ -35,6 +35,9 @@ float UnderworldStrength();
 // one the pull left (its script set no other), so it draws the monster on without gathering speed.
 void UnderworldMonsterMove(CMonstorUnit &unit, int monster);
 
+// Whether a monster's last step took the pull.
+bool UnderworldPulling(int monster);
+
 // The floor changed (tests too).
 void UnderworldReset();
 

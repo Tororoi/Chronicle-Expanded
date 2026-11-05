@@ -5,17 +5,25 @@
 #include <cmath>
 #include <numbers>
 #include <random>
+#include <vector>
 
 #include "character.hpp"
+#include "charaheight.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
+#include "framevu1.hpp"
+#include "mdt.hpp"
 #include "mglib.hpp"
+#include "monstorunit.hpp"
 #include "rect.hpp"
 #include "render/draw2d.hpp"
 #include "snd.hpp"
 #include "texture.hpp"
+#include "userstatus.hpp"
+#include "visualvu1.hpp"
 
 namespace expanded {
 
@@ -24,7 +32,9 @@ namespace {
 struct Spark {
     bool  live = false;
     float position[4] = {};
-    float from = 0.0f; // how far from him it started
+    float from = 0.0f;   // how far from him it started, across the ground
+    bool  ground = true; // on the ground, or risen from a monster's body
+    float rise = 0.0f;   // the height on him it heads for, above his feet
     int   age = 0;
     int   left = kSparkFadeOut; // its frames left once the pull has ended
     float sway = 0.0f;          // across its path, at most
@@ -35,7 +45,23 @@ struct Spark {
 };
 
 std::array<Spark, kSparkCount> sparks;
-float                          owed = 0.0f; // the part of a spark the steps so far have started
+float                          owed = 0.0f;                    // the part of a spark the steps so far have started
+float                          body_owed[kFloorMonsters] = {}; // and each monster's body has
+
+// A monster's meshes this frame, and its frames' bounds (for a model whose meshes keep no vertices).
+struct Mesh {
+    CFrame              *frame;
+    const sceVu0FVECTOR *vertices;
+    int                  count;
+};
+
+struct Bound {
+    CFrame *frame;
+    float   volume;
+};
+
+std::vector<Mesh>  meshes;
+std::vector<Bound> bounds;
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(UnderworldSparksReset), true);
 
@@ -43,25 +69,136 @@ float Uniform(float low, float high) {
     return std::uniform_real_distribution<float>(low, high)(ModRandom());
 }
 
-void Start() {
+void Collect(CFrame *frame) {
+    for (; frame != nullptr; frame = frame->brother) {
+        CVisualVu1 *visual = static_cast<CFrameVu1 *>(frame)->GetVisual();
+        u_int      *data = visual != nullptr ? visual->GetMDTDataAddress() : nullptr;
+        if (data != nullptr) {
+            auto *mdt = reinterpret_cast<MDT_HEADER *>(data);
+            if (mdt->vertex_num > 0) {
+                meshes.push_back({frame, reinterpret_cast<const sceVu0FVECTOR *>(reinterpret_cast<u_char *>(mdt) + mdt->vertex_ofs), static_cast<int>(mdt->vertex_num)});
+            }
+        }
+        float volume = (frame->max[0] - frame->min[0]) * (frame->max[1] - frame->min[1]) * (frame->max[2] - frame->min[2]);
+        if (volume > 0.0f) {
+            bounds.push_back({frame, volume});
+        }
+        Collect(frame->child);
+    }
+}
+
+// Somewhere on a monster as it stands this frame, any part of it alike: one of its meshes' vertices (each as likely),
+// else a point inside one of its frames' bounds (each as likely by its room; the game keeps no monster's vertices),
+// else inside one of its posed hurt spheres.
+bool BodyPoint(CMonstorUnit &unit, int monster, float *point) {
+    meshes.clear();
+    bounds.clear();
+    Collect(unit.chara[monster][0].frame);
+    float local[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    if (!meshes.empty()) {
+        int total = 0;
+        for (const Mesh &mesh : meshes) {
+            total += mesh.count;
+        }
+        int pick = std::uniform_int_distribution<int>(0, total - 1)(ModRandom());
+        for (const Mesh &mesh : meshes) {
+            if (pick < mesh.count) {
+                std::copy(mesh.vertices[pick], mesh.vertices[pick] + 3, local);
+                mesh.frame->GetWorldPosition(point, local);
+                return true;
+            }
+            pick -= mesh.count;
+        }
+    }
+    if (!bounds.empty()) {
+        float total = 0.0f;
+        for (const Bound &bound : bounds) {
+            total += bound.volume;
+        }
+        float pick = Uniform(0.0f, total);
+        for (const Bound &bound : bounds) {
+            if (pick <= bound.volume || &bound == &bounds.back()) {
+                for (int c = 0; c < 3; c++) {
+                    local[c] = Uniform(bound.frame->min[c], bound.frame->max[c]);
+                }
+                bound.frame->GetWorldPosition(point, local);
+                return true;
+            }
+            pick -= bound.volume;
+        }
+    }
+    const MONSTOR_EFFECT_STATE &body = unit.effect[monster];
+    float                       root[4];
+    unit.chara[monster][0].GetPosition(root);
+    std::array<int, kMonsterSpheres> posed{};
+    int                              count = 0;
+    for (int i = 0; i < kMonsterSpheres; i++) {
+        if (body.timer[i] != 0 && std::fabs(body.position[i][0] - root[0]) <= kUnposedSphere && std::fabs(body.position[i][2] - root[2]) <= kUnposedSphere) {
+            posed[count++] = i;
+        }
+    }
+    if (count == 0) {
+        return false;
+    }
+    int i = posed[ModRoll(count)];
+    // Even through the sphere: a direction, and a radius as deep as its shells' room.
+    float y = Uniform(-1.0f, 1.0f), angle = Uniform(0.0f, 2.0f * std::numbers::pi_v<float>);
+    float across = std::sqrt(1.0f - y * y), radius = body.radius[i] * std::cbrt(Uniform(0.0f, 1.0f));
+    point[0] = body.position[i][0] + radius * across * std::cos(angle);
+    point[1] = body.position[i][1] + radius * y;
+    point[2] = body.position[i][2] + radius * across * std::sin(angle);
+    return true;
+}
+
+float Height() {
+    return UserStatus != nullptr ? CharaHeight(UserStatus) : 16.0f;
+}
+
+Spark *Free() {
     auto free = std::find_if(sparks.begin(), sparks.end(), [](const Spark &spark) { return !spark.live; });
-    if (free == sparks.end()) {
+    return free == sparks.end() ? nullptr : &*free;
+}
+
+Spark Wandering() {
+    return Spark{.live = true,
+                 .sway = Uniform(0.1f, 0.35f),
+                 .phase = Uniform(0.0f, 2.0f * std::numbers::pi_v<float>),
+                 .rate = Uniform(0.05f, 0.12f),
+                 .twinkle = Uniform(0.0f, 2.0f * std::numbers::pi_v<float>),
+                 .size = Uniform(0.7f, 1.3f)};
+}
+
+void StartOnBody(CMonstorUnit &unit, int monster) {
+    Spark *free = Free();
+    float  point[4];
+    if (free == nullptr || !BodyPoint(unit, monster, point)) {
+        return;
+    }
+    *free = Wandering();
+    std::copy(point, point + 3, free->position);
+    free->position[3] = 1.0f;
+    free->from = std::hypot(CharaMain.pos[0] - point[0], CharaMain.pos[2] - point[2]);
+    free->ground = false;
+    // The height on his body nearest its own.
+    free->rise = std::clamp(point[1] - CharaMain.pos[1], 0.0f, Height());
+}
+
+void Start() {
+    Spark *free = Free();
+    if (free == nullptr) {
         return;
     }
     float angle = Uniform(0.0f, 2.0f * std::numbers::pi_v<float>);
     // Even over the ring's area: as many far out as its wider rim holds.
     float near2 = kSparkNear * kSparkNear, far2 = kSparkFar * kSparkFar;
     float radius = std::sqrt(Uniform(near2 + (far2 - near2) * 0.05f, far2));
-    *free = Spark{
-        .live = true,
-        .position = {CharaMain.pos[0] + radius * std::cos(angle), CharaMain.pos[1] + kSparkLift, CharaMain.pos[2] + radius * std::sin(angle), 1.0f},
-        .from = radius,
-        .sway = Uniform(0.1f, 0.35f),
-        .phase = Uniform(0.0f, 2.0f * std::numbers::pi_v<float>),
-        .rate = Uniform(0.05f, 0.12f),
-        .twinkle = Uniform(0.0f, 2.0f * std::numbers::pi_v<float>),
-        .size = Uniform(0.7f, 1.3f)
-    };
+    *free = Wandering();
+    free->position[0] = CharaMain.pos[0] + radius * std::cos(angle);
+    free->position[1] = CharaMain.pos[1] + kSparkLift;
+    free->position[2] = CharaMain.pos[2] + radius * std::sin(angle);
+    free->position[3] = 1.0f;
+    free->from = radius;
+    free->rise = kSparkLift;
 }
 
 float Distance(const Spark &spark) {
@@ -95,6 +232,13 @@ void UnderworldSparksStep() {
     for (; owed >= 1.0f; owed -= 1.0f) {
         Start();
     }
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
+        bool drawn = NowMonstorUnit != nullptr && strength > 0.0f && UnderworldPulling(monster) && MonsterInPlay(NowMonstorUnit->monster[monster]);
+        body_owed[monster] = drawn ? body_owed[monster] + kBodySparkPerFrame * strength : 0.0f;
+        for (; body_owed[monster] >= 1.0f; body_owed[monster] -= 1.0f) {
+            StartOnBody(*NowMonstorUnit, monster);
+        }
+    }
     for (Spark &spark : sparks) {
         if (!spark.live) {
             continue;
@@ -112,7 +256,12 @@ void UnderworldSparksStep() {
         float across = spark.sway * std::sin(spark.phase + spark.rate * static_cast<float>(spark.age));
         spark.position[0] += (dx * in - dz * across) / distance;
         spark.position[2] += (dz * in + dx * across) / distance;
-        spark.position[1] = CharaMain.pos[1] + kSparkLift;
+        if (spark.ground) {
+            spark.position[1] = CharaMain.pos[1] + kSparkLift;
+        } else {
+            // Rising or falling to its height on him as it comes in, to meet him there.
+            spark.position[1] += (CharaMain.pos[1] + spark.rise - spark.position[1]) * in / distance;
+        }
     }
 }
 
@@ -179,6 +328,7 @@ int UnderworldSparkAlpha(int i) {
 void UnderworldSparksReset() {
     sparks.fill(Spark{});
     owed = 0.0f;
+    std::fill(std::begin(body_owed), std::end(body_owed), 0.0f);
 }
 
 } // namespace expanded

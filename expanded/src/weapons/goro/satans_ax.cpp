@@ -112,6 +112,10 @@ void UnderworldMonsterMove(CMonstorUnit &unit, int monster) {
     last.on = true;
 }
 
+bool UnderworldPulling(int monster) {
+    return monster >= 0 && monster < kFloorMonsters && pulled[monster].on;
+}
+
 void UnderworldReset() {
     std::fill(std::begin(pulled), std::end(pulled), Pulled{});
 }
