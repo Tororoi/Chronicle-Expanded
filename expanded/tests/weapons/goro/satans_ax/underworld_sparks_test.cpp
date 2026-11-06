@@ -238,8 +238,10 @@ TEST_F(UnderworldSparks, ABodysSparkHeadsForTheHeightOnHimNearestItsOwn) {
         float was = std::hypot(start[i][0], start[i][2]), across = std::hypot(now[i][0], now[i][2]);
         EXPECT_LT(across, was - 5.0f);
         EXPECT_LT(now[i][1], start[i][1] - 3.0f);
-        // Its height above his top shrinks with its distance (its sway bends the line a little).
-        EXPECT_NEAR((now[i][1] - top) / across, (start[i][1] - top) / was, 0.05f);
+        // Its height above his top shrinks with its distance: a straight line.
+        EXPECT_NEAR((now[i][1] - top) / across, (start[i][1] - top) / was, 1e-3f);
+        // Heading straight at him, no sway across its path.
+        EXPECT_NEAR(now[i][0] * start[i][2] - now[i][2] * start[i][0], 0.0f, 1e-2f);
     }
 }
 
@@ -269,7 +271,6 @@ TEST_F(UnderworldSparks, ABodysSparkIsDrawnInAsAGroundSparkThereIs) {
     ASSERT_EQ(after.size(), before.size());
     for (std::size_t i = 0; i < before.size(); i++) {
         float was = std::hypot(before[i][0], before[i][2]), now = std::hypot(after[i][0], after[i][2]);
-        // Its sway across its path moves it off its line by a hair.
-        EXPECT_NEAR(was - now, expanded::UnderworldPullAt(was) + expanded::kSparkCreep, 0.02f) << was;
+        EXPECT_NEAR(was - now, expanded::UnderworldPullAt(was) + expanded::kSparkCreep, 1e-3f) << was;
     }
 }

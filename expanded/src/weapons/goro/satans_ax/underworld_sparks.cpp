@@ -201,6 +201,7 @@ void StartOnBody(CMonstorUnit &unit, int monster) {
     free->position[3] = 1.0f;
     free->from = std::hypot(CharaMain.pos[0] - point[0], CharaMain.pos[2] - point[2]);
     free->ground = false;
+    free->sway = 0.0f; // straight at him through the air
     // The height on his body nearest its own.
     free->rise = std::clamp(point[1] - CharaMain.pos[1], 0.0f, Height());
 }
