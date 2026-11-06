@@ -41,7 +41,7 @@ bool EquippedCarries(const CUserStatus &status, int chara, int weapon_no);
 bool EquippedCarries(int chara, int weapon_no);
 
 // The weapon whose cell of basefx01 the player's pellets are drawn with: the Steel Slingshot's stone for Double Impact's
-// pairs, a slingshot sphere's, else the wielded one's.
+// pairs, a slingshot sphere's, the Flamingo's for Satan's Ax's sphere, else the wielded one's.
 int PelletWeapon();
 
 // The Weapon Abilities option (config.json's expanded.weapon_abilities, on by default). Off, no weapon is wielded,

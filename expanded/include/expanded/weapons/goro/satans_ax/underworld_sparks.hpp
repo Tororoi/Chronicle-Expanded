@@ -3,7 +3,8 @@
 namespace expanded {
 
 // Pull of the Underworld's sparks (satans_ax.hpp): while the pull is on, the pink hit spark (basefx00's first cell)
-// lies on the ground around Goro, kSparkNear to kSparkFar from him, and is drawn straight in toward him, starting at
+// lies on the ground around what it draws to (Goro, or Xiao's charged pellet: UnderworldCentre, "him" below),
+// kSparkNear to kSparkFar from him, and is drawn straight in toward him (rising to the pellet as it comes), starting at
 // kSparkCreep a frame and gaining kSparkAccel a frame each frame times the pull's strength (steadily, wherever it is).
 // kSparkHoldPerFrame start a frame while he holds the charge, and kSparkSmashPerFrame, eight times as many, once he
 // lets it go and the pull is at its strongest. Each starts unseen and fades in over its first kSparkFadeIn units drawn
@@ -13,7 +14,7 @@ namespace expanded {
 // from anywhere on it (one of its meshes' vertices as it stands, or failing those inside its frames' bounds or its
 // hurt spheres), drawn in as the ground's are but gaining kBodySparkAccel a frame each frame (soon far faster than the
 // monster it left), straight through the air toward the height on his body nearest the one each started at (his feet
-// to CharaHeight above them). One starting inside the monster is hidden by it until it leaves.
+// to CharaHeight above them; the pellet's own). One starting inside the monster is hidden by it until it leaves.
 inline constexpr int   kSparkCount = 384;
 inline constexpr float kBodySparkPerFrame = 0.25f;
 inline constexpr float kBodySparkAccel = 0.4f;

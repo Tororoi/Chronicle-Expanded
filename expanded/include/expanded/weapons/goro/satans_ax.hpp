@@ -26,9 +26,26 @@ inline constexpr int   kUnderworldSmashFrames = 83;
 // The pull a monster of weight 1 takes a frame distance from him (0 beyond the reach).
 float UnderworldPullAt(float distance);
 
-// How strongly the pull is on, Goro in play with Satan's Ax: 1 while he smashes until it lands, kUnderworldChargeShare
-// while he holds the charge, 0 otherwise.
+// How strongly the pull is on: 1 while Xiao's charged pellet flies (satans_ax/underworld_shot.hpp); else, Goro in play
+// with Satan's Ax, 1 while he smashes until it lands, kUnderworldChargeShare while he holds the charge; 0 otherwise.
 float UnderworldStrength();
+
+// What the pull draws to: Goro, or Xiao's charged pellet in flight. Across the ground at (x, z), the ground's height
+// there (the feet of the member in play), the heights a spark coming in heads for (Goro's feet to the top of him, the
+// pellet's own), how far out from (x, z) a monster's body stops (his body's, none for the pellet), and how strongly it
+// draws the monsters, times UnderworldStrength (1 for Goro, kUnderworldShotPull for the pellet).
+struct UnderworldCentre {
+    float x = 0.0f;
+    float z = 0.0f;
+    float ground = 0.0f;
+    float low = 0.0f;
+    float high = 0.0f;
+    float body = 0.0f;
+    float pull = 1.0f;
+};
+
+// The pull's centre now, or false with the pull off.
+bool UnderworldCentreNow(UnderworldCentre &centre);
 
 // A monster's step, once its own movement and the game's body checks have set it (MoveChecMonster): the pull added,
 // before its walls are tested. The pull it took the step before is taken back off first, while its step is still the

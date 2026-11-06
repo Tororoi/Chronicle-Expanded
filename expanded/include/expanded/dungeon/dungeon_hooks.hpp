@@ -128,6 +128,8 @@ void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit);
 void ShotEffectHitSet(CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit);
 // A pellet about to be stepped (CSHOT::step).
 void PelletStepping(CSHOT &shots, int slot);
+// Whether a pellet that met a monster goes on through it (its hit planted all the same) rather than ending.
+bool PelletPierces(const CSHOT &shots, int slot);
 // Whether a pellet ending lands its own hit: not one whose hit is a bolt or a bomb's blast.
 bool PelletHurts(const CSHOT &shots, int slot);
 

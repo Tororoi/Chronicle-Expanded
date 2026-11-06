@@ -43,7 +43,7 @@ TEST(SuperSteve, SphereWeaponIsTheSynthSpheres) {
 // Super Steve's sphere makes its weapon active, but not wielded; another weapon's sphere does nothing.
 TEST(SuperSteve, OnlySuperSteveChannelsItsSphere) {
     WEAPON_HAVE weapon = SuperSteve(ITEM_WEAPON_BASELARD);
-    Wielding wielding(weapon);
+    Wielding    wielding(weapon);
 
     EXPECT_EQ(SuperSteveSphere(), ITEM_WEAPON_BASELARD);
     EXPECT_TRUE(WeaponActive(ITEM_WEAPON_BASELARD));
@@ -56,14 +56,17 @@ TEST(SuperSteve, OnlySuperSteveChannelsItsSphere) {
     EXPECT_FALSE(WeaponActive(ITEM_WEAPON_BASELARD));
 }
 
-// A slingshot's sphere lends its pellet; any other sphere leaves Super Steve's.
+// A slingshot's sphere lends its pellet, Satan's Ax's the Flamingo's; any other sphere leaves Super Steve's.
 TEST(SuperSteve, SlingshotSphereLendsItsPellet) {
     WEAPON_HAVE weapon = SuperSteve(ITEM_WEAPON_MATADOR);
-    Wielding wielding(weapon);
+    Wielding    wielding(weapon);
     EXPECT_EQ(PelletWeapon(), ITEM_WEAPON_MATADOR);
 
     weapon.attach[1].sphere_weapon_no = ITEM_WEAPON_ANGE_GEAR;
     EXPECT_EQ(PelletWeapon(), ITEM_WEAPON_ANGE_GEAR);
+
+    weapon.attach[1].sphere_weapon_no = ITEM_WEAPON_SATAN_S_AX; // its pull's pink
+    EXPECT_EQ(PelletWeapon(), ITEM_WEAPON_FLAMINGO);
 
     weapon.attach[1].sphere_weapon_no = ITEM_WEAPON_BASELARD;
     EXPECT_EQ(PelletWeapon(), ITEM_WEAPON_SUPER_STEVE);
@@ -73,7 +76,7 @@ TEST(SuperSteve, SlingshotSphereLendsItsPellet) {
 // back on after.
 TEST(SuperSteve, WeaponAbilitiesOffWieldNothing) {
     WEAPON_HAVE weapon = SuperSteve(ITEM_WEAPON_BASELARD);
-    Wielding wielding(weapon);
+    Wielding    wielding(weapon);
     EXPECT_TRUE(WeaponAbilitiesOn());
     expanded::test::OptionScope options;
     ASSERT_TRUE(options.Set(kWeaponAbilities, false));

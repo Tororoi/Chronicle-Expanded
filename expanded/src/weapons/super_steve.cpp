@@ -129,6 +129,9 @@ int PelletWeapon() {
     if (sphere >= ITEM_WEAPON_WOODEN_SLINGSHOT && sphere <= ITEM_WEAPON_ANGE_GEAR) {
         return sphere;
     }
+    if (sphere == ITEM_WEAPON_SATAN_S_AX) {
+        return ITEM_WEAPON_FLAMINGO; // its pink, for the pull's
+    }
 
     return NowWeaponHave->item_no;
 }

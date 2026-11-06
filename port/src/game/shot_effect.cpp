@@ -85,9 +85,17 @@ void CSHOT::step() {
                 }
 #endif
 #ifdef CHRONICLE_EXPANDED
-                expanded::PelletEnded(*this, shot, hit_position, result == SHOT_COLLISION_MONSTER);
-#endif
+                if (result == SHOT_COLLISION_MONSTER && expanded::PelletPierces(*this, shot)) {
+                    pos[shot][0] += vector[shot][0];
+                    pos[shot][1] += vector[shot][1];
+                    pos[shot][2] += vector[shot][2];
+                } else {
+                    expanded::PelletEnded(*this, shot, hit_position, result == SHOT_COLLISION_MONSTER);
+                    used[shot] = 0;
+                }
+#else
                 used[shot] = 0;
+#endif
             }
         }
 
