@@ -1,0 +1,47 @@
+#pragma once
+
+namespace dc::game {
+class CMonstorUnit;
+struct COLLISION_HIT;
+} // namespace dc::game
+
+namespace expanded {
+
+// The Inferno, in Goro's hand: Satan's Ax's Pull of the Underworld (satans_ax.hpp), its sparks and its glow, and:
+//
+// Fireproof: a monster's fire hit (its fire element bit) passes him by.
+//
+// "Burning Aura": once each second the pull has been on (his charge held, then the smash until it lands), every
+// monster it is drawing takes a fire hit of kBurningAuraStep of his weapon's attack for each second so far (1% at the
+// first, 2% at the second, 3% at the third: 6% over three seconds), through any guard and throwing nothing; one immune
+// to fire takes none of it. A monster it draws from farther than kBurningAuraBrave is afraid: one whose kind backs off
+// (as from the Serpent Sword's snake: serpent_sword.hpp) backs off, and a kind with none goes on as ever; within
+// kBurningAuraBrave it is itself again, and comes at him. The floor's fog reddens toward kBurningAuraFog as the pull
+// goes on, fully at kBurningAuraFogFrames, and fades back over kBurningAuraFogFade once it ends. Times are game frames.
+inline constexpr int   kBurningAuraFrames = 60;
+inline constexpr float kBurningAuraStep = 0.01f;
+inline constexpr float kBurningAuraBrave = 30.0f;
+inline constexpr float kBurningAuraFog[3] = {220.0f, 40.0f, 20.0f};
+inline constexpr int   kBurningAuraFogFrames = 180;
+inline constexpr int   kBurningAuraFogFade = 60;
+inline constexpr int   kFireElementBit = 1; // a hit's flags: the fire element (element_tbl's first)
+
+// Whether Goro is in play with the Inferno in hand.
+bool InfernoWielded();
+
+// One dungeon step: the pull's time counted, the aura's hits planted on the second, the fog reddened or faded.
+void BurningAuraStep();
+// The seconds the pull has been on, and how red the fog is (0 to 1).
+int   BurningAuraSeconds();
+float BurningAuraRed();
+
+// Hooks: whether a monster's hit passes him by (BtCheckDamageProc); whether a monster is afraid this step
+// (SnakeCharmerMonsterStep); the fog's colour the floor hands the renderer, reddened in place (DunMainDraw).
+bool InfernoFireproof(const COLLISION_HIT &hit);
+bool BurningAuraFeared(CMonstorUnit &unit, int monster);
+void BurningAuraFog(unsigned char *fog_colour);
+
+// The floor changed (tests too).
+void BurningAuraReset();
+
+} // namespace expanded

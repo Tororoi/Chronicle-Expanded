@@ -67,7 +67,7 @@ float UnderworldStrength() {
     if (UnderworldShotAt(nullptr)) {
         return 1.0f;
     }
-    if (!Playing(CHARA_GORO) || !WeaponWielded(ITEM_WEAPON_SATAN_S_AX) || BtActStatus.action_on == 0) {
+    if (!Playing(CHARA_GORO) || !(WeaponWielded(ITEM_WEAPON_SATAN_S_AX) || WeaponWielded(ITEM_WEAPON_INFERNO)) || BtActStatus.action_on == 0) {
         return 0.0f;
     }
     if (BtActStatus.action_no == kSmashAction) {

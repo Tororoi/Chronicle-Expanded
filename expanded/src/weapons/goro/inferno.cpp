@@ -1,0 +1,117 @@
+#include "expanded/weapons/goro/inferno.hpp"
+
+#include <algorithm>
+#include <cmath>
+
+#include "character.hpp"
+#include "collisiondata.hpp"
+#include "dun/gameloop.hpp"
+#include "expanded/enemies/enemy_events.hpp"
+#include "expanded/enemies/monster_queries.hpp"
+#include "expanded/status/poison.hpp"
+#include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/goro/satans_ax.hpp"
+#include "expanded/weapons/player_state.hpp"
+#include "expanded/weapons/super_steve.hpp"
+#include "itemdata.hpp"
+#include "monstorunit.hpp"
+#include "userstatus.hpp"
+#include "weaponelement.hpp"
+
+namespace expanded {
+
+namespace {
+
+int pulled_frames = 0; // the pull on, without a break
+int red_frames = 0;    // of kBurningAuraFogFrames
+
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(BurningAuraReset), true);
+
+// Goro's own pull, not Xiao's pellet's.
+bool Pulling() {
+    return InfernoWielded() && UnderworldStrength() > 0.0f;
+}
+
+void Burn(int seconds) {
+    if (NowMonstorUnit == nullptr) {
+        return;
+    }
+    int spared = 0;
+    for (int monster = 0; monster < kFloorMonsters; monster++) {
+        if (!UnderworldPulling(monster)) {
+            spared |= 1 << monster;
+        }
+    }
+    if (spared == (1 << kFloorMonsters) - 1) {
+        return;
+    }
+    BlastOptions options;
+    options.damage = kBurningAuraStep * static_cast<float>(seconds);
+    options.reach = 2.0f * kUnderworldReach / kBlastFalloff[0].reach; // every monster it draws, and more
+    options.kick = 0.0f;
+    options.spared = spared;
+    options.element = WEAPON_ELEMENT_FIRE;
+    options.flat = true;
+    options.rumble = false;
+    PlantBlast(*NowMonstorUnit, CharaMain.pos, NowWeaponHave->attack, options);
+}
+
+} // namespace
+
+bool InfernoWielded() {
+    return Playing(CHARA_GORO) && WeaponWielded(ITEM_WEAPON_INFERNO);
+}
+
+void BurningAuraStep() {
+    if (!MonstersStepping()) {
+        return;
+    }
+    if (!Pulling()) {
+        pulled_frames = 0;
+        red_frames = std::max(0, red_frames - kBurningAuraFogFrames / kBurningAuraFogFade);
+        return;
+    }
+    red_frames = std::min(kBurningAuraFogFrames, red_frames + 1);
+    if (++pulled_frames % kBurningAuraFrames == 0) {
+        Burn(pulled_frames / kBurningAuraFrames);
+    }
+}
+
+int BurningAuraSeconds() {
+    return pulled_frames / kBurningAuraFrames;
+}
+
+float BurningAuraRed() {
+    return static_cast<float>(red_frames) / kBurningAuraFogFrames;
+}
+
+bool InfernoFireproof(const COLLISION_HIT &hit) {
+    return InfernoWielded() && (hit.flags & kFireElementBit) != 0;
+}
+
+bool BurningAuraFeared(CMonstorUnit &unit, int monster) {
+    if (!Pulling() || &unit != NowMonstorUnit || !UnderworldPulling(monster)) {
+        return false;
+    }
+    float at[4];
+    unit.chara[monster][0].GetPosition(at);
+    return std::hypot(at[0] - CharaMain.pos[0], at[2] - CharaMain.pos[2]) > kBurningAuraBrave;
+}
+
+void BurningAuraFog(unsigned char *fog_colour) {
+    float red = BurningAuraRed();
+    if (red <= 0.0f) {
+        return;
+    }
+    for (int c = 0; c < 3; c++) {
+        float own = fog_colour[c];
+        fog_colour[c] = static_cast<unsigned char>(std::lround(own + (kBurningAuraFog[c] - own) * red));
+    }
+}
+
+void BurningAuraReset() {
+    pulled_frames = 0;
+    red_frames = 0;
+}
+
+} // namespace expanded

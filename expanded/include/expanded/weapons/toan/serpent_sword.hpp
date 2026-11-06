@@ -139,8 +139,10 @@ struct SnakeRetreat {
 // A kind's retreat, or null when its script has none.
 const SnakeRetreat *SnakeRetreatOf(int kind);
 // Hook: a monster's step: true when it was held in place of its script's step (a kind whose AI has no retreat to
-// trigger); a monster that retreats has its script's trigger and limits raised for its step instead.
-bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster);
+// trigger); a monster that retreats has its script's trigger and limits raised for its step instead. A feared monster
+// (the Inferno's Burning Aura: inferno.hpp) backs off as one near the snake does, whether the snake is up or not, but
+// one that has no retreat is left to its script, not held.
+bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster, bool feared = false);
 // Hook: after a monster's script step: the values raised for it put back as its script has them.
 void SnakeCharmerScriptStepped(CMonstorUnit &unit, int monster);
 // Hook: a monster's step after the other monsters blocked it: what takes a step nearer the player taken off it while
