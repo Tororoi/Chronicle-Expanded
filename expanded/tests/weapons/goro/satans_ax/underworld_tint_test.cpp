@@ -46,8 +46,10 @@ protected:
     float Lit(const CCharacter &character) {
         float ambient[3] = {10.0f, 20.0f, 30.0f};
         expanded::UnderworldLight(character, ambient);
-        EXPECT_FLOAT_EQ(ambient[1] - 20.0f, ambient[0] - 10.0f);
-        EXPECT_FLOAT_EQ(ambient[2] - 30.0f, ambient[0] - 10.0f);
+        // Each of its colours as far in as its red.
+        float share = (ambient[0] - 10.0f) / expanded::kUnderworldTint[0];
+        EXPECT_NEAR(ambient[1] - 20.0f, share * expanded::kUnderworldTint[1], 1e-3f);
+        EXPECT_NEAR(ambient[2] - 30.0f, share * expanded::kUnderworldTint[2], 1e-3f);
         return ambient[0] - 10.0f;
     }
 
@@ -69,15 +71,15 @@ TEST_F(UnderworldTint, NoneWithoutThePull) {
 TEST_F(UnderworldTint, ItFadesInOverAQuarterSecondOfThePull) {
     Acting(13); // the hold's pull too
     Steps(1);
-    EXPECT_NEAR(Lit(ax_), expanded::kUnderworldTint / expanded::kUnderworldTintFade, 1e-3f);
+    EXPECT_NEAR(Lit(ax_), expanded::kUnderworldTint[0] / expanded::kUnderworldTintFade, 1e-3f);
     Steps(expanded::kUnderworldTintFade / 2);
     EXPECT_GT(Lit(ax_), 0.0f);
-    EXPECT_LT(Lit(ax_), expanded::kUnderworldTint);
+    EXPECT_LT(Lit(ax_), expanded::kUnderworldTint[0]);
     Steps(expanded::kUnderworldTintFade);
-    EXPECT_FLOAT_EQ(Lit(ax_), expanded::kUnderworldTint);
+    EXPECT_FLOAT_EQ(Lit(ax_), expanded::kUnderworldTint[0]);
     Acting(14);
     Steps(5);
-    EXPECT_FLOAT_EQ(Lit(ax_), expanded::kUnderworldTint);
+    EXPECT_FLOAT_EQ(Lit(ax_), expanded::kUnderworldTint[0]);
 }
 
 TEST_F(UnderworldTint, ItFadesOutAsThePullEnds) {
@@ -85,7 +87,7 @@ TEST_F(UnderworldTint, ItFadesOutAsThePullEnds) {
     Steps(expanded::kUnderworldTintFade);
     CharaMain.motion_type.state.time = expanded::kUnderworldSmashLands; // the smash lands
     Steps(expanded::kUnderworldTintFade - 1);
-    EXPECT_NEAR(Lit(ax_), expanded::kUnderworldTint / expanded::kUnderworldTintFade, 1e-3f);
+    EXPECT_NEAR(Lit(ax_), expanded::kUnderworldTint[0] / expanded::kUnderworldTintFade, 1e-3f);
     Steps(1);
     EXPECT_FLOAT_EQ(Lit(ax_), 0.0f);
 }

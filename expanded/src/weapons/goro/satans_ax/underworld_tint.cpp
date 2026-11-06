@@ -30,7 +30,7 @@ void UnderworldLight(const CCharacter &character, float *ambient) {
         return;
     }
     for (int c = 0; c < 3; c++) {
-        ambient[c] += kUnderworldTint * UnderworldTint();
+        ambient[c] += kUnderworldTint[c] * UnderworldTint();
     }
 }
 
