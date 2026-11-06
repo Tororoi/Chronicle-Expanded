@@ -2,6 +2,7 @@
 
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/weapons/big_bang_shot.hpp"
+#include "expanded/weapons/goro/satans_ax/underworld_tint.hpp"
 #include "expanded/weapons/kitchen_knife_shot.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
@@ -37,6 +38,7 @@ void CharacterLight(const CCharacter &character, float *ambient) {
     BigRockLight(character, ambient);
     CurseOfBabelLight(character, ambient);
     SnakeCharmerLight(character, ambient);
+    UnderworldLight(character, ambient);
 }
 
 } // namespace expanded
