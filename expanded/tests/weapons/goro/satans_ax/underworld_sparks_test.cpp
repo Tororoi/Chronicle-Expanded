@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <utility>
 #include <vector>
 
 #include "btactstatus.hpp"
@@ -142,17 +143,37 @@ TEST_F(UnderworldSparks, ItLiesAroundHimWithinItsRing) {
     }
 }
 
-TEST_F(UnderworldSparks, ItIsDrawnInAsAMonsterIsOnTopOfItsCreep) {
+TEST_F(UnderworldSparks, ItComesStraightAtHim) {
     Acting(14);
-    Steps(4);
-    std::vector<float> before = Distances();
     Steps(1);
-    std::vector<float> after = Distances();
-    ASSERT_GE(after.size(), before.size());
-    for (std::size_t i = 0; i < before.size(); i++) {
-        float drawn = expanded::UnderworldPullAt(before[i]) + expanded::kSparkCreep;
-        // Its sway across its path moves it off its line by a hair.
-        EXPECT_NEAR(before[i] - after[i], std::min(drawn, before[i]), 0.02f) << before[i];
+    float start[3], at[3];
+    ASSERT_TRUE(expanded::UnderworldSparkAt(0, start));
+    Steps(5);
+    ASSERT_TRUE(expanded::UnderworldSparkAt(0, at));
+    EXPECT_NEAR(at[0] * start[2] - at[2] * start[0], 0.0f, 1e-2f);
+}
+
+TEST_F(UnderworldSparks, ItGathersSpeedSteadily) {
+    // The first spark started: its steps in grow by kSparkAccel each, times the pull's strength.
+    for (auto [action, strength] : {
+             std::pair{14, 1.0f                            },
+             std::pair{13, expanded::kUnderworldChargeShare}
+    }) {
+        expanded::UnderworldSparksReset();
+        Acting(action);
+        std::vector<float> was;
+        for (int step = 0; was.size() < 4; step++) {
+            Steps(1);
+            float at[3];
+            if (expanded::UnderworldSparkAt(0, at)) {
+                was.push_back(std::hypot(at[0], at[2]));
+            }
+            ASSERT_LT(step, 10);
+        }
+        EXPECT_NEAR(was[0] - was[1], expanded::kSparkCreep + expanded::kSparkAccel * strength, 1e-3f) << action;
+        for (int k = 1; k + 1 < 4; k++) {
+            EXPECT_NEAR((was[k] - was[k + 1]) - (was[k - 1] - was[k]), expanded::kSparkAccel * strength, 1e-3f) << action;
+        }
     }
 }
 
@@ -209,18 +230,8 @@ TEST_F(UnderworldSparks, APulledMonsterGivesOffSparksFromItsBody) {
     ASSERT_EQ(static_cast<int>(risen.size()), static_cast<int>(8 * expanded::kBodySparkPerFrame));
     for (const auto &at : risen) {
         // Within the sphere, drawn in up to seven steps since.
-        EXPECT_LT(std::hypot(at[0] - 40.0f, at[1] - 10.0f, at[2]), 4.0f + 7.0f * (expanded::UnderworldBodySparkPullAt(36.0f) + expanded::kSparkCreep));
+        EXPECT_LT(std::hypot(at[0] - 40.0f, at[1] - 10.0f, at[2]), 4.0f + 7.0f * expanded::kSparkCreep + 21.0f * expanded::kBodySparkAccel);
     }
-}
-
-TEST_F(UnderworldSparks, ABodysPullReachesFurtherThanTheGroundsButIsNoStronger) {
-    EXPECT_FLOAT_EQ(expanded::UnderworldBodySparkPullAt(0.0f), expanded::UnderworldPullAt(0.0f));
-    for (float distance : {10.0f, 40.0f, 80.0f}) {
-        EXPECT_GT(expanded::UnderworldBodySparkPullAt(distance), expanded::UnderworldPullAt(distance)) << distance;
-        EXPECT_LE(expanded::UnderworldBodySparkPullAt(distance), expanded::kUnderworldPullNear) << distance;
-    }
-    // Far faster than a monster of weight 1 there.
-    EXPECT_GT(expanded::UnderworldBodySparkPullAt(60.0f), 10.0f * expanded::UnderworldPullAt(60.0f));
 }
 
 TEST_F(UnderworldSparks, NoneFromAMonsterThePullLeaves) {
@@ -241,16 +252,16 @@ TEST_F(UnderworldSparks, ABodysSparkHeadsForTheHeightOnHimNearestItsOwn) {
     float                             top = CharaHeight(UserStatus);
     std::vector<std::array<float, 3>> start = Risen();
     ASSERT_FALSE(start.empty());
-    PulledSteps(3);
+    PulledSteps(6);
     std::vector<std::array<float, 3>> now = Risen();
     ASSERT_EQ(now.size(), start.size());
     for (std::size_t i = 0; i < now.size(); i++) {
         float was = std::hypot(start[i][0], start[i][2]), across = std::hypot(now[i][0], now[i][2]);
         EXPECT_LT(across, was - 5.0f);
-        EXPECT_LT(now[i][1], start[i][1] - 3.0f);
+        EXPECT_LT(now[i][1], start[i][1] - 2.0f);
         // Its height above his top shrinks with its distance: a straight line.
         EXPECT_NEAR((now[i][1] - top) / across, (start[i][1] - top) / was, 1e-3f);
-        // Heading straight at him, no sway across its path.
+        // Heading straight at him.
         EXPECT_NEAR(now[i][0] * start[i][2] - now[i][2] * start[i][0], 0.0f, 1e-2f);
     }
 }
@@ -269,18 +280,26 @@ TEST_F(UnderworldSparks, ABodysSparkWithinHisHeightKeepsItsOwn) {
     }
 }
 
-TEST_F(UnderworldSparks, ABodysSparkIsDrawnInByItsLongerPull) {
-    Place(40.0f, 0.0f, 9.0f, 0.5f);
+TEST_F(UnderworldSparks, ABodysSparkGathersSpeedFasterThanAGroundSpark) {
+    EXPECT_GT(expanded::kBodySparkAccel, expanded::kSparkAccel);
+    Place(55.0f, 0.0f, 9.0f, 0.5f);
     Acting(14);
     PulledSteps(4);
     floor_.unit().monster[0].knockback[2] = 0.0f; // no more from it
-    std::vector<std::array<float, 3>> before = Risen();
-    ASSERT_FALSE(before.empty());
-    PulledSteps(1);
-    std::vector<std::array<float, 3>> after = Risen();
-    ASSERT_EQ(after.size(), before.size());
-    for (std::size_t i = 0; i < before.size(); i++) {
-        float was = std::hypot(before[i][0], before[i][2]), now = std::hypot(after[i][0], after[i][2]);
-        EXPECT_NEAR(was - now, expanded::UnderworldBodySparkPullAt(was) + expanded::kSparkCreep, 1e-3f) << was;
+    std::vector<std::vector<std::array<float, 3>>> at;
+    for (int step = 0; step < 3; step++) {
+        at.push_back(Risen());
+        ASSERT_FALSE(at.back().empty());
+        PulledSteps(1);
+    }
+    at.push_back(Risen());
+    for (std::size_t i = 0; i < at[0].size(); i++) {
+        float d[4];
+        for (int k = 0; k < 4; k++) {
+            ASSERT_EQ(at[k].size(), at[0].size());
+            d[k] = std::hypot(at[k][i][0], at[k][i][2]);
+        }
+        EXPECT_NEAR((d[1] - d[2]) - (d[0] - d[1]), expanded::kBodySparkAccel, 1e-3f);
+        EXPECT_NEAR((d[2] - d[3]) - (d[1] - d[2]), expanded::kBodySparkAccel, 1e-3f);
     }
 }

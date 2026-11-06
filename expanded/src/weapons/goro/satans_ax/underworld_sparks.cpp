@@ -32,14 +32,12 @@ namespace {
 struct Spark {
     bool  live = false;
     float position[4] = {};
-    float from = 0.0f;   // how far from him it started, across the ground
-    bool  ground = true; // on the ground, or risen from a monster's body
-    float rise = 0.0f;   // the height on him it heads for, above his feet
+    float from = 0.0f;         // how far from him it started, across the ground
+    bool  ground = true;       // on the ground, or risen from a monster's body
+    float rise = 0.0f;         // the height on him it heads for, above his feet
+    float speed = kSparkCreep; // toward him, a step
     int   age = 0;
     int   left = kSparkFadeOut; // its frames left once the pull has ended
-    float sway = 0.0f;          // across its path, at most
-    float phase = 0.0f;         // its sway's
-    float rate = 0.0f;          // its sway's, a step
     float twinkle = 0.0f;       // its twinkle's phase
     float size = 1.0f;          // its own share of kSparkSize
 };
@@ -181,11 +179,8 @@ Spark *Free() {
     return free == sparks.end() ? nullptr : &*free;
 }
 
-Spark Wandering() {
+Spark Fresh() {
     return Spark{.live = true,
-                 .sway = Uniform(0.1f, 0.35f),
-                 .phase = Uniform(0.0f, 2.0f * std::numbers::pi_v<float>),
-                 .rate = Uniform(0.05f, 0.12f),
                  .twinkle = Uniform(0.0f, 2.0f * std::numbers::pi_v<float>),
                  .size = Uniform(0.7f, 1.3f)};
 }
@@ -196,12 +191,11 @@ void StartOnBody(CMonstorUnit &unit, int monster) {
     if (free == nullptr || !BodyPoint(unit, monster, point)) {
         return;
     }
-    *free = Wandering();
+    *free = Fresh();
     std::copy(point, point + 3, free->position);
     free->position[3] = 1.0f;
     free->from = std::hypot(CharaMain.pos[0] - point[0], CharaMain.pos[2] - point[2]);
     free->ground = false;
-    free->sway = 0.0f; // straight at him through the air
     // The height on his body nearest its own.
     free->rise = std::clamp(point[1] - CharaMain.pos[1], 0.0f, Height());
 }
@@ -215,7 +209,7 @@ void Start() {
     // Even over the ring's area: as many far out as its wider rim holds.
     float near2 = kSparkNear * kSparkNear, far2 = kSparkFar * kSparkFar;
     float radius = std::sqrt(Uniform(near2 + (far2 - near2) * 0.05f, far2));
-    *free = Wandering();
+    *free = Fresh();
     free->position[0] = CharaMain.pos[0] + radius * std::cos(angle);
     free->position[1] = CharaMain.pos[1] + kSparkLift;
     free->position[2] = CharaMain.pos[2] + radius * std::sin(angle);
@@ -278,11 +272,10 @@ void UnderworldSparksStep() {
             spark.live = false;
             continue;
         }
-        float pull = spark.ground ? UnderworldPullAt(distance) : UnderworldBodySparkPullAt(distance);
-        float in = std::min(pull * strength + kSparkCreep, distance);
-        float across = spark.sway * std::sin(spark.phase + spark.rate * static_cast<float>(spark.age));
-        spark.position[0] += (dx * in - dz * across) / distance;
-        spark.position[2] += (dz * in + dx * across) / distance;
+        float in = std::min(spark.speed, distance);
+        spark.speed += (spark.ground ? kSparkAccel : kBodySparkAccel) * strength;
+        spark.position[0] += dx * in / distance;
+        spark.position[2] += dz * in / distance;
         if (spark.ground) {
             spark.position[1] = CharaMain.pos[1] + kSparkLift;
         } else {
@@ -290,13 +283,6 @@ void UnderworldSparksStep() {
             spark.position[1] += (CharaMain.pos[1] + spark.rise - spark.position[1]) * in / distance;
         }
     }
-}
-
-float UnderworldBodySparkPullAt(float distance) {
-    if (distance > kUnderworldReach) {
-        return 0.0f;
-    }
-    return kUnderworldPullNear * std::exp(-std::max(distance, 0.0f) / kBodySparkFalloff);
 }
 
 void UnderworldSparksDraw() {

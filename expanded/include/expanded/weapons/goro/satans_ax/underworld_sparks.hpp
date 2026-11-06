@@ -1,31 +1,28 @@
 #pragma once
 
-#include "expanded/weapons/goro/satans_ax.hpp"
-
 namespace expanded {
 
 // Pull of the Underworld's sparks (satans_ax.hpp): while the pull is on, the pink hit spark (basefx00's first cell)
-// lies on the ground around Goro, kSparkNear to kSparkFar from him, and is drawn in toward him: the pull a monster of
-// weight 1 takes where each is, times the pull's strength, on top of kSparkCreep, each wandering across its path on a
-// sway of its own. kSparkHoldPerFrame start a frame while he holds the charge, and kSparkSmashPerFrame, eight times as
-// many, once he lets it go and the pull is at its strongest. Each starts unseen and fades in over its first
-// kSparkFadeIn units drawn in, twinkles, shrinks and fades as it comes within kSparkNear of him (each fade no more
-// than a quarter of its way in), and fades over its last kSparkFadeOut frames; when the pull ends they fade where
-// they are.
+// lies on the ground around Goro, kSparkNear to kSparkFar from him, and is drawn straight in toward him, starting at
+// kSparkCreep a frame and gaining kSparkAccel a frame each frame times the pull's strength (steadily, wherever it is).
+// kSparkHoldPerFrame start a frame while he holds the charge, and kSparkSmashPerFrame, eight times as many, once he
+// lets it go and the pull is at its strongest. Each starts unseen and fades in over its first kSparkFadeIn units drawn
+// in, twinkles, shrinks and fades as it comes within kSparkNear of him (each fade no more than a quarter of its way
+// in), and fades over its last kSparkFadeOut frames; when the pull ends they gain no more and fade as they come.
 // Each monster the pull draws gives off sparks of its own too, kBodySparkPerFrame a frame times the pull's strength,
 // from anywhere on it (one of its meshes' vertices as it stands, or failing those inside its frames' bounds or its
-// hurt spheres), drawn in as the ground's are but by a pull falling by e every kBodySparkFalloff units, four times as
-// far as theirs (so as fast as theirs at most, but far faster than the monster it left), and without their sway:
-// straight through the air toward the height on his body nearest the one each started at (his feet to CharaHeight
-// above them). One starting inside the monster is hidden by it until it leaves.
+// hurt spheres), drawn in as the ground's are but gaining kBodySparkAccel a frame each frame (soon far faster than the
+// monster it left), straight through the air toward the height on his body nearest the one each started at (his feet
+// to CharaHeight above them). One starting inside the monster is hidden by it until it leaves.
 inline constexpr int   kSparkCount = 384;
 inline constexpr float kBodySparkPerFrame = 0.25f;
-inline constexpr float kBodySparkFalloff = 4.0f * kUnderworldFalloff;
+inline constexpr float kBodySparkAccel = 0.4f;
 inline constexpr float kSparkHoldPerFrame = 0.375f;
 inline constexpr float kSparkSmashPerFrame = 3.0f;
 inline constexpr float kSparkNear = 12.0f;
 inline constexpr float kSparkFar = 90.0f;
 inline constexpr float kSparkCreep = 0.15f;
+inline constexpr float kSparkAccel = 0.1f;
 inline constexpr int   kSparkLife = 120;
 inline constexpr float kSparkFadeIn = 6.0f; // units drawn in
 inline constexpr int   kSparkFadeOut = 20;  // frames
@@ -35,8 +32,6 @@ inline constexpr float kSparkSize = 1.2f;   // away from him (a hit's sparks are
 
 // One dungeon step: sparks started, drawn in and aged.
 void UnderworldSparksStep();
-// A body spark's step toward him at that distance at the pull's full strength, before kSparkCreep.
-float UnderworldBodySparkPullAt(float distance);
 // Drawn just after the run dust.
 void UnderworldSparksDraw();
 // The sparks in flight (tests).
