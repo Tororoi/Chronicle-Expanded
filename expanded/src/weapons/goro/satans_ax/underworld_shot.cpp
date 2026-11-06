@@ -74,6 +74,7 @@ void UnderworldShotFired(CSHOT &shots, int slot) {
     for (int i = 0; i < 3; i++) {
         shots.vector[slot][i] *= kUnderworldShotSpeed;
     }
+    shots.size[slot] *= kUnderworldShotSize;
     shots.life[slot] = static_cast<int>(std::lround(static_cast<float>(shots.life[slot]) * kUnderworldShotLife));
     flying.Keep(shots, slot, Flight{.order = ++fired});
 }

@@ -43,6 +43,7 @@ protected:
         shots_->vector[3][0] = 5.0f;
         shots_->life[3] = 120;
         shots_->damage[3] = 40;
+        shots_->size[3] = 1.0f;
         saved_hits_ = NowColData;
         NowColData = hits_.get();
         *hits_ = CCollisionData{};
@@ -117,10 +118,11 @@ protected:
 
 } // namespace
 
-TEST_F(UnderworldShot, AChargedShotFliesAtAQuarterSpeedForTwiceAsLong) {
+TEST_F(UnderworldShot, AChargedShotFliesTwiceAsLargeAtAQuarterSpeedForTwiceAsLong) {
     HoldAndFire(expanded::kUnderworldShotFrames);
     EXPECT_FLOAT_EQ(shots_->vector[3][0], 5.0f * expanded::kUnderworldShotSpeed);
     EXPECT_EQ(shots_->life[3], static_cast<int>(120 * expanded::kUnderworldShotLife));
+    EXPECT_FLOAT_EQ(shots_->size[3], expanded::kUnderworldShotSize);
     float at[3];
     ASSERT_TRUE(expanded::UnderworldShotAt(at));
     EXPECT_FLOAT_EQ(at[0], 100.0f);
@@ -132,6 +134,7 @@ TEST_F(UnderworldShot, AShotNotHeldLongEnoughIsItsOwn) {
     HoldAndFire(expanded::kUnderworldShotFrames - 10);
     EXPECT_FLOAT_EQ(shots_->vector[3][0], 5.0f);
     EXPECT_EQ(shots_->life[3], 120);
+    EXPECT_FLOAT_EQ(shots_->size[3], 1.0f);
     EXPECT_FALSE(expanded::UnderworldShotAt(nullptr));
     EXPECT_FALSE(expanded::UnderworldShotPierces(*shots_, 3));
     EXPECT_FLOAT_EQ(expanded::UnderworldStrength(), 0.0f);
