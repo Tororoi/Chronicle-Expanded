@@ -278,7 +278,8 @@ void UnderworldSparksStep() {
             spark.live = false;
             continue;
         }
-        float in = std::min(UnderworldPullAt(distance) * strength + kSparkCreep, distance);
+        float speed = spark.ground ? 1.0f : kBodySparkSpeed;
+        float in = std::min((UnderworldPullAt(distance) * strength + kSparkCreep) * speed, distance);
         float across = spark.sway * std::sin(spark.phase + spark.rate * static_cast<float>(spark.age));
         spark.position[0] += (dx * in - dz * across) / distance;
         spark.position[2] += (dz * in + dx * across) / distance;

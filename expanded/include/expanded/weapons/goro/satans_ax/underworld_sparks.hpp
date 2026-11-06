@@ -12,11 +12,12 @@ namespace expanded {
 // they are.
 // Each monster the pull draws gives off sparks of its own too, kBodySparkPerFrame a frame times the pull's strength,
 // from anywhere on it (one of its meshes' vertices as it stands, or failing those inside its frames' bounds or its
-// hurt spheres), drawn in as the ground's are but without their sway, straight through the air toward the height on
-// his body nearest the one each started at (his feet to CharaHeight above them); one starting inside the monster is
-// hidden by it until it leaves.
+// hurt spheres), drawn in kBodySparkSpeed times as fast as the ground's are and without their sway, straight through
+// the air toward the height on his body nearest the one each started at (his feet to CharaHeight above them); one
+// starting inside the monster is hidden by it until it leaves.
 inline constexpr int   kSparkCount = 384;
-inline constexpr float kBodySparkPerFrame = 0.5f;
+inline constexpr float kBodySparkPerFrame = 0.25f;
+inline constexpr float kBodySparkSpeed = 2.0f;
 inline constexpr float kSparkHoldPerFrame = 0.375f;
 inline constexpr float kSparkSmashPerFrame = 3.0f;
 inline constexpr float kSparkNear = 12.0f;

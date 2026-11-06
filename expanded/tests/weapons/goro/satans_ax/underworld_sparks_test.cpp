@@ -204,12 +204,12 @@ TEST_F(UnderworldSparks, APulledMonsterGivesOffSparksFromItsBody) {
     Acting(14);
     PulledSteps(1);
     ASSERT_TRUE(expanded::UnderworldPulling(0));
-    PulledSteps(3); // kBodySparkPerFrame a frame
+    PulledSteps(7); // kBodySparkPerFrame a frame
     std::vector<std::array<float, 3>> risen = Risen();
-    ASSERT_EQ(static_cast<int>(risen.size()), static_cast<int>(4 * expanded::kBodySparkPerFrame));
+    ASSERT_EQ(static_cast<int>(risen.size()), static_cast<int>(8 * expanded::kBodySparkPerFrame));
     for (const auto &at : risen) {
-        // Within the sphere, drawn in up to three steps since, as a ground spark there is.
-        EXPECT_LT(std::hypot(at[0] - 40.0f, at[1] - 10.0f, at[2]), 4.0f + 3.0f * (expanded::UnderworldPullAt(36.0f) + expanded::kSparkCreep));
+        // Within the sphere, drawn in up to seven steps since, kBodySparkSpeed times as a ground spark there is.
+        EXPECT_LT(std::hypot(at[0] - 40.0f, at[1] - 10.0f, at[2]), 4.0f + 7.0f * (expanded::UnderworldPullAt(36.0f) + expanded::kSparkCreep) * expanded::kBodySparkSpeed);
     }
 }
 
@@ -226,12 +226,12 @@ TEST_F(UnderworldSparks, ABodysSparkHeadsForTheHeightOnHimNearestItsOwn) {
     // Its body above his head: it comes down toward the top of him as it comes in, along the line between.
     Place(30.0f, 0.0f, 40.0f, 1.0f);
     Acting(14);
-    PulledSteps(2);
+    PulledSteps(4);
     floor_.unit().monster[0].knockback[2] = 0.0f; // no more from it
     float                             top = CharaHeight(UserStatus);
     std::vector<std::array<float, 3>> start = Risen();
     ASSERT_FALSE(start.empty());
-    PulledSteps(8);
+    PulledSteps(4);
     std::vector<std::array<float, 3>> now = Risen();
     ASSERT_EQ(now.size(), start.size());
     for (std::size_t i = 0; i < now.size(); i++) {
@@ -248,9 +248,9 @@ TEST_F(UnderworldSparks, ABodysSparkHeadsForTheHeightOnHimNearestItsOwn) {
 TEST_F(UnderworldSparks, ABodysSparkWithinHisHeightKeepsItsOwn) {
     Place(30.0f, 0.0f, 9.0f, 0.5f);
     Acting(14);
-    PulledSteps(2);
+    PulledSteps(4);
     floor_.unit().monster[0].knockback[2] = 0.0f;
-    PulledSteps(8); // still on its way: the pull brings it to him in about 15
+    PulledSteps(4); // still on its way: the pull brings it to him in about 8
     std::vector<std::array<float, 3>> risen = Risen();
     ASSERT_FALSE(risen.empty());
     for (const auto &at : risen) {
@@ -259,10 +259,10 @@ TEST_F(UnderworldSparks, ABodysSparkWithinHisHeightKeepsItsOwn) {
     }
 }
 
-TEST_F(UnderworldSparks, ABodysSparkIsDrawnInAsAGroundSparkThereIs) {
+TEST_F(UnderworldSparks, ABodysSparkIsDrawnInFasterThanAGroundSparkThereIs) {
     Place(40.0f, 0.0f, 9.0f, 0.5f);
     Acting(14);
-    PulledSteps(2);
+    PulledSteps(4);
     floor_.unit().monster[0].knockback[2] = 0.0f; // no more from it
     std::vector<std::array<float, 3>> before = Risen();
     ASSERT_FALSE(before.empty());
@@ -271,6 +271,6 @@ TEST_F(UnderworldSparks, ABodysSparkIsDrawnInAsAGroundSparkThereIs) {
     ASSERT_EQ(after.size(), before.size());
     for (std::size_t i = 0; i < before.size(); i++) {
         float was = std::hypot(before[i][0], before[i][2]), now = std::hypot(after[i][0], after[i][2]);
-        EXPECT_NEAR(was - now, expanded::UnderworldPullAt(was) + expanded::kSparkCreep, 1e-3f) << was;
+        EXPECT_NEAR(was - now, (expanded::UnderworldPullAt(was) + expanded::kSparkCreep) * expanded::kBodySparkSpeed, 1e-3f) << was;
     }
 }
