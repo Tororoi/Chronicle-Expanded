@@ -17,8 +17,8 @@ namespace expanded {
 inline constexpr int   kSparkCount = 384;
 inline constexpr float kBodySparkPerFrame = 0.25f;
 inline constexpr float kBodySparkAccel = 0.4f;
-inline constexpr float kSparkHoldPerFrame = 0.1875f;
-inline constexpr float kSparkSmashPerFrame = 1.5f;
+inline constexpr float kSparkHoldPerFrame = 0.09375f;
+inline constexpr float kSparkSmashPerFrame = 0.75f;
 inline constexpr float kSparkNear = 12.0f;
 inline constexpr float kSparkFar = 90.0f;
 inline constexpr float kSparkCreep = 0.15f;

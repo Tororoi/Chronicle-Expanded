@@ -58,6 +58,14 @@ protected:
         }
     }
 
+    // Steps until the first spark starts.
+    void FirstSpark() {
+        for (int step = 0; expanded::UnderworldSparksLive() == 0; step++) {
+            ASSERT_LT(step, 20);
+            Steps(1);
+        }
+    }
+
     // A monster at (x, 0, z) the pull can draw, its one hurt sphere radius across at height y; its model has no frames,
     // so its sparks rise from inside that sphere.
     void Place(float x, float z, float y, float radius) {
@@ -145,7 +153,7 @@ TEST_F(UnderworldSparks, ItLiesAroundHimWithinItsRing) {
 
 TEST_F(UnderworldSparks, ItComesStraightAtHim) {
     Acting(14);
-    Steps(1);
+    FirstSpark();
     float start[3], at[3];
     ASSERT_TRUE(expanded::UnderworldSparkAt(0, start));
     Steps(5);
@@ -168,7 +176,7 @@ TEST_F(UnderworldSparks, ItGathersSpeedSteadily) {
             if (expanded::UnderworldSparkAt(0, at)) {
                 was.push_back(std::hypot(at[0], at[2]));
             }
-            ASSERT_LT(step, 10);
+            ASSERT_LT(step, 20);
         }
         EXPECT_NEAR(was[0] - was[1], expanded::kSparkCreep + expanded::kSparkAccel * strength, 1e-3f) << action;
         for (int k = 1; k + 1 < 4; k++) {
@@ -180,7 +188,7 @@ TEST_F(UnderworldSparks, ItGathersSpeedSteadily) {
 TEST_F(UnderworldSparks, ItFadesInAsItIsDrawnIn) {
     Acting(14);
     // The first spark has moved one step: faint, not yet at full.
-    Steps(1);
+    FirstSpark();
     std::vector<float> start = Distances();
     ASSERT_FALSE(start.empty());
     int first = expanded::UnderworldSparkAlpha(0);
