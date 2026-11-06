@@ -93,8 +93,8 @@ TEST_F(UnderworldPull, HisSmashDrawsAMonsterToward) {
 
 TEST_F(UnderworldPull, NearerIsDrawnHarderAndBeyondTheReachNotAtAll) {
     EXPECT_FLOAT_EQ(expanded::UnderworldPullAt(0.0f), expanded::kUnderworldPullNear);
-    EXPECT_NEAR(expanded::UnderworldPullAt(10.0f), 1.7f, 0.01f);
-    EXPECT_NEAR(expanded::UnderworldPullAt(40.0f), 0.38f, 0.01f);
+    EXPECT_NEAR(expanded::UnderworldPullAt(10.0f), 2.55f, 0.01f);
+    EXPECT_NEAR(expanded::UnderworldPullAt(40.0f), 0.57f, 0.01f);
     // Exponential: each kUnderworldFalloff nearer pulls e times harder.
     for (float distance : {10.0f, 40.0f, 70.0f}) {
         EXPECT_NEAR(expanded::UnderworldPullAt(distance) / expanded::UnderworldPullAt(distance + expanded::kUnderworldFalloff), std::exp(1.0f), 1e-4f)
@@ -191,7 +191,7 @@ TEST_F(UnderworldPull, ItDrawsOnWithoutGatheringSpeed) {
 }
 
 // A light monster standing beyond kUnderworldSafe, drawn by the pull alone, is still out of the smash's reach (no nearer
-// than kUnderworldSafe - 20) when the smash ends; one nearer is drawn in to meet him.
+// than 40) when the smash ends; one nearer is drawn in to meet him.
 TEST(UnderworldPullStrength, ALightMonsterBeyondTheSafeDistanceIsNotDrawnIntoTheSmash) {
     auto drawn = [](float distance) {
         for (int frame = 0; frame < expanded::kUnderworldSmashFrames; frame++) {
@@ -199,6 +199,6 @@ TEST(UnderworldPullStrength, ALightMonsterBeyondTheSafeDistanceIsNotDrawnIntoThe
         }
         return distance;
     };
-    EXPECT_GT(drawn(expanded::kUnderworldSafe), expanded::kUnderworldSafe - 20.0f);
+    EXPECT_GT(drawn(expanded::kUnderworldSafe), 40.0f);
     EXPECT_LT(drawn(40.0f), 15.0f);
 }
