@@ -146,7 +146,7 @@ TEST_F(UnderworldShot, TheMonstersAreDrawnToThePelletNotToHer) {
     Place(0, 140.0f, 0.0f); // 40 beyond the pellet, 140 from her (a new floor: placed first)
     HoldAndFire(expanded::kUnderworldShotFrames);
     std::array<float, 2> step = Step(0);
-    EXPECT_NEAR(step[0], -expanded::UnderworldPullAt(40.0f), 1e-4f);
+    EXPECT_NEAR(step[0], -expanded::UnderworldPullAt(40.0f) * expanded::kUnderworldShotPull, 1e-4f);
     EXPECT_NEAR(step[1], 0.0f, 1e-4f);
     EXPECT_TRUE(expanded::UnderworldPulling(0));
 }

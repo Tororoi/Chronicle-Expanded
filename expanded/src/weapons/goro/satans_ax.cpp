@@ -80,7 +80,7 @@ float UnderworldStrength() {
 bool UnderworldCentreNow(UnderworldCentre &centre) {
     float at[3];
     if (UnderworldShotAt(at)) {
-        centre = {.x = at[0], .z = at[2], .ground = CharaMain.pos[1], .low = at[1], .high = at[1], .body = 0.0f};
+        centre = {.x = at[0], .z = at[2], .ground = CharaMain.pos[1], .low = at[1], .high = at[1], .body = 0.0f, .pull = kUnderworldShotPull};
         return true;
     }
     if (UnderworldStrength() <= 0.0f) {
@@ -123,7 +123,7 @@ void UnderworldMonsterMove(CMonstorUnit &unit, int monster) {
     float distance = std::hypot(dx, dz);
     // As far as its body is from what it is drawn to: no nearer than where it meets it.
     float room = MonsterBodyEdge(unit, monster, centre.x, centre.z) - centre.body;
-    float pull = std::min(UnderworldPullAt(distance) * weight, room);
+    float pull = std::min(UnderworldPullAt(distance) * weight * centre.pull, room);
     if (pull <= 0.0f || distance < 0.01f) {
         return;
     }

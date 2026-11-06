@@ -32,7 +32,8 @@ float UnderworldStrength();
 
 // What the pull draws to: Goro, or Xiao's charged pellet in flight. Across the ground at (x, z), the ground's height
 // there (the feet of the member in play), the heights a spark coming in heads for (Goro's feet to the top of him, the
-// pellet's own), and how far out from (x, z) a monster's body stops (his body's, none for the pellet).
+// pellet's own), how far out from (x, z) a monster's body stops (his body's, none for the pellet), and how strongly it
+// draws the monsters, times UnderworldStrength (1 for Goro, kUnderworldShotPull for the pellet).
 struct UnderworldCentre {
     float x = 0.0f;
     float z = 0.0f;
@@ -40,6 +41,7 @@ struct UnderworldCentre {
     float low = 0.0f;
     float high = 0.0f;
     float body = 0.0f;
+    float pull = 1.0f;
 };
 
 // The pull's centre now, or false with the pull off.
