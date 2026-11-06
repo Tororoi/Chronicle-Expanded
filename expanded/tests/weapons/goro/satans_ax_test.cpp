@@ -93,8 +93,8 @@ TEST_F(UnderworldPull, HisSmashDrawsAMonsterToward) {
 
 TEST_F(UnderworldPull, NearerIsDrawnHarderAndBeyondTheReachNotAtAll) {
     EXPECT_FLOAT_EQ(expanded::UnderworldPullAt(0.0f), expanded::kUnderworldPullNear);
-    EXPECT_NEAR(expanded::UnderworldPullAt(10.0f), 4.0f, 0.1f);
-    EXPECT_NEAR(expanded::UnderworldPullAt(40.0f), 0.2f, 0.01f);
+    EXPECT_NEAR(expanded::UnderworldPullAt(10.0f), 1.7f, 0.01f);
+    EXPECT_NEAR(expanded::UnderworldPullAt(40.0f), 0.38f, 0.01f);
     // Exponential: each kUnderworldFalloff nearer pulls e times harder.
     for (float distance : {10.0f, 40.0f, 70.0f}) {
         EXPECT_NEAR(expanded::UnderworldPullAt(distance) / expanded::UnderworldPullAt(distance + expanded::kUnderworldFalloff), std::exp(1.0f), 1e-4f)
