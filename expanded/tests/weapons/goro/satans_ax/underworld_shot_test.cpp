@@ -1,0 +1,224 @@
+#include <gtest/gtest.h>
+
+#include <cmath>
+#include <memory>
+
+#include "btactstatus.hpp"
+#include "character.hpp"
+#include "collisiondata.hpp"
+#include "dun/gameloop.hpp"
+#include "expanded/core/random.hpp"
+#include "expanded/dungeon/dungeon_hooks.hpp"
+#include "expanded/enemies/monsters.hpp"
+#include "expanded/weapons/goro/satans_ax.hpp"
+#include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
+#include "expanded/weapons/goro/satans_ax/underworld_sparks.hpp"
+#include "expanded/weapons/goro/satans_ax/underworld_tint.hpp"
+#include "itemdata.hpp"
+#include "monstorunit.hpp"
+#include "shot_effect.hpp"
+#include "test_support.hpp"
+#include "userstatus.hpp"
+
+using expanded::Monster;
+
+namespace {
+
+// Xiao at the origin with Super Steve carrying sphere; a pellet of 40 fired into slot 3 from (100, 10, 0) along +x.
+class UnderworldShot : public ::testing::Test {
+protected:
+    explicit UnderworldShot(int sphere = ITEM_WEAPON_SATAN_S_AX) : wielding_(ITEM_WEAPON_SUPER_STEVE, sphere) {}
+
+    void SetUp() override {
+        BtActStatus = {};
+        floor_.status().cur_chara = CHARA_XIAO;
+        for (int i = 0; i < 3; i++) {
+            saved_pos_[i] = CharaMain.pos[i];
+        }
+        CharaMain.SetPosition(0.0f, 0.0f, 0.0f);
+        *shots_ = CSHOT{};
+        shots_->used[3] = 1;
+        shots_->pos[3][0] = 100.0f;
+        shots_->pos[3][1] = 10.0f;
+        shots_->vector[3][0] = 5.0f;
+        shots_->life[3] = 120;
+        shots_->damage[3] = 40;
+        saved_hits_ = NowColData;
+        NowColData = hits_.get();
+        *hits_ = CCollisionData{};
+        expanded::SeedModRandom(7);
+        expanded::UnderworldShotReset();
+        expanded::UnderworldReset();
+        expanded::UnderworldSparksReset();
+    }
+
+    void TearDown() override {
+        expanded::UnderworldShotReset();
+        expanded::UnderworldReset();
+        expanded::UnderworldSparksReset();
+        NowColData = saved_hits_;
+        CharaMain.SetPosition(saved_pos_[0], saved_pos_[1], saved_pos_[2]);
+        BtActStatus = {};
+    }
+
+    // The slingshot held drawn for frames, then let go into slot 3.
+    void HoldAndFire(int frames) {
+        BtActStatus.action_on = 1;
+        BtActStatus.action_no = 12;
+        for (int frame = 0; frame < frames; frame++) {
+            expanded::UnderworldShotStep();
+        }
+        BtActStatus.action_on = 0;
+        expanded::UnderworldShotStep();
+        expanded::PelletFired(*shots_, 3);
+    }
+
+    // A Skeleton Soldier in slot at (x, z), standing still, of weight 1.
+    void Place(int slot, float x, float z) {
+        floor_.SetUpModel(slot, Monster::SKELETON_SOLDIER);
+        floor_.Spawn(slot, slot);
+        MONSTOR &live = floor_.unit().monster[slot];
+        live.state = 2;
+        live.revealed = -1;
+        live.knockback[2] = 1.0f;
+        live.movement_speed = 0.0f;
+        floor_.unit().chara[slot][0].frame = nullptr;
+        floor_.unit().chara[slot][0].SetPosition(x, 0.0f, z);
+    }
+
+    // Its step this frame, across the ground.
+    std::array<float, 2> Step(int slot) {
+        expanded::UnderworldMonsterMove(floor_.unit(), slot);
+        const MONSTOR &live = floor_.unit().monster[slot];
+        return {live.movement[0] * live.movement_speed, live.movement[2] * live.movement_speed};
+    }
+
+    // A hit the pellet in slot 3 plants, in record.
+    COLLISION_HIT &Planted(int record) {
+        COLLISION_HIT &hit = NowColData->hit[record];
+        hit = {};
+        expanded::PelletHitSet(*shots_, 3, hit);
+        return hit;
+    }
+
+    expanded::test::TestFloor       floor_;
+    expanded::test::Wielding        wielding_;
+    expanded::test::StepsUnpaused   unpaused_;
+    std::unique_ptr<CSHOT>          shots_ = std::make_unique<CSHOT>();
+    std::unique_ptr<CCollisionData> hits_ = std::make_unique<CCollisionData>();
+    CCollisionData                 *saved_hits_ = nullptr;
+    float                           saved_pos_[3] = {};
+};
+
+class UnderworldShotWithAnotherSphere : public UnderworldShot {
+protected:
+    UnderworldShotWithAnotherSphere() : UnderworldShot(ITEM_WEAPON_MATADOR) {}
+};
+
+} // namespace
+
+TEST_F(UnderworldShot, AChargedShotFliesAtAQuarterSpeedForTwiceAsLong) {
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    EXPECT_FLOAT_EQ(shots_->vector[3][0], 5.0f * expanded::kUnderworldShotSpeed);
+    EXPECT_EQ(shots_->life[3], static_cast<int>(120 * expanded::kUnderworldShotLife));
+    float at[3];
+    ASSERT_TRUE(expanded::UnderworldShotAt(at));
+    EXPECT_FLOAT_EQ(at[0], 100.0f);
+    EXPECT_FLOAT_EQ(at[1], 10.0f);
+    EXPECT_FLOAT_EQ(expanded::UnderworldStrength(), 1.0f);
+}
+
+TEST_F(UnderworldShot, AShotNotHeldLongEnoughIsItsOwn) {
+    HoldAndFire(expanded::kUnderworldShotFrames - 10);
+    EXPECT_FLOAT_EQ(shots_->vector[3][0], 5.0f);
+    EXPECT_EQ(shots_->life[3], 120);
+    EXPECT_FALSE(expanded::UnderworldShotAt(nullptr));
+    EXPECT_FALSE(expanded::UnderworldShotPierces(*shots_, 3));
+    EXPECT_FLOAT_EQ(expanded::UnderworldStrength(), 0.0f);
+}
+
+TEST_F(UnderworldShotWithAnotherSphere, OnlyWithSatansAxsSphere) {
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    EXPECT_FALSE(expanded::UnderworldShotAt(nullptr));
+}
+
+TEST_F(UnderworldShot, TheMonstersAreDrawnToThePelletNotToHer) {
+    Place(0, 140.0f, 0.0f); // 40 beyond the pellet, 140 from her (a new floor: placed first)
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    std::array<float, 2> step = Step(0);
+    EXPECT_NEAR(step[0], -expanded::UnderworldPullAt(40.0f), 1e-4f);
+    EXPECT_NEAR(step[1], 0.0f, 1e-4f);
+    EXPECT_TRUE(expanded::UnderworldPulling(0));
+}
+
+TEST_F(UnderworldShot, ThePullEndsWithThePellet) {
+    Place(0, 140.0f, 0.0f);
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    float point[3] = {110.0f, 10.0f, 0.0f};
+    expanded::PelletEnded(*shots_, 3, point, false);
+    shots_->used[3] = 0;
+    EXPECT_FALSE(expanded::UnderworldShotAt(nullptr));
+    EXPECT_FLOAT_EQ(expanded::UnderworldStrength(), 0.0f);
+    std::array<float, 2> step = Step(0);
+    EXPECT_FLOAT_EQ(step[0], 0.0f);
+}
+
+TEST_F(UnderworldShot, ItGoesOnThroughAMonsterHittingEachOnce) {
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    EXPECT_TRUE(expanded::UnderworldShotPierces(*shots_, 3));
+    // Its hit, planted again each frame it is inside them: each monster takes the first.
+    EXPECT_FALSE(expanded::UnderworldShotRefused(0, Planted(5)));
+    EXPECT_TRUE(expanded::UnderworldShotRefused(0, Planted(6)));
+    EXPECT_FALSE(expanded::UnderworldShotRefused(1, Planted(7)));
+    EXPECT_TRUE(expanded::UnderworldShotRefused(1, Planted(8)));
+    EXPECT_TRUE(expanded::UnderworldShotRefused(0, Planted(9)));
+}
+
+TEST_F(UnderworldShot, APelletNotChargedEndsOnAMonster) {
+    HoldAndFire(10);
+    EXPECT_FALSE(expanded::UnderworldShotPierces(*shots_, 3));
+    EXPECT_FALSE(expanded::UnderworldShotRefused(0, Planted(5)));
+    EXPECT_FALSE(expanded::UnderworldShotRefused(0, Planted(6)));
+}
+
+TEST_F(UnderworldShot, TheNextPelletHitsThemAgain) {
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    EXPECT_FALSE(expanded::UnderworldShotRefused(0, Planted(5)));
+    float point[3] = {110.0f, 10.0f, 0.0f};
+    expanded::PelletEnded(*shots_, 3, point, false);
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    EXPECT_FALSE(expanded::UnderworldShotRefused(0, Planted(6)));
+}
+
+TEST_F(UnderworldShot, ItsSparksComeInToThePellet) {
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    for (int step = 0; step < 4; step++) {
+        expanded::UnderworldSparksStep();
+    }
+    ASSERT_GT(expanded::UnderworldSparksLive(), 0);
+    float at[3];
+    for (int i = 0; expanded::UnderworldSparkAt(i, at); i++) {
+        float across = std::hypot(at[0] - 100.0f, at[2]);
+        EXPECT_LE(across, expanded::kSparkFar + 1.0f);
+        // Rising from the ground to the pellet as it comes in.
+        EXPECT_GE(at[1], expanded::kSparkLift - 1e-3f);
+        EXPECT_LE(at[1], 10.0f);
+    }
+    float before[3];
+    ASSERT_TRUE(expanded::UnderworldSparkAt(0, before));
+    for (int step = 0; step < 10; step++) {
+        expanded::UnderworldSparksStep();
+    }
+    ASSERT_TRUE(expanded::UnderworldSparkAt(0, at));
+    EXPECT_LT(std::hypot(at[0] - 100.0f, at[2]), std::hypot(before[0] - 100.0f, before[2]));
+    EXPECT_GT(at[1], before[1]);
+}
+
+TEST_F(UnderworldShot, SuperSteveIsNotTinted) {
+    expanded::UnderworldTintReset();
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    for (int step = 0; step < expanded::kUnderworldTintFade; step++) {
+        expanded::UnderworldTintStep();
+    }
+    EXPECT_FLOAT_EQ(expanded::UnderworldTint(), 0.0f);
+}

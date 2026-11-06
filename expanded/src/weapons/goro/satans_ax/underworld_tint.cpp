@@ -6,6 +6,8 @@
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
+#include "expanded/weapons/player_state.hpp"
+#include "userstatus.hpp"
 
 namespace expanded {
 
@@ -18,7 +20,9 @@ int frames = 0; // of kUnderworldTintFade
 } // namespace
 
 void UnderworldTintStep() {
-    frames = std::clamp(frames + (UnderworldStrength() > 0.0f ? 1 : -1), 0, kUnderworldTintFade);
+    // Goro's pull: not Xiao's pellet's.
+    bool on = Playing(CHARA_GORO) && UnderworldStrength() > 0.0f;
+    frames = std::clamp(frames + (on ? 1 : -1), 0, kUnderworldTintFade);
 }
 
 float UnderworldTint() {

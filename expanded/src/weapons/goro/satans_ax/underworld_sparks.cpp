@@ -34,7 +34,7 @@ struct Spark {
     float position[4] = {};
     float from = 0.0f;         // how far from him it started, across the ground
     bool  ground = true;       // on the ground, or risen from a monster's body
-    float rise = 0.0f;         // the height on him it heads for, above his feet
+    float rise = 0.0f;         // the height it would meet what draws it at, above the ground (kept within its)
     float speed = kSparkCreep; // toward him, a step
     int   age = 0;
     int   left = kSparkFadeOut; // its frames left once the pull has ended
@@ -43,6 +43,7 @@ struct Spark {
 };
 
 std::array<Spark, kSparkCount> sparks;
+UnderworldCentre               centre;                         // what they are drawn to
 float                          owed = 0.0f;                    // the part of a spark the steps so far have started
 float                          body_owed[kFloorMonsters] = {}; // and each monster's body has
 
@@ -170,10 +171,6 @@ bool BodyPoint(CMonstorUnit &unit, int monster, float *point) {
     return true;
 }
 
-float Height() {
-    return UserStatus != nullptr ? CharaHeight(UserStatus) : 16.0f;
-}
-
 Spark *Free() {
     auto free = std::find_if(sparks.begin(), sparks.end(), [](const Spark &spark) { return !spark.live; });
     return free == sparks.end() ? nullptr : &*free;
@@ -194,10 +191,9 @@ void StartOnBody(CMonstorUnit &unit, int monster) {
     *free = Fresh();
     std::copy(point, point + 3, free->position);
     free->position[3] = 1.0f;
-    free->from = std::hypot(CharaMain.pos[0] - point[0], CharaMain.pos[2] - point[2]);
+    free->from = std::hypot(centre.x - point[0], centre.z - point[2]);
     free->ground = false;
-    // The height on his body nearest its own.
-    free->rise = std::clamp(point[1] - CharaMain.pos[1], 0.0f, Height());
+    free->rise = point[1] - centre.ground;
 }
 
 void Start() {
@@ -210,16 +206,16 @@ void Start() {
     float near2 = kSparkNear * kSparkNear, far2 = kSparkFar * kSparkFar;
     float radius = std::sqrt(Uniform(near2 + (far2 - near2) * 0.05f, far2));
     *free = Fresh();
-    free->position[0] = CharaMain.pos[0] + radius * std::cos(angle);
-    free->position[1] = CharaMain.pos[1] + kSparkLift;
-    free->position[2] = CharaMain.pos[2] + radius * std::sin(angle);
+    free->position[0] = centre.x + radius * std::cos(angle);
+    free->position[1] = centre.ground + kSparkLift;
+    free->position[2] = centre.z + radius * std::sin(angle);
     free->position[3] = 1.0f;
     free->from = radius;
     free->rise = kSparkLift;
 }
 
 float Distance(const Spark &spark) {
-    return std::hypot(CharaMain.pos[0] - spark.position[0], CharaMain.pos[2] - spark.position[2]);
+    return std::hypot(centre.x - spark.position[0], centre.z - spark.position[2]);
 }
 
 int Alpha(const Spark &spark) {
@@ -245,7 +241,11 @@ const Spark *Live(int i) {
 } // namespace
 
 void UnderworldSparksStep() {
-    float strength = UnderworldStrength();
+    float            strength = UnderworldStrength();
+    UnderworldCentre now;
+    if (UnderworldCentreNow(now)) {
+        centre = now; // kept as the pull ends, for the sparks fading on their way
+    }
     float rate = strength >= 1.0f ? kSparkSmashPerFrame : strength > 0.0f ? kSparkHoldPerFrame
                                                                           : 0.0f;
     owed = rate > 0.0f ? owed + rate : 0.0f;
@@ -266,7 +266,7 @@ void UnderworldSparksStep() {
         if (strength <= 0.0f) {
             spark.left--;
         }
-        float dx = CharaMain.pos[0] - spark.position[0], dz = CharaMain.pos[2] - spark.position[2];
+        float dx = centre.x - spark.position[0], dz = centre.z - spark.position[2];
         float distance = std::hypot(dx, dz);
         if (++spark.age >= kSparkLife || spark.left <= 0 || distance < kSparkNear * 0.5f) {
             spark.live = false;
@@ -276,12 +276,10 @@ void UnderworldSparksStep() {
         spark.speed += (spark.ground ? kSparkAccel : kBodySparkAccel) * strength;
         spark.position[0] += dx * in / distance;
         spark.position[2] += dz * in / distance;
-        if (spark.ground) {
-            spark.position[1] = CharaMain.pos[1] + kSparkLift;
-        } else {
-            // Rising or falling to its height on him as it comes in, to meet him there.
-            spark.position[1] += (CharaMain.pos[1] + spark.rise - spark.position[1]) * in / distance;
-        }
+        // Rising or falling to the height it heads for as it comes in, to meet it there: its own within his (a ground
+        // spark's on the ground), the pellet's.
+        float height = std::clamp(centre.ground + spark.rise, centre.low, centre.high);
+        spark.position[1] += (height - spark.position[1]) * in / distance;
     }
 }
 

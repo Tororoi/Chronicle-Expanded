@@ -36,6 +36,7 @@
 #include "expanded/weapons/goro/battle_ax.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
+#include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_sparks.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_tint.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
@@ -260,6 +261,7 @@ void DungeonMonstersTick() {
     ZeusShotStep();
     TyphoonShotStep();
     ChargingBullStep();
+    UnderworldShotStep();
     DragonShotStep();
     TornadoChargeStep();
     GuardianGraceStep();
@@ -398,6 +400,7 @@ void PelletFired(CSHOT &shots, int slot) {
     RicochetShotFired(slot);
     DoubleImpactFired(shots, slot);
     ChargingBullFired(shots, slot);
+    UnderworldShotFired(shots, slot);
     DragonShotFired(shots, slot);
     TornadoShotFired(shots, slot);
     SpiritBeastFired(shots, slot);
@@ -416,11 +419,13 @@ void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
     TyphoonShotEnded(shots, slot, point, struck);
     RicochetShotEnded(shots, slot, point, struck);
     ChargingBullEnded(shots, slot);
+    UnderworldShotEnded(shots, slot);
     AirStrikeEnded(shots, slot, point);
 }
 
 void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     ChargingBullHit(shots, slot, hit);
+    UnderworldShotHit(shots, slot, hit);
     PumpedUpPelletHit(hit);
 }
 
@@ -432,6 +437,10 @@ void ShotEffectHitSet(CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
 
 void PelletStepping(CSHOT &shots, int slot) {
     RicochetStep(shots, slot);
+}
+
+bool PelletPierces(const CSHOT &shots, int slot) {
+    return UnderworldShotPierces(shots, slot);
 }
 
 bool PelletHurts(const CSHOT &shots, int slot) {
@@ -450,7 +459,8 @@ bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HI
     if (AllyUnit(unit)) {
         return pocklekul::PockleRefuses(hit);
     }
-    return pocklekul::PockleHitMeantElsewhere(monster, hit) || DragonShotRefused(monster, hit) || ColdStorageHitRefused(hit);
+    return pocklekul::PockleHitMeantElsewhere(monster, hit) || DragonShotRefused(monster, hit) || UnderworldShotRefused(monster, hit) ||
+           ColdStorageHitRefused(hit);
 }
 
 void MonsterHitTaken(CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {
