@@ -1,5 +1,7 @@
 #pragma once
 
+#include "expanded/weapons/goro/satans_ax.hpp"
+
 namespace expanded {
 
 // Pull of the Underworld's sparks (satans_ax.hpp): while the pull is on, the pink hit spark (basefx00's first cell)
@@ -12,12 +14,13 @@ namespace expanded {
 // they are.
 // Each monster the pull draws gives off sparks of its own too, kBodySparkPerFrame a frame times the pull's strength,
 // from anywhere on it (one of its meshes' vertices as it stands, or failing those inside its frames' bounds or its
-// hurt spheres), drawn in kBodySparkSpeed times as fast as the ground's are and without their sway, straight through
-// the air toward the height on his body nearest the one each started at (his feet to CharaHeight above them); one
-// starting inside the monster is hidden by it until it leaves.
+// hurt spheres), drawn in as the ground's are but by a pull falling by e every kBodySparkFalloff units, four times as
+// far as theirs (so as fast as theirs at most, but far faster than the monster it left), and without their sway:
+// straight through the air toward the height on his body nearest the one each started at (his feet to CharaHeight
+// above them). One starting inside the monster is hidden by it until it leaves.
 inline constexpr int   kSparkCount = 384;
 inline constexpr float kBodySparkPerFrame = 0.25f;
-inline constexpr float kBodySparkSpeed = 2.0f;
+inline constexpr float kBodySparkFalloff = 4.0f * kUnderworldFalloff;
 inline constexpr float kSparkHoldPerFrame = 0.375f;
 inline constexpr float kSparkSmashPerFrame = 3.0f;
 inline constexpr float kSparkNear = 12.0f;
@@ -32,6 +35,8 @@ inline constexpr float kSparkSize = 1.2f;   // away from him (a hit's sparks are
 
 // One dungeon step: sparks started, drawn in and aged.
 void UnderworldSparksStep();
+// A body spark's step toward him at that distance at the pull's full strength, before kSparkCreep.
+float UnderworldBodySparkPullAt(float distance);
 // Drawn just after the run dust.
 void UnderworldSparksDraw();
 // The sparks in flight (tests).
