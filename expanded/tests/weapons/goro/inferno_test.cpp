@@ -214,6 +214,11 @@ TEST_F(BurningAura, TheFogReddensAndThickensOverThreeSecondsAndFadesAfter) {
     EXPECT_EQ(full[0], 220);
     EXPECT_EQ(full[1], 40);
     EXPECT_EQ(full[2], 20);
+    unsigned char background[3] = {0, 0, 0};
+    expanded::BurningAuraBackground(background);
+    EXPECT_EQ(background[0], 220);
+    EXPECT_EQ(background[1], 40);
+    EXPECT_EQ(background[2], 20);
     Acting(0);
     Steps(expanded::kBurningAuraFogFade - 1);
     EXPECT_GT(expanded::BurningAuraRed(), 0.0f);

@@ -57,6 +57,14 @@ void Burn(int seconds) {
     PlantBlast(*NowMonstorUnit, CharaMain.pos, NowWeaponHave->attack, options);
 }
 
+// A colour moved red of the way to the fog's red.
+void Redden(unsigned char *colour, float red) {
+    for (int c = 0; c < 3; c++) {
+        float own = colour[c];
+        colour[c] = static_cast<unsigned char>(std::lround(own + (kBurningAuraFog[c] - own) * red));
+    }
+}
+
 } // namespace
 
 bool InfernoWielded() {
@@ -134,10 +142,11 @@ void BurningAuraFog(float *fog_rate, unsigned char *fog_colour) {
         fog_rate[0] *= pull;
         fog_rate[1] *= pull;
     }
-    for (int c = 0; c < 3; c++) {
-        float own = fog_colour[c];
-        fog_colour[c] = static_cast<unsigned char>(std::lround(own + (kBurningAuraFog[c] - own) * red));
-    }
+    Redden(fog_colour, red);
+}
+
+void BurningAuraBackground(unsigned char *background) {
+    Redden(background, BurningAuraRed());
 }
 
 void BurningAuraHazeDraw() {
