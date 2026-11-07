@@ -123,10 +123,16 @@ void BurningAuraLight(float *ambient, float (*colours)[4]) {
     }
 }
 
-void BurningAuraFog(unsigned char *fog_colour) {
+void BurningAuraFog(float *fog_rate, unsigned char *fog_colour) {
     float red = BurningAuraRed();
     if (red <= 0.0f) {
         return;
+    }
+    // A floor without fog keeps none: its colour alone carries the red.
+    if (fog_rate[1] > fog_rate[0]) {
+        float pull = 1.0f + (kBurningAuraFogPull - 1.0f) * red;
+        fog_rate[0] *= pull;
+        fog_rate[1] *= pull;
     }
     for (int c = 0; c < 3; c++) {
         float own = fog_colour[c];

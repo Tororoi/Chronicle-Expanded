@@ -2259,7 +2259,7 @@ void DunMainDraw() {
         std::memcpy(fog_colour, sub ? sub_fogColor : main_fogColor, sizeof(fog_colour));
         expanded::SceneLighting(ambient, colours, fog_rate, fog_colour);
         expanded::BurningAuraLight(ambient, colours);
-        expanded::BurningAuraFog(fog_colour);
+        expanded::BurningAuraFog(fog_rate, fog_colour);
         const u8 *bg = sub ? sub_bgColor : main_bgColor;
         MGSetPLight(sub ? sub_light : main_light, colours);
         MGSetAmbient(ambient);

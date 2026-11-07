@@ -194,18 +194,23 @@ TEST_F(BurningAura, ADrawnMonsterIsAfraidUntilItComesNear) {
     EXPECT_FALSE(expanded::BurningAuraFeared(floor_.unit(), 0));
 }
 
-TEST_F(BurningAura, TheFogReddensOverThreeSecondsAndFadesAfter) {
+TEST_F(BurningAura, TheFogReddensAndThickensOverThreeSecondsAndFadesAfter) {
     Place(50.0f);
     Acting(14);
     Steps(expanded::kBurningAuraFogFrames / 2);
     EXPECT_NEAR(expanded::BurningAuraRed(), 0.5f, 1e-3f);
+    float         rate[4] = {1000.0f, 3500.0f, 0.0f, 255.0f};
     unsigned char fog[3] = {0x60, 0xA0, 0xEF};
-    expanded::BurningAuraFog(fog);
+    expanded::BurningAuraFog(rate, fog);
     EXPECT_EQ(fog[0], (0x60 + 220) / 2);
+    EXPECT_FLOAT_EQ(rate[0], 1000.0f * (1.0f + expanded::kBurningAuraFogPull) / 2.0f);
     Steps(expanded::kBurningAuraFogFrames);
     EXPECT_FLOAT_EQ(expanded::BurningAuraRed(), 1.0f);
+    float         full_rate[4] = {1000.0f, 3500.0f, 0.0f, 255.0f};
     unsigned char full[3] = {0x60, 0xA0, 0xEF};
-    expanded::BurningAuraFog(full);
+    expanded::BurningAuraFog(full_rate, full);
+    EXPECT_FLOAT_EQ(full_rate[0], 1000.0f * expanded::kBurningAuraFogPull);
+    EXPECT_FLOAT_EQ(full_rate[1], 3500.0f * expanded::kBurningAuraFogPull);
     EXPECT_EQ(full[0], 220);
     EXPECT_EQ(full[1], 40);
     EXPECT_EQ(full[2], 20);
