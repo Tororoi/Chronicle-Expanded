@@ -17,13 +17,19 @@ namespace expanded {
 // to fire takes none of it. A monster it draws from farther than kBurningAuraBrave is afraid: one whose kind backs off
 // (as from the Serpent Sword's snake: serpent_sword.hpp) backs off, and a kind with none goes on as ever; within
 // kBurningAuraBrave it is itself again, and comes at him. The floor's fog reddens toward kBurningAuraFog as the pull
-// goes on, fully at kBurningAuraFogFrames, and fades back over kBurningAuraFogFade once it ends. Times are game frames.
+// goes on, and its light toward kBurningAuraLight (each colour scaled), fully at kBurningAuraFogFrames, and both fade
+// back over kBurningAuraFogFade once it ends; from kBurningAuraHazeFrom of the way, a faint heat shimmer (Mirage's:
+// heat_haze.hpp) comes up over the whole screen, at kBurningAuraHazeSway times a fire's sway when the red is full.
+// Times are game frames.
 inline constexpr int   kBurningAuraFrames = 60;
 inline constexpr float kBurningAuraStep = 0.01f;
 inline constexpr float kBurningAuraBrave = 30.0f;
 inline constexpr float kBurningAuraFog[3] = {220.0f, 40.0f, 20.0f};
 inline constexpr int   kBurningAuraFogFrames = 180;
 inline constexpr int   kBurningAuraFogFade = 60;
+inline constexpr float kBurningAuraLight[3] = {1.2f, 0.5f, 0.4f};
+inline constexpr float kBurningAuraHazeFrom = 0.5f;
+inline constexpr float kBurningAuraHazeSway = 1.0f;
 inline constexpr int   kFireElementBit = 1; // a hit's flags: the fire element (element_tbl's first)
 
 // Whether Goro is in play with the Inferno in hand.
@@ -34,12 +40,17 @@ void BurningAuraStep();
 // The seconds the pull has been on, and how red the fog is (0 to 1).
 int   BurningAuraSeconds();
 float BurningAuraRed();
+// How strong the shimmer is (0 to 1).
+float BurningAuraHaze();
 
 // Hooks: whether a monster's hit passes him by (BtCheckDamageProc); whether a monster is afraid this step
-// (SnakeCharmerMonsterStep); the fog's colour the floor hands the renderer, reddened in place (DunMainDraw).
+// (SnakeCharmerMonsterStep); the light and fog's colour the floor hands the renderer, reddened in place (DunMainDraw);
+// the shimmer, with the dungeon's other rasters.
 bool InfernoFireproof(const COLLISION_HIT &hit);
 bool BurningAuraFeared(CMonstorUnit &unit, int monster);
+void BurningAuraLight(float *ambient, float (*colours)[4]);
 void BurningAuraFog(unsigned char *fog_colour);
+void BurningAuraHazeDraw();
 
 // The floor changed (tests too).
 void BurningAuraReset();

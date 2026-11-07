@@ -13,6 +13,7 @@
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/ungaga/mirage/heat_haze.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "userstatus.hpp"
@@ -69,9 +70,15 @@ void BurningAuraStep() {
     if (!Pulling()) {
         pulled_frames = 0;
         red_frames = std::max(0, red_frames - kBurningAuraFogFrames / kBurningAuraFogFade);
+        if (BurningAuraHaze() > 0.0f) {
+            mirage::HazeStep();
+        }
         return;
     }
     red_frames = std::min(kBurningAuraFogFrames, red_frames + 1);
+    if (BurningAuraHaze() > 0.0f) {
+        mirage::HazeStep();
+    }
     if (++pulled_frames % kBurningAuraFrames == 0) {
         Burn(pulled_frames / kBurningAuraFrames);
     }
@@ -83,6 +90,10 @@ int BurningAuraSeconds() {
 
 float BurningAuraRed() {
     return static_cast<float>(red_frames) / kBurningAuraFogFrames;
+}
+
+float BurningAuraHaze() {
+    return std::clamp((BurningAuraRed() - kBurningAuraHazeFrom) / (1.0f - kBurningAuraHazeFrom), 0.0f, 1.0f);
 }
 
 bool InfernoFireproof(const COLLISION_HIT &hit) {
@@ -98,6 +109,20 @@ bool BurningAuraFeared(CMonstorUnit &unit, int monster) {
     return std::hypot(at[0] - CharaMain.pos[0], at[2] - CharaMain.pos[2]) > kBurningAuraBrave;
 }
 
+void BurningAuraLight(float *ambient, float (*colours)[4]) {
+    float red = BurningAuraRed();
+    if (red <= 0.0f) {
+        return;
+    }
+    for (int c = 0; c < 3; c++) {
+        float scale = 1.0f + (kBurningAuraLight[c] - 1.0f) * red;
+        ambient[c] = std::min(255.0f, ambient[c] * scale);
+        for (int row = 0; row < 4; row++) {
+            colours[row][c] = std::min(255.0f, colours[row][c] * scale);
+        }
+    }
+}
+
 void BurningAuraFog(unsigned char *fog_colour) {
     float red = BurningAuraRed();
     if (red <= 0.0f) {
@@ -106,6 +131,12 @@ void BurningAuraFog(unsigned char *fog_colour) {
     for (int c = 0; c < 3; c++) {
         float own = fog_colour[c];
         fog_colour[c] = static_cast<unsigned char>(std::lround(own + (kBurningAuraFog[c] - own) * red));
+    }
+}
+
+void BurningAuraHazeDraw() {
+    if (BtEventMode == 0) {
+        mirage::HazeDrawOver(CharaMain.pos, BurningAuraHaze(), kBurningAuraHazeSway);
     }
 }
 

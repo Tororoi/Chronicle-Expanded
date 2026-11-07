@@ -1,8 +1,9 @@
-#include "expanded/weapons/ungaga/mirage/heat_haze.hpp"
+#include "common.h"
 
 #include <random>
 
 #include "expanded/core/random.hpp"
+#include "expanded/weapons/ungaga/mirage/heat_haze.hpp"
 #include "mglib.hpp"
 #include "rect.hpp"
 #include "runeffect.hpp"
@@ -17,6 +18,26 @@ constexpr float kFireRise = 3.0f; // DrawRaster lifts the fire's own point by th
 
 float phase = 0.0f;
 
+// The raster over the screen's x by y (in DrawRaster's own units: y in half rows, height in half the rows it covers),
+// swaying by depth.
+void Raster(int x, int y, int width, int height, float depth) {
+    CTexture *mask = TexManager.GetTexture(const_cast<char *>("alpha01"), -1);
+    CTexture *blender = TexManager.GetTexture(const_cast<char *>("blender"), -1);
+    if (mask == nullptr || blender == nullptr) {
+        return; // no fires in this dungeon: nothing to blend with
+    }
+    sceGsTex0 blend = *reinterpret_cast<sceGsTex0 *>(&blender->tex0);
+    blendTextuerTest(Vif1Packet, blend.TBP0, blend.TBW, blend.PSM, CRect_i_(x, y >> 1, width, height), mask,
+                     CRect_i_(0, 0, width, height), CRect_i_(0, 0, 64, 64), depth, phase);
+    set2DSprite(Vif1Packet, blender, CRect_i_(x, y, width, height * 2), CRect_i_(1, 1, width - 2, height - 2));
+}
+
+// Where root projects, or false off the screen.
+bool Project(const float *root, float lift, float width, float height, int *top_left, int *bottom_right) {
+    sceVu0FVECTOR world = {root[0], root[1] + lift + kFireRise, root[2], 1.0f};
+    return MGRotTransPers3DSprite(top_left, bottom_right, world, width, height, 0) == 1;
+}
+
 } // namespace
 
 void HazeStep(float step) {
@@ -28,18 +49,9 @@ void HazeStep(float step) {
 
 // CFireOmni::DrawRaster at root, with the shimmer's size and sway.
 void HazeDraw(const float *root, float gain, const HazeLook &look) {
-    if (gain <= 0.0f) {
-        return;
-    }
-    CTexture *mask = TexManager.GetTexture(const_cast<char *>("alpha01"), -1);
-    CTexture *blender = TexManager.GetTexture(const_cast<char *>("blender"), -1);
-    if (mask == nullptr || blender == nullptr) {
-        return; // no fires in this dungeon: nothing to blend with
-    }
-    sceVu0FVECTOR world = {root[0], root[1] + look.lift + kFireRise, root[2], 1.0f};
-    int           top_left[4];
-    int           bottom_right[4];
-    if (MGRotTransPers3DSprite(top_left, bottom_right, world, look.width, look.height, 0) != 1) {
+    int top_left[4];
+    int bottom_right[4];
+    if (gain <= 0.0f || !Project(root, look.lift, look.width, look.height, top_left, bottom_right)) {
         return;
     }
 
@@ -64,11 +76,16 @@ void HazeDraw(const float *root, float gain, const HazeLook &look) {
     }
 
     // The sway is the depth the raster passes times the fire's scale and its gain: the shimmer's scale and gain ride it.
-    sceGsTex0 blend = *reinterpret_cast<sceGsTex0 *>(&blender->tex0);
-    float     depth = static_cast<float>(top_left[2] >> 4) * look.sway * gain;
-    blendTextuerTest(Vif1Packet, blend.TBP0, blend.TBW, blend.PSM, CRect_i_(x, y >> 1, width, height), mask,
-                     CRect_i_(0, 0, width, height), CRect_i_(0, 0, 64, 64), depth, phase);
-    set2DSprite(Vif1Packet, blender, CRect_i_(x, y, width, height * 2), CRect_i_(1, 1, width - 2, height - 2));
+    Raster(x, y, width, height, static_cast<float>(top_left[2] >> 4) * look.sway * gain);
+}
+
+void HazeDrawOver(const float *root, float gain, float sway) {
+    int top_left[4];
+    int bottom_right[4];
+    if (gain <= 0.0f || !Project(root, 0.0f, 1.0f, 1.0f, top_left, bottom_right)) {
+        return;
+    }
+    Raster(0, 0, 639, SCREEN_HEIGHT / 2, static_cast<float>(top_left[2] >> 4) * sway * gain);
 }
 
 float HazePhase() {

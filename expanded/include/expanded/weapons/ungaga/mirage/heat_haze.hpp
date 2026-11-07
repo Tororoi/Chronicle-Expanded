@@ -24,6 +24,8 @@ inline constexpr HazeLook kMirageHaze = {kHazeLift, kHazeWidth, kHazeHeight, kHa
 void HazeStep(float step = kHazeWaveStep);
 // The draw at root, at gain, as look has it (the Mirage copy's by default).
 void HazeDraw(const float *root, float gain, const HazeLook &look = kMirageHaze);
+// The shimmer over the whole screen, at gain, swaying sway times a fire's at root's depth.
+void HazeDrawOver(const float *root, float gain, float sway);
 // The wave's phase (tests).
 float HazePhase();
 void  HazeReset();

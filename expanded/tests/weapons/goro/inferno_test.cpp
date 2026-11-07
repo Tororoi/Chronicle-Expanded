@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <libvu0.h>
 
 #include <memory>
 #include <vector>
@@ -213,4 +214,39 @@ TEST_F(BurningAura, TheFogReddensOverThreeSecondsAndFadesAfter) {
     EXPECT_GT(expanded::BurningAuraRed(), 0.0f);
     Steps(1);
     EXPECT_FLOAT_EQ(expanded::BurningAuraRed(), 0.0f);
+}
+
+TEST_F(BurningAura, TheLightReddensWithTheFog) {
+    Place(50.0f);
+    Acting(14);
+    Steps(expanded::kBurningAuraFogFrames);
+    float         ambient[4] = {64.0f, 64.0f, 64.0f, 128.0f};
+    sceVu0FMATRIX colours = {
+        {120.0f, 120.0f, 120.0f, 128.0f},
+        {},
+        {},
+        {}
+    };
+    expanded::BurningAuraLight(ambient, colours);
+    EXPECT_FLOAT_EQ(ambient[0], 64.0f * expanded::kBurningAuraLight[0]);
+    EXPECT_FLOAT_EQ(ambient[1], 64.0f * expanded::kBurningAuraLight[1]);
+    EXPECT_FLOAT_EQ(ambient[2], 64.0f * expanded::kBurningAuraLight[2]);
+    EXPECT_FLOAT_EQ(ambient[3], 128.0f);
+    EXPECT_FLOAT_EQ(colours[0][0], 120.0f * expanded::kBurningAuraLight[0]);
+    EXPECT_FLOAT_EQ(colours[0][2], 120.0f * expanded::kBurningAuraLight[2]);
+    EXPECT_FLOAT_EQ(colours[0][3], 128.0f);
+}
+
+TEST_F(BurningAura, TheShimmerComesUpFromHalfwayToFull) {
+    Place(50.0f);
+    Acting(14);
+    Steps(expanded::kBurningAuraFogFrames / 2);
+    EXPECT_FLOAT_EQ(expanded::BurningAuraHaze(), 0.0f);
+    Steps(expanded::kBurningAuraFogFrames / 4);
+    EXPECT_NEAR(expanded::BurningAuraHaze(), 0.5f, 1e-3f);
+    Steps(expanded::kBurningAuraFogFrames / 4);
+    EXPECT_FLOAT_EQ(expanded::BurningAuraHaze(), 1.0f);
+    Acting(0);
+    Steps(expanded::kBurningAuraFogFade);
+    EXPECT_FLOAT_EQ(expanded::BurningAuraHaze(), 0.0f);
 }

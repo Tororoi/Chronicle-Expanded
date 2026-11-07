@@ -192,6 +192,7 @@ void DungeonEffectsDrawn() {
 void DungeonRasterDrawn() {
     MirageHazeDraw();
     SnakeCharmerHazeDraw();
+    BurningAuraHazeDraw();
 }
 
 void DungeonShotsDrawn() {
