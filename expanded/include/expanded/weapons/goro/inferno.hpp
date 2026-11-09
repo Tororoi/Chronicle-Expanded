@@ -30,9 +30,9 @@ inline constexpr float kBurningAuraFog[3] = {220.0f, 40.0f, 20.0f};
 inline constexpr int   kBurningAuraFogFrames = 180;
 inline constexpr int   kBurningAuraFogFade = 60;
 inline constexpr float kBurningAuraFogPull = 0.75f;
-inline constexpr float kBurningAuraLight[3] = {1.2f, 0.5f, 0.4f};
+inline constexpr float kBurningAuraLight[3] = {1.15f, 0.62f, 0.45f};
 inline constexpr float kBurningAuraHazeFrom = 0.5f;
-inline constexpr float kBurningAuraHazeSway = 1.0f;
+inline constexpr float kBurningAuraHazeSway = 1.5f;
 inline constexpr int   kFireElementBit = 1; // a hit's flags: the fire element (element_tbl's first)
 
 // Whether Goro is in play with the Inferno in hand.
