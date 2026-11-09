@@ -195,6 +195,10 @@ void DungeonRasterDrawn() {
     BurningAuraHazeDraw();
 }
 
+void DungeonFiresDrawn() {
+    BurningAuraFlameDraw();
+}
+
 void DungeonShotsDrawn() {
     BombGemronEffectsDraw();
     ShootingStarsDraw();

@@ -18,10 +18,10 @@ namespace expanded {
 // (as from the Serpent Sword's snake: serpent_sword.hpp) backs off, and a kind with none goes on as ever; within
 // kBurningAuraBrave it is itself again, and comes at him. The floor's fog reddens toward kBurningAuraFog as the pull
 // goes on and thickens (its near and far pulled in to kBurningAuraFogPull of their own), the background past the
-// floor's drawn cells with it, and its light toward
-// kBurningAuraLight (each colour scaled), fully at kBurningAuraFogFrames, and both fade
-// back over kBurningAuraFogFade once it ends; from kBurningAuraHazeFrom of the way, a faint heat shimmer (Mirage's:
-// heat_haze.hpp) comes up over the whole screen, at kBurningAuraHazeSway times a fire's sway when the red is full.
+// floor's drawn cells with it, and its light toward kBurningAuraLight (each colour scaled), fully at
+// kBurningAuraFogFrames, and all fade back over kBurningAuraFogFade once it ends; from kBurningAuraHazeFrom of the way,
+// a heat shimmer (Mirage's: heat_haze.hpp) comes up over the whole screen, at kBurningAuraHazeSway times a fire's sway
+// when the red is full. A torch's flame rises out of the floor over him as the pull begins (inferno/rising_flame.hpp).
 // Times are game frames.
 inline constexpr int   kBurningAuraFrames = 60;
 inline constexpr float kBurningAuraStep = 0.01f;
@@ -32,7 +32,7 @@ inline constexpr int   kBurningAuraFogFade = 60;
 inline constexpr float kBurningAuraFogPull = 0.75f;
 inline constexpr float kBurningAuraLight[3] = {1.15f, 0.62f, 0.45f};
 inline constexpr float kBurningAuraHazeFrom = 0.5f;
-inline constexpr float kBurningAuraHazeSway = 1.5f;
+inline constexpr float kBurningAuraHazeSway = 2.25f;
 inline constexpr int   kFireElementBit = 1; // a hit's flags: the fire element (element_tbl's first)
 
 // Whether Goro is in play with the Inferno in hand.
@@ -48,13 +48,14 @@ float BurningAuraHaze();
 
 // Hooks: whether a monster's hit passes him by (BtCheckDamageProc); whether a monster is afraid this step
 // (SnakeCharmerMonsterStep); the light, fog and background the floor hands the renderer, reddened in place (DunMainDraw);
-// the shimmer, with the dungeon's other rasters.
+// the shimmer, with the dungeon's other rasters; the flame over him (inferno/rising_flame.hpp), after the torches.
 bool InfernoFireproof(const COLLISION_HIT &hit);
 bool BurningAuraFeared(CMonstorUnit &unit, int monster);
 void BurningAuraLight(float *ambient, float (*colours)[4]);
 void BurningAuraFog(float *fog_rate, unsigned char *fog_colour);
 void BurningAuraBackground(unsigned char *background);
 void BurningAuraHazeDraw();
+void BurningAuraFlameDraw();
 
 // The floor changed (tests too).
 void BurningAuraReset();

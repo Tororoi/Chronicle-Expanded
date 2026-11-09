@@ -10,6 +10,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
+#include "expanded/weapons/goro/inferno/rising_flame.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/hit_marks.hpp"
 #include "itemdata.hpp"
@@ -259,4 +260,24 @@ TEST_F(BurningAura, TheShimmerComesUpFromHalfwayToFull) {
     Acting(0);
     Steps(expanded::kBurningAuraFogFade);
     EXPECT_FLOAT_EQ(expanded::BurningAuraHaze(), 0.0f);
+}
+
+TEST_F(BurningAura, AFlameRisesOverHimAsThePullBeginsAndSinksAfter) {
+    Place(50.0f);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 0.0f);
+    Acting(13);
+    Steps(expanded::kRisingFlameRise / 2);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 0.5f);
+    Steps(expanded::kRisingFlameRise);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 1.0f);
+    Acting(0);
+    Steps(expanded::kRisingFlameRise);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 0.0f);
+}
+
+TEST_F(BurningAuraWithSatansAx, SatansAxRaisesNoFlame) {
+    Place(50.0f);
+    Acting(13);
+    Steps(expanded::kRisingFlameRise);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 0.0f);
 }

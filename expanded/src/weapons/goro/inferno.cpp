@@ -10,6 +10,7 @@
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/goro/inferno/rising_flame.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -75,6 +76,7 @@ void BurningAuraStep() {
     if (!MonstersStepping()) {
         return;
     }
+    RisingFlameStep(Pulling());
     if (!Pulling()) {
         pulled_frames = 0;
         red_frames = std::max(0, red_frames - kBurningAuraFogFrames / kBurningAuraFogFade);
@@ -149,6 +151,12 @@ void BurningAuraBackground(unsigned char *background) {
     Redden(background, BurningAuraRed());
 }
 
+void BurningAuraFlameDraw() {
+    if (InfernoWielded()) {
+        RisingFlameDraw();
+    }
+}
+
 void BurningAuraHazeDraw() {
     if (BtEventMode == 0) {
         mirage::HazeDrawOver(CharaMain.pos, BurningAuraHaze(), kBurningAuraHazeSway);
@@ -156,6 +164,7 @@ void BurningAuraHazeDraw() {
 }
 
 void BurningAuraReset() {
+    RisingFlameReset();
     pulled_frames = 0;
     red_frames = 0;
 }
