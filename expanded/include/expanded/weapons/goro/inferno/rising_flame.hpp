@@ -10,7 +10,7 @@ namespace expanded {
 inline constexpr float         kRisingFlameSize = 30.0f;
 inline constexpr float         kRisingFlameLift = 7.0f;
 inline constexpr unsigned char kRisingFlameAlpha = 0x80;
-inline constexpr int           kRisingFlameRise = 14;
+inline constexpr int           kRisingFlameRise = 60;
 inline constexpr float         kRisingFlameNear = 15.0f;
 
 // One dungeon step: rising while up, sinking otherwise.
