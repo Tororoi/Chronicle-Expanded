@@ -3,6 +3,7 @@
 #include <random>
 
 #include "expanded/core/random.hpp"
+#include "expanded/dungeon/torch_fire.hpp"
 #include "expanded/weapons/ungaga/mirage/heat_haze.hpp"
 #include "mglib.hpp"
 #include "rect.hpp"
@@ -18,13 +19,19 @@ constexpr float kFireRise = 3.0f; // DrawRaster lifts the fire's own point by th
 
 float phase = 0.0f;
 
+// The dungeon's own mask, or the shared fire's on a floor without one.
+CTexture *Mask() {
+    CTexture *own = TexManager.GetTexture(const_cast<char *>("alpha01"), -1);
+    return own != nullptr || !TorchFireReady() ? own : TorchFireTexture("alpha01");
+}
+
 // The raster over the screen's x by y (in DrawRaster's own units: y in half rows, height in half the rows it covers),
 // swaying by depth.
 void Raster(int x, int y, int width, int height, float depth) {
-    CTexture *mask = TexManager.GetTexture(const_cast<char *>("alpha01"), -1);
+    CTexture *mask = Mask();
     CTexture *blender = TexManager.GetTexture(const_cast<char *>("blender"), -1);
     if (mask == nullptr || blender == nullptr) {
-        return; // no fires in this dungeon: nothing to blend with
+        return;
     }
     sceGsTex0 blend = *reinterpret_cast<sceGsTex0 *>(&blender->tex0);
     blendTextuerTest(Vif1Packet, blend.TBP0, blend.TBW, blend.PSM, CRect_i_(x, y >> 1, width, height), mask,

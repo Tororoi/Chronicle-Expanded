@@ -5,6 +5,7 @@
 #include "camerafollow.hpp"
 #include "character.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/dungeon/torch_fire.hpp"
 #include "fireomni.hpp"
 #include "mglib.hpp"
 #include "rect.hpp"
@@ -51,13 +52,15 @@ float RisingFlameRisen() {
 }
 
 void RisingFlameDraw() {
-    CTexture *core = TexManager.GetTexture(const_cast<char *>("lightling"), -1);
-    CTexture *glow = TexManager.GetTexture(const_cast<char *>("blender"), -1);
-    if (risen_frames == 0 || BtEventMode != 0 || core == nullptr || glow == nullptr ||
-        TexManager.GetTexture(const_cast<char *>("d01e02"), -1) == nullptr) {
-        return; // a floor without torches has no flame to show
+    if (risen_frames == 0 || BtEventMode != 0 || !TorchFireReady()) {
+        return;
     }
-    flame.FireCreate(); // the flame's frame, into the blender the torches have finished with
+    CTexture *core = TorchFireTexture("lightling");
+    CTexture *glow = TexManager.GetTexture(const_cast<char *>("blender"), -1);
+    if (core == nullptr || glow == nullptr) {
+        return;
+    }
+    TorchFireCreate(flame); // the flame's frame, into the blender the torches have finished with
 
     sceVu0FVECTOR world = {CharaMain.pos[0],
                            CharaMain.pos[1] + kRisingFlameLift - kRisingFlameSize * (1.0f - RisingFlameRisen()),
