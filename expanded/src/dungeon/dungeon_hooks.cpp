@@ -187,16 +187,13 @@ void DungeonEffectsDrawn() {
     SpiritBeastDraw();
     GuardianReflectorDraw();
     SnakeCharmerGlowDraw();
+    BurningAuraFlameDraw();
 }
 
 void DungeonRasterDrawn() {
     MirageHazeDraw();
     SnakeCharmerHazeDraw();
     BurningAuraHazeDraw();
-}
-
-void DungeonFiresDrawn() {
-    BurningAuraFlameDraw();
 }
 
 void DungeonShotsDrawn() {

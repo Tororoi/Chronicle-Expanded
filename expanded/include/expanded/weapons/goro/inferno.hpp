@@ -21,7 +21,7 @@ namespace expanded {
 // floor's drawn cells with it, and its light toward kBurningAuraLight (each colour scaled), fully at
 // kBurningAuraFogFrames, and all fade back over kBurningAuraFogFade once it ends; from kBurningAuraHazeFrom of the way,
 // a heat shimmer (Mirage's: heat_haze.hpp) comes up over the whole screen, at kBurningAuraHazeSway times a fire's sway
-// when the red is full. A torch's flame rises out of the floor over him as the pull begins (inferno/rising_flame.hpp).
+// when the red is full. A fireball rises out of the floor around him as the pull begins (inferno/rising_flame.hpp).
 // Times are game frames.
 inline constexpr int   kBurningAuraFrames = 60;
 inline constexpr float kBurningAuraStep = 0.01f;
@@ -48,7 +48,7 @@ float BurningAuraHaze();
 
 // Hooks: whether a monster's hit passes him by (BtCheckDamageProc); whether a monster is afraid this step
 // (SnakeCharmerMonsterStep); the light, fog and background the floor hands the renderer, reddened in place (DunMainDraw);
-// the shimmer, with the dungeon's other rasters; the flame over him (inferno/rising_flame.hpp), after the torches.
+// the shimmer, with the dungeon's other rasters; the flame around him (inferno/rising_flame.hpp), with the dungeon's effects.
 bool InfernoFireproof(const COLLISION_HIT &hit);
 bool BurningAuraFeared(CMonstorUnit &unit, int monster);
 void BurningAuraLight(float *ambient, float (*colours)[4]);

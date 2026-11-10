@@ -1,7 +1,6 @@
 #pragma once
 
 namespace dc::game {
-class CFireOmni;
 class CTexture;
 } // namespace dc::game
 
@@ -18,7 +17,5 @@ inline constexpr const char *kTorchFirePrefix = "xp_";
 bool TorchFireReady();
 // One of its pictures by the fire's own name ("alpha01", "d01e02", "d01e03", "lightling"), or null when it is not in.
 CTexture *TorchFireTexture(const char *name);
-// CFireOmni::FireCreate from its sheets: fire's frame of the flame, into the blender.
-void TorchFireCreate(const CFireOmni &fire);
 
 } // namespace expanded

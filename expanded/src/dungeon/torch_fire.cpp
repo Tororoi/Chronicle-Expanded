@@ -8,10 +8,6 @@
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/dungeon/pack_files.hpp"
 #include "expanded/enemies/enemy_events.hpp"
-#include "fireomni.hpp"
-#include "mglib.hpp"
-#include "rect.hpp"
-#include "runeffect.hpp"
 #include "texture.hpp"
 
 namespace expanded {
@@ -76,20 +72,6 @@ bool TorchFireReady() {
     TexManager.LoadTextureBlockEX(kFloorCharacterBlock, entries_in);
     failed = TorchFireTexture("lightling") == nullptr;
     return !failed;
-}
-
-void TorchFireCreate(const CFireOmni &fire) {
-    CTexture *sheet = TorchFireTexture("d01e02");
-    CTexture *scroll = TorchFireTexture("d01e03");
-    CTexture *blender = TexManager.GetTexture(const_cast<char *>("blender"), -1);
-    if (sheet == nullptr || scroll == nullptr || blender == nullptr) {
-        return;
-    }
-    int       cell = static_cast<int>(fire.cell_phase);
-    CRect_i_  frame = sheet->bpp == 1 ? CRect_i_((cell % 4) * 64, (cell / 4) * 64, 64, 64) : CRect_i_(0, cell * 64, 64, 64);
-    sceGsTex0 blend = *reinterpret_cast<sceGsTex0 *>(&blender->tex0);
-    blendTextuer(Vif1Packet, blend.TBP0, blend.TBW, blend.PSM, scroll, CRect_i_(0, 0, 128, 128),
-                 CRect_i_(0, static_cast<int>(fire.flame_phase), 128, 64), sheet, CRect_i_(0, 0, 128, 128), frame);
 }
 
 } // namespace expanded

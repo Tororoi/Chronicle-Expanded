@@ -2443,9 +2443,6 @@ void DunMainDraw() {
     } else {
         NowDngMap->DrawFireFreeStyle(CharaFrame, NowCamera__3);
     }
-#ifdef CHRONICLE_EXPANDED
-    expanded::DungeonFiresDrawn();
-#endif
 
     if (atraGetStatus != 0 && atraShortGetType != 0) {
         TexManager.ReloadTexture(Vif1Packet, 0x1C);
