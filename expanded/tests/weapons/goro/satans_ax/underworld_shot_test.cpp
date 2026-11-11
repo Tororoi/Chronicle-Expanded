@@ -315,9 +315,30 @@ TEST_F(InfernoShot, ItsChargedShotIsTheFireballInPlaceOfThePellet) {
     EXPECT_TRUE(expanded::FireShotsFlying());
 }
 
-TEST_F(UnderworldShot, SatansAxsChargedShotKeepsItsPellet) {
+TEST_F(UnderworldShot, SatansAxsChargedShotIsItsFireballToo) {
     HoldAndFire(expanded::kUnderworldShotFrames);
-    EXPECT_FALSE(expanded::PelletHidden(*shots_, 3));
+    EXPECT_TRUE(expanded::PelletHidden(*shots_, 3));
+    EXPECT_TRUE(expanded::FireShotsFlying());
+}
+
+TEST_F(UnderworldShot, SatansAxsShotEndsInABlastFourteenUnitsAroundInTheSelectedElement) {
+    Place(0, 112.0f, 0.0f); // 12 from where it ends
+    Place(1, 118.0f, 0.0f); // 18 from it
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    const float end[3] = {100.0f, 0.0f, 0.0f};
+    expanded::PelletEnded(*shots_, 3, end, false);
+    int near = 0, far = 0;
+    for (int i = 0; i < static_cast<int>(sizeof(NowColData->hit) / sizeof(NowColData->hit[0])); i++) {
+        if (NowColData->active[i] == 0) {
+            continue;
+        }
+        const COLLISION_HIT &hit = NowColData->hit[i];
+        EXPECT_EQ(hit.damage, 40);
+        EXPECT_EQ(hit.flags, GetWeaponElementAttr(NowWeaponHave->best_elem));
+        (std::hypot(hit.pos[0] - 112.0f, hit.pos[2]) < 4.0f ? near : far)++;
+    }
+    EXPECT_GT(near, 0);
+    EXPECT_EQ(far, 0);
 }
 
 TEST_F(InfernoShot, XiaoIsFireproof) {

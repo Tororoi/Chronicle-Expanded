@@ -13,7 +13,7 @@ namespace expanded {
 // it), and sinks back the same way once the pull ends. As his smash begins it grows to kRisingFlameSmashScale over
 // kRisingFlameGrow frames, playing faster as it grows, up to kRisingFlameSmashMotionSpeed (its cfg's own), and keeps
 // that size and speed until it has sunk. Goro is lit by it: kRisingFlameGlow (red, green, blue) as it rises, up to
-// kRisingFlameSmashGlow as it grows, all of it fading as it sinks. Worn by Xiao with the Inferno's SynthSphere on Super
+// kRisingFlameSmashGlow as it grows, all of it fading as it sinks. Satan's Ax raises it too, in pink red (RisingFlameLookAs). Worn by Xiao with the Inferno's SynthSphere on Super
 // Steve, it is sized to her height and rises while she holds the slingshot drawn (RisingFlameFired). Times are game
 // frames.
 inline constexpr const char *kRisingFlamePack = "dun/effect/f_boll_3.chr";
@@ -32,6 +32,13 @@ inline constexpr int         kRisingFlameFlare = 8;
 inline constexpr int         kRisingFlameFade = 60;
 inline constexpr float       kRisingFlameGlow[3] = {100.0f, 75.0f, 50.0f};
 inline constexpr float       kRisingFlameSmashGlow[3] = {200.0f, 150.0f, 100.0f};
+
+// Its colour: the Inferno's orange, or Satan's Ax's pink red (its own fireball: data/pink_fire.hpp).
+enum class FlameLook {
+    kOrange,
+    kPink,
+};
+void RisingFlameLookAs(FlameLook look);
 
 // One dungeon step: rising while up, sinking otherwise; growing while he smashes. Its fireball plays on while it is up,
 // or while burning_elsewhere (drawn on Xiao's pellets: inferno/fire_shot.hpp).

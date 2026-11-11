@@ -407,11 +407,17 @@ TEST_F(BurningAuraWithSatansAx, SatansAxsChargeHitsWithTheSelectedElement) {
     EXPECT_EQ(expanded::InfernoAttackElement(1, 2, WEAPON_ELEMENT_THUNDER), WEAPON_ELEMENT_THUNDER);
 }
 
-TEST_F(BurningAuraWithSatansAx, SatansAxRaisesNoFlame) {
+TEST_F(BurningAuraWithSatansAx, SatansAxRaisesTheFlameTooItsPull) {
     Place(50.0f);
+    EXPECT_TRUE(expanded::SatansAxFlame());
+    EXPECT_FALSE(expanded::InfernoBurning());
     Acting(13);
     Steps(expanded::kRisingFlameRise);
-    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 0.0f);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 1.0f);
+    Acting(14);
+    Steps(expanded::kRisingFlameGrow);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameScale(), expanded::kRisingFlameSmashScale);
+    EXPECT_TRUE(Burns().empty()); // its flame alone: no Burning Aura
 }
 
 TEST_F(BurningAura, TheInfernoReddensToItsTintOverThreeSecondsAndFadesAfter) {

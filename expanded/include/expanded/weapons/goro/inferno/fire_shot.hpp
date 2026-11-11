@@ -17,6 +17,10 @@ namespace expanded {
 inline constexpr float kFireShotScale = 2.0f;
 inline constexpr float kFireShotBlast = 20.0f;
 inline constexpr float kFireShotKick = 0.7f;
+// With Satan's Ax's SynthSphere it is the same in pink red (data/pink_fire.hpp), the fireball at its own size and its
+// blast's hit kSatansShotBlast around (Mr. Blare's own reach), in the selected element.
+inline constexpr float kSatansShotScale = 1.0f;
+inline constexpr float kSatansShotBlast = 14.0f;
 
 // Whether any is flying.
 bool FireShotsFlying();

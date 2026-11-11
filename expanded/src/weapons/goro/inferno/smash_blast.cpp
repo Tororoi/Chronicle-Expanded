@@ -5,6 +5,7 @@
 
 #include "bt_shot_effect.hpp"
 #include "collisiondata.hpp"
+#include "expanded/data/pink_fire.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
@@ -18,11 +19,13 @@ namespace {
 // Its one clip playing once where it is put, no flight and no hit.
 // clang-format off
 BT_SHOT_EFFECT blast = {"zibaku_f2", 0, 0, {}, {}, -1, 0, 0, 3, 0, {0, -1, -1, -1}, 0, {0, 0}, 1.0f, 0, {-1, -1, -1, -1}};
+BT_SHOT_EFFECT pink = {"zibaku_f2", 0, 0, {}, {}, -1, 0, 0, 3, 0, {0, -1, -1, -1}, 0, {0, 0}, 1.0f, 0, {-1, -1, -1, -1}};
 // clang-format on
 
 [[maybe_unused]] const bool kRegistered =
     (RegisterWeaponShotEffect(ITEM_WEAPON_INFERNO, WeaponShotForm::Weapon, &blast, kSmashBlasts, kSmashBlastPack),
-     RegisterWeaponShotEffect(ITEM_WEAPON_INFERNO, WeaponShotForm::Sphere, &blast, kSmashBlasts, kSmashBlastPack), true);
+     RegisterWeaponShotEffect(ITEM_WEAPON_INFERNO, WeaponShotForm::Sphere, &blast, kSmashBlasts, kSmashBlastPack),
+     RegisterWeaponShotEffect(ITEM_WEAPON_SATAN_S_AX, WeaponShotForm::Sphere, &pink, kSmashBlasts, kPinkBlastFile), true);
 
 // The impact whose model is hidden, its shockwave widened.
 CSHOT_EFFECT *hidden = nullptr;
@@ -41,8 +44,8 @@ BT_SHOT_EFFECT *SmashBlastEffect() {
     return &blast;
 }
 
-bool SmashBlastAt(const float *at) {
-    int index = ShotEffectIndex(&blast);
+bool SmashBlastAt(const float *at, BlastLook look) {
+    int index = ShotEffectIndex(look == BlastLook::kPink ? &pink : &blast);
     if (index < 0) {
         std::fprintf(stderr, "inferno: no blast, not loaded on this floor\n");
         return false;

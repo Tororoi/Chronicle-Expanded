@@ -13,6 +13,7 @@
 #include "expanded/data/gemron_models.hpp"
 #include "expanded/data/goro_shirt.hpp"
 #include "expanded/data/monster_scripts.hpp"
+#include "expanded/data/pink_fire.hpp"
 #include "expanded/data/prop_models.hpp"
 #include "expanded/data/queens_canal.hpp"
 #include "expanded/data/script_damage.hpp"
@@ -48,6 +49,7 @@ const DataKind kDataKinds[] = {
     {"weapon model", WolfSteveBuilds},
     {"weapon model", TallHammerSilverBuilds},
     {"effect", ColossusPopBuilds},
+    {"effect", PinkFireBuilds},
     {"look", XiaoColossusBuilds},
     {"character model", ToanGripBuilds},
     {"character model", GoroShirtBuilds},
