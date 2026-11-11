@@ -24,7 +24,7 @@ namespace {
 // Goro out with Satan's Ax at the origin, the sparks cleared.
 class UnderworldSparks : public ::testing::Test {
 protected:
-    UnderworldSparks() : wielding_(ITEM_WEAPON_SATAN_S_AX) {}
+    explicit UnderworldSparks(int weapon_no = ITEM_WEAPON_SATAN_S_AX) : wielding_(weapon_no) {}
 
     void SetUp() override {
         BtActStatus = {};
@@ -106,6 +106,47 @@ protected:
         return risen;
     }
 
+    // Every spark, where it is, the first started first.
+    std::vector<std::array<float, 3>> All() {
+        std::vector<std::array<float, 3>> all;
+        float                             at[3];
+        for (int i = 0; expanded::UnderworldSparkAt(i, at); i++) {
+            all.push_back({at[0], at[1], at[2]});
+        }
+        return all;
+    }
+
+    // Each spark where it was first seen, over steps steps of step (one spark per slot, none gone in that time).
+    template <typename Step>
+    std::vector<std::array<float, 3>> FirstSeen(int steps, Step step) {
+        std::vector<std::array<float, 3>> first;
+        for (int i = 0; i < steps; i++) {
+            step();
+            std::vector<std::array<float, 3>> all = All();
+            first.insert(first.end(), all.begin() + static_cast<std::ptrdiff_t>(first.size()), all.end());
+        }
+        return first;
+    }
+
+    // Each spark off the ground in start heading straight in (along the line from where it was) for the height on him
+    // its own maps to.
+    void ExpectHeadingForWhereItsOwnMaps(const std::vector<std::array<float, 3>> &start, const std::vector<std::array<float, 3>> &now) {
+        const float top = CharaHeight(UserStatus);
+        ASSERT_GE(now.size(), start.size()); // none gone, the new ones after
+        int risen = 0;
+        for (std::size_t i = 0; i < start.size(); i++) {
+            if (start[i][1] <= expanded::kSparkLift + 0.5f) {
+                continue; // on the ground
+            }
+            risen++;
+            float was = std::hypot(start[i][0], start[i][2]), across = std::hypot(now[i][0], now[i][2]);
+            float to = expanded::InfernoSparkHeight(start[i][1], top);
+            EXPECT_LT(across, was);
+            EXPECT_NEAR((now[i][1] - to) / across, (start[i][1] - to) / was, 2e-3f);
+        }
+        EXPECT_GT(risen, 0);
+    }
+
     std::vector<float> Distances() {
         std::vector<float> distances;
         float              at[3];
@@ -119,6 +160,11 @@ protected:
     expanded::test::Wielding  wielding_;
     float                     saved_pos_[3] = {};
     float                     saved_time_ = 0.0f;
+};
+
+class UnderworldSparksWithInferno : public UnderworldSparks {
+protected:
+    UnderworldSparksWithInferno() : UnderworldSparks(ITEM_WEAPON_INFERNO) {}
 };
 
 } // namespace
@@ -310,4 +356,56 @@ TEST_F(UnderworldSparks, ABodysSparkGathersSpeedFasterThanAGroundSpark) {
         EXPECT_NEAR((d[1] - d[2]) - (d[0] - d[1]), expanded::kBodySparkAccel, 1e-3f);
         EXPECT_NEAR((d[2] - d[3]) - (d[1] - d[2]), expanded::kBodySparkAccel, 1e-3f);
     }
+}
+
+TEST_F(UnderworldSparks, SatansAxSparksAllStartOnTheGround) {
+    Acting(14);
+    Steps(16);
+    ASSERT_GT(expanded::UnderworldSparksLive(), 0);
+    EXPECT_TRUE(Risen().empty());
+}
+
+TEST_F(UnderworldSparksWithInferno, HalfItsGroundSparksStartUpToTwiceHisHeight) {
+    Acting(14);
+    Steps(16);
+    const int                         live = expanded::UnderworldSparksLive();
+    std::vector<std::array<float, 3>> risen = Risen();
+    ASSERT_EQ(live, static_cast<int>(16 * expanded::kSparkSmashPerFrame));
+    EXPECT_EQ(static_cast<int>(risen.size()), live / 2);
+    const float top = CharaHeight(UserStatus);
+    float       lowest = 2.0f * top, highest = 0.0f;
+    for (const auto &at : risen) {
+        EXPECT_LE(at[1], 2.0f * top);
+        lowest = std::min(lowest, at[1]);
+        highest = std::max(highest, at[1]);
+    }
+    EXPECT_LT(lowest, top);
+    EXPECT_GT(highest, top);
+}
+
+TEST(InfernoSparkHeight, ThreeQuartersOfItsOwnWithinHisHeightAndUpToHisTopAtTwice) {
+    const float top = 20.0f;
+    EXPECT_FLOAT_EQ(expanded::InfernoSparkHeight(2.0f * top, top), top);
+    EXPECT_FLOAT_EQ(expanded::InfernoSparkHeight(top, top), 0.75f * top);
+    EXPECT_FLOAT_EQ(expanded::InfernoSparkHeight(0.75f * top, top), 0.5625f * top);
+    EXPECT_FLOAT_EQ(expanded::InfernoSparkHeight(1.5f * top, top), 0.875f * top);
+    EXPECT_FLOAT_EQ(expanded::InfernoSparkHeight(3.0f * top, top), top);
+    EXPECT_FLOAT_EQ(expanded::InfernoSparkHeight(0.0f, top), 0.0f);
+}
+
+TEST_F(UnderworldSparksWithInferno, ARisenSparkHeadsStraightForTheHeightItsOwnMapsTo) {
+    Acting(14);
+    std::vector<std::array<float, 3>> start = FirstSeen(16, [this] { Steps(1); });
+    Steps(6);
+    ExpectHeadingForWhereItsOwnMaps(start, All());
+}
+
+TEST_F(UnderworldSparksWithInferno, ABodysSparkHeadsForTheHeightItsOwnMapsTo) {
+    // Its body at his height: it comes down toward three quarters of it.
+    Place(55.0f, 0.0f, CharaHeight(UserStatus), 0.25f);
+    Acting(14);
+    std::vector<std::array<float, 3>> start = FirstSeen(4, [this] { PulledSteps(1); });
+    floor_.unit().monster[0].knockback[2] = 0.0f;
+    PulledSteps(3);
+    ExpectHeadingForWhereItsOwnMaps(start, All());
 }

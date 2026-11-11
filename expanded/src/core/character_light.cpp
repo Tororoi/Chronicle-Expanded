@@ -3,6 +3,7 @@
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/weapons/big_bang_shot.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
+#include "expanded/weapons/goro/inferno/rising_flame.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_tint.hpp"
 #include "expanded/weapons/kitchen_knife_shot.hpp"
 #include "expanded/weapons/solar_flash.hpp"
@@ -41,6 +42,7 @@ void CharacterLight(const CCharacter &character, float *ambient) {
     SnakeCharmerLight(character, ambient);
     if (InfernoWielded()) {
         BurningAuraWeaponLight(character, ambient);
+        RisingFlameLight(character, ambient);
     } else {
         UnderworldLight(character, ambient);
     }

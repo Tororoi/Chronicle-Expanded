@@ -13,6 +13,7 @@
 #include "expanded/core/random.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_queries.hpp"
+#include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "framevu1.hpp"
 #include "mdt.hpp"
@@ -40,12 +41,14 @@ struct Spark {
     int   left = kSparkFadeOut; // its frames left once the pull has ended
     float twinkle = 0.0f;       // its twinkle's phase
     float size = 1.0f;          // its own share of kSparkSize
+    bool  lowered = false;      // the Inferno's: heading for the height on him its own maps to (InfernoSparkHeight)
 };
 
 std::array<Spark, kSparkCount> sparks;
 UnderworldCentre               centre;                         // what they are drawn to
 float                          owed = 0.0f;                    // the part of a spark the steps so far have started
 float                          body_owed[kFloorMonsters] = {}; // and each monster's body has
+bool                           risen = false;                  // the last ground spark started off the ground
 
 // A monster's meshes this frame, and its frames' bounds (for a model whose meshes keep no vertices).
 struct Mesh {
@@ -194,6 +197,7 @@ void StartOnBody(CMonstorUnit &unit, int monster) {
     free->from = std::hypot(centre.x - point[0], centre.z - point[2]);
     free->ground = false;
     free->rise = point[1] - centre.ground;
+    free->lowered = InfernoWielded();
 }
 
 void Start() {
@@ -206,12 +210,18 @@ void Start() {
     float near2 = kSparkNear * kSparkNear, far2 = kSparkFar * kSparkFar;
     float radius = std::sqrt(Uniform(near2 + (far2 - near2) * 0.05f, far2));
     *free = Fresh();
+    free->rise = kSparkLift;
+    // The Inferno's: every other one starts at a height within his, and comes in at it.
+    risen = InfernoWielded() && !risen;
+    if (risen) {
+        free->rise = Uniform(kSparkLift, std::max(kSparkLift, kInfernoSparkTop * (centre.high - centre.ground)));
+        free->lowered = true;
+    }
     free->position[0] = centre.x + radius * std::cos(angle);
-    free->position[1] = centre.ground + kSparkLift;
+    free->position[1] = centre.ground + free->rise;
     free->position[2] = centre.z + radius * std::sin(angle);
     free->position[3] = 1.0f;
     free->from = radius;
-    free->rise = kSparkLift;
 }
 
 float Distance(const Spark &spark) {
@@ -239,6 +249,14 @@ const Spark *Live(int i) {
 }
 
 } // namespace
+
+float InfernoSparkHeight(float rise, float top) {
+    if (rise <= top) {
+        return std::max(0.0f, rise * kInfernoSparkBelow);
+    }
+    float over = (rise - top) / ((kInfernoSparkTop - 1.0f) * top);
+    return top * std::min(1.0f, kInfernoSparkBelow + (1.0f - kInfernoSparkBelow) * over);
+}
 
 void UnderworldSparksStep() {
     float            strength = UnderworldStrength();
@@ -277,8 +295,9 @@ void UnderworldSparksStep() {
         spark.position[0] += dx * in / distance;
         spark.position[2] += dz * in / distance;
         // Rising or falling to the height it heads for as it comes in, to meet it there: its own within his (a ground
-        // spark's on the ground), the pellet's.
-        float height = std::clamp(centre.ground + spark.rise, centre.low, centre.high);
+        // spark's on the ground), the pellet's; the Inferno's, its own mapped onto him.
+        float height = spark.lowered ? centre.ground + InfernoSparkHeight(spark.rise, centre.high - centre.ground)
+                                     : std::clamp(centre.ground + spark.rise, centre.low, centre.high);
         spark.position[1] += (height - spark.position[1]) * in / distance;
     }
 }
@@ -302,6 +321,8 @@ void UnderworldSparksDraw() {
     alpha.bits.c = 0;
     alpha.bits.d = 1;
     services.set_alpha(&alpha);
+    const spRGBA tint = InfernoWielded() ? spRGBA{.r = kInfernoSparkTint[0], .g = kInfernoSparkTint[1], .b = kInfernoSparkTint[2], .a = 0}
+                                         : spRGBA{.r = 0x80, .g = 0x80, .b = 0x80, .a = 0};
     for (Spark &spark : sparks) {
         int opacity = spark.live ? Alpha(spark) : 0;
         if (opacity <= 0) {
@@ -318,8 +339,9 @@ void UnderworldSparksDraw() {
         std::array<int, 4> top_right = {bottom_right[0], top_left[1], top_left[2], top_left[3]};
         std::array<int, 4> bottom_left = {top_left[0], bottom_right[1], bottom_right[2], bottom_right[3]};
         float              twinkle = 0.75f + 0.25f * std::sin(spark.twinkle + 0.4f * static_cast<float>(spark.age));
-        set3DSprite(Vif1Packet, texture, CRect_i_(0, 0, 0x10, 0x10), top_left.data(), top_right.data(), bottom_left.data(), bottom_right.data(),
-                    static_cast<unsigned char>(static_cast<float>(opacity) * twinkle));
+        spRGBA             colour = tint;
+        colour.a = static_cast<unsigned char>(static_cast<float>(opacity) * twinkle);
+        set3DSprite(Vif1Packet, texture, CRect_i_(0, 0, 0x10, 0x10), top_left.data(), top_right.data(), bottom_left.data(), bottom_right.data(), &colour);
     }
     services.set_zbuf(nullptr);
     services.set_alpha(nullptr);
@@ -346,6 +368,7 @@ int UnderworldSparkAlpha(int i) {
 void UnderworldSparksReset() {
     sparks.fill(Spark{});
     owed = 0.0f;
+    risen = false;
     std::fill(std::begin(body_owed), std::end(body_owed), 0.0f);
 }
 

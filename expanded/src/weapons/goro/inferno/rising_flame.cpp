@@ -30,7 +30,7 @@ CCharacter *Load() {
         return nullptr;
     }
     model->motion_no = kRisingFlameKey;
-    model->motion_speed = -1.0f; // its cfg's
+    model->motion_speed = kRisingFlameMotionSpeed;
     return model;
 }
 
@@ -40,6 +40,7 @@ void RisingFlameStep(bool up, bool smashing) {
     risen_frames = std::clamp(risen_frames + (up ? 1 : -1), 0, kRisingFlameRise);
     grown_frames = risen_frames == 0 ? 0 : std::min(kRisingFlameGrow, grown_frames + (smashing ? 1 : 0));
     if (risen_frames > 0 && model != nullptr) {
+        model->motion_speed = RisingFlameMotionSpeed();
         model->Step();
     }
 }
@@ -48,8 +49,16 @@ float RisingFlameRisen() {
     return static_cast<float>(risen_frames) / kRisingFlameRise;
 }
 
+float RisingFlameGrown() {
+    return static_cast<float>(grown_frames) / kRisingFlameGrow;
+}
+
 float RisingFlameScale() {
-    return kRisingFlameScale + (kRisingFlameSmashScale - kRisingFlameScale) * static_cast<float>(grown_frames) / kRisingFlameGrow;
+    return kRisingFlameScale + (kRisingFlameSmashScale - kRisingFlameScale) * RisingFlameGrown();
+}
+
+float RisingFlameMotionSpeed() {
+    return kRisingFlameMotionSpeed + (kRisingFlameSmashMotionSpeed - kRisingFlameMotionSpeed) * RisingFlameGrown();
 }
 
 void RisingFlameDraw() {
@@ -67,6 +76,16 @@ void RisingFlameDraw() {
     model->frame->SetRotation(HALF_PI, 0.0f, 0.0f);
     model->frame->SetScale(scale, scale, scale);
     DrawFloorCharacter(*model);
+}
+
+void RisingFlameLight(const CCharacter &character, float *ambient) {
+    if (&character != &CharaMain || risen_frames == 0) {
+        return;
+    }
+    float risen = RisingFlameRisen(), grown = RisingFlameGrown();
+    for (int c = 0; c < 3; c++) {
+        ambient[c] += risen * (kRisingFlameGlow[c] + (kRisingFlameSmashGlow[c] - kRisingFlameGlow[c]) * grown);
+    }
 }
 
 void RisingFlameReset() {
