@@ -24,7 +24,7 @@ namespace {
 // Goro out with Satan's Ax at the origin, the sparks cleared.
 class UnderworldSparks : public ::testing::Test {
 protected:
-    UnderworldSparks() : wielding_(ITEM_WEAPON_SATAN_S_AX) {}
+    explicit UnderworldSparks(int weapon_no = ITEM_WEAPON_SATAN_S_AX) : wielding_(weapon_no) {}
 
     void SetUp() override {
         BtActStatus = {};
@@ -119,6 +119,11 @@ protected:
     expanded::test::Wielding  wielding_;
     float                     saved_pos_[3] = {};
     float                     saved_time_ = 0.0f;
+};
+
+class UnderworldSparksWithInferno : public UnderworldSparks {
+protected:
+    UnderworldSparksWithInferno() : UnderworldSparks(ITEM_WEAPON_INFERNO) {}
 };
 
 } // namespace
@@ -310,4 +315,37 @@ TEST_F(UnderworldSparks, ABodysSparkGathersSpeedFasterThanAGroundSpark) {
         EXPECT_NEAR((d[1] - d[2]) - (d[0] - d[1]), expanded::kBodySparkAccel, 1e-3f);
         EXPECT_NEAR((d[2] - d[3]) - (d[1] - d[2]), expanded::kBodySparkAccel, 1e-3f);
     }
+}
+
+TEST_F(UnderworldSparks, SatansAxSparksAllStartOnTheGround) {
+    Acting(14);
+    Steps(16);
+    ASSERT_GT(expanded::UnderworldSparksLive(), 0);
+    EXPECT_TRUE(Risen().empty());
+}
+
+TEST_F(UnderworldSparksWithInferno, HalfItsGroundSparksStartWithinHisHeightAndComeInAtIt) {
+    Acting(14);
+    Steps(16);
+    const int                         live = expanded::UnderworldSparksLive();
+    std::vector<std::array<float, 3>> risen = Risen();
+    ASSERT_EQ(live, static_cast<int>(16 * expanded::kSparkSmashPerFrame));
+    EXPECT_EQ(static_cast<int>(risen.size()), live / 2);
+    const float top = CharaHeight(UserStatus);
+    float       lowest = top, highest = 0.0f;
+    for (const auto &at : risen) {
+        EXPECT_LE(at[1], top);
+        lowest = std::min(lowest, at[1]);
+        highest = std::max(highest, at[1]);
+    }
+    EXPECT_LT(lowest, top * 0.5f);
+    EXPECT_GT(highest, top * 0.5f);
+    // Each keeps its height as it comes in.
+    float first[3];
+    ASSERT_TRUE(expanded::UnderworldSparkAt(0, first));
+    Steps(5);
+    float later[3];
+    ASSERT_TRUE(expanded::UnderworldSparkAt(0, later));
+    EXPECT_FLOAT_EQ(later[1], first[1]);
+    EXPECT_LT(std::hypot(later[0], later[2]), std::hypot(first[0], first[2]));
 }

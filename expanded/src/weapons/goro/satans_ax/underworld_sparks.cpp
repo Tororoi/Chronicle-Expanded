@@ -13,6 +13,7 @@
 #include "expanded/core/random.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_queries.hpp"
+#include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "framevu1.hpp"
 #include "mdt.hpp"
@@ -46,6 +47,7 @@ std::array<Spark, kSparkCount> sparks;
 UnderworldCentre               centre;                         // what they are drawn to
 float                          owed = 0.0f;                    // the part of a spark the steps so far have started
 float                          body_owed[kFloorMonsters] = {}; // and each monster's body has
+bool                           risen = false;                  // the last ground spark started off the ground
 
 // A monster's meshes this frame, and its frames' bounds (for a model whose meshes keep no vertices).
 struct Mesh {
@@ -206,12 +208,17 @@ void Start() {
     float near2 = kSparkNear * kSparkNear, far2 = kSparkFar * kSparkFar;
     float radius = std::sqrt(Uniform(near2 + (far2 - near2) * 0.05f, far2));
     *free = Fresh();
+    free->rise = kSparkLift;
+    // The Inferno's: every other one starts at a height within his, and comes in at it.
+    risen = InfernoWielded() && !risen;
+    if (risen) {
+        free->rise = Uniform(kSparkLift, std::max(kSparkLift, centre.high - centre.ground));
+    }
     free->position[0] = centre.x + radius * std::cos(angle);
-    free->position[1] = centre.ground + kSparkLift;
+    free->position[1] = centre.ground + free->rise;
     free->position[2] = centre.z + radius * std::sin(angle);
     free->position[3] = 1.0f;
     free->from = radius;
-    free->rise = kSparkLift;
 }
 
 float Distance(const Spark &spark) {
@@ -346,6 +353,7 @@ int UnderworldSparkAlpha(int i) {
 void UnderworldSparksReset() {
     sparks.fill(Spark{});
     owed = 0.0f;
+    risen = false;
     std::fill(std::begin(body_owed), std::end(body_owed), 0.0f);
 }
 

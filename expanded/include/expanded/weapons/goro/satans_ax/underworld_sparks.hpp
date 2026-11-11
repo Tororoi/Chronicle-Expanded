@@ -7,14 +7,16 @@ namespace expanded {
 // kSparkNear to kSparkFar from him, and is drawn straight in toward him (rising to the pellet as it comes), starting at
 // kSparkCreep a frame and gaining kSparkAccel a frame each frame times the pull's strength (steadily, wherever it is).
 // kSparkHoldPerFrame start a frame while he holds the charge, and kSparkSmashPerFrame, eight times as many, once he
-// lets it go and the pull is at its strongest. Each starts unseen and fades in over its first kSparkFadeIn units drawn
-// in, twinkles, shrinks and fades as it comes within kSparkNear of him (each fade no more than a quarter of its way
-// in), and fades over its last kSparkFadeOut frames; when the pull ends they gain no more and fade as they come.
-// Each monster the pull draws gives off sparks of its own too, kBodySparkPerFrame a frame times the pull's strength,
-// from anywhere on it (one of its meshes' vertices as it stands, or failing those inside its frames' bounds or its
-// hurt spheres), drawn in as the ground's are but gaining kBodySparkAccel a frame each frame (soon far faster than the
-// monster it left), straight through the air toward the height on his body nearest the one each started at (his feet
-// to CharaHeight above them; the pellet's own). One starting inside the monster is hidden by it until it leaves.
+// lets it go and the pull is at its strongest. With the Inferno, every other one starts instead at a height between the
+// ground and his height (CharaHeight above his feet), and is drawn in at that height. Each starts unseen and fades in
+// over its first kSparkFadeIn units drawn in, twinkles, shrinks and fades as it comes within kSparkNear of him (each
+// fade no more than a quarter of its way in), and fades over its last kSparkFadeOut frames; when the pull ends they
+// gain no more and fade as they come. Each monster the pull draws gives off sparks of its own too, kBodySparkPerFrame a
+// frame times the pull's strength, from anywhere on it (one of its meshes' vertices as it stands, or failing those
+// inside its frames' bounds or its hurt spheres), drawn in as the ground's are but gaining kBodySparkAccel a frame each
+// frame (soon far faster than the monster it left), straight through the air toward the height on his body nearest the
+// one each started at (his feet to CharaHeight above them; the pellet's own). One starting inside the monster is hidden
+// by it until it leaves.
 inline constexpr int   kSparkCount = 384;
 inline constexpr float kBodySparkPerFrame = 0.25f;
 inline constexpr float kBodySparkAccel = 0.4f;
