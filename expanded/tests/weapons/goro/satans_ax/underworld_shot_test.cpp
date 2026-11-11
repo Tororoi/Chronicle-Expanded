@@ -5,11 +5,15 @@
 
 #include "btactstatus.hpp"
 #include "character.hpp"
+#include "charaheight.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/random.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/enemies/monsters.hpp"
+#include "expanded/weapons/goro/inferno.hpp"
+#include "expanded/weapons/goro/inferno/fire_shot.hpp"
+#include "expanded/weapons/goro/inferno/rising_flame.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_sparks.hpp"
@@ -51,12 +55,14 @@ protected:
         expanded::UnderworldShotReset();
         expanded::UnderworldReset();
         expanded::UnderworldSparksReset();
+        expanded::BurningAuraReset();
     }
 
     void TearDown() override {
         expanded::UnderworldShotReset();
         expanded::UnderworldReset();
         expanded::UnderworldSparksReset();
+        expanded::BurningAuraReset();
         NowColData = saved_hits_;
         CharaMain.SetPosition(saved_pos_[0], saved_pos_[1], saved_pos_[2]);
         BtActStatus = {};
@@ -114,6 +120,36 @@ protected:
 class UnderworldShotWithAnotherSphere : public UnderworldShot {
 protected:
     UnderworldShotWithAnotherSphere() : UnderworldShot(ITEM_WEAPON_MATADOR) {}
+};
+
+class InfernoShot : public UnderworldShot {
+protected:
+    InfernoShot() : UnderworldShot(ITEM_WEAPON_INFERNO) {}
+
+    // frames of the slingshot held drawn, a step of the shot and of the Inferno each.
+    void Hold(int frames) {
+        BtActStatus.action_on = 1;
+        BtActStatus.action_no = 12;
+        for (int frame = 0; frame < frames; frame++) {
+            expanded::UnderworldShotStep();
+            expanded::BurningAuraStep();
+        }
+    }
+
+    // Let go into slot 3.
+    void Fire() {
+        BtActStatus.action_on = 0;
+        expanded::UnderworldShotStep();
+        expanded::PelletFired(*shots_, 3);
+    }
+
+    // Steps of the Inferno with nothing drawn.
+    void After(int frames) {
+        for (int frame = 0; frame < frames; frame++) {
+            expanded::UnderworldShotStep();
+            expanded::BurningAuraStep();
+        }
+    }
 };
 
 } // namespace
@@ -224,4 +260,88 @@ TEST_F(UnderworldShot, SuperSteveIsNotTinted) {
         expanded::UnderworldTintStep();
     }
     EXPECT_FLOAT_EQ(expanded::UnderworldTint(), 0.0f);
+}
+
+TEST_F(InfernoShot, TheInfernosSpherePullsAQuarterAsStronglyWhileTheSlingshotIsDrawn) {
+    EXPECT_TRUE(expanded::InfernoSphere());
+    EXPECT_TRUE(expanded::InfernoBurning());
+    EXPECT_FALSE(expanded::InfernoWielded());
+    Hold(10);
+    EXPECT_TRUE(expanded::UnderworldShotDrawn());
+    EXPECT_FLOAT_EQ(expanded::UnderworldStrength(), expanded::kUnderworldChargeShare);
+    expanded::UnderworldCentre centre;
+    ASSERT_TRUE(expanded::UnderworldCentreNow(centre));
+    EXPECT_FLOAT_EQ(centre.x, 0.0f); // on her
+    EXPECT_FLOAT_EQ(centre.high - centre.ground, CharaHeight(UserStatus));
+}
+
+TEST_F(UnderworldShot, SatansAxsSphereDoesNotPullWhileDrawn) {
+    BtActStatus.action_on = 1;
+    BtActStatus.action_no = 12;
+    for (int frame = 0; frame < 10; frame++) {
+        expanded::UnderworldShotStep();
+    }
+    EXPECT_FALSE(expanded::UnderworldShotDrawn());
+    EXPECT_FLOAT_EQ(expanded::UnderworldStrength(), 0.0f);
+    EXPECT_FALSE(expanded::InfernoBurning());
+}
+
+TEST_F(InfernoShot, ItsChargedShotIsTheFireballInPlaceOfThePellet) {
+    Hold(expanded::kUnderworldShotFrames);
+    Fire();
+    EXPECT_TRUE(expanded::UnderworldShotPierces(*shots_, 3));
+    EXPECT_FLOAT_EQ(expanded::UnderworldStrength(), 1.0f);
+    EXPECT_TRUE(expanded::PelletHidden(*shots_, 3));
+    EXPECT_TRUE(expanded::FireShotsFlying());
+}
+
+TEST_F(UnderworldShot, SatansAxsChargedShotKeepsItsPellet) {
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    EXPECT_FALSE(expanded::PelletHidden(*shots_, 3));
+}
+
+TEST_F(InfernoShot, XiaoIsFireproof) {
+    COLLISION_HIT fire{};
+    fire.flags = expanded::kFireElementBit;
+    EXPECT_TRUE(expanded::InfernoFireproof(fire));
+    COLLISION_HIT plain{};
+    EXPECT_FALSE(expanded::InfernoFireproof(plain));
+}
+
+TEST_F(InfernoShot, ItsEndBlastsEveryMonsterWithinTwentyUnitsForThePelletsDamage) {
+    Place(0, 115.0f, 0.0f); // 15 from where it ends
+    Place(1, 140.0f, 0.0f); // 40 from it
+    Hold(expanded::kUnderworldShotFrames);
+    Fire();
+    const float end[3] = {100.0f, 0.0f, 0.0f};
+    expanded::PelletEnded(*shots_, 3, end, false);
+    int near = 0, far = 0;
+    for (int i = 0; i < static_cast<int>(sizeof(NowColData->hit) / sizeof(NowColData->hit[0])); i++) {
+        if (NowColData->active[i] == 0) {
+            continue;
+        }
+        const COLLISION_HIT &hit = NowColData->hit[i];
+        EXPECT_EQ(hit.damage, 40);
+        float d = std::hypot(hit.pos[0] - 115.0f, hit.pos[2]);
+        (d < 10.0f ? near : far)++;
+    }
+    EXPECT_GT(near, 0);
+    EXPECT_EQ(far, 0);
+    EXPECT_FALSE(expanded::FireShotsFlying());
+}
+
+TEST_F(InfernoShot, HerFlameRisesWhileDrawnThenFlaresAndDiesDownAsSheFires) {
+    const float body = CharaHeight(UserStatus) / expanded::kRisingFlameHeight;
+    Hold(expanded::kRisingFlameRise);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 1.0f);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameScale(), expanded::kRisingFlameScale * body);
+    Fire();
+    After(expanded::kRisingFlameFlare);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameScale(), expanded::kRisingFlameSmashScale * body);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 1.0f);
+    After(expanded::kRisingFlameFade / 2);
+    EXPECT_NEAR(expanded::RisingFlameRisen(), 0.5f, 0.02f);
+    EXPECT_NEAR(expanded::RisingFlameScale(), 0.5f * expanded::kRisingFlameSmashScale * body, 0.02f);
+    After(expanded::kRisingFlameFade / 2);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 0.0f);
 }

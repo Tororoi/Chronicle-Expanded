@@ -20,6 +20,9 @@ inline constexpr float       kSmashShockwaveRadius = 20.0f;
 // The blast's description (registered for the Inferno: shot_effects.hpp).
 BT_SHOT_EFFECT *SmashBlastEffect();
 
+// The blast at at (Xiao's charged pellet's end too: inferno/fire_shot.hpp): false when it is not loaded or has no room.
+bool SmashBlastAt(const float *at);
+
 // Hook: his charge attack's impact set in slot of effect at at (GoroKey_Play); with the Inferno, the blast there.
 void InfernoImpact(CSHOT_EFFECT &effect, int slot, const float *at);
 // Hook: a shot effect planting its hit (ShotEffectHitSet); the Inferno's impact reaching kSmashShockwaveRadius.

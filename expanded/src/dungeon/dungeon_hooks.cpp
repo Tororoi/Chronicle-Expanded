@@ -36,6 +36,7 @@
 #include "expanded/weapons/goro/battle_ax.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
+#include "expanded/weapons/goro/inferno/fire_shot.hpp"
 #include "expanded/weapons/goro/inferno/smash_blast.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
@@ -424,6 +425,7 @@ void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
     TyphoonShotEnded(shots, slot, point, struck);
     RicochetShotEnded(shots, slot, point, struck);
     ChargingBullEnded(shots, slot);
+    FireShotEnded(shots, slot, point); // before its pull lets it go
     UnderworldShotEnded(shots, slot);
     AirStrikeEnded(shots, slot, point);
 }
@@ -443,6 +445,10 @@ void ShotEffectHitSet(CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
 
 void PelletStepping(CSHOT &shots, int slot) {
     RicochetStep(shots, slot);
+}
+
+bool PelletHidden(const CSHOT &shots, int slot) {
+    return FireShotHidden(shots, slot);
 }
 
 bool PelletPierces(const CSHOT &shots, int slot) {

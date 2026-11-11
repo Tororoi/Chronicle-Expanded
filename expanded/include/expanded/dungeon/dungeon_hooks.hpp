@@ -114,6 +114,9 @@ char *MonsterScriptLoaded(CMonstorUnit &unit, int slot, int model_no, char *scri
 // After a monster's script step (its own, or a feature's in its place).
 void MonsterScriptStepped(CMonstorUnit &unit, int monster);
 
+// Whether a pellet in slot is drawn as something of its own, its sprite not drawn (CSHOT::draw).
+bool PelletHidden(const CSHOT &shots, int slot);
+
 // Xiao fired a pellet into slot of shots (BattleActionPlay_Jinn), and a pellet ended at point, on a monster when struck
 // (CSHOT::step): the weapons that ride or answer her shots.
 void PelletFired(CSHOT &shots, int slot);

@@ -197,7 +197,7 @@ void StartOnBody(CMonstorUnit &unit, int monster) {
     free->from = std::hypot(centre.x - point[0], centre.z - point[2]);
     free->ground = false;
     free->rise = point[1] - centre.ground;
-    free->lowered = InfernoWielded();
+    free->lowered = InfernoBurning() && centre.high > centre.low; // a body's heights, not a pellet's
 }
 
 void Start() {
@@ -211,11 +211,13 @@ void Start() {
     float radius = std::sqrt(Uniform(near2 + (far2 - near2) * 0.05f, far2));
     *free = Fresh();
     free->rise = kSparkLift;
-    // The Inferno's: every other one starts at a height within his, and comes in at it.
-    risen = InfernoWielded() && !risen;
+    // The Inferno's: every other one starts at a height up to twice the player's, and comes in lower on a body (to a
+    // pellet's height on a pellet).
+    risen = InfernoBurning() && !risen;
     if (risen) {
-        free->rise = Uniform(kSparkLift, std::max(kSparkLift, kInfernoSparkTop * (centre.high - centre.ground)));
-        free->lowered = true;
+        float top = UserStatus != nullptr ? CharaHeight(UserStatus) : centre.high - centre.ground;
+        free->rise = Uniform(kSparkLift, std::max(kSparkLift, kInfernoSparkTop * top));
+        free->lowered = centre.high > centre.low;
     }
     free->position[0] = centre.x + radius * std::cos(angle);
     free->position[1] = centre.ground + free->rise;
@@ -321,7 +323,7 @@ void UnderworldSparksDraw() {
     alpha.bits.c = 0;
     alpha.bits.d = 1;
     services.set_alpha(&alpha);
-    const spRGBA tint = InfernoWielded() ? spRGBA{.r = kInfernoSparkTint[0], .g = kInfernoSparkTint[1], .b = kInfernoSparkTint[2], .a = 0}
+    const spRGBA tint = InfernoBurning() ? spRGBA{.r = kInfernoSparkTint[0], .g = kInfernoSparkTint[1], .b = kInfernoSparkTint[2], .a = 0}
                                          : spRGBA{.r = 0x80, .g = 0x80, .b = 0x80, .a = 0};
     for (Spark &spark : sparks) {
         int opacity = spark.live ? Alpha(spark) : 0;

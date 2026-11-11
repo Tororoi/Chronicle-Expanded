@@ -67,6 +67,9 @@ float UnderworldStrength() {
     if (UnderworldShotAt(nullptr)) {
         return 1.0f;
     }
+    if (UnderworldShotDrawn()) {
+        return kUnderworldChargeShare; // the Inferno's sphere, its slingshot held drawn
+    }
     if (!Playing(CHARA_GORO) || !(WeaponWielded(ITEM_WEAPON_SATAN_S_AX) || WeaponWielded(ITEM_WEAPON_INFERNO)) || BtActStatus.action_on == 0) {
         return 0.0f;
     }

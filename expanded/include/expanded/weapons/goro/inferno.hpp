@@ -42,8 +42,12 @@ inline constexpr float kBurningAuraHazeSway = 2.25f;
 inline constexpr float kBurningAuraTint[3] = {150.0f, 25.0f, 0.0f};
 inline constexpr int   kFireElementBit = 1; // a hit's flags: the fire element (element_tbl's first)
 
-// Whether Goro is in play with the Inferno in hand.
+// Whether Goro is in play with the Inferno in hand; whether Xiao is with its SynthSphere on Super Steve; and whether
+// either is, its fire burning: the pull's Burning Aura, its fog and light, its sparks and its flame (Goro's weapon's
+// tint, his cape's flap and his smash's blast are his alone).
 bool InfernoWielded();
+bool InfernoSphere();
+bool InfernoBurning();
 
 // One dungeon step: the pull's time counted, the aura's hits planted on the second, the fog reddened or faded.
 void BurningAuraStep();

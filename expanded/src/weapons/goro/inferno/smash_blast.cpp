@@ -21,7 +21,8 @@ BT_SHOT_EFFECT blast = {"zibaku_f2", 0, 0, {}, {}, -1, 0, 0, 3, 0, {0, -1, -1, -
 // clang-format on
 
 [[maybe_unused]] const bool kRegistered =
-    (RegisterWeaponShotEffect(ITEM_WEAPON_INFERNO, WeaponShotForm::Weapon, &blast, kSmashBlasts, kSmashBlastPack), true);
+    (RegisterWeaponShotEffect(ITEM_WEAPON_INFERNO, WeaponShotForm::Weapon, &blast, kSmashBlasts, kSmashBlastPack),
+     RegisterWeaponShotEffect(ITEM_WEAPON_INFERNO, WeaponShotForm::Sphere, &blast, kSmashBlasts, kSmashBlastPack), true);
 
 // The impact whose model is hidden, its shockwave widened.
 CSHOT_EFFECT *hidden = nullptr;
@@ -40,21 +41,25 @@ BT_SHOT_EFFECT *SmashBlastEffect() {
     return &blast;
 }
 
-void InfernoImpact(CSHOT_EFFECT &effect, int slot, const float *at) {
-    if (!InfernoWielded() || slot < 0 || slot >= static_cast<int>(std::size(effect.chara))) {
-        return;
-    }
+bool SmashBlastAt(const float *at) {
     int index = ShotEffectIndex(&blast);
     if (index < 0) {
         std::fprintf(stderr, "inferno: no blast, not loaded on this floor\n");
-        return;
+        return false;
     }
     CSHOT_EFFECT *blasts = ShotEffectAt(index);
     int           shot = SpawnStill(*blasts, at);
     if (shot < 0) {
-        return;
+        return false;
     }
     blasts->chara[shot].SetScale(kSmashBlastScale, kSmashBlastScale, kSmashBlastScale);
+    return true;
+}
+
+void InfernoImpact(CSHOT_EFFECT &effect, int slot, const float *at) {
+    if (!InfernoWielded() || slot < 0 || slot >= static_cast<int>(std::size(effect.chara)) || !SmashBlastAt(at)) {
+        return;
+    }
     effect.chara[slot].SetScale(0.0f, 0.0f, 0.0f);
     hidden = &effect;
     hidden_slot = slot;
