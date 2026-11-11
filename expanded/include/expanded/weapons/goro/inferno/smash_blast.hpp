@@ -12,7 +12,7 @@ namespace expanded {
 // place of his impact's own model, which is hidden (its hit, shake and kick are as ever). It is the visual alone: it
 // hits nothing.
 inline constexpr const char *kSmashBlastPack = "dun/effect/zibaku_f2.chr";
-inline constexpr float       kSmashBlastScale = 1.0f;
+inline constexpr float       kSmashBlastScale = 1.5f;
 inline constexpr int         kSmashBlasts = 1;
 
 // The blast's description (registered for the Inferno: shot_effects.hpp).
