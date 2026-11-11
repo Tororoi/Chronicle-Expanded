@@ -8,15 +8,16 @@ namespace expanded {
 // kSparkCreep a frame and gaining kSparkAccel a frame each frame times the pull's strength (steadily, wherever it is).
 // kSparkHoldPerFrame start a frame while he holds the charge, and kSparkSmashPerFrame, eight times as many, once he
 // lets it go and the pull is at its strongest. With the Inferno, every other one starts instead at a height between the
-// ground and his height (CharaHeight above his feet), and is drawn in at that height. Each starts unseen and fades in
-// over its first kSparkFadeIn units drawn in, twinkles, shrinks and fades as it comes within kSparkNear of him (each
-// fade no more than a quarter of its way in), and fades over its last kSparkFadeOut frames; when the pull ends they
-// gain no more and fade as they come. Each monster the pull draws gives off sparks of its own too, kBodySparkPerFrame a
-// frame times the pull's strength, from anywhere on it (one of its meshes' vertices as it stands, or failing those
-// inside its frames' bounds or its hurt spheres), drawn in as the ground's are but gaining kBodySparkAccel a frame each
-// frame (soon far faster than the monster it left), straight through the air toward the height on his body nearest the
-// one each started at (his feet to CharaHeight above them; the pellet's own). One starting inside the monster is hidden
-// by it until it leaves.
+// ground and kInfernoSparkTop times his height (CharaHeight above his feet), and it and every body's spark head for the
+// height on him their own maps to (InfernoSparkHeight). Each starts unseen and fades in over its first kSparkFadeIn
+// units drawn in, twinkles, shrinks and fades as it comes within kSparkNear of him (each fade no more than a quarter of
+// its way in), and fades over its last kSparkFadeOut frames; when the pull ends they gain no more and fade as they
+// come. Each monster the pull draws gives off sparks of its own too, kBodySparkPerFrame a frame times the pull's
+// strength, from anywhere on it (one of its meshes' vertices as it stands, or failing those inside its frames' bounds
+// or its hurt spheres), drawn in as the ground's are but gaining kBodySparkAccel a frame each frame (soon far faster
+// than the monster it left), straight through the air toward the height on his body nearest the one each started at
+// (his feet to CharaHeight above them; the pellet's own). One starting inside the monster is hidden by it until it
+// leaves.
 inline constexpr int   kSparkCount = 384;
 inline constexpr float kBodySparkPerFrame = 0.25f;
 inline constexpr float kBodySparkAccel = 0.4f;
@@ -27,11 +28,18 @@ inline constexpr float kSparkFar = 90.0f;
 inline constexpr float kSparkCreep = 0.15f;
 inline constexpr float kSparkAccel = 0.05f;
 inline constexpr int   kSparkLife = 120;
-inline constexpr float kSparkFadeIn = 6.0f; // units drawn in
-inline constexpr int   kSparkFadeOut = 20;  // frames
-inline constexpr int   kSparkAlpha = 0x80;  // its full colour, added to the floor's
-inline constexpr float kSparkLift = 1.0f;   // above the ground
-inline constexpr float kSparkSize = 1.2f;   // away from him (a hit's sparks are 0.1 to 1.3)
+inline constexpr float kSparkFadeIn = 6.0f;        // units drawn in
+inline constexpr int   kSparkFadeOut = 20;         // frames
+inline constexpr int   kSparkAlpha = 0x80;         // its full colour, added to the floor's
+inline constexpr float kSparkLift = 1.0f;          // above the ground
+inline constexpr float kSparkSize = 1.2f;          // away from him (a hit's sparks are 0.1 to 1.3)
+inline constexpr float kInfernoSparkTop = 2.0f;    // times his height
+inline constexpr float kInfernoSparkBelow = 0.75f; // of its own height, within his
+
+// The height on him, above his feet, the Inferno's spark starting rise above them heads for, him top tall: within his
+// height kInfernoSparkBelow of its own; above it, from kInfernoSparkBelow of his height up to his height at
+// kInfernoSparkTop times it (evenly between), and no higher.
+float InfernoSparkHeight(float rise, float top);
 
 // One dungeon step: sparks started, drawn in and aged.
 void UnderworldSparksStep();

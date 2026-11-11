@@ -41,6 +41,7 @@ struct Spark {
     int   left = kSparkFadeOut; // its frames left once the pull has ended
     float twinkle = 0.0f;       // its twinkle's phase
     float size = 1.0f;          // its own share of kSparkSize
+    bool  lowered = false;      // the Inferno's: heading for the height on him its own maps to (InfernoSparkHeight)
 };
 
 std::array<Spark, kSparkCount> sparks;
@@ -196,6 +197,7 @@ void StartOnBody(CMonstorUnit &unit, int monster) {
     free->from = std::hypot(centre.x - point[0], centre.z - point[2]);
     free->ground = false;
     free->rise = point[1] - centre.ground;
+    free->lowered = InfernoWielded();
 }
 
 void Start() {
@@ -212,7 +214,8 @@ void Start() {
     // The Inferno's: every other one starts at a height within his, and comes in at it.
     risen = InfernoWielded() && !risen;
     if (risen) {
-        free->rise = Uniform(kSparkLift, std::max(kSparkLift, centre.high - centre.ground));
+        free->rise = Uniform(kSparkLift, std::max(kSparkLift, kInfernoSparkTop * (centre.high - centre.ground)));
+        free->lowered = true;
     }
     free->position[0] = centre.x + radius * std::cos(angle);
     free->position[1] = centre.ground + free->rise;
@@ -246,6 +249,14 @@ const Spark *Live(int i) {
 }
 
 } // namespace
+
+float InfernoSparkHeight(float rise, float top) {
+    if (rise <= top) {
+        return std::max(0.0f, rise * kInfernoSparkBelow);
+    }
+    float over = (rise - top) / ((kInfernoSparkTop - 1.0f) * top);
+    return top * std::min(1.0f, kInfernoSparkBelow + (1.0f - kInfernoSparkBelow) * over);
+}
 
 void UnderworldSparksStep() {
     float            strength = UnderworldStrength();
@@ -284,8 +295,9 @@ void UnderworldSparksStep() {
         spark.position[0] += dx * in / distance;
         spark.position[2] += dz * in / distance;
         // Rising or falling to the height it heads for as it comes in, to meet it there: its own within his (a ground
-        // spark's on the ground), the pellet's.
-        float height = std::clamp(centre.ground + spark.rise, centre.low, centre.high);
+        // spark's on the ground), the pellet's; the Inferno's, its own mapped onto him.
+        float height = spark.lowered ? centre.ground + InfernoSparkHeight(spark.rise, centre.high - centre.ground)
+                                     : std::clamp(centre.ground + spark.rise, centre.low, centre.high);
         spark.position[1] += (height - spark.position[1]) * in / distance;
     }
 }
