@@ -35,9 +35,9 @@ inline constexpr float kSparkLift = 1.0f;          // above the ground
 inline constexpr float kSparkSize = 1.2f;          // away from him (a hit's sparks are 0.1 to 1.3)
 inline constexpr float kInfernoSparkTop = 2.0f;    // times his height
 inline constexpr float kInfernoSparkBelow = 0.75f; // of its own height, within his
-// The Inferno's spark colour, times the pink spark's (0x80 its own): its red a little less, its green a little more,
-// its blue cut to 0.39, for an orange red glow round a pale warm core.
-inline constexpr unsigned char kInfernoSparkTint[3] = {0x78, 0x96, 0x32};
+// The Inferno's spark colour, times the pink spark's (0x80 its own): its red a little brighter, its green doubled, its
+// blue cut to a fifth, for a bright orange red glow round a yellow white core.
+inline constexpr unsigned char kInfernoSparkTint[3] = {0x8C, 0xFF, 0x19};
 
 // The height on him, above his feet, the Inferno's spark starting rise above them heads for, him top tall: within his
 // height kInfernoSparkBelow of its own; above it, from kInfernoSparkBelow of his height up to his height at
