@@ -101,6 +101,7 @@
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/town/ally.hpp"
+#include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/solar_flash.hpp"
@@ -2257,7 +2258,11 @@ void DunMainDraw() {
         std::memcpy(fog_rate, sub ? sub_fogRate : main_fogRate, sizeof(fog_rate));
         std::memcpy(fog_colour, sub ? sub_fogColor : main_fogColor, sizeof(fog_colour));
         expanded::SceneLighting(ambient, colours, fog_rate, fog_colour);
-        const u8 *bg = sub ? sub_bgColor : main_bgColor;
+        expanded::BurningAuraLight(ambient, colours);
+        expanded::BurningAuraFog(fog_rate, fog_colour);
+        u8 bg[3];
+        std::memcpy(bg, sub ? sub_bgColor : main_bgColor, sizeof(bg));
+        expanded::BurningAuraBackground(bg);
         MGSetPLight(sub ? sub_light : main_light, colours);
         MGSetAmbient(ambient);
         MGSetBGColor(bg[0], bg[1], bg[2], 128.0f);

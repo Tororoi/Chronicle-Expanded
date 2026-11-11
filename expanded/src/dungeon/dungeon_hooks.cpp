@@ -35,6 +35,8 @@
 #include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/goro/battle_ax.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
+#include "expanded/weapons/goro/inferno.hpp"
+#include "expanded/weapons/goro/inferno/smash_blast.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_sparks.hpp"
@@ -186,11 +188,13 @@ void DungeonEffectsDrawn() {
     SpiritBeastDraw();
     GuardianReflectorDraw();
     SnakeCharmerGlowDraw();
+    BurningAuraFlameDraw();
 }
 
 void DungeonRasterDrawn() {
     MirageHazeDraw();
     SnakeCharmerHazeDraw();
+    BurningAuraHazeDraw();
 }
 
 void DungeonShotsDrawn() {
@@ -203,7 +207,7 @@ void DungeonRunDustDrawn() {
 }
 
 bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
-    return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit) || PackHitPassesBy(hit) || ColossusPassesBy(hit);
+    return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit) || PackHitPassesBy(hit) || ColossusPassesBy(hit) || InfernoFireproof(hit);
 }
 
 void PlayerHitReached(COLLISION_HIT &hit) {
@@ -270,6 +274,7 @@ void DungeonMonstersTick() {
     SnakeCharmerStep();
     UnderworldSparksStep();
     UnderworldTintStep();
+    BurningAuraStep();
     BigRockStep();
     CurseOfBabelStep();
     AirStrikeStep();
@@ -375,7 +380,7 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster) {
         return false;
     }
     return BossDeathStep(unit, monster) || BombGemronStep(unit, monster) || ReviveStep(unit, monster) ||
-           BlindStep(unit, monster) || SnakeCharmerMonsterStep(unit, monster);
+           BlindStep(unit, monster) || SnakeCharmerMonsterStep(unit, monster, BurningAuraFeared(unit, monster));
 }
 
 char *MonsterScriptLoaded(CMonstorUnit &unit, int slot, int model_no, char *script, int size) {
@@ -433,6 +438,7 @@ void ShotEffectHitSet(CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
     DragonShotHit(effect, slot, hit);
     angel_gear::NoteShotHit(effect, slot, hit);
     ColossusShotHitSet(effect, slot, hit);
+    InfernoImpactHit(effect, slot, hit);
 }
 
 void PelletStepping(CSHOT &shots, int slot) {

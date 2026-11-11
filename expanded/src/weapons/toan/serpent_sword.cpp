@@ -1072,11 +1072,12 @@ bool Hold(CMonstorUnit &unit, int monster, Retreat &retreat) {
 
 } // namespace
 
-bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
+bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster, bool feared) {
     Retreat            &retreat = retreats[monster];
     float               dx = 0.0f, dz = 0.0f, distance = 0.0f;
-    bool                in_play = snake.up && &unit == NowMonstorUnit && unit.monster[monster].hp > 0 && Offset(unit, monster, dx, dz, distance);
-    bool                near = in_play && snake.near[monster];
+    bool                in_play = (snake.up || feared) && &unit == NowMonstorUnit && unit.monster[monster].hp > 0 && Offset(unit, monster, dx, dz, distance);
+    bool                charmed = in_play && snake.up && snake.near[monster];
+    bool                near = charmed || (in_play && feared);
     const SnakeRetreat *own = in_play ? RetreatOf(unit, monster) : nullptr;
     vmcode_t           *trigger = nullptr, *roll = nullptr;
     CRunScript         &script = unit.interpreter[monster];
@@ -1122,7 +1123,8 @@ bool SnakeCharmerMonsterStep(CMonstorUnit &unit, int monster) {
         retreat.retreating = retreat.retreating && InRoutine(script, record);
         return false;
     }
-    if (!near) {
+    // Fear moves only a kind that backs off: one with none is held for the snake alone.
+    if (!charmed) {
         if (retreat.held) {
             // Back to its script, from the top.
             unit.script_state[monster] = 0;

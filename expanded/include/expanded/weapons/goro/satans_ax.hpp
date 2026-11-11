@@ -6,7 +6,7 @@ class CMonstorUnit;
 
 namespace expanded {
 
-// Satan's Ax "Pull of the Underworld": once Goro lets his full charge go with Satan's Ax in hand (GoroKey_Play's smash,
+// Satan's Ax "Pull of the Underworld": once Goro lets his full charge go with Satan's Ax (or the Inferno: inferno.hpp) in hand (GoroKey_Play's smash,
 // until the moment it hits the ground), every monster in play within kUnderworldReach of him is drawn toward him, on
 // top of its own step and kept by its walls, until its body meets his; while he holds the charge before it,
 // kUnderworldChargeShare as strongly. A frame's pull grows exponentially the nearer it is: kUnderworldPullNear at no
