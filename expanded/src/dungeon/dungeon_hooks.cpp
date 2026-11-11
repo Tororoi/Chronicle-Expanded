@@ -36,6 +36,7 @@
 #include "expanded/weapons/goro/battle_ax.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
+#include "expanded/weapons/goro/inferno/smash_blast.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_sparks.hpp"
@@ -437,6 +438,7 @@ void ShotEffectHitSet(CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
     DragonShotHit(effect, slot, hit);
     angel_gear::NoteShotHit(effect, slot, hit);
     ColossusShotHitSet(effect, slot, hit);
+    InfernoImpactHit(effect, slot, hit);
 }
 
 void PelletStepping(CSHOT &shots, int slot) {

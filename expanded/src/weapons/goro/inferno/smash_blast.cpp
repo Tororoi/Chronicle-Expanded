@@ -4,6 +4,7 @@
 #include <iterator>
 
 #include "bt_shot_effect.hpp"
+#include "collisiondata.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
@@ -22,7 +23,7 @@ BT_SHOT_EFFECT blast = {"zibaku_f2", 0, 0, {}, {}, -1, 0, 0, 3, 0, {0, -1, -1, -
 [[maybe_unused]] const bool kRegistered =
     (RegisterWeaponShotEffect(ITEM_WEAPON_INFERNO, WeaponShotForm::Weapon, &blast, kSmashBlasts, kSmashBlastPack), true);
 
-// The impact whose model is hidden.
+// The impact whose model is hidden, its shockwave widened.
 CSHOT_EFFECT *hidden = nullptr;
 int           hidden_slot = -1;
 
@@ -57,6 +58,12 @@ void InfernoImpact(CSHOT_EFFECT &effect, int slot, const float *at) {
     effect.chara[slot].SetScale(0.0f, 0.0f, 0.0f);
     hidden = &effect;
     hidden_slot = slot;
+}
+
+void InfernoImpactHit(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
+    if (&effect == hidden && slot == hidden_slot) {
+        hit.radius = kSmashShockwaveRadius;
+    }
 }
 
 void SmashBlastStep() {
