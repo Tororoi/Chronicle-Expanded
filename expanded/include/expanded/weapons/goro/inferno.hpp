@@ -1,6 +1,7 @@
 #pragma once
 
 namespace dc::game {
+class CCharacter;
 class CMonstorUnit;
 struct COLLISION_HIT;
 } // namespace dc::game
@@ -21,8 +22,10 @@ namespace expanded {
 // floor's drawn cells with it, and its light toward kBurningAuraLight (each colour scaled), fully at
 // kBurningAuraFogFrames, and all fade back over kBurningAuraFogFade once it ends; from kBurningAuraHazeFrom of the way,
 // a heat shimmer (Mirage's: heat_haze.hpp) comes up over the whole screen, at kBurningAuraHazeSway times a fire's sway
-// when the red is full. A fireball rises out of the floor around him as the pull begins (inferno/rising_flame.hpp).
-// Times are game frames.
+// when the red is full; the Inferno itself is drawn lighter by kBurningAuraTint in red, green and blue as the red comes
+// (in place of Satan's Ax's pink: satans_ax/underworld_tint.hpp). A fireball rises out of the floor around him as the
+// pull begins (inferno/rising_flame.hpp), and bursts where his smash lands (inferno/fireball_burst.hpp). Times are game
+// frames.
 inline constexpr int   kBurningAuraFrames = 60;
 inline constexpr float kBurningAuraStep = 0.01f;
 inline constexpr float kBurningAuraBrave = 30.0f;
@@ -33,6 +36,7 @@ inline constexpr float kBurningAuraFogPull = 0.75f;
 inline constexpr float kBurningAuraLight[3] = {1.15f, 0.62f, 0.45f};
 inline constexpr float kBurningAuraHazeFrom = 0.5f;
 inline constexpr float kBurningAuraHazeSway = 2.25f;
+inline constexpr float kBurningAuraTint[3] = {150.0f, 25.0f, 0.0f};
 inline constexpr int   kFireElementBit = 1; // a hit's flags: the fire element (element_tbl's first)
 
 // Whether Goro is in play with the Inferno in hand.
@@ -56,6 +60,8 @@ void BurningAuraFog(float *fog_rate, unsigned char *fog_colour);
 void BurningAuraBackground(unsigned char *background);
 void BurningAuraHazeDraw();
 void BurningAuraFlameDraw();
+// The tint added to the Inferno as it draws (CharacterLight).
+void BurningAuraWeaponLight(const CCharacter &character, float *ambient);
 
 // The floor changed (tests too).
 void BurningAuraReset();

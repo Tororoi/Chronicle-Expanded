@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <libvu0.h>
 
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -295,4 +296,30 @@ TEST_F(BurningAuraWithSatansAx, SatansAxRaisesNoFlame) {
     Acting(13);
     Steps(expanded::kRisingFlameRise);
     EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 0.0f);
+}
+
+TEST_F(BurningAura, TheInfernoReddensToItsTintOverThreeSecondsAndFadesAfter) {
+    CCharacter  inferno;
+    CCharacter *saved = NowWeapon;
+    NowWeapon = &inferno;
+    auto lit = [&](const CCharacter &character) {
+        float ambient[3] = {10.0f, 20.0f, 30.0f};
+        expanded::BurningAuraWeaponLight(character, ambient);
+        return std::array<float, 3>{ambient[0] - 10.0f, ambient[1] - 20.0f, ambient[2] - 30.0f};
+    };
+    Place(50.0f);
+    EXPECT_FLOAT_EQ(lit(inferno)[0], 0.0f);
+    Acting(13);
+    Steps(expanded::kBurningAuraFogFrames / 2);
+    EXPECT_NEAR(lit(inferno)[0], expanded::kBurningAuraTint[0] / 2.0f, 1e-3f);
+    Steps(expanded::kBurningAuraFogFrames);
+    std::array<float, 3> full = lit(inferno);
+    for (int c = 0; c < 3; c++) {
+        EXPECT_FLOAT_EQ(full[c], expanded::kBurningAuraTint[c]);
+    }
+    EXPECT_FLOAT_EQ(lit(CharaMain)[0], 0.0f); // only the weapon
+    Acting(0);
+    Steps(expanded::kBurningAuraFogFade);
+    EXPECT_FLOAT_EQ(lit(inferno)[0], 0.0f);
+    NowWeapon = saved;
 }

@@ -26,6 +26,7 @@
 #include "weaponeffect.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/goro/inferno/fireball_burst.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/claymore.hpp"
@@ -1026,7 +1027,9 @@ void GoroKey_Play() {
 
     if (time >= 482.0f && time < 482.4f) {
 #ifdef CHRONICLE_EXPANDED
-        expanded::ColossusImpact(*NowMainEffect, NowMainEffect->Set(hit_pos, shot_vector, 2, -1, 0, nullptr, -1));
+        const int impact = NowMainEffect->Set(hit_pos, shot_vector, 2, -1, 0, nullptr, -1);
+        expanded::ColossusImpact(*NowMainEffect, impact);
+        expanded::InfernoImpact(*NowMainEffect, impact, hit_pos);
 #else
         NowMainEffect->Set(hit_pos, shot_vector, 2, -1, 0, nullptr, -1);
 #endif

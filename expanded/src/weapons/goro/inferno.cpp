@@ -10,6 +10,7 @@
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/blast.hpp"
+#include "expanded/weapons/goro/inferno/fireball_burst.hpp"
 #include "expanded/weapons/goro/inferno/rising_flame.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/player_state.hpp"
@@ -73,6 +74,7 @@ bool InfernoWielded() {
 }
 
 void BurningAuraStep() {
+    FireballBurstStep();
     if (!MonstersStepping()) {
         return;
     }
@@ -160,6 +162,16 @@ void BurningAuraFlameDraw() {
 void BurningAuraHazeDraw() {
     if (BtEventMode == 0) {
         mirage::HazeDrawOver(CharaMain.pos, BurningAuraHaze(), kBurningAuraHazeSway);
+    }
+}
+
+void BurningAuraWeaponLight(const CCharacter &character, float *ambient) {
+    if (&character != NowWeapon) {
+        return;
+    }
+    float red = BurningAuraRed();
+    for (int c = 0; c < 3; c++) {
+        ambient[c] += kBurningAuraTint[c] * red;
     }
 }
 

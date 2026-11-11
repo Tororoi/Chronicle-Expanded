@@ -16,7 +16,7 @@ inline constexpr float       kRisingFlameSmashScale = 2.75f;
 inline constexpr float       kRisingFlameLift = 0.0f;
 inline constexpr float       kRisingFlameDepth = 40.0f;
 inline constexpr int         kRisingFlameRise = 60;
-inline constexpr int         kRisingFlameGrow = 15;
+inline constexpr int         kRisingFlameGrow = 30;
 
 // One dungeon step: rising while up, sinking otherwise; growing while he smashes.
 void RisingFlameStep(bool up, bool smashing);
