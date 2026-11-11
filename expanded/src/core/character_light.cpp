@@ -40,7 +40,7 @@ void CharacterLight(const CCharacter &character, float *ambient) {
     BigRockLight(character, ambient);
     CurseOfBabelLight(character, ambient);
     SnakeCharmerLight(character, ambient);
-    if (InfernoWielded()) {
+    if (InfernoBurning()) {
         BurningAuraWeaponLight(character, ambient);
         RisingFlameLight(character, ambient);
     } else {

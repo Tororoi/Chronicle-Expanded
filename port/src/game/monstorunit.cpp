@@ -50,6 +50,7 @@
 #include "expanded/enemies/bosses.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/faster.hpp"
+#include "expanded/enemies/in_play.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -1044,7 +1045,11 @@ void CMonstorUnit::CheckViewLevel() {
 
     int sorted_count = 0;
 
+#ifdef CHRONICLE_EXPANDED
+    if (active_count > expanded::kMonstersInPlay) {
+#else
     if (active_count > 4) {
+#endif
         int floor = UserStatus->cur_floor;
         int max_floor = maxFloorTbl__3[selectMapNo];
 
@@ -1070,7 +1075,11 @@ void CMonstorUnit::CheckViewLevel() {
             }
         }
 
+#ifdef CHRONICLE_EXPANDED
+        for (int i = expanded::kMonstersInPlay; i < active_count; i++) {
+#else
         for (int i = 4; i < active_count; i++) {
+#endif
             if (sorted[i] != -1 && monster[sorted[i]].state == 2 && monster[sorted[i]].hp > 0 && monster[sorted[i]].kind != MONSTER_KIND_NO_LOCK_ON) {
                 monster[sorted[i]].state = 1;
                 monster[sorted[i]].view_held = true;
@@ -1629,7 +1638,7 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
                         }
                     }
 
-                    int  index = GetCurrentMonsterIndex();
+                    int index = GetCurrentMonsterIndex();
 #ifdef CHRONICLE_EXPANDED
                     float defense = (float) expanded::MonsterDefense(*this, index, monster[index].defense);
 #else
@@ -1678,7 +1687,7 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
 #ifdef CHRONICLE_EXPANDED
                         multiplier = expanded::MonsterSpherePercent(*this, index, i, owner, NowColData->hit[hit], multiplier);
 #endif
-                        auto  damage_scale = static_cast<float>(multiplier);
+                        auto damage_scale = static_cast<float>(multiplier);
                         damage = damage / 100.0f * damage_scale;
 
                         if (damage <= 0.0f) {
@@ -2162,7 +2171,12 @@ void CMonstorUnit::Step(int pause) {
                         collision->SetPosition(other_position);
                         float scale = 2.0f * (0.1f * monster[j].collision_radius);
                         collision->SetScale(scale, scale, scale);
+#ifdef CHRONICLE_EXPANDED
+                        monster[current_monster].collision_poly_count +=
+                            expanded::PickUpBodyPolys(*collision, monster[current_monster].collision_poly, monster[current_monster].collision_poly_count, box);
+#else
                         monster[current_monster].collision_poly_count += collision->PickUpNearPoly(monster[current_monster].collision_poly + monster[current_monster].collision_poly_count, box);
+#endif
                     }
                 }
 
@@ -2612,8 +2626,8 @@ int CMonstorUnit::SetupBaseModel(int slot, int model_no, int texture_block, CDat
 #else
     MONSTOR_MODEL *description = &MonstorTable[model_no];
 #endif
-    CFrameAttr     attr;
-    int            file_size = 0;
+    CFrameAttr attr;
+    int        file_size = 0;
     attr.fog_enable = true;
     std::string filename = MonstorFilePath(description->model_name[0], "chr");
 #ifdef CHRONICLE_EXPANDED

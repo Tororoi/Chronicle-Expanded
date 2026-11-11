@@ -35,7 +35,34 @@ int                 planted[kHitRecords] = {}; // the slot each marked hit recor
 } // namespace
 
 bool UnderworldShotActive() {
-    return Playing(CHARA_XIAO) && SuperSteveSphere() == ITEM_WEAPON_SATAN_S_AX;
+    return Playing(CHARA_XIAO) && (SuperSteveSphere() == ITEM_WEAPON_SATAN_S_AX || SuperSteveSphere() == ITEM_WEAPON_INFERNO);
+}
+
+bool UnderworldShotInferno() {
+    return Playing(CHARA_XIAO) && SuperSteveSphere() == ITEM_WEAPON_INFERNO;
+}
+
+bool UnderworldShotDrawn() {
+    return UnderworldShotInferno() && draw.Holding();
+}
+
+int UnderworldShotsFired() {
+    return fired;
+}
+
+int UnderworldShotSlots() {
+    return kPelletSlots;
+}
+
+const CSHOT *UnderworldShotIn(int i, int &slot) {
+    const CSHOT *found = nullptr;
+    flying.ForEach([&](const CSHOT &shots, int s, const Flight &) {
+        if (s == i && shots.used[s] != 0) {
+            found = &shots;
+            slot = s;
+        }
+    });
+    return found;
 }
 
 bool UnderworldShotAt(float *at) {
@@ -111,6 +138,19 @@ bool UnderworldShotRefused(int monster, const COLLISION_HIT &hit) {
     }
     flight->struck |= bit;
     return false;
+}
+
+bool UnderworldShotStruck(int monster) {
+    if (monster < 0 || monster >= 32) {
+        return false;
+    }
+    const Flight *last = nullptr;
+    flying.ForEach([&](const CSHOT &shots, int s, const Flight &flight) {
+        if (shots.used[s] != 0 && (last == nullptr || flight.order > last->order)) {
+            last = &flight;
+        }
+    });
+    return last != nullptr && (last->struck & (1u << monster)) != 0;
 }
 
 void UnderworldShotReset() {

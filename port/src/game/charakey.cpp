@@ -26,6 +26,7 @@
 #include "weaponeffect.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/goro/inferno/smash_blast.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
@@ -55,7 +56,11 @@ void basic_damage(int kind, int owner) {
 
     hit.vs_monster = NowWeaponHave->vs_monster;
     hit.weapon_flags = NowWeaponHave->flags;
+#ifdef CHRONICLE_EXPANDED
+    hit.flags = GetWeaponElementAttr(expanded::InfernoAttackElement(kind, owner, NowWeaponHave->best_elem));
+#else
     hit.flags = GetWeaponElementAttr(NowWeaponHave->best_elem);
+#endif
     hit.owner = owner;
     hit.attack_no = kind;
 }
@@ -1037,7 +1042,11 @@ void GoroKey_Play() {
         NowMainEffect->SetVsMonster(NowWeaponHave->vs_monster);
         NowMainEffect->SetDmg(static_cast<int>(1.2f * static_cast<float>(damage)));
         NowMainEffect->SetWait(45);
+#ifdef CHRONICLE_EXPANDED
+        NowMainEffect->SetAttribute(GetWeaponElementAttr(expanded::InfernoAttackElement(1, 2, NowWeaponHave->best_elem)));
+#else
         NowMainEffect->SetAttribute(GetWeaponElementAttr(NowWeaponHave->best_elem));
+#endif
         NowColData->SetKickBack(chara_pos, kick, 0.1f, 2);
         BtActStatus.camera_shake = 8.0f;
         BtActStatus.camera_shake_decay = 0.1f;

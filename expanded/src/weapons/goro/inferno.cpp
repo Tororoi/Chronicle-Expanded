@@ -11,9 +11,11 @@
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/goro/inferno/cape_flap.hpp"
+#include "expanded/weapons/goro/inferno/fire_shot.hpp"
 #include "expanded/weapons/goro/inferno/rising_flame.hpp"
 #include "expanded/weapons/goro/inferno/smash_blast.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
+#include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/ungaga/mirage/heat_haze.hpp"
@@ -28,12 +30,26 @@ namespace {
 
 int pulled_frames = 0; // the pull on, without a break
 int red_frames = 0;    // of kBurningAuraFogFrames
+int shots_seen = 0;    // Xiao's charged pellets let go, as last counted
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(BurningAuraReset), true);
 
-// Goro's own pull, not Xiao's pellet's.
+// The Inferno's pull: Goro's, or Xiao's with its sphere (her hold's and her pellet's).
 bool Pulling() {
-    return InfernoWielded() && UnderworldStrength() > 0.0f;
+    return InfernoBurning() && UnderworldStrength() > 0.0f;
+}
+
+// Where the pull draws to now: him or her, or her pellet.
+bool Centre(float *at) {
+    UnderworldCentre centre;
+    if (!UnderworldCentreNow(centre)) {
+        return false;
+    }
+    at[0] = centre.x;
+    at[1] = centre.low;
+    at[2] = centre.z;
+    at[3] = 1.0f;
+    return true;
 }
 
 void Burn(int seconds) {
@@ -46,7 +62,8 @@ void Burn(int seconds) {
             spared |= 1 << monster;
         }
     }
-    if (spared == (1 << kFloorMonsters) - 1) {
+    float at[4];
+    if (spared == (1 << kFloorMonsters) - 1 || !Centre(at)) {
         return;
     }
     BlastOptions options;
@@ -57,7 +74,7 @@ void Burn(int seconds) {
     options.element = WEAPON_ELEMENT_FIRE;
     options.flat = true;
     options.rumble = false;
-    PlantBlast(*NowMonstorUnit, CharaMain.pos, NowWeaponHave->attack, options);
+    PlantBlast(*NowMonstorUnit, at, NowWeaponHave->attack, options);
 }
 
 // A colour moved red of the way to the fog's red.
@@ -74,12 +91,33 @@ bool InfernoWielded() {
     return Playing(CHARA_GORO) && WeaponWielded(ITEM_WEAPON_INFERNO);
 }
 
+int InfernoAttackElement(int kind, int owner, int element) {
+    return kind == 1 && owner == 2 && InfernoWielded() ? WEAPON_ELEMENT_FIRE : element;
+}
+
+bool InfernoSphere() {
+    return UnderworldShotInferno();
+}
+
+bool InfernoBurning() {
+    return InfernoWielded() || InfernoSphere();
+}
+
 void BurningAuraStep() {
     SmashBlastStep();
     if (!MonstersStepping()) {
         return;
     }
-    RisingFlameStep(Pulling(), Pulling() && UnderworldStrength() >= 1.0f);
+    if (InfernoSphere()) {
+        // Hers rises while she holds the slingshot drawn, and flares and dies down as a charged pellet leaves it.
+        if (UnderworldShotsFired() != shots_seen) {
+            shots_seen = UnderworldShotsFired();
+            RisingFlameFired();
+        }
+        RisingFlameStep(UnderworldShotDrawn(), false, FireShotsFlying());
+    } else {
+        RisingFlameStep(Pulling(), Pulling() && UnderworldStrength() >= 1.0f);
+    }
     CapeFlapStep();
     if (!Pulling()) {
         pulled_frames = 0;
@@ -111,16 +149,16 @@ float BurningAuraHaze() {
 }
 
 bool InfernoFireproof(const COLLISION_HIT &hit) {
-    return InfernoWielded() && (hit.flags & kFireElementBit) != 0;
+    return InfernoBurning() && (hit.flags & kFireElementBit) != 0;
 }
 
 bool BurningAuraFeared(CMonstorUnit &unit, int monster) {
     if (!Pulling() || &unit != NowMonstorUnit || !UnderworldPulling(monster)) {
         return false;
     }
-    float at[4];
+    float at[4], centre[4];
     unit.chara[monster][0].GetPosition(at);
-    return std::hypot(at[0] - CharaMain.pos[0], at[2] - CharaMain.pos[2]) > kBurningAuraBrave;
+    return Centre(centre) && std::hypot(at[0] - centre[0], at[2] - centre[2]) > kBurningAuraBrave;
 }
 
 void BurningAuraLight(float *ambient, float (*colours)[4]) {
@@ -156,8 +194,9 @@ void BurningAuraBackground(unsigned char *background) {
 }
 
 void BurningAuraFlameDraw() {
-    if (InfernoWielded()) {
+    if (InfernoBurning()) {
         RisingFlameDraw();
+        FireShotsDraw();
     }
 }
 
@@ -168,7 +207,7 @@ void BurningAuraHazeDraw() {
 }
 
 void BurningAuraWeaponLight(const CCharacter &character, float *ambient) {
-    if (&character != NowWeapon) {
+    if (&character != NowWeapon || !InfernoWielded()) {
         return;
     }
     float red = BurningAuraRed();
@@ -182,6 +221,7 @@ void BurningAuraReset() {
     CapeFlapReset();
     pulled_frames = 0;
     red_frames = 0;
+    shots_seen = UnderworldShotsFired();
 }
 
 } // namespace expanded

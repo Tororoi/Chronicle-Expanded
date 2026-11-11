@@ -21,6 +21,7 @@
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
 #include "test_support.hpp"
+#include "weaponelement.hpp"
 
 using expanded::Monster;
 
@@ -395,6 +396,15 @@ TEST_F(BurningAura, HisCapeSwingsUpWithoutStretchingAndIsItsOwnOnceTheFlameHasSu
     EXPECT_FLOAT_EQ(cape->gravity[1], own->gravity[1]);
     EXPECT_FLOAT_EQ(cape->stiffness[0], own->stiffness[0]);
     CharaMain.cloth = saved;
+}
+
+TEST_F(BurningAura, ItsChargeHitsWithFireItsSwingWithTheSelectedElement) {
+    EXPECT_EQ(expanded::InfernoAttackElement(1, 2, WEAPON_ELEMENT_THUNDER), WEAPON_ELEMENT_FIRE);
+    EXPECT_EQ(expanded::InfernoAttackElement(0, 2, WEAPON_ELEMENT_THUNDER), WEAPON_ELEMENT_THUNDER);
+}
+
+TEST_F(BurningAuraWithSatansAx, SatansAxsChargeHitsWithTheSelectedElement) {
+    EXPECT_EQ(expanded::InfernoAttackElement(1, 2, WEAPON_ELEMENT_THUNDER), WEAPON_ELEMENT_THUNDER);
 }
 
 TEST_F(BurningAuraWithSatansAx, SatansAxRaisesNoFlame) {

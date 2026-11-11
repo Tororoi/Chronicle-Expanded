@@ -67,6 +67,9 @@ float UnderworldStrength() {
     if (UnderworldShotAt(nullptr)) {
         return 1.0f;
     }
+    if (UnderworldShotDrawn()) {
+        return kUnderworldChargeShare; // the Inferno's sphere, its slingshot held drawn
+    }
     if (!Playing(CHARA_GORO) || !(WeaponWielded(ITEM_WEAPON_SATAN_S_AX) || WeaponWielded(ITEM_WEAPON_INFERNO)) || BtActStatus.action_on == 0) {
         return 0.0f;
     }
@@ -123,7 +126,8 @@ void UnderworldMonsterMove(CMonstorUnit &unit, int monster) {
     float distance = std::hypot(dx, dz);
     // As far as its body is from what it is drawn to: no nearer than where it meets it.
     float room = MonsterBodyEdge(unit, monster, centre.x, centre.z) - centre.body;
-    float pull = std::min(UnderworldPullAt(distance) * weight * centre.pull, room);
+    float struck = UnderworldShotStruck(monster) ? kUnderworldStruckPull : 1.0f; // gone through by her pellet
+    float pull = std::min(UnderworldPullAt(distance) * weight * centre.pull * struck, room);
     if (pull <= 0.0f || distance < 0.01f) {
         return;
     }

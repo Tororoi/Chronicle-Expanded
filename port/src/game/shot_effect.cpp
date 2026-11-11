@@ -35,6 +35,9 @@ void CSHOT::draw() {
     for (int shot = 0; shot < 12; shot++) {
         if (used[shot] != 0) {
 #ifdef CHRONICLE_EXPANDED
+            if (expanded::PelletHidden(*this, shot)) {
+                continue;
+            }
             int texture_cell = expanded::PelletWeapon() - 299;
 #else
             int texture_cell = NowWeaponHave->item_no - 299;

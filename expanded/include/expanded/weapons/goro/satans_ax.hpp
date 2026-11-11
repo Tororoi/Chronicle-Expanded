@@ -26,8 +26,9 @@ inline constexpr int   kUnderworldSmashFrames = 83;
 // The pull a monster of weight 1 takes a frame distance from him (0 beyond the reach).
 float UnderworldPullAt(float distance);
 
-// How strongly the pull is on: 1 while Xiao's charged pellet flies (satans_ax/underworld_shot.hpp); else, Goro in play
-// with Satan's Ax, 1 while he smashes until it lands, kUnderworldChargeShare while he holds the charge; 0 otherwise.
+// How strongly the pull is on: 1 while Xiao's charged pellet flies (satans_ax/underworld_shot.hpp), kUnderworldChargeShare
+// while she holds the Inferno's sphere's drawn; else, Goro in play with Satan's Ax or the Inferno, 1 while he smashes
+// until it lands, kUnderworldChargeShare while he holds the charge; 0 otherwise.
 float UnderworldStrength();
 
 // What the pull draws to: Goro, or Xiao's charged pellet in flight. Across the ground at (x, z), the ground's height
