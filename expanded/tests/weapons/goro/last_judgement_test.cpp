@@ -56,12 +56,12 @@ constexpr int kGrow = expanded::kJudgementGrowFrames;
 
 } // namespace
 
-TEST_F(JudgementHammer, HoldingTheGuardGrowsItEvenlyToTwiceItsSizeOverThreeSeconds) {
+TEST_F(JudgementHammer, HoldingTheGuardGrowsItEvenlyToHalfAgainItsSizeOverThreeSeconds) {
     EXPECT_FLOAT_EQ(expanded::JudgementHammerScale(), 1.0f);
     Guard(true, kGrow / 2);
-    EXPECT_NEAR(expanded::JudgementHammerScale(), 1.5f, 1e-4f);
+    EXPECT_NEAR(expanded::JudgementHammerScale(), 1.25f, 1e-4f);
     Guard(true, kGrow / 2);
-    EXPECT_FLOAT_EQ(expanded::JudgementHammerScale(), expanded::kJudgementGrownScale);
+    EXPECT_FLOAT_EQ(expanded::JudgementHammerScale(), 1.5f);
 }
 
 TEST_F(JudgementHammer, LetGoEarlyItShrinksBackAsLongAsItGrew) {
@@ -84,17 +84,17 @@ TEST_F(JudgementHammer, FullItKeepsItsSizeFifteenSecondsThenShrinksAndWaitsForAF
     EXPECT_NEAR(expanded::JudgementHammerScale(), 1.0f, 1e-4f);
     Guard(false, 1);
     Guard(true, kGrow / 2);
-    EXPECT_NEAR(expanded::JudgementHammerScale(), 1.5f, 1e-4f);
+    EXPECT_NEAR(expanded::JudgementHammerScale(), 1.25f, 1e-4f);
 }
 
 TEST_F(JudgementHammer, ItsSizeWidensItsHitsAndRaisesItsAttackToHalfAgain) {
     EXPECT_EQ(expanded::JudgementHammerAttack(100), 100);
     Guard(true, kGrow / 2);
     EXPECT_EQ(expanded::JudgementHammerAttack(100), 125);
-    EXPECT_NEAR(expanded::JudgementHammerHitRadius(5.0f), 7.5f, 1e-3f);
+    EXPECT_NEAR(expanded::JudgementHammerHitRadius(5.0f), 6.25f, 1e-3f);
     Guard(true, kGrow / 2);
     EXPECT_EQ(expanded::JudgementHammerAttack(100), 150);
-    EXPECT_FLOAT_EQ(expanded::JudgementHammerHitRadius(5.0f), 10.0f);
+    EXPECT_FLOAT_EQ(expanded::JudgementHammerHitRadius(5.0f), 7.5f);
 }
 
 TEST_F(JudgementHammer, ItsImpactIsItsSizeAndReachesAsFar) {
@@ -106,7 +106,7 @@ TEST_F(JudgementHammer, ItsImpactIsItsSizeAndReachesAsFar) {
     COLLISION_HIT hit{};
     hit.radius = 15.0f;
     expanded::JudgementHammerHitSet(*effect, 2, hit);
-    EXPECT_FLOAT_EQ(hit.radius, 30.0f);
+    EXPECT_FLOAT_EQ(hit.radius, 22.5f);
     COLLISION_HIT other{};
     other.radius = 15.0f;
     expanded::JudgementHammerHitSet(*effect, 3, other);

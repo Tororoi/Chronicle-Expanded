@@ -13,7 +13,7 @@ namespace expanded {
 // kJudgementGrowFrames, and grows again only from a fresh hold of the guard. Its size carries his swings' hits out
 // with the hammer's head and widens them, its charge attack's ground impact and that impact's reach with it, and his
 // attack by kJudgementGrownAttack at its full size (evenly between). Times are game frames.
-inline constexpr float kJudgementGrownScale = 2.0f;
+inline constexpr float kJudgementGrownScale = 1.5f;
 inline constexpr int   kJudgementGrowFrames = 180;
 inline constexpr int   kJudgementFullFrames = 900;
 inline constexpr float kJudgementGrownAttack = 1.5f;
