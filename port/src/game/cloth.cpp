@@ -18,6 +18,10 @@
 #include "vu0_ops.hpp"
 #include "wind.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/dungeon_hooks.hpp"
+#endif
+
 namespace dc::game {
 
 using namespace dc::render;
@@ -272,6 +276,12 @@ void CCloth::Step(int step) {
             static_cast<CWind *>(wind)->GetWindNoise(wind_force);
             sceVu0ScaleVector(wind_force, wind_force, wind_effect);
         }
+#ifdef CHRONICLE_EXPANDED
+        // Once a step: without a wind of its own the force carries on from row to row.
+        if (wind != nullptr || i == 0) {
+            expanded::ClothWind(*this, wind_force);
+        }
+#endif
 
         for (int j = 0; j < num_j; j++) {
             speed[i][j][0] += gravity[0] + (work_at(i, j)[0] - last[i][j][0]);

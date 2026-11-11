@@ -14,11 +14,11 @@ namespace expanded {
 //
 // Fireproof: a monster's fire hit (its fire element bit) passes him by.
 //
-// "Burning Aura": once each second the pull has been on (his charge held, then the smash until it lands), every
-// monster it is drawing takes a fire hit of kBurningAuraStep of his weapon's attack for each second so far (1% at the
-// first, 2% at the second, 3% at the third: 6% over three seconds), through any guard and throwing nothing; one immune
-// to fire takes none of it. A monster it draws from farther than kBurningAuraBrave is afraid: one whose kind backs off
-// (as from the Serpent Sword's snake: serpent_sword.hpp) backs off, and a kind with none goes on as ever; within
+// "Burning Aura": once each second the pull has been on (his charge held, then the smash until it lands), every monster
+// it is drawing takes a fire hit of kBurningAuraStep of his weapon's attack for each second so far (1% at the first, 2%
+// at the second, 3% at the third: 6% over three seconds), through any guard and throwing nothing; one immune to fire
+// takes none of it. A monster it draws from farther than kBurningAuraBrave is afraid: one whose kind backs off (as from
+// the Serpent Sword's snake: serpent_sword.hpp) backs off, and a kind with none goes on as ever; within
 // kBurningAuraBrave it is itself again, and comes at him. The floor's fog reddens toward kBurningAuraFog as the pull
 // goes on and thickens (its near and far pulled in to kBurningAuraFogPull of their own), the background past the
 // floor's drawn cells with it, and its light toward kBurningAuraLight (each colour scaled), fully at
@@ -26,8 +26,9 @@ namespace expanded {
 // a heat shimmer (Mirage's: heat_haze.hpp) comes up over the whole screen, at kBurningAuraHazeSway times a fire's sway
 // when the red is full; the Inferno itself is drawn lighter by kBurningAuraTint in red, green and blue as the red comes
 // (in place of Satan's Ax's pink: satans_ax/underworld_tint.hpp). A fireball rises out of the floor around him as the
-// pull begins (inferno/rising_flame.hpp), and Mr. Blare's blast goes off where his smash lands, its shockwave reaching
-// farther (inferno/smash_blast.hpp). Times are game frames.
+// pull begins, lighting him (inferno/rising_flame.hpp), its wind blowing his cape (inferno/cape_wind.hpp), and Mr.
+// Blare's blast goes off where his smash lands, its shockwave reaching farther (inferno/smash_blast.hpp). Times are
+// game frames.
 inline constexpr int   kBurningAuraFrames = 60;
 inline constexpr float kBurningAuraStep = 0.01f;
 inline constexpr float kBurningAuraBrave = 30.0f;

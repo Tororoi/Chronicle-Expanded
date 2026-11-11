@@ -36,6 +36,7 @@
 #include "expanded/weapons/goro/battle_ax.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
+#include "expanded/weapons/goro/inferno/cape_wind.hpp"
 #include "expanded/weapons/goro/inferno/smash_blast.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
@@ -432,6 +433,10 @@ void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     ChargingBullHit(shots, slot, hit);
     UnderworldShotHit(shots, slot, hit);
     PumpedUpPelletHit(hit);
+}
+
+void ClothWind(const CCloth &cloth, float *force) {
+    InfernoCapeWind(cloth, force);
 }
 
 void ShotEffectHitSet(CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {

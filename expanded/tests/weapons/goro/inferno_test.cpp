@@ -7,10 +7,12 @@
 
 #include "btactstatus.hpp"
 #include "character.hpp"
+#include "cloth.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
+#include "expanded/weapons/goro/inferno/cape_wind.hpp"
 #include "expanded/weapons/goro/inferno/rising_flame.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/hit_marks.hpp"
@@ -289,6 +291,81 @@ TEST_F(BurningAura, TheFlameGrowsAsHisSmashBeginsAndKeepsItsSizeUntilItHasSunk) 
     EXPECT_FLOAT_EQ(expanded::RisingFlameScale(), expanded::kRisingFlameSmashScale);
     Steps(1);
     EXPECT_FLOAT_EQ(expanded::RisingFlameScale(), expanded::kRisingFlameScale);
+}
+
+TEST_F(BurningAura, TheFlamePlaysFasterAsItGrows) {
+    Place(50.0f);
+    Acting(13);
+    Steps(expanded::kRisingFlameRise);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameMotionSpeed(), expanded::kRisingFlameMotionSpeed);
+    Acting(14);
+    Steps(expanded::kRisingFlameGrow / 2);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameMotionSpeed(), 0.5f * (expanded::kRisingFlameMotionSpeed + expanded::kRisingFlameSmashMotionSpeed));
+    Steps(expanded::kRisingFlameGrow);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameMotionSpeed(), expanded::kRisingFlameSmashMotionSpeed);
+}
+
+TEST_F(BurningAura, GoroGlowsAsTheFlameRisesAndMoreAsItGrows) {
+    auto glow = [](const CCharacter &character) {
+        std::array<float, 3> ambient{};
+        expanded::RisingFlameLight(character, ambient.data());
+        return ambient;
+    };
+    Place(50.0f);
+    EXPECT_EQ(glow(CharaMain), (std::array<float, 3>{}));
+    Acting(13);
+    Steps(expanded::kRisingFlameRise / 2);
+    for (int c = 0; c < 3; c++) {
+        EXPECT_FLOAT_EQ(glow(CharaMain)[c], 0.5f * expanded::kRisingFlameGlow[c]);
+    }
+    Steps(expanded::kRisingFlameRise);
+    for (int c = 0; c < 3; c++) {
+        EXPECT_FLOAT_EQ(glow(CharaMain)[c], expanded::kRisingFlameGlow[c]);
+    }
+    Acting(14);
+    Steps(expanded::kRisingFlameGrow);
+    for (int c = 0; c < 3; c++) {
+        EXPECT_FLOAT_EQ(glow(CharaMain)[c], expanded::kRisingFlameSmashGlow[c]);
+    }
+    CCharacter other;
+    EXPECT_EQ(glow(other), (std::array<float, 3>{}));
+    Acting(0);
+    Steps(expanded::kRisingFlameRise / 2);
+    for (int c = 0; c < 3; c++) {
+        EXPECT_FLOAT_EQ(glow(CharaMain)[c], 0.5f * expanded::kRisingFlameSmashGlow[c]);
+    }
+}
+
+TEST_F(BurningAura, HisCapeIsBlownBackAndUpOnlyWhileTheFlameIsUp) {
+    auto cape = std::make_unique<CCloth>(), other = std::make_unique<CCloth>();
+    cape->wind_effect = 0.5f;
+    other->wind_effect = 1.0f;
+    CCloth  *worn[CHARA_CLOTH_MAX] = {cape.get()};
+    CCloth **saved = CharaMain.cloth;
+    CharaMain.cloth = worn;
+    auto blown = [](const CCloth &cloth) {
+        std::array<float, 3> force{};
+        expanded::InfernoCapeWind(cloth, force.data());
+        return force;
+    };
+    Place(50.0f);
+    EXPECT_EQ(blown(*cape), (std::array<float, 3>{}));
+    Acting(13);
+    Steps(expanded::kRisingFlameRise);
+    std::array<float, 3> full{};
+    expanded::CapeWindNow(full.data());
+    std::array<float, 3> on_cape = blown(*cape);
+    for (int c = 0; c < 3; c++) {
+        EXPECT_FLOAT_EQ(on_cape[c], full[c] * 0.5f);
+    }
+    // He faces +z: blown back along -z, and up.
+    EXPECT_LT(on_cape[2], 0.0f);
+    EXPECT_GT(on_cape[1], 0.0f);
+    EXPECT_EQ(blown(*other), (std::array<float, 3>{}));
+    Acting(0);
+    Steps(expanded::kRisingFlameRise);
+    EXPECT_EQ(blown(*cape), (std::array<float, 3>{}));
+    CharaMain.cloth = saved;
 }
 
 TEST_F(BurningAuraWithSatansAx, SatansAxRaisesNoFlame) {
