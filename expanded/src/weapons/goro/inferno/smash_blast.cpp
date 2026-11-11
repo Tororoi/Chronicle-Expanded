@@ -9,6 +9,7 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
+#include "expanded/weapons/goro/last_judgement.hpp"
 #include "itemdata.hpp"
 #include "shot_effect.hpp"
 
@@ -44,7 +45,7 @@ BT_SHOT_EFFECT *SmashBlastEffect() {
     return &blast;
 }
 
-bool SmashBlastAt(const float *at, BlastLook look) {
+bool SmashBlastAt(const float *at, BlastLook look, float size) {
     int index = ShotEffectIndex(look == BlastLook::kPink ? &pink : &blast);
     if (index < 0) {
         std::fprintf(stderr, "inferno: no blast, not loaded on this floor\n");
@@ -55,12 +56,13 @@ bool SmashBlastAt(const float *at, BlastLook look) {
     if (shot < 0) {
         return false;
     }
-    blasts->chara[shot].SetScale(kSmashBlastScale, kSmashBlastScale, kSmashBlastScale);
+    blasts->chara[shot].SetScale(kSmashBlastScale * size, kSmashBlastScale * size, kSmashBlastScale * size);
     return true;
 }
 
 void InfernoImpact(CSHOT_EFFECT &effect, int slot, const float *at) {
-    if (!InfernoWielded() || slot < 0 || slot >= static_cast<int>(std::size(effect.chara)) || !SmashBlastAt(at)) {
+    if (!InfernoWielded() || slot < 0 || slot >= static_cast<int>(std::size(effect.chara)) ||
+        !SmashBlastAt(at, BlastLook::kOrange, JudgementHammerScale())) {
         return;
     }
     effect.chara[slot].SetScale(0.0f, 0.0f, 0.0f);
