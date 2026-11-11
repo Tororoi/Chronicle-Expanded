@@ -178,3 +178,25 @@ TEST_F(GrowingHammerWithGaia, GaiaHammerGrowsToHalfAgain) {
     Guard(true, kGrow);
     EXPECT_FLOAT_EQ(expanded::GrowingHammerScale(), 1.5f);
 }
+
+// The game's charge-complete flash playing, and every one played out.
+static bool Flashing() {
+    float colour[4];
+    return unitAmbientAnime(colour) != 0;
+}
+
+static void FlashDone() {
+    for (int i = 0; i < 1000 && Flashing(); i++) {
+    }
+}
+
+TEST_F(GrowingHammer, ItFlashesAsTheChargeDoesWhenItReachesFullSize) {
+    FlashDone();
+    Guard(true, kGrow - 1);
+    EXPECT_FALSE(Flashing());
+    Guard(true, 1);
+    EXPECT_TRUE(Flashing());
+    FlashDone();
+    Guard(true, 30); // full and kept: once
+    EXPECT_FALSE(Flashing());
+}

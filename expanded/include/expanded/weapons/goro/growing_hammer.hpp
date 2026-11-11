@@ -12,10 +12,11 @@ namespace expanded {
 // Big Bucks Hammer's Growing Hammer, and the hammers it builds up into (Magical Hammer, Gaia Hammer, Last Judgement and
 // the Inferno: kGrowingHammers): while Goro holds the guard with one in hand the hammer grows, evenly, to its full size
 // (the hammer's tier's, kGrowingHammers) over kGrowingHammerGrowFrames; let go before it is full and it shrinks back at
-// the same rate (over as long as it grew). Full, it keeps that size kGrowingHammerFullFrames, then shrinks back as it
-// grew, and grows again only from a fresh hold of the guard. Its size carries his swings' hits out with the hammer's
-// head and widens them, his charge attack's ground impact and that impact's reach with it, and his attack by as much.
-// Super Steve's spheres lend none of it. Times are game frames.
+// the same rate (over as long as it grew). Full (the game's charge-complete flash on the party as it gets there), it
+// keeps that size kGrowingHammerFullFrames, then shrinks back as it grew, and grows again only from a fresh hold of the
+// guard. Its size carries his swings' hits out with the hammer's head and widens them, his charge attack's ground
+// impact and that impact's reach with it, and his attack by as much. Super Steve's spheres lend none of it. Times are
+// game frames.
 struct GrowingHammerTier {
     int   weapon_no;
     float full; // times its own size

@@ -8,6 +8,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/blade_scale.hpp"
+#include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -85,6 +86,9 @@ void GrowingHammerStep() {
     } else if (guarding && !spent) {
         grown_frames = std::min(kGrowingHammerGrowFrames, grown_frames + 1);
         full_frames = 0;
+        if (grown_frames == kGrowingHammerGrowFrames) {
+            ChargeCompleteFlash(); // full
+        }
     } else {
         grown_frames = std::max(0, grown_frames - 1);
         if (grown_frames == 0) {
