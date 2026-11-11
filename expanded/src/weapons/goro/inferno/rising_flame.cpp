@@ -30,7 +30,7 @@ CCharacter *Load() {
         return nullptr;
     }
     model->motion_no = kRisingFlameKey;
-    model->motion_speed = -1.0f; // its cfg's
+    model->motion_speed = kRisingFlameMotionSpeed;
     return model;
 }
 
