@@ -25,9 +25,14 @@ CTexture *Mask() {
     return own != nullptr || !TorchFireReady() ? own : TorchFireTexture("alpha01");
 }
 
+// The mask's middle, where it is solid: drawn over the whole screen, the whole mask would fade the shimmer to nothing
+// toward the screen's edges.
+const CRect_i_ kMaskWhole(0, 0, 64, 64);
+const CRect_i_ kMaskSolid(28, 28, 8, 8);
+
 // The raster over the screen's x by y (in DrawRaster's own units: y in half rows, height in half the rows it covers),
-// swaying by depth.
-void Raster(int x, int y, int width, int height, float depth) {
+// swaying by depth, its strength across it the mask's texels.
+void Raster(int x, int y, int width, int height, float depth, const CRect_i_ &texels = kMaskWhole) {
     CTexture *mask = Mask();
     CTexture *blender = TexManager.GetTexture(const_cast<char *>("blender"), -1);
     if (mask == nullptr || blender == nullptr) {
@@ -35,7 +40,7 @@ void Raster(int x, int y, int width, int height, float depth) {
     }
     sceGsTex0 blend = *reinterpret_cast<sceGsTex0 *>(&blender->tex0);
     blendTextuerTest(Vif1Packet, blend.TBP0, blend.TBW, blend.PSM, CRect_i_(x, y >> 1, width, height), mask,
-                     CRect_i_(0, 0, width, height), CRect_i_(0, 0, 64, 64), depth, phase);
+                     CRect_i_(0, 0, width, height), texels, depth, phase);
     set2DSprite(Vif1Packet, blender, CRect_i_(x, y, width, height * 2), CRect_i_(1, 1, width - 2, height - 2));
 }
 
@@ -92,7 +97,7 @@ void HazeDrawOver(const float *root, float gain, float sway) {
     if (gain <= 0.0f || !Project(root, 0.0f, 1.0f, 1.0f, top_left, bottom_right)) {
         return;
     }
-    Raster(0, 0, 639, SCREEN_HEIGHT / 2, static_cast<float>(top_left[2] >> 4) * sway * gain);
+    Raster(0, 0, 639, SCREEN_HEIGHT / 2, static_cast<float>(top_left[2] >> 4) * sway * gain, kMaskSolid);
 }
 
 float HazePhase() {

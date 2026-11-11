@@ -16,6 +16,7 @@ namespace {
 CCharacter *model = nullptr;
 bool        failed = false; // not tried again until the next floor
 int         risen_frames = 0;
+int         grown_frames = 0; // of kRisingFlameGrow
 
 CCharacter *Load() {
     if (model != nullptr || failed) {
@@ -35,8 +36,9 @@ CCharacter *Load() {
 
 } // namespace
 
-void RisingFlameStep(bool up) {
+void RisingFlameStep(bool up, bool smashing) {
     risen_frames = std::clamp(risen_frames + (up ? 1 : -1), 0, kRisingFlameRise);
+    grown_frames = risen_frames == 0 ? 0 : std::min(kRisingFlameGrow, grown_frames + (smashing ? 1 : 0));
     if (risen_frames > 0 && model != nullptr) {
         model->Step();
     }
@@ -44,6 +46,10 @@ void RisingFlameStep(bool up) {
 
 float RisingFlameRisen() {
     return static_cast<float>(risen_frames) / kRisingFlameRise;
+}
+
+float RisingFlameScale() {
+    return kRisingFlameScale + (kRisingFlameSmashScale - kRisingFlameScale) * static_cast<float>(grown_frames) / kRisingFlameGrow;
 }
 
 void RisingFlameDraw() {
@@ -55,10 +61,11 @@ void RisingFlameDraw() {
     // Its flight is along its z: turned onto -y, head down.
     model->SetPosition(at[0], at[1], at[2]);
     model->SetRotation(HALF_PI, 0.0f, 0.0f);
-    model->SetScale(kRisingFlameScale, kRisingFlameScale, kRisingFlameScale);
+    const float scale = RisingFlameScale();
+    model->SetScale(scale, scale, scale);
     model->frame->SetPosition(at[0], at[1], at[2]);
     model->frame->SetRotation(HALF_PI, 0.0f, 0.0f);
-    model->frame->SetScale(kRisingFlameScale, kRisingFlameScale, kRisingFlameScale);
+    model->frame->SetScale(scale, scale, scale);
     DrawFloorCharacter(*model);
 }
 
@@ -66,6 +73,7 @@ void RisingFlameReset() {
     model = nullptr; // the floor's characters go with it
     failed = false;
     risen_frames = 0;
+    grown_frames = 0;
 }
 
 } // namespace expanded

@@ -76,7 +76,7 @@ void BurningAuraStep() {
     if (!MonstersStepping()) {
         return;
     }
-    RisingFlameStep(Pulling());
+    RisingFlameStep(Pulling(), Pulling() && UnderworldStrength() >= 1.0f);
     if (!Pulling()) {
         pulled_frames = 0;
         red_frames = std::max(0, red_frames - kBurningAuraFogFrames / kBurningAuraFogFade);

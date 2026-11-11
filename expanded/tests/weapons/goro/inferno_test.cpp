@@ -275,6 +275,21 @@ TEST_F(BurningAura, AFlameRisesOverHimAsThePullBeginsAndSinksAfter) {
     EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 0.0f);
 }
 
+TEST_F(BurningAura, TheFlameGrowsAsHisSmashBeginsAndKeepsItsSizeUntilItHasSunk) {
+    Place(50.0f);
+    Acting(13);
+    Steps(expanded::kRisingFlameRise);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameScale(), expanded::kRisingFlameScale);
+    Acting(14);
+    Steps(expanded::kRisingFlameGrow);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameScale(), expanded::kRisingFlameSmashScale);
+    Acting(0);
+    Steps(expanded::kRisingFlameRise - 1);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameScale(), expanded::kRisingFlameSmashScale);
+    Steps(1);
+    EXPECT_FLOAT_EQ(expanded::RisingFlameScale(), expanded::kRisingFlameScale);
+}
+
 TEST_F(BurningAuraWithSatansAx, SatansAxRaisesNoFlame) {
     Place(50.0f);
     Acting(13);
