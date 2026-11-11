@@ -53,8 +53,8 @@ int InfernoAttackElement(int kind, int owner, int element);
 bool InfernoWielded();
 bool InfernoSphere();
 bool InfernoBurning();
-// Whether Satan's Ax's flame is up to burn: the ax in Goro's hand, or its sphere on Super Steve (its rising flame and
-// fireball pellet in pink red, its pellet's blast: inferno/rising_flame.hpp, inferno/fire_shot.hpp; nothing else of the
+// Whether Satan's Ax's flame is up to burn: the ax in Goro's hand, or its sphere on Super Steve (its rising flame, on
+// her while she holds the slingshot drawn, and fireball pellet in pink red, its pellet's blast: inferno/rising_flame.hpp, inferno/fire_shot.hpp; nothing else of the
 // Inferno's).
 bool SatansAxFlame();
 

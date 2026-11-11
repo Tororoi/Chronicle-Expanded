@@ -28,6 +28,8 @@ bool UnderworldShotActive();
 // quarter as strongly: kUnderworldChargeShare).
 bool UnderworldShotInferno();
 bool UnderworldShotDrawn();
+// Whether she holds the slingshot drawn with either sphere.
+bool UnderworldShotHolding();
 
 // The charged pellets let go so far, counting each as it is let go.
 int UnderworldShotsFired();

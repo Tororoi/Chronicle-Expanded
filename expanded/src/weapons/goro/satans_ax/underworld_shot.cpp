@@ -46,6 +46,10 @@ bool UnderworldShotDrawn() {
     return UnderworldShotInferno() && draw.Holding();
 }
 
+bool UnderworldShotHolding() {
+    return UnderworldShotActive() && draw.Holding();
+}
+
 int UnderworldShotsFired() {
     return fired;
 }

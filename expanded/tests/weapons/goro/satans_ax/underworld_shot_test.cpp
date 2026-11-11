@@ -423,3 +423,22 @@ TEST_F(UnderworldShot, SatansAxsChargedShotKeepsTheSelectedElement) {
     HoldAndFire(expanded::kUnderworldShotFrames);
     EXPECT_EQ(Planted(5).flags, 0);
 }
+
+TEST_F(UnderworldShot, HerPinkFlameRisesWhileDrawnThenFlaresAndDiesDownAsSheFires) {
+    BtActStatus.action_on = 1;
+    BtActStatus.action_no = 12;
+    for (int frame = 0; frame < expanded::kRisingFlameRise; frame++) {
+        expanded::UnderworldShotStep();
+        expanded::BurningAuraStep();
+    }
+    EXPECT_FLOAT_EQ(expanded::UnderworldStrength(), 0.0f); // Satan's Ax's hold does not pull
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 1.0f);
+    BtActStatus.action_on = 0;
+    expanded::UnderworldShotStep();
+    expanded::PelletFired(*shots_, 3);
+    for (int frame = 0; frame < expanded::kRisingFlameFlare + expanded::kRisingFlameFade; frame++) {
+        expanded::UnderworldShotStep();
+        expanded::BurningAuraStep();
+    }
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 0.0f);
+}

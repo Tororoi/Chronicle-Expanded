@@ -120,11 +120,20 @@ void BurningAuraStep() {
             RisingFlameFired();
         }
         RisingFlameStep(UnderworldShotDrawn(), false, FireShotsFlying());
-    } else if (SatansAxFlame()) {
-        // Satan's Ax's pink red: around Goro as his pull is on, or on her pellets with its sphere.
+    } else if (SatansAxFlame() && UnderworldShotActive()) {
+        // Satan's Ax's pink red on her as on the Inferno's sphere: rising while she holds the slingshot drawn, flaring
+        // and dying down as a charged pellet leaves it.
         RisingFlameLookAs(FlameLook::kPink);
-        bool pulling = Playing(CHARA_GORO) && UnderworldStrength() > 0.0f;
-        RisingFlameStep(pulling, pulling && UnderworldStrength() >= 1.0f, FireShotsFlying());
+        if (UnderworldShotsFired() != shots_seen) {
+            shots_seen = UnderworldShotsFired();
+            RisingFlameFired();
+        }
+        RisingFlameStep(UnderworldShotHolding(), false, FireShotsFlying());
+    } else if (SatansAxFlame()) {
+        // Satan's Ax's pink red around Goro as his pull is on.
+        RisingFlameLookAs(FlameLook::kPink);
+        bool pulling = UnderworldStrength() > 0.0f;
+        RisingFlameStep(pulling, pulling && UnderworldStrength() >= 1.0f);
     } else {
         RisingFlameLookAs(FlameLook::kOrange);
         RisingFlameStep(Pulling(), Pulling() && UnderworldStrength() >= 1.0f);
