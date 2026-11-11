@@ -8,8 +8,9 @@ struct COLLISION_HIT;
 
 namespace expanded {
 
-// The Inferno, in Goro's hand: Satan's Ax's Pull of the Underworld (satans_ax.hpp) and its sparks, half of the ground's
-// starting up to twice his height and those off the ground coming in lower (satans_ax/underworld_sparks.hpp), and:
+// The Inferno, in Goro's hand: Satan's Ax's Pull of the Underworld (satans_ax.hpp) and its sparks, orange red, half of
+// the ground's starting up to twice his height and those off the ground coming in lower (satans_ax/underworld_sparks.hpp),
+// and:
 //
 // Fireproof: a monster's fire hit (its fire element bit) passes him by.
 //

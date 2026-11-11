@@ -2,22 +2,22 @@
 
 namespace expanded {
 
-// Pull of the Underworld's sparks (satans_ax.hpp): while the pull is on, the pink hit spark (basefx00's first cell)
-// lies on the ground around what it draws to (Goro, or Xiao's charged pellet: UnderworldCentre, "him" below),
-// kSparkNear to kSparkFar from him, and is drawn straight in toward him (rising to the pellet as it comes), starting at
-// kSparkCreep a frame and gaining kSparkAccel a frame each frame times the pull's strength (steadily, wherever it is).
-// kSparkHoldPerFrame start a frame while he holds the charge, and kSparkSmashPerFrame, eight times as many, once he
-// lets it go and the pull is at its strongest. With the Inferno, every other one starts instead at a height between the
-// ground and kInfernoSparkTop times his height (CharaHeight above his feet), and it and every body's spark head for the
-// height on him their own maps to (InfernoSparkHeight). Each starts unseen and fades in over its first kSparkFadeIn
-// units drawn in, twinkles, shrinks and fades as it comes within kSparkNear of him (each fade no more than a quarter of
-// its way in), and fades over its last kSparkFadeOut frames; when the pull ends they gain no more and fade as they
-// come. Each monster the pull draws gives off sparks of its own too, kBodySparkPerFrame a frame times the pull's
-// strength, from anywhere on it (one of its meshes' vertices as it stands, or failing those inside its frames' bounds
-// or its hurt spheres), drawn in as the ground's are but gaining kBodySparkAccel a frame each frame (soon far faster
-// than the monster it left), straight through the air toward the height on his body nearest the one each started at
-// (his feet to CharaHeight above them; the pellet's own). One starting inside the monster is hidden by it until it
-// leaves.
+// Pull of the Underworld's sparks (satans_ax.hpp): while the pull is on, the pink hit spark (basefx00's first cell;
+// orange red with the Inferno: kInfernoSparkTint) lies on the ground around what it draws to (Goro, or Xiao's charged
+// pellet: UnderworldCentre, "him" below), kSparkNear to kSparkFar from him, and is drawn straight in toward him (rising
+// to the pellet as it comes), starting at kSparkCreep a frame and gaining kSparkAccel a frame each frame times the
+// pull's strength (steadily, wherever it is). kSparkHoldPerFrame start a frame while he holds the charge, and
+// kSparkSmashPerFrame, eight times as many, once he lets it go and the pull is at its strongest. With the Inferno,
+// every other one starts instead at a height between the ground and kInfernoSparkTop times his height (CharaHeight
+// above his feet), and it and every body's spark head for the height on him their own maps to (InfernoSparkHeight).
+// Each starts unseen and fades in over its first kSparkFadeIn units drawn in, twinkles, shrinks and fades as it comes
+// within kSparkNear of him (each fade no more than a quarter of its way in), and fades over its last kSparkFadeOut
+// frames; when the pull ends they gain no more and fade as they come. Each monster the pull draws gives off sparks of
+// its own too, kBodySparkPerFrame a frame times the pull's strength, from anywhere on it (one of its meshes' vertices
+// as it stands, or failing those inside its frames' bounds or its hurt spheres), drawn in as the ground's are but
+// gaining kBodySparkAccel a frame each frame (soon far faster than the monster it left), straight through the air
+// toward the height on his body nearest the one each started at (his feet to CharaHeight above them; the pellet's own).
+// One starting inside the monster is hidden by it until it leaves.
 inline constexpr int   kSparkCount = 384;
 inline constexpr float kBodySparkPerFrame = 0.25f;
 inline constexpr float kBodySparkAccel = 0.4f;
@@ -35,6 +35,9 @@ inline constexpr float kSparkLift = 1.0f;          // above the ground
 inline constexpr float kSparkSize = 1.2f;          // away from him (a hit's sparks are 0.1 to 1.3)
 inline constexpr float kInfernoSparkTop = 2.0f;    // times his height
 inline constexpr float kInfernoSparkBelow = 0.75f; // of its own height, within his
+// The Inferno's spark colour, times the pink spark's (0x80 its own): its red kept, its green doubled, its blue all but
+// gone, for an orange red glow round a yellow white core.
+inline constexpr unsigned char kInfernoSparkTint[3] = {0x80, 0xFF, 0x10};
 
 // The height on him, above his feet, the Inferno's spark starting rise above them heads for, him top tall: within his
 // height kInfernoSparkBelow of its own; above it, from kInfernoSparkBelow of his height up to his height at

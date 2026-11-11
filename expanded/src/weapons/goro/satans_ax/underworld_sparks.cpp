@@ -321,6 +321,8 @@ void UnderworldSparksDraw() {
     alpha.bits.c = 0;
     alpha.bits.d = 1;
     services.set_alpha(&alpha);
+    const spRGBA tint = InfernoWielded() ? spRGBA{.r = kInfernoSparkTint[0], .g = kInfernoSparkTint[1], .b = kInfernoSparkTint[2], .a = 0}
+                                         : spRGBA{.r = 0x80, .g = 0x80, .b = 0x80, .a = 0};
     for (Spark &spark : sparks) {
         int opacity = spark.live ? Alpha(spark) : 0;
         if (opacity <= 0) {
@@ -337,8 +339,9 @@ void UnderworldSparksDraw() {
         std::array<int, 4> top_right = {bottom_right[0], top_left[1], top_left[2], top_left[3]};
         std::array<int, 4> bottom_left = {top_left[0], bottom_right[1], bottom_right[2], bottom_right[3]};
         float              twinkle = 0.75f + 0.25f * std::sin(spark.twinkle + 0.4f * static_cast<float>(spark.age));
-        set3DSprite(Vif1Packet, texture, CRect_i_(0, 0, 0x10, 0x10), top_left.data(), top_right.data(), bottom_left.data(), bottom_right.data(),
-                    static_cast<unsigned char>(static_cast<float>(opacity) * twinkle));
+        spRGBA             colour = tint;
+        colour.a = static_cast<unsigned char>(static_cast<float>(opacity) * twinkle);
+        set3DSprite(Vif1Packet, texture, CRect_i_(0, 0, 0x10, 0x10), top_left.data(), top_right.data(), bottom_left.data(), bottom_right.data(), &colour);
     }
     services.set_zbuf(nullptr);
     services.set_alpha(nullptr);
