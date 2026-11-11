@@ -1,4 +1,4 @@
-#include "expanded/weapons/goro/last_judgement.hpp"
+#include "expanded/weapons/goro/growing_hammer.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -19,7 +19,7 @@ namespace expanded {
 
 namespace {
 
-int                 grown_frames = 0; // of kJudgementGrowFrames
+int                 grown_frames = 0; // of kGrowingHammerGrowFrames
 float               scale = 1.0f;
 int                 full_frames = 0; // at its full size
 bool                spent = false;   // its full size run out: no growing until the guard is let go
@@ -28,29 +28,41 @@ const CSHOT_EFFECT *impact = nullptr;
 int                 impact_slot = -1;
 float               impact_scale = 1.0f; // the hammer's as it landed
 
-[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(JudgementHammerReset), true);
+[[maybe_unused]] const bool kListening = (AddEnemyFloorListener(GrowingHammerReset), true);
 
 } // namespace
 
-bool JudgementHammerWielded() {
-    return Playing(CHARA_GORO) && NowWeapon == &MainWeapon && (WeaponWielded(ITEM_WEAPON_LAST_JUDGEMENT) || WeaponWielded(ITEM_WEAPON_INFERNO));
+float GrowingHammerFull() {
+    if (!Playing(CHARA_GORO) || NowWeapon != &MainWeapon) {
+        return 1.0f;
+    }
+    for (const GrowingHammerTier &tier : kGrowingHammers) {
+        if (WeaponWielded(tier.weapon_no)) {
+            return tier.full;
+        }
+    }
+    return 1.0f;
 }
 
-float JudgementHammerScale() {
-    return JudgementHammerWielded() ? scale : 1.0f;
+bool GrowingHammerWielded() {
+    return GrowingHammerFull() > 1.0f;
 }
 
-int JudgementHammerAttack(int attack) {
-    float times = 1.0f + (kJudgementGrownAttack - 1.0f) * (JudgementHammerScale() - 1.0f) / (kJudgementGrownScale - 1.0f);
+float GrowingHammerScale() {
+    return GrowingHammerWielded() ? scale : 1.0f;
+}
+
+int GrowingHammerAttack(int attack) {
+    float times = GrowingHammerScale(); // its size, its strength
     return static_cast<int>(std::lround(static_cast<float>(attack) * times));
 }
 
-float JudgementHammerHitRadius(float radius) {
-    return radius * JudgementHammerScale();
+float GrowingHammerHitRadius(float radius) {
+    return radius * GrowingHammerScale();
 }
 
-void JudgementHammerStep() {
-    if (!JudgementHammerWielded()) {
+void GrowingHammerStep() {
+    if (!GrowingHammerWielded()) {
         // Out of his hand, it is its own size again.
         grown_frames = 0;
         scale = 1.0f;
@@ -66,12 +78,12 @@ void JudgementHammerStep() {
     if (!guarding) {
         spent = false;
     }
-    if (grown_frames >= kJudgementGrowFrames && full_frames < kJudgementFullFrames) {
-        if (++full_frames >= kJudgementFullFrames) {
+    if (grown_frames >= kGrowingHammerGrowFrames && full_frames < kGrowingHammerFullFrames) {
+        if (++full_frames >= kGrowingHammerFullFrames) {
             spent = true;
         }
     } else if (guarding && !spent) {
-        grown_frames = std::min(kJudgementGrowFrames, grown_frames + 1);
+        grown_frames = std::min(kGrowingHammerGrowFrames, grown_frames + 1);
         full_frames = 0;
     } else {
         grown_frames = std::max(0, grown_frames - 1);
@@ -79,13 +91,13 @@ void JudgementHammerStep() {
             full_frames = 0;
         }
     }
-    scale = 1.0f + (kJudgementGrownScale - 1.0f) * static_cast<float>(grown_frames) / kJudgementGrowFrames;
+    scale = 1.0f + (GrowingHammerFull() - 1.0f) * static_cast<float>(grown_frames) / kGrowingHammerGrowFrames;
     ScaleSwordInHand(scale);
     shown = scale != 1.0f;
 }
 
-void JudgementHammerImpact(CSHOT_EFFECT &effect, int slot) {
-    if (!JudgementHammerWielded() || slot < 0 || slot >= static_cast<int>(std::size(effect.chara))) {
+void GrowingHammerImpact(CSHOT_EFFECT &effect, int slot) {
+    if (!GrowingHammerWielded() || slot < 0 || slot >= static_cast<int>(std::size(effect.chara))) {
         return;
     }
     if (!InfernoWielded()) { // the Inferno's own impact is hidden behind its blast, which takes the size instead
@@ -96,7 +108,7 @@ void JudgementHammerImpact(CSHOT_EFFECT &effect, int slot) {
     impact_scale = scale;
 }
 
-void JudgementHammerHitSet(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
+void GrowingHammerHitSet(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
     if (&effect == impact && slot == impact_slot) {
         hit.radius *= impact_scale;
         if (effect.active[slot] == 0) {
@@ -106,7 +118,7 @@ void JudgementHammerHitSet(const CSHOT_EFFECT &effect, int slot, COLLISION_HIT &
     }
 }
 
-void JudgementHammerReset() {
+void GrowingHammerReset() {
     grown_frames = 0;
     scale = 1.0f;
     full_frames = 0;

@@ -26,7 +26,7 @@ enum class BlastLook {
     kOrange,
     kPink,
 };
-// size times its own (the hammer's grown size: goro/last_judgement.hpp).
+// size times its own (the hammer's grown size: goro/growing_hammer.hpp).
 bool SmashBlastAt(const float *at, BlastLook look = BlastLook::kOrange, float size = 1.0f);
 
 // Hook: his charge attack's impact set in slot of effect at at (GoroKey_Play); with the Inferno, the blast there.
