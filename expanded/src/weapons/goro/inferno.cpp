@@ -91,6 +91,10 @@ bool InfernoWielded() {
     return Playing(CHARA_GORO) && WeaponWielded(ITEM_WEAPON_INFERNO);
 }
 
+int InfernoAttackElement(int kind, int owner, int element) {
+    return kind == 1 && owner == 2 && InfernoWielded() ? WEAPON_ELEMENT_FIRE : element;
+}
+
 bool InfernoSphere() {
     return UnderworldShotInferno();
 }

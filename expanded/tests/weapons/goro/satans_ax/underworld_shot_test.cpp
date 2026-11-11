@@ -20,9 +20,11 @@
 #include "expanded/weapons/goro/satans_ax/underworld_tint.hpp"
 #include "itemdata.hpp"
 #include "monstorunit.hpp"
+#include "motionmodel.hpp"
 #include "shot_effect.hpp"
 #include "test_support.hpp"
 #include "userstatus.hpp"
+#include "weaponelement.hpp"
 
 using expanded::Monster;
 
@@ -383,4 +385,20 @@ TEST_F(InfernoShot, ItsEndBlastIsASecondHitOnAMonsterItWentThrough) {
         }
     }
     EXPECT_GT(blasts, 0);
+}
+
+TEST_F(InfernoShot, ItsChargedShotHitsWithFireItsOtherShotsWithTheSelectedElement) {
+    Hold(10);
+    Fire(); // not charged
+    COLLISION_HIT &plain = Planted(5);
+    EXPECT_EQ(plain.flags, 0); // left to the game's selected element
+    shots_->used[3] = 1;
+    Hold(expanded::kUnderworldShotFrames);
+    Fire();
+    EXPECT_EQ(Planted(6).flags, GetWeaponElementAttr(WEAPON_ELEMENT_FIRE));
+}
+
+TEST_F(UnderworldShot, SatansAxsChargedShotKeepsTheSelectedElement) {
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    EXPECT_EQ(Planted(5).flags, 0);
 }

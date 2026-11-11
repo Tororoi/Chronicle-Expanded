@@ -4,12 +4,14 @@
 #include <cmath>
 
 #include "character.hpp"
+#include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/weapons/blast.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/goro/inferno/rising_flame.hpp"
 #include "expanded/weapons/goro/inferno/smash_blast.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
+#include "motionmodel.hpp"
 #include "shot_effect.hpp"
 #include "snd.hpp"
 #include "weaponelement.hpp"
@@ -26,6 +28,12 @@ bool FireShotsFlying() {
 
 bool FireShotHidden(const CSHOT &shots, int slot) {
     return InfernoSphere() && UnderworldShotPierces(shots, slot);
+}
+
+void FireShotHit(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
+    if (FireShotHidden(shots, slot)) {
+        hit.flags = GetWeaponElementAttr(WEAPON_ELEMENT_FIRE);
+    }
 }
 
 void FireShotsDraw() {

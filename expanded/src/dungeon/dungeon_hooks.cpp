@@ -433,6 +433,7 @@ void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
 void PelletHitSet(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     ChargingBullHit(shots, slot, hit);
     UnderworldShotHit(shots, slot, hit);
+    FireShotHit(shots, slot, hit);
     PumpedUpPelletHit(hit);
 }
 
