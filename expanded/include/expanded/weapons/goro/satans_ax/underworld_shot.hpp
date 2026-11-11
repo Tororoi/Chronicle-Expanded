@@ -15,7 +15,7 @@ namespace expanded {
 // through), until their bodies reach it, and its sparks stream in to it. It goes on through the monsters it meets,
 // hitting each once, until a wall or its life ends it. Times are game frames.
 inline constexpr int   kUnderworldShotFrames = 60;
-inline constexpr float kUnderworldShotSpeed = 0.25f;
+inline constexpr float kUnderworldShotSpeed = 0.5f;
 inline constexpr float kUnderworldShotLife = 2.0f;
 inline constexpr float kUnderworldShotPull = 0.5f;
 inline constexpr float kUnderworldStruckPull = 3.0f;

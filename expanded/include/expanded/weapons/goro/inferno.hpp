@@ -54,8 +54,9 @@ bool InfernoWielded();
 bool InfernoSphere();
 bool InfernoBurning();
 // Whether Satan's Ax's flame is up to burn: the ax in Goro's hand, or its sphere on Super Steve (its rising flame, on
-// her while she holds the slingshot drawn, and fireball pellet in pink red, its pellet's blast: inferno/rising_flame.hpp, inferno/fire_shot.hpp; nothing else of the
-// Inferno's).
+// her while she holds the slingshot drawn, and fireball pellet in pink red, its pellet's blast:
+// inferno/rising_flame.hpp, inferno/fire_shot.hpp; nothing else of the Inferno's but his cape's flap:
+// inferno/cape_flap.hpp).
 bool SatansAxFlame();
 
 // One dungeon step: the pull's time counted, the aura's hits planted on the second, the fog reddened or faded.

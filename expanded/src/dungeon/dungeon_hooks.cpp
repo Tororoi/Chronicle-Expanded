@@ -473,7 +473,7 @@ bool MonsterHitRefused(const CMonstorUnit &unit, int monster, const COLLISION_HI
         return pocklekul::PockleRefuses(hit);
     }
     return pocklekul::PockleHitMeantElsewhere(monster, hit) || DragonShotRefused(monster, hit) || UnderworldShotRefused(monster, hit) ||
-           ColdStorageHitRefused(hit);
+           BlastAimedElsewhere(monster, hit) || ColdStorageHitRefused(hit);
 }
 
 void MonsterHitTaken(CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {

@@ -11,7 +11,9 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/goro/inferno/rising_flame.hpp"
+#include "expanded/weapons/player_state.hpp"
 #include "frame.hpp"
+#include "userstatus.hpp"
 
 namespace expanded {
 
@@ -135,7 +137,8 @@ float CapeFlapSwing(int b, int hang) {
 
 void CapeFlapStep() {
     float risen = RisingFlameRisen();
-    if (risen <= 0.0f || !InfernoWielded() || CharaMain.cloth == nullptr) {
+    bool  his = InfernoWielded() || (Playing(CHARA_GORO) && SatansAxFlame()); // the Inferno's or Satan's Ax's, on Goro
+    if (risen <= 0.0f || !his || CharaMain.cloth == nullptr) {
         if (blown) {
             PutBack();
         }

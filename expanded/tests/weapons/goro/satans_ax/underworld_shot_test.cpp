@@ -156,7 +156,7 @@ protected:
 
 } // namespace
 
-TEST_F(UnderworldShot, AChargedShotFliesTwiceAsLargeAtAQuarterSpeedForTwiceAsLong) {
+TEST_F(UnderworldShot, AChargedShotFliesTwiceAsLargeAtHalfSpeedForTwiceAsLong) {
     HoldAndFire(expanded::kUnderworldShotFrames);
     EXPECT_FLOAT_EQ(shots_->vector[3][0], 5.0f * expanded::kUnderworldShotSpeed);
     EXPECT_EQ(shots_->life[3], static_cast<int>(120 * expanded::kUnderworldShotLife));
@@ -441,4 +441,16 @@ TEST_F(UnderworldShot, HerPinkFlameRisesWhileDrawnThenFlaresAndDiesDownAsSheFire
         expanded::BurningAuraStep();
     }
     EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 0.0f);
+}
+
+TEST_F(UnderworldShot, ItsLastHitAsItEndsLeavesWhatItHitAlone) {
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    EXPECT_FALSE(expanded::UnderworldShotRefused(0, Planted(5)));
+    COLLISION_HIT &last = Planted(6); // the step it ends in: its hit set, then it is gone
+    NowColData->active[6] = 1;
+    float point[3] = {110.0f, 10.0f, 0.0f};
+    expanded::PelletEnded(*shots_, 3, point, false);
+    EXPECT_TRUE(expanded::UnderworldShotRefused(0, last));
+    EXPECT_FALSE(expanded::UnderworldShotRefused(1, last)); // one it had not hit takes it
+    EXPECT_TRUE(expanded::UnderworldShotRefused(1, last));
 }

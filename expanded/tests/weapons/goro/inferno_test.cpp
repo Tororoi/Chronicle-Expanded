@@ -407,6 +407,30 @@ TEST_F(BurningAuraWithSatansAx, SatansAxsChargeHitsWithTheSelectedElement) {
     EXPECT_EQ(expanded::InfernoAttackElement(1, 2, WEAPON_ELEMENT_THUNDER), WEAPON_ELEMENT_THUNDER);
 }
 
+TEST_F(BurningAuraWithSatansAx, SatansAxFlapsHisCapeToo) {
+    auto cape = std::make_unique<CCloth>();
+    cape->num_i = 3;
+    cape->num_j = 8;
+    cape->frame = nullptr;
+    for (int a = 0; a < 3; a++) {
+        for (int b = 0; b < 8; b++) {
+            cape->home[a][b][0] = static_cast<float>(a) * 2.0f;
+            cape->home[a][b][1] = -static_cast<float>(b) * 1.5f;
+            cape->home[a][b][2] = 0.0f;
+        }
+    }
+    CCloth  *worn[CHARA_CLOTH_MAX] = {cape.get()};
+    CCloth **saved = CharaMain.cloth;
+    CharaMain.cloth = worn;
+    Place(50.0f);
+    Acting(13);
+    for (int i = 0; i < expanded::kRisingFlameRise; i++) {
+        Steps(1);
+    }
+    EXPECT_GT(cape->home[1][7][1], -10.5f + 1.0f);
+    CharaMain.cloth = saved;
+}
+
 TEST_F(BurningAuraWithSatansAx, SatansAxRaisesTheFlameTooItsPull) {
     Place(50.0f);
     EXPECT_TRUE(expanded::SatansAxFlame());

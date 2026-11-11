@@ -77,6 +77,20 @@ TEST(Blast, IsElementlessThrowsAwayAndPassesGuards) {
     EXPECT_FALSE(expanded::MonsterGuardBlocks(floor.floor.unit(), 0, 0, hit));
 }
 
+TEST(Blast, EachMonsterTakesItsOwnHitNotANeighboursWhereTheyOverlap) {
+    Floor floor({5.0f, 8.0f}); // their hits (10 across) overlap
+    EXPECT_EQ(expanded::PlantBlast(floor.floor.unit(), kOrigin, 10), 2);
+    CMonstorUnit &unit = floor.floor.unit();
+    EXPECT_FALSE(expanded::MonsterHitRefused(unit, 0, floor.hits->hit[0]));
+    EXPECT_TRUE(expanded::MonsterHitRefused(unit, 1, floor.hits->hit[0]));
+    EXPECT_FALSE(expanded::MonsterHitRefused(unit, 1, floor.hits->hit[1]));
+    EXPECT_TRUE(expanded::MonsterHitRefused(unit, 0, floor.hits->hit[1]));
+    COLLISION_HIT other = floor.hits->hit[0];
+    other.pos[0] += 1.0f; // a record let go of and set again elsewhere
+    floor.hits->hit[0] = other;
+    EXPECT_FALSE(expanded::MonsterHitRefused(unit, 1, floor.hits->hit[0]));
+}
+
 TEST(Blast, AGuardStopsAGuardableOne) {
     Floor                  floor({5.0f});
     expanded::BlastOptions options;
