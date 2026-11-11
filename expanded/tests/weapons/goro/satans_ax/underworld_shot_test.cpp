@@ -156,7 +156,7 @@ protected:
 
 } // namespace
 
-TEST_F(UnderworldShot, AChargedShotFliesTwiceAsLargeAtAQuarterSpeedForTwiceAsLong) {
+TEST_F(UnderworldShot, AChargedShotFliesTwiceAsLargeAtHalfSpeedForTwiceAsLong) {
     HoldAndFire(expanded::kUnderworldShotFrames);
     EXPECT_FLOAT_EQ(shots_->vector[3][0], 5.0f * expanded::kUnderworldShotSpeed);
     EXPECT_EQ(shots_->life[3], static_cast<int>(120 * expanded::kUnderworldShotLife));
@@ -315,9 +315,30 @@ TEST_F(InfernoShot, ItsChargedShotIsTheFireballInPlaceOfThePellet) {
     EXPECT_TRUE(expanded::FireShotsFlying());
 }
 
-TEST_F(UnderworldShot, SatansAxsChargedShotKeepsItsPellet) {
+TEST_F(UnderworldShot, SatansAxsChargedShotIsItsFireballToo) {
     HoldAndFire(expanded::kUnderworldShotFrames);
-    EXPECT_FALSE(expanded::PelletHidden(*shots_, 3));
+    EXPECT_TRUE(expanded::PelletHidden(*shots_, 3));
+    EXPECT_TRUE(expanded::FireShotsFlying());
+}
+
+TEST_F(UnderworldShot, SatansAxsShotEndsInABlastFourteenUnitsAroundInTheSelectedElement) {
+    Place(0, 112.0f, 0.0f); // 12 from where it ends
+    Place(1, 118.0f, 0.0f); // 18 from it
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    const float end[3] = {100.0f, 0.0f, 0.0f};
+    expanded::PelletEnded(*shots_, 3, end, false);
+    int near = 0, far = 0;
+    for (int i = 0; i < static_cast<int>(sizeof(NowColData->hit) / sizeof(NowColData->hit[0])); i++) {
+        if (NowColData->active[i] == 0) {
+            continue;
+        }
+        const COLLISION_HIT &hit = NowColData->hit[i];
+        EXPECT_EQ(hit.damage, 40);
+        EXPECT_EQ(hit.flags, GetWeaponElementAttr(NowWeaponHave->best_elem));
+        (std::hypot(hit.pos[0] - 112.0f, hit.pos[2]) < 4.0f ? near : far)++;
+    }
+    EXPECT_GT(near, 0);
+    EXPECT_EQ(far, 0);
 }
 
 TEST_F(InfernoShot, XiaoIsFireproof) {
@@ -401,4 +422,35 @@ TEST_F(InfernoShot, ItsChargedShotHitsWithFireItsOtherShotsWithTheSelectedElemen
 TEST_F(UnderworldShot, SatansAxsChargedShotKeepsTheSelectedElement) {
     HoldAndFire(expanded::kUnderworldShotFrames);
     EXPECT_EQ(Planted(5).flags, 0);
+}
+
+TEST_F(UnderworldShot, HerPinkFlameRisesWhileDrawnThenFlaresAndDiesDownAsSheFires) {
+    BtActStatus.action_on = 1;
+    BtActStatus.action_no = 12;
+    for (int frame = 0; frame < expanded::kRisingFlameRise; frame++) {
+        expanded::UnderworldShotStep();
+        expanded::BurningAuraStep();
+    }
+    EXPECT_FLOAT_EQ(expanded::UnderworldStrength(), 0.0f); // Satan's Ax's hold does not pull
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 1.0f);
+    BtActStatus.action_on = 0;
+    expanded::UnderworldShotStep();
+    expanded::PelletFired(*shots_, 3);
+    for (int frame = 0; frame < expanded::kRisingFlameFlare + expanded::kRisingFlameFade; frame++) {
+        expanded::UnderworldShotStep();
+        expanded::BurningAuraStep();
+    }
+    EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 0.0f);
+}
+
+TEST_F(UnderworldShot, ItsLastHitAsItEndsLeavesWhatItHitAlone) {
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    EXPECT_FALSE(expanded::UnderworldShotRefused(0, Planted(5)));
+    COLLISION_HIT &last = Planted(6); // the step it ends in: its hit set, then it is gone
+    NowColData->active[6] = 1;
+    float point[3] = {110.0f, 10.0f, 0.0f};
+    expanded::PelletEnded(*shots_, 3, point, false);
+    EXPECT_TRUE(expanded::UnderworldShotRefused(0, last));
+    EXPECT_FALSE(expanded::UnderworldShotRefused(1, last)); // one it had not hit takes it
+    EXPECT_TRUE(expanded::UnderworldShotRefused(1, last));
 }

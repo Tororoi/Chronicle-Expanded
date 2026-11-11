@@ -1,6 +1,9 @@
 #include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <iterator>
+#include <optional>
 
 #include "character.hpp"
 #include "collisiondata.hpp"
@@ -29,6 +32,10 @@ ShotCharge          draw{kUnderworldShotFrames}; // the slingshot drawn and held
 PelletSlots<Flight> flying;
 int                 fired = 0;
 int                 planted[kHitRecords] = {}; // the slot each marked hit record was planted by
+// A pellet's hits still in play once it has ended (it plants one the step it ends): the monsters it had hit, so they
+// take none of them again.
+bool left[kHitRecords] = {};
+u32  left_struck[kHitRecords] = {};
 
 [[maybe_unused]] const bool kListening = (AddEnemyFloorListener(UnderworldShotReset), true);
 
@@ -44,6 +51,10 @@ bool UnderworldShotInferno() {
 
 bool UnderworldShotDrawn() {
     return UnderworldShotInferno() && draw.Holding();
+}
+
+bool UnderworldShotHolding() {
+    return UnderworldShotActive() && draw.Holding();
 }
 
 int UnderworldShotsFired() {
@@ -113,10 +124,20 @@ void UnderworldShotHit(const CSHOT &shots, int slot, COLLISION_HIT &hit) {
     }
     hit.weapon_flags |= kUnderworldShotMark;
     planted[record] = slot;
+    left[record] = false;
 }
 
 void UnderworldShotEnded(const CSHOT &shots, int slot) {
-    flying.Take(shots, slot);
+    std::optional<Flight> ended = flying.Take(shots, slot);
+    if (!ended || NowColData == nullptr) {
+        return;
+    }
+    for (int record = 0; record < kHitRecords; record++) {
+        if (planted[record] == slot && NowColData->active[record] != 0 && (NowColData->hit[record].weapon_flags & kUnderworldShotMark) != 0) {
+            left[record] = true;
+            left_struck[record] = ended->struck;
+        }
+    }
 }
 
 bool UnderworldShotPierces(const CSHOT &shots, int slot) {
@@ -128,15 +149,17 @@ bool UnderworldShotRefused(int monster, const COLLISION_HIT &hit) {
     if ((hit.weapon_flags & kUnderworldShotMark) == 0 || record < 0 || record >= kHitRecords || monster < 0 || monster >= 32) {
         return false;
     }
-    Flight *flight = flying.InSlot(planted[record]);
-    if (flight == nullptr) {
+    Flight *flight = left[record] ? nullptr : flying.InSlot(planted[record]);
+    u32    *struck = flight != nullptr ? &flight->struck : left[record] ? &left_struck[record]
+                                                                        : nullptr;
+    if (struck == nullptr) {
         return false;
     }
     u32 bit = 1u << monster;
-    if ((flight->struck & bit) != 0) {
+    if ((*struck & bit) != 0) {
         return true;
     }
-    flight->struck |= bit;
+    *struck |= bit;
     return false;
 }
 
@@ -154,6 +177,7 @@ bool UnderworldShotStruck(int monster) {
 }
 
 void UnderworldShotReset() {
+    std::fill(std::begin(left), std::end(left), false);
     draw.Reset();
     flying.Clear();
     fired = 0;

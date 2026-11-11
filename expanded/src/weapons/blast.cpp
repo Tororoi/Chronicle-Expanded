@@ -25,6 +25,14 @@ namespace expanded {
 
 namespace {
 
+// The monster each blast record was planted on, and where (a record the blast has since let go of is somewhere else).
+struct Aimed {
+    int   monster = -1;
+    float at[3] = {};
+};
+
+Aimed aimed[kHitRecords];
+
 // The game's own rumbles on the big motor, as BtCheckDamageProc gives the player: a knockdown blow, and a lighter hit.
 constexpr int kRumbleMotor = 1;
 constexpr int kKnockdownStrength = 0xE6;
@@ -99,6 +107,11 @@ int PlantBlast(CMonstorUnit &unit, const float *point, int attack, const BlastOp
         centre[1] += unit.chara[monster][0].body_height * 0.5f;
         int            damage = std::max(1, static_cast<int>(std::lround(attack * times * options.damage)));
         COLLISION_HIT &record = *PlantWeaponHit(centre, damage, kBlastHitLife, std::max(10.0f, unit.chara[monster][0].body_height));
+        if (int index = static_cast<int>(&record - NowColData->hit); index >= 0 && index < kHitRecords) {
+            aimed[index] = {
+                monster, {record.pos[0], record.pos[1], record.pos[2]}
+            };
+        }
         if (!options.guardable) {
             record.weapon_flags |= kBlastMark;
         }
@@ -179,6 +192,16 @@ bool ExplosionAt(const float *point, float scale, float ring, BlastSound sound) 
         return true;
     }
     return false;
+}
+
+bool BlastAimedElsewhere(int monster, const COLLISION_HIT &hit) {
+    int index = NowColData != nullptr ? static_cast<int>(&hit - NowColData->hit) : -1;
+    if (index < 0 || index >= kHitRecords || aimed[index].monster < 0) {
+        return false;
+    }
+    const Aimed &record = aimed[index];
+    bool         same = record.at[0] == hit.pos[0] && record.at[1] == hit.pos[1] && record.at[2] == hit.pos[2];
+    return same && record.monster != monster;
 }
 
 bool BlastHit(const COLLISION_HIT &hit) {

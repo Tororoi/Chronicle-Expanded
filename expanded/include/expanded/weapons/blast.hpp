@@ -35,13 +35,13 @@ inline constexpr float kBlastCentred = 1.0f;
 inline constexpr int kBlastThrowFrames = static_cast<int>(kBlastKick.speed / kBlastKick.decay) + 1;
 
 struct BlastOptions {
-    float damage = 1.0f; // of the steps
-    float reach = 1.0f;  // of the step reaches
-    float kick = 1.0f;   // of the throw's speed
-    int   except = -1;   // a monster the blast leaves alone …
-    int   spared = 0;    // … and these, one bit each
-    int   element = -1;  // the element the hit carries (WEAPON_ELEMENT_*), the weapon's own strength in it; -1 for none
-    int   still = -1;    // a monster that takes the hit where it stands
+    float damage = 1.0f;     // of the steps
+    float reach = 1.0f;      // of the step reaches
+    float kick = 1.0f;       // of the throw's speed
+    int   except = -1;       // a monster the blast leaves alone …
+    int   spared = 0;        // … and these, one bit each
+    int   element = -1;      // the element the hit carries (WEAPON_ELEMENT_*), the weapon's own strength in it; -1 for none
+    int   still = -1;        // a monster that takes the hit where it stands
     bool  guardable = false; // a monster's guard stops it, as any hit's
     bool  flat = false;      // every monster in reach takes the outermost step's share, however near
     float throw_to = 0.0f;   // each monster thrown out to this far from the blast, instead of kBlastKick
@@ -87,6 +87,9 @@ void ShockRingAt(const float *point, float ring, float scale);
 
 // Whether a hit is an unguardable blast's, which no guard stops.
 bool BlastHit(const COLLISION_HIT &hit);
+// Whether hit is a blast's planted on another monster than monster (MonsterHitRefused): each monster in reach takes
+// its own, once, not a neighbour's too where theirs overlap.
+bool BlastAimedElsewhere(int monster, const COLLISION_HIT &hit);
 
 // Whether a hit is an unguardable blast of Ungaga's, which wears no weapon HP as it lands: what set it off bills its own
 // (Hercules' Wrath's Air Strike).

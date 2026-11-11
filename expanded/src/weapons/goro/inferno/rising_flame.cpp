@@ -8,6 +8,7 @@
 #include "character.hpp"
 #include "charaheight.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/data/pink_fire.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "frame.hpp"
 #include "userstatus.hpp"
@@ -16,8 +17,16 @@ namespace expanded {
 
 namespace {
 
-CCharacter *model = nullptr;
-bool        failed = false; // not tried again until the next floor
+// Each colour's fireball: entered once a floor, not tried again until the next once it fails.
+struct Fireball {
+    const char *pack;
+    CCharacter *model = nullptr;
+    bool        failed = false;
+};
+
+Fireball    fireballs[2] = {{kRisingFlamePack}, {kPinkFireballFile}}; // by FlameLook
+FlameLook   look = FlameLook::kOrange;
+CCharacter *model = nullptr; // the look's, once loaded
 int         risen_frames = 0;
 int         grown_frames = 0;  // of kRisingFlameGrow
 int         fired_frames = -1; // since Xiao let a charged pellet go, or -1
@@ -30,22 +39,28 @@ float Body() {
 }
 
 CCharacter *Load() {
-    if (model != nullptr || failed) {
-        return model;
+    Fireball &fireball = fireballs[static_cast<int>(look)];
+    if (fireball.model == nullptr && !fireball.failed) {
+        fireball.model = EnterFloorCharacter(fireball.pack, kRisingFlameCfg);
+        if (fireball.model == nullptr || fireball.model->frame == nullptr) {
+            std::fprintf(stderr, "inferno: no flame, %s could not be loaded\n", fireball.pack);
+            fireball.model = nullptr;
+            fireball.failed = true;
+        } else {
+            fireball.model->motion_no = kRisingFlameKey;
+            fireball.model->motion_speed = kRisingFlameMotionSpeed;
+        }
     }
-    model = EnterFloorCharacter(kRisingFlamePack, kRisingFlameCfg);
-    if (model == nullptr || model->frame == nullptr) {
-        std::fprintf(stderr, "inferno: no flame, %s could not be loaded\n", kRisingFlamePack);
-        model = nullptr;
-        failed = true;
-        return nullptr;
-    }
-    model->motion_no = kRisingFlameKey;
-    model->motion_speed = kRisingFlameMotionSpeed;
+    model = fireball.model;
     return model;
 }
 
 } // namespace
+
+void RisingFlameLookAs(FlameLook as) {
+    look = as;
+    model = fireballs[static_cast<int>(look)].model;
+}
 
 void RisingFlameStep(bool up, bool smashing, bool burning_elsewhere) {
     if (fired_frames >= 0 && up) {
@@ -135,8 +150,11 @@ void RisingFlameLight(const CCharacter &character, float *ambient) {
 }
 
 void RisingFlameReset() {
-    model = nullptr; // the floor's characters go with it
-    failed = false;
+    for (Fireball &fireball : fireballs) {
+        fireball.model = nullptr; // the floor's characters go with it
+        fireball.failed = false;
+    }
+    model = nullptr;
     risen_frames = 0;
     grown_frames = 0;
     fired_frames = -1;
