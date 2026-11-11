@@ -363,3 +363,24 @@ TEST_F(InfernoShot, HerFlameRisesWhileDrawnThenFlaresAndDiesDownAsSheFires) {
     After(expanded::kRisingFlameFade / 2);
     EXPECT_FLOAT_EQ(expanded::RisingFlameRisen(), 0.0f);
 }
+
+TEST_F(InfernoShot, ItsEndBlastIsASecondHitOnAMonsterItWentThrough) {
+    Place(0, 110.0f, 0.0f);
+    Hold(expanded::kUnderworldShotFrames);
+    Fire();
+    EXPECT_FALSE(expanded::MonsterHitRefused(floor_.unit(), 0, Planted(5))); // it goes through: once
+    EXPECT_TRUE(expanded::MonsterHitRefused(floor_.unit(), 0, Planted(6)));
+    for (int i = 0; i < static_cast<int>(sizeof(NowColData->active) / sizeof(NowColData->active[0])); i++) {
+        NowColData->active[i] = 0;
+    }
+    const float end[3] = {115.0f, 0.0f, 0.0f};
+    expanded::PelletEnded(*shots_, 3, end, false);
+    int blasts = 0;
+    for (int i = 0; i < static_cast<int>(sizeof(NowColData->active) / sizeof(NowColData->active[0])); i++) {
+        if (NowColData->active[i] != 0) {
+            blasts++;
+            EXPECT_FALSE(expanded::MonsterHitRefused(floor_.unit(), 0, NowColData->hit[i]));
+        }
+    }
+    EXPECT_GT(blasts, 0);
+}
