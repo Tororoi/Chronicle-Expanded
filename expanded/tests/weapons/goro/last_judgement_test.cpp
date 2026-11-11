@@ -47,6 +47,11 @@ protected:
     CCharacter               *saved_weapon_ = nullptr;
 };
 
+class JudgementHammerWithInferno : public JudgementHammer {
+protected:
+    JudgementHammerWithInferno() : JudgementHammer(ITEM_WEAPON_INFERNO) {}
+};
+
 class JudgementHammerWithAnother : public JudgementHammer {
 protected:
     JudgementHammerWithAnother() : JudgementHammer(ITEM_WEAPON_TALL_HAMMER) {}
@@ -117,4 +122,23 @@ TEST_F(JudgementHammerWithAnother, OnlyLastJudgementGrows) {
     Guard(true, kGrow);
     EXPECT_FLOAT_EQ(expanded::JudgementHammerScale(), 1.0f);
     EXPECT_EQ(expanded::JudgementHammerAttack(100), 100);
+}
+
+TEST_F(JudgementHammerWithInferno, TheInfernoGrowsToo) {
+    Guard(true, kGrow);
+    EXPECT_FLOAT_EQ(expanded::JudgementHammerScale(), expanded::kJudgementGrownScale);
+    EXPECT_EQ(expanded::JudgementHammerAttack(100), 150);
+}
+
+TEST_F(JudgementHammerWithInferno, ItsHiddenImpactStaysHiddenButReachesItsSizeAsFar) {
+    Guard(true, kGrow);
+    auto effect = std::make_unique<CSHOT_EFFECT>();
+    effect->active[2] = 1;
+    effect->chara[2].SetScale(0.0f, 0.0f, 0.0f); // the Inferno's impact, behind its blast
+    expanded::JudgementHammerImpact(*effect, 2);
+    EXPECT_FLOAT_EQ(effect->chara[2].scale[0], 0.0f);
+    COLLISION_HIT hit{};
+    hit.radius = 20.0f;
+    expanded::JudgementHammerHitSet(*effect, 2, hit);
+    EXPECT_FLOAT_EQ(hit.radius, 20.0f * expanded::kJudgementGrownScale);
 }

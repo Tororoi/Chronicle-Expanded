@@ -8,6 +8,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/blade_scale.hpp"
+#include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "itemdata.hpp"
@@ -32,7 +33,7 @@ float               impact_scale = 1.0f; // the hammer's as it landed
 } // namespace
 
 bool JudgementHammerWielded() {
-    return Playing(CHARA_GORO) && NowWeapon == &MainWeapon && WeaponWielded(ITEM_WEAPON_LAST_JUDGEMENT);
+    return Playing(CHARA_GORO) && NowWeapon == &MainWeapon && (WeaponWielded(ITEM_WEAPON_LAST_JUDGEMENT) || WeaponWielded(ITEM_WEAPON_INFERNO));
 }
 
 float JudgementHammerScale() {
@@ -87,7 +88,9 @@ void JudgementHammerImpact(CSHOT_EFFECT &effect, int slot) {
     if (!JudgementHammerWielded() || slot < 0 || slot >= static_cast<int>(std::size(effect.chara))) {
         return;
     }
-    effect.chara[slot].SetScale(scale, scale, scale);
+    if (!InfernoWielded()) { // the Inferno's own impact is hidden behind its blast, which takes the size instead
+        effect.chara[slot].SetScale(scale, scale, scale);
+    }
     impact = &effect;
     impact_slot = slot;
     impact_scale = scale;

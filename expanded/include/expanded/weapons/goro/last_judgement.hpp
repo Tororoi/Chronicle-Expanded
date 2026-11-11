@@ -7,18 +7,19 @@ struct COLLISION_HIT;
 
 namespace expanded {
 
-// Last Judgement's growing hammer: while Goro holds the guard with Last Judgement in hand the hammer grows, evenly, to
+// Last Judgement's growing hammer (the Inferno's too, which it builds up into): while Goro holds the guard with either
+// in hand the hammer grows, evenly, to
 // kJudgementGrownScale times its size over kJudgementGrowFrames; let go before it is full and it shrinks back at the
 // same rate (over as long as it grew). Full, it keeps that size kJudgementFullFrames, then shrinks back over
 // kJudgementGrowFrames, and grows again only from a fresh hold of the guard. Its size carries his swings' hits out
 // with the hammer's head and widens them, its charge attack's ground impact and that impact's reach with it, and his
 // attack by kJudgementGrownAttack at its full size (evenly between). Times are game frames.
 inline constexpr float kJudgementGrownScale = 1.5f;
-inline constexpr int   kJudgementGrowFrames = 180;
+inline constexpr int   kJudgementGrowFrames = 120;
 inline constexpr int   kJudgementFullFrames = 900;
 inline constexpr float kJudgementGrownAttack = 1.5f;
 
-// Whether Goro is in play with Last Judgement in hand.
+// Whether Goro is in play with Last Judgement or the Inferno in hand.
 bool JudgementHammerWielded();
 
 // The hammer's size now (1 its own), and what it makes of his attack and a swing's hit radius.
