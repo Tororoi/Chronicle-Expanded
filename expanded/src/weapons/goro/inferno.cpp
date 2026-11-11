@@ -10,8 +10,8 @@
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/blast.hpp"
-#include "expanded/weapons/goro/inferno/fireball_burst.hpp"
 #include "expanded/weapons/goro/inferno/rising_flame.hpp"
+#include "expanded/weapons/goro/inferno/smash_blast.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -74,7 +74,7 @@ bool InfernoWielded() {
 }
 
 void BurningAuraStep() {
-    FireballBurstStep();
+    SmashBlastStep();
     if (!MonstersStepping()) {
         return;
     }

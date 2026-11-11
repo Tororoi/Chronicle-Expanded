@@ -26,7 +26,7 @@
 #include "weaponeffect.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "expanded/weapons/goro/inferno/fireball_burst.hpp"
+#include "expanded/weapons/goro/inferno/smash_blast.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/claymore.hpp"
