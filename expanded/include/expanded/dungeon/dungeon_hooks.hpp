@@ -8,7 +8,6 @@
 namespace dc::game {
 enum class MonsterDamageResult : int;
 class CCharacter;
-class CCloth;
 class CMonstorUnit;
 class CRandomItem;
 class CSHOT;
@@ -114,9 +113,6 @@ bool MonsterStepTaken(CMonstorUnit &unit, int monster);
 char *MonsterScriptLoaded(CMonstorUnit &unit, int slot, int model_no, char *script, int size);
 // After a monster's script step (its own, or a feature's in its place).
 void MonsterScriptStepped(CMonstorUnit &unit, int monster);
-
-// A cloth's step: the wind it takes, added to (CCloth::Step; once a step without a wind of its own).
-void ClothWind(const CCloth &cloth, float *force);
 
 // Xiao fired a pellet into slot of shots (BattleActionPlay_Jinn), and a pellet ended at point, on a monster when struck
 // (CSHOT::step): the weapons that ride or answer her shots.

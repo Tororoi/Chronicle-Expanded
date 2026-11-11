@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 #include <libvu0.h>
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <memory>
 #include <vector>
 
@@ -12,7 +14,7 @@
 #include "dun/gameloop.hpp"
 #include "expanded/enemies/monsters.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
-#include "expanded/weapons/goro/inferno/cape_wind.hpp"
+#include "expanded/weapons/goro/inferno/cape_flap.hpp"
 #include "expanded/weapons/goro/inferno/rising_flame.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/hit_marks.hpp"
@@ -336,35 +338,62 @@ TEST_F(BurningAura, GoroGlowsAsTheFlameRisesAndMoreAsItGrows) {
     }
 }
 
-TEST_F(BurningAura, HisCapeIsBlownBackAndUpOnlyWhileTheFlameIsUp) {
-    auto cape = std::make_unique<CCloth>(), other = std::make_unique<CCloth>();
-    cape->wind_effect = 0.5f;
-    other->wind_effect = 1.0f;
+TEST(CapeFlap, TheCollarStaysDownAndTheHemFlies) {
+    EXPECT_FLOAT_EQ(expanded::CapeFlapSwing(0, 8), 0.0f);
+    EXPECT_NEAR(expanded::CapeFlapSwing(7, 8), expanded::kCapeFlapLift, expanded::kCapeFlapSwell + 1e-4f);
+    EXPECT_LT(expanded::CapeFlapSwing(2, 8), expanded::CapeFlapSwing(7, 8));
+}
+
+TEST_F(BurningAura, HisCapeSwingsUpWithoutStretchingAndIsItsOwnOnceTheFlameHasSunk) {
+    // A 3 by 8 cape hanging straight down from a collar along x.
+    auto cape = std::make_unique<CCloth>();
+    cape->num_i = 3;
+    cape->num_j = 8;
+    cape->frame = nullptr;
+    for (int a = 0; a < 3; a++) {
+        for (int b = 0; b < 8; b++) {
+            cape->home[a][b][0] = static_cast<float>(a) * 2.0f;
+            cape->home[a][b][1] = -static_cast<float>(b) * 1.5f;
+            cape->home[a][b][2] = 0.0f;
+        }
+    }
+    auto     own = std::make_unique<CCloth>(*cape);
     CCloth  *worn[CHARA_CLOTH_MAX] = {cape.get()};
     CCloth **saved = CharaMain.cloth;
     CharaMain.cloth = worn;
-    auto blown = [](const CCloth &cloth) {
-        std::array<float, 3> force{};
-        expanded::InfernoCapeWind(cloth, force.data());
-        return force;
-    };
     Place(50.0f);
-    EXPECT_EQ(blown(*cape), (std::array<float, 3>{}));
     Acting(13);
-    Steps(expanded::kRisingFlameRise);
-    std::array<float, 3> full{};
-    expanded::CapeWindNow(full.data());
-    std::array<float, 3> on_cape = blown(*cape);
-    for (int c = 0; c < 3; c++) {
-        EXPECT_FLOAT_EQ(on_cape[c], full[c] * 0.5f);
+    for (int i = 0; i < expanded::kRisingFlameRise; i++) {
+        Steps(1);
+        expanded::CapeFlapStep();
     }
-    // He faces +z: blown back along -z, and up.
-    EXPECT_LT(on_cape[2], 0.0f);
-    EXPECT_GT(on_cape[1], 0.0f);
-    EXPECT_EQ(blown(*other), (std::array<float, 3>{}));
+    float hem_was = own->home[1][7][1], hem_now = cape->home[1][7][1];
+    EXPECT_FLOAT_EQ(cape->gravity[1], 0.0f); // held to the shape
+    EXPECT_FLOAT_EQ(cape->stiffness[0], std::max(own->stiffness[0], expanded::kCapeFlapStiffness));
+    EXPECT_GT(hem_now, hem_was + 1.0f); // up off the drop
+    for (int a = 0; a < 3; a++) {
+        EXPECT_FLOAT_EQ(cape->home[a][0][1], own->home[a][0][1]); // the collar stays
+        for (int b = 1; b < 8; b++) {
+            float dx = cape->home[a][b][0] - cape->home[a][b - 1][0], dy = cape->home[a][b][1] - cape->home[a][b - 1][1],
+                  dz = cape->home[a][b][2] - cape->home[a][b - 1][2];
+            EXPECT_NEAR(std::sqrt(dx * dx + dy * dy + dz * dz), 1.5f, 1e-4f);
+            EXPECT_NEAR(cape->home[a][b][0], static_cast<float>(a) * 2.0f, 1e-4f); // each column in its own plane
+        }
+    }
     Acting(0);
-    Steps(expanded::kRisingFlameRise);
-    EXPECT_EQ(blown(*cape), (std::array<float, 3>{}));
+    for (int i = 0; i < expanded::kRisingFlameRise; i++) {
+        Steps(1);
+        expanded::CapeFlapStep();
+    }
+    for (int a = 0; a < 3; a++) {
+        for (int b = 0; b < 8; b++) {
+            for (int k = 0; k < 3; k++) {
+                EXPECT_FLOAT_EQ(cape->home[a][b][k], own->home[a][b][k]);
+            }
+        }
+    }
+    EXPECT_FLOAT_EQ(cape->gravity[1], own->gravity[1]);
+    EXPECT_FLOAT_EQ(cape->stiffness[0], own->stiffness[0]);
     CharaMain.cloth = saved;
 }
 

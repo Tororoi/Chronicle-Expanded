@@ -26,7 +26,7 @@ namespace expanded {
 // a heat shimmer (Mirage's: heat_haze.hpp) comes up over the whole screen, at kBurningAuraHazeSway times a fire's sway
 // when the red is full; the Inferno itself is drawn lighter by kBurningAuraTint in red, green and blue as the red comes
 // (in place of Satan's Ax's pink: satans_ax/underworld_tint.hpp). A fireball rises out of the floor around him as the
-// pull begins, lighting him (inferno/rising_flame.hpp), its wind blowing his cape (inferno/cape_wind.hpp), and Mr.
+// pull begins, lighting him (inferno/rising_flame.hpp), its wind flapping his cape (inferno/cape_flap.hpp), and Mr.
 // Blare's blast goes off where his smash lands, its shockwave reaching farther (inferno/smash_blast.hpp). Times are
 // game frames.
 inline constexpr int   kBurningAuraFrames = 60;

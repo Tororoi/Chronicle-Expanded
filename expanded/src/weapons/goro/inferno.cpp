@@ -10,7 +10,7 @@
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/poison.hpp"
 #include "expanded/weapons/blast.hpp"
-#include "expanded/weapons/goro/inferno/cape_wind.hpp"
+#include "expanded/weapons/goro/inferno/cape_flap.hpp"
 #include "expanded/weapons/goro/inferno/rising_flame.hpp"
 #include "expanded/weapons/goro/inferno/smash_blast.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
@@ -80,7 +80,7 @@ void BurningAuraStep() {
         return;
     }
     RisingFlameStep(Pulling(), Pulling() && UnderworldStrength() >= 1.0f);
-    CapeWindStep();
+    CapeFlapStep();
     if (!Pulling()) {
         pulled_frames = 0;
         red_frames = std::max(0, red_frames - kBurningAuraFogFrames / kBurningAuraFogFade);
@@ -179,7 +179,7 @@ void BurningAuraWeaponLight(const CCharacter &character, float *ambient) {
 
 void BurningAuraReset() {
     RisingFlameReset();
-    CapeWindReset();
+    CapeFlapReset();
     pulled_frames = 0;
     red_frames = 0;
 }
