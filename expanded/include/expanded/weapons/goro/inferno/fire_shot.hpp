@@ -12,7 +12,7 @@ namespace expanded {
 // through monsters) Mr. Blare's blast goes off on the floor beneath it (inferno/smash_blast.hpp) with the explosion's sound, and a fire hit of
 // the pellet's damage reaches kFireShotBlast around it (Goro's smash's shockwave's reach), throwing what it hits
 // kFireShotKick of a blast's throw.
-inline constexpr float kFireShotScale = 1.0f;
+inline constexpr float kFireShotScale = 2.0f;
 inline constexpr float kFireShotBlast = 20.0f;
 inline constexpr float kFireShotKick = 0.7f;
 

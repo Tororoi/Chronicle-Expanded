@@ -11,12 +11,14 @@ namespace expanded {
 // kUnderworldShotFrames (the game's charge-complete flash) flies kUnderworldShotSize times as large (the Flamingo's
 // pink pellet, as all the sphere's are: PelletWeapon) at kUnderworldShotSpeed of its speed for kUnderworldShotLife
 // times as long, and while it flies the pull (satans_ax.hpp) draws the monsters toward it,
-// kUnderworldShotPull times as strongly as Goro's smash does, until their bodies reach it, and its sparks stream in to it. It goes on through the monsters it meets,
+// kUnderworldShotPull times as strongly as Goro's smash does (kUnderworldStruckPull times that on a monster it has gone
+// through), until their bodies reach it, and its sparks stream in to it. It goes on through the monsters it meets,
 // hitting each once, until a wall or its life ends it. Times are game frames.
 inline constexpr int   kUnderworldShotFrames = 60;
 inline constexpr float kUnderworldShotSpeed = 0.25f;
 inline constexpr float kUnderworldShotLife = 2.0f;
 inline constexpr float kUnderworldShotPull = 0.5f;
+inline constexpr float kUnderworldStruckPull = 3.0f;
 inline constexpr float kUnderworldShotSize = 2.0f;
 
 // Whether Xiao is in play with the sphere on Super Steve (the Inferno's sphere too: inferno.hpp).
@@ -47,6 +49,8 @@ void UnderworldShotEnded(const CSHOT &shots, int slot);
 bool UnderworldShotPierces(const CSHOT &shots, int slot);
 // Whether a hit is a charged pellet's on a monster it has hit already (MonsterHitRefused).
 bool UnderworldShotRefused(int monster, const COLLISION_HIT &hit);
+// Whether the charged pellet the pull draws to (the one let go last) has gone through monster.
+bool UnderworldShotStruck(int monster);
 
 // Nothing charged or flying (the floor changed; tests too).
 void UnderworldShotReset();

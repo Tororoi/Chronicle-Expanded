@@ -126,7 +126,8 @@ void UnderworldMonsterMove(CMonstorUnit &unit, int monster) {
     float distance = std::hypot(dx, dz);
     // As far as its body is from what it is drawn to: no nearer than where it meets it.
     float room = MonsterBodyEdge(unit, monster, centre.x, centre.z) - centre.body;
-    float pull = std::min(UnderworldPullAt(distance) * weight * centre.pull, room);
+    float struck = UnderworldShotStruck(monster) ? kUnderworldStruckPull : 1.0f; // gone through by her pellet
+    float pull = std::min(UnderworldPullAt(distance) * weight * centre.pull * struck, room);
     if (pull <= 0.0f || distance < 0.01f) {
         return;
     }

@@ -190,6 +190,24 @@ TEST_F(UnderworldShot, TheMonstersAreDrawnToThePelletNotToHer) {
     EXPECT_TRUE(expanded::UnderworldPulling(0));
 }
 
+TEST_F(UnderworldShot, AMonsterItHasGoneThroughIsDrawnThreeTimesAsHard) {
+    Place(0, 140.0f, 0.0f); // 40 beyond the pellet
+    Place(1, 140.0f, 30.0f);
+    HoldAndFire(expanded::kUnderworldShotFrames);
+    EXPECT_FALSE(expanded::UnderworldShotStruck(0));
+    EXPECT_FALSE(expanded::UnderworldShotRefused(0, Planted(5))); // it goes through the first
+    EXPECT_TRUE(expanded::UnderworldShotStruck(0));
+    EXPECT_FALSE(expanded::UnderworldShotStruck(1));
+    std::array<float, 2> step = Step(0);
+    EXPECT_NEAR(step[0], -expanded::UnderworldPullAt(40.0f) * expanded::kUnderworldShotPull * expanded::kUnderworldStruckPull, 1e-4f);
+    float pulled = std::hypot(Step(1)[0], Step(1)[1]);
+    EXPECT_LT(pulled, expanded::UnderworldPullAt(40.0f) * expanded::kUnderworldShotPull * 1.01f); // as ever
+    // Until the pellet ends.
+    float point[3] = {110.0f, 10.0f, 0.0f};
+    expanded::PelletEnded(*shots_, 3, point, false);
+    EXPECT_FALSE(expanded::UnderworldShotStruck(0));
+}
+
 TEST_F(UnderworldShot, ThePullEndsWithThePellet) {
     Place(0, 140.0f, 0.0f);
     HoldAndFire(expanded::kUnderworldShotFrames);

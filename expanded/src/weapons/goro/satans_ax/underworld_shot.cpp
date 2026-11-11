@@ -140,6 +140,19 @@ bool UnderworldShotRefused(int monster, const COLLISION_HIT &hit) {
     return false;
 }
 
+bool UnderworldShotStruck(int monster) {
+    if (monster < 0 || monster >= 32) {
+        return false;
+    }
+    const Flight *last = nullptr;
+    flying.ForEach([&](const CSHOT &shots, int s, const Flight &flight) {
+        if (shots.used[s] != 0 && (last == nullptr || flight.order > last->order)) {
+            last = &flight;
+        }
+    });
+    return last != nullptr && (last->struck & (1u << monster)) != 0;
+}
+
 void UnderworldShotReset() {
     draw.Reset();
     flying.Clear();
