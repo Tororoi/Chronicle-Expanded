@@ -18,6 +18,7 @@
 #include "expanded/weapons/super_steve.hpp"
 #include "hitmark.hpp"
 #include "itemdata.hpp"
+#include "mglib.hpp"
 #include "monstorunit.hpp"
 #include "randomitem.hpp"
 #include "render/draw3d.hpp"
@@ -183,6 +184,20 @@ void MidasUnpolish() {
     dc::render::Draw3DSetReflectionCube(nullptr);
     dc::render::Draw3DSetTextureOverride(-1);
     dc::render::Draw3DSetReflecting(false);
+}
+
+bool GoldBullionDrawing(int item_no, const float *at) {
+    if (item_no != ITEM_GOLD_BULLION) {
+        return false;
+    }
+    MidasPolish(at);
+    float ambient[4];
+    MGGetAmbient(ambient);
+    for (int c = 0; c < 3; c++) {
+        ambient[c] += kMidasShine[c];
+    }
+    MGSetAmbient(ambient);
+    return true;
 }
 
 bool MidasTouchWielded() {

@@ -54,6 +54,10 @@ void MidasPolish(const float *at);
 void MidasPolishBall();
 void MidasUnpolish();
 
+// Hook: a chest's item about to be drawn at at: the Gold Bullion polished and lit kMidasShine brighter as the statues
+// are, true when it was, for MidasUnpolish (and the light put back) after.
+bool GoldBullionDrawing(int item_no, const float *at);
+
 // Whether monster of unit is a gold statue.
 bool MidasStatue(const CMonstorUnit &unit, int monster);
 

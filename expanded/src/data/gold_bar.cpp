@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstring>
 #include <map>
+#include <numbers>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -52,51 +53,128 @@ Bytes BuildGoldBarModel(std::span<const unsigned char> mds) {
     double centre[3] = {(low[0] + high[0]) / 2, low[1], (low[2] + high[2]) / 2};
     double l = kGoldBarLength * size / 2, fw = kGoldBarFoot * size / 2, tw = kGoldBarTop * size / 2, h = kGoldBarHeight * size;
     double tl = l - (fw - tw); // the top's ends lean in as its sides do
-    // Corners: the foot (y 0) then the top (y h), each round from -x -z.
-    std::array<V, 8> corner = {
-        {{-l, 0, -fw, 1}, {l, 0, -fw, 1}, {l, 0, fw, 1}, {-l, 0, fw, 1}, {-tl, h, -tw, 1}, {tl, h, -tw, 1}, {tl, h, tw, 1}, {-tl, h, tw, 1}}
+    double r = kGoldBarRound * h;
+
+    // The rounded box (half extents l, h/2, fw about its middle): each point of a box face's grid pulled to the inner box
+    // (the box less r) plus r along the way out from it, the grid's rows at even turns of the rounding (kGoldBarRoundSteps
+    // between a face and the next) and none between. Then narrowed toward the top, its ends to tl and its sides to tw.
+    double half[3] = {l, h / 2, fw};
+    auto   rows = [&](int axis) {
+        std::vector<double> at;
+        double              inner = half[axis] - r;
+        for (int k = kGoldBarRoundSteps; k >= 0; k--) {
+            at.push_back(-inner - r * std::tan(std::numbers::pi / 4 * k / kGoldBarRoundSteps));
+        }
+        for (int k = 0; k <= kGoldBarRoundSteps; k++) {
+            at.push_back(inner + r * std::tan(std::numbers::pi / 4 * k / kGoldBarRoundSteps));
+        }
+        return at;
     };
-    for (V &v : corner) {
-        v[0] += centre[0];
-        v[1] += centre[1];
-        v[2] += centre[2];
+    std::vector<V>                          positions;
+    std::map<std::array<long long, 3>, int> welded;
+    auto                                    point = [&](double x, double y, double z) {
+        double q[3] = {x, y, z}, in[3], out[3], length = 0.0;
+        for (int c = 0; c < 3; c++) {
+            in[c] = std::clamp(q[c], -(half[c] - r), half[c] - r);
+            out[c] = q[c] - in[c];
+            length += out[c] * out[c];
+        }
+        length = std::sqrt(length);
+        V p{};
+        for (int c = 0; c < 3; c++) {
+            p[static_cast<std::size_t>(c)] = in[c] + (length > 0.0 ? out[c] / length * r : 0.0);
+        }
+        double t = (p[1] + h / 2) / h; // 0 at the foot, 1 at the top
+        p[0] *= 1.0 - t * (1.0 - tl / l);
+        p[2] *= 1.0 - t * (1.0 - tw / fw);
+        p = {p[0] + centre[0], p[1] + h / 2 + centre[1], p[2] + centre[2], 1.0};
+        std::array<long long, 3> key = {std::llround(p[0] * 1e4), std::llround(p[1] * 1e4), std::llround(p[2] * 1e4)};
+        auto [found, added] = welded.try_emplace(key, static_cast<int>(positions.size()));
+        if (added) {
+            positions.push_back(p);
+        }
+        return found->second;
+    };
+    std::vector<std::array<int, 3>> triangles;
+    std::vector<bool>               flat; // each triangle's: on a face's flat middle, not a bevel
+    for (int axis = 0; axis < 3; axis++) {
+        int                 a = (axis + 1) % 3, b = (axis + 2) % 3;
+        std::vector<double> along_a = rows(a), along_b = rows(b);
+        for (double side : {-1.0, 1.0}) {
+            auto corner = [&](std::size_t i, std::size_t j) {
+                double q[3];
+                q[axis] = side * half[axis];
+                q[a] = along_a[i];
+                q[b] = along_b[j];
+                return point(q[0], q[1], q[2]);
+            };
+            for (std::size_t i = 0; i + 1 < along_a.size(); i++) {
+                for (std::size_t j = 0; j + 1 < along_b.size(); j++) {
+                    int  q[4] = {corner(i, j), corner(i + 1, j), corner(i + 1, j + 1), corner(i, j + 1)};
+                    bool middle_cell = i == kGoldBarRoundSteps && j == kGoldBarRoundSteps;
+                    for (const std::array<int, 3> &t : {
+                             std::array<int, 3>{q[0], q[1], q[2]},
+                             std::array<int, 3>{q[0], q[2], q[3]}
+                    }) {
+                        if (t[0] != t[1] && t[1] != t[2] && t[0] != t[2]) {
+                            triangles.push_back(t);
+                            flat.push_back(middle_cell);
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    // Each face its corners (wound outward) and its normal; each corner's UV leans its face's toward the corner.
-    struct Face {
-        std::array<int, 4> c;
-        V                  n;
-    };
+    // Each corner's normal the area-weighted mean of its triangles', for the bevels; a face's flat middle keeps its own,
+    // so it reads flat. The triangles wound as the game's are (their cross product inward, as the Saving Book's), the way
+    // out from the bar's middle telling which way is out.
+    std::vector<std::array<double, 3>> sums(positions.size(), {0, 0, 0});
+    std::vector<V>                     faces(triangles.size());
+    double                             middle[3] = {centre[0], centre[1] + h / 2, centre[2]};
+    for (std::size_t i = 0; i < triangles.size(); i++) {
+        std::array<int, 3> &t = triangles[i];
+        const V            &p0 = positions[static_cast<std::size_t>(t[0])], &p1 = positions[static_cast<std::size_t>(t[1])],
+                &p2 = positions[static_cast<std::size_t>(t[2])];
+        double e1[3] = {p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]}, e2[3] = {p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]};
+        double n[3] = {e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]};
+        double out = n[0] * (p0[0] - middle[0]) + n[1] * (p0[1] - middle[1]) + n[2] * (p0[2] - middle[2]);
+        if (out > 0.0) {
+            std::swap(t[1], t[2]);
+        } else {
+            for (double &c : n) {
+                c = -c;
+            }
+        }
+        faces[i] = Unit(n[0], n[1], n[2]);
+        for (int k : t) {
+            for (int c = 0; c < 3; c++) {
+                sums[static_cast<std::size_t>(k)][static_cast<std::size_t>(c)] += n[c];
+            }
+        }
+    }
 
-    double     lean = (fw - tw) / h, ends = (l - tl) / h;
-    std::array faces = {
-        Face{{4, 5, 6, 7}, Unit(0,  1,    0) },
-        Face{{3, 2, 1, 0}, Unit(0,  -1,   0) },
-        Face{{0, 1, 5, 4}, Unit(0,  lean, -1)},
-        Face{{2, 3, 7, 6}, Unit(0,  lean, 1) },
-        Face{{1, 2, 6, 5}, Unit(1,  ends, 0) },
-        Face{{3, 0, 4, 7}, Unit(-1, ends, 0) },
-    };
-    mesh.positions.assign(corner.begin(), corner.end());
+    mesh.positions = positions;
     mesh.normals.clear();
     mesh.uvs.clear();
     mesh.colours = false;
     mesh.colour_values.clear();
+    for (const auto &sum : sums) {
+        V n = Unit(sum[0], sum[1], sum[2]);
+        mesh.normals.push_back(n);
+        mesh.uvs.push_back(BallAt(n));
+    }
     MdtMesh::Submesh sub;
     sub.prim = 3;
     sub.material = 0;
-    for (const Face &face : faces) {
-        int normal = static_cast<int>(mesh.normals.size());
-        mesh.normals.push_back(face.n);
-        int first_uv = static_cast<int>(mesh.uvs.size());
-        for (int k = 0; k < 4; k++) {
-            const V &p = corner[static_cast<std::size_t>(face.c[static_cast<std::size_t>(k)])];
-            V        towards = Unit(face.n[0] + 0.35 * (p[0] - centre[0]) / l, face.n[1] + 0.35 * (p[1] - centre[1] - h / 2) / h,
-                                    face.n[2] + 0.35 * (p[2] - centre[2]) / fw);
-            mesh.uvs.push_back(BallAt(towards));
+    for (std::size_t i = 0; i < triangles.size(); i++) {
+        int face = -1;
+        if (flat[i]) {
+            face = static_cast<int>(mesh.normals.size());
+            mesh.normals.push_back(faces[i]);
         }
-        for (int k : {0, 1, 2, 0, 2, 3}) {
-            sub.records.push_back({face.c[static_cast<std::size_t>(k)], normal, first_uv + k});
+        for (int k : triangles[i]) {
+            sub.records.push_back({k, face >= 0 ? face : k, k});
         }
     }
     mesh.submeshes = {sub};
