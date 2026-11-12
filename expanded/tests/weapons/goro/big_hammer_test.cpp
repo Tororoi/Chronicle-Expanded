@@ -52,6 +52,16 @@ protected:
     BigHammerWithInferno() : BigHammer(ITEM_WEAPON_INFERNO) {}
 };
 
+class BigHammerWithSteel : public BigHammer {
+protected:
+    BigHammerWithSteel() : BigHammer(ITEM_WEAPON_STEEL_HAMMER) {}
+};
+
+class BigHammerWithPlate : public BigHammer {
+protected:
+    BigHammerWithPlate() : BigHammer(ITEM_WEAPON_PLATE_HAMMER) {}
+};
+
 class BigHammerWithBigBucks : public BigHammer {
 protected:
     BigHammerWithBigBucks() : BigHammer(ITEM_WEAPON_BIG_BUCKS_HAMMER) {}
@@ -158,7 +168,19 @@ TEST_F(BigHammerWithInferno, ItsHiddenImpactStaysHiddenButReachesItsSizeAsFar) {
     EXPECT_FLOAT_EQ(hit.radius, 20.0f * 1.5f);
 }
 
-TEST_F(BigHammerWithBigBucks, BigBucksHammerGrowsToThreeTenthsMoreItsStrengthWithIt) {
+TEST_F(BigHammerWithBigBucks, BigBucksHammerNoLongerGrows) {
+    Guard(true, kGrow);
+    EXPECT_FLOAT_EQ(expanded::BigHammerScale(), 1.0f);
+    EXPECT_EQ(expanded::BigHammerAttack(100), 100);
+}
+
+TEST_F(BigHammerWithPlate, PlateHammerGrowsToThreeTenthsMore) {
+    Guard(true, kGrow);
+    EXPECT_FLOAT_EQ(expanded::BigHammerScale(), 1.3f);
+    EXPECT_EQ(expanded::BigHammerAttack(100), 130);
+}
+
+TEST_F(BigHammerWithSteel, SteelHammerGrowsToThreeTenthsMoreItsStrengthWithIt) {
     Guard(true, kGrow);
     EXPECT_FLOAT_EQ(expanded::BigHammerScale(), 1.3f);
     EXPECT_EQ(expanded::BigHammerAttack(100), 130);
