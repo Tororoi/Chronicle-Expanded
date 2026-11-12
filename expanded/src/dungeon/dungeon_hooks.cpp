@@ -53,9 +53,12 @@
 #include "expanded/weapons/judgement_blade.hpp"
 #include "expanded/weapons/kick_back.hpp"
 #include "expanded/weapons/kitchen_knife_shot.hpp"
+#include "expanded/weapons/osmond/g_crusher.hpp"
+#include "expanded/weapons/osmond/jackal.hpp"
 #include "expanded/weapons/osmond/snail.hpp"
 #include "expanded/weapons/osmond/star_breaker.hpp"
 #include "expanded/weapons/osmond/star_breaker/shooting_stars.hpp"
+#include "expanded/weapons/osmond/swallow.hpp"
 #include "expanded/weapons/ruby/bandits_ring.hpp"
 #include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/ruby/pocklekul.hpp"
@@ -359,8 +362,11 @@ int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs) {
     if (AllyUnit(unit)) {
         return abs;
     }
-    int result = ArmorPiercerAbs(
-        unit, monster, MarineHunterAbs(unit, monster, SanctifierAbs(unit, monster, WoodcutterAbs(unit, monster, UtilityKnifeAbs(unit, monster, JacketHunterAbs(unit, monster, abs))))));
+    int result = JacketHunterAbs(unit, monster, abs);
+    for (int (*bonus)(const CMonstorUnit &, int, int) :
+         {UtilityKnifeAbs, WoodcutterAbs, SanctifierAbs, MarineHunterAbs, PredatorAbs, WingClipperAbs, ArmorPiercerAbs}) {
+        result = bonus(unit, monster, result);
+    }
     pocklekul::PockleKillAbs(monster, result);
     return result;
 }
@@ -369,7 +375,11 @@ float MonsterWeaponDamage(const CMonstorUnit &unit, int monster, const COLLISION
     if (AllyUnit(unit)) {
         return damage;
     }
-    return ArmorPiercerDamage(unit, monster, hit, SanctifierDamage(unit, monster, hit, WoodcutterDamage(unit, monster, hit, UtilityKnifeDamage(unit, monster, hit, damage))));
+    for (float (*bonus)(const CMonstorUnit &, int, const COLLISION_HIT &, float) :
+         {UtilityKnifeDamage, WoodcutterDamage, SanctifierDamage, PredatorDamage, WingClipperDamage, GiantCrusherDamage, ArmorPiercerDamage}) {
+        damage = bonus(unit, monster, hit, damage);
+    }
+    return damage;
 }
 
 int MonsterDefense(const CMonstorUnit &unit, int monster, int defense) {
@@ -707,6 +717,10 @@ bool AilmentAllowed(int ailment) {
 
 bool MonsterCanGuard(int monster) {
     return BlindGuardBlocks(monster);
+}
+
+bool MonsterGuardBroken(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {
+    return !AllyUnit(unit) && GuardCrusherBreaks(unit, monster, hit);
 }
 
 bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, int window, const COLLISION_HIT &hit) {

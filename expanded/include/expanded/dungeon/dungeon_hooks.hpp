@@ -274,4 +274,7 @@ bool MonsterCanGuard(int monster);
 // the weapons that pass a guard.
 bool MonsterGuardBlocks(const CMonstorUnit &unit, int monster, int window, const COLLISION_HIT &hit);
 
+// Whether a hit a monster's open guard window is about to stop breaks through it and lands instead (CheckDmg).
+bool MonsterGuardBroken(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit);
+
 } // namespace expanded

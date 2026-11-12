@@ -20,6 +20,10 @@ inline constexpr KickBack kHeavyKickBack = {2.02f, 0.12f};
 // with the Kitchen Knife's SynthSphere.
 inline constexpr KickBack kGemKickBack = {kHeavyKickBack.speed * 0.70710678f, kHeavyKickBack.decay};
 
+// A tenth of the Baselard's (about 1.7 units): its speed over the square root of ten, the same decay. The Swallow's
+// "Stopping Power" (osmond/swallow.hpp), on each hit.
+inline constexpr KickBack kLightKickBack = {kHeavyKickBack.speed * 0.31622777f, kHeavyKickBack.decay};
+
 // Throws monster slot away from origin as a landed hit does, scaled by the monster's own kick-back scale.
 void KickMonster(CMonstorUnit &unit, int slot, const float *origin, KickBack kick);
 

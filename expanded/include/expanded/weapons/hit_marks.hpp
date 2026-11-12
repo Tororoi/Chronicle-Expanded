@@ -4,6 +4,8 @@ namespace expanded {
 
 // The bits Expanded marks a planted hit's weapon_flags with, one an effect, above the game's own (elements, ailments,
 // abilities: the weapon's 16 flag bits), so a hook can tell its hits apart.
+inline constexpr int kGuardBrokenMark = 0x00100000;    // set with kGuardRolledMark: the roll broke the guard
+inline constexpr int kGuardRolledMark = 0x00200000;    // the G Crusher's "Guard Crusher" has rolled for the hit (g_crusher.hpp)
 inline constexpr int kUnderworldShotMark = 0x00400000; // Satan's Ax's charged pellet from Super Steve
 inline constexpr int kTrampleMark = 0x00800000;        // the Tall Hammer's "Colossus" walk-in hits
 inline constexpr int kRockMark = 0x01000000;           // the Terra Sword's "Big Rock" drops
