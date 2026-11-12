@@ -19,8 +19,10 @@ bool HeavyHandHit(const COLLISION_HIT &record) {
         return WeaponWielded(ITEM_WEAPON_BASELARD) || WeaponWielded(ITEM_WEAPON_CLAYMORE);
     }
 
+    // Super Steve's pellets with the sphere of the Baselard, the Claymore or the Steel Hammer (its heads, steel_hammer_shot.hpp).
     int sphere = SuperSteveSphere();
-    return record.owner == kXiao && record.attack_no == 0 && (sphere == ITEM_WEAPON_BASELARD || sphere == ITEM_WEAPON_CLAYMORE);
+    return record.owner == kXiao && record.attack_no == 0 &&
+           (sphere == ITEM_WEAPON_BASELARD || sphere == ITEM_WEAPON_CLAYMORE || sphere == ITEM_WEAPON_STEEL_HAMMER);
 }
 
 } // namespace expanded

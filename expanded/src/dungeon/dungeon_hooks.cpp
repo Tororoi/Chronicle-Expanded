@@ -35,11 +35,11 @@
 #include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/goro/battle_ax.hpp"
 #include "expanded/weapons/goro/big_hammer.hpp"
+#include "expanded/weapons/goro/channel_elements.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/goro/inferno/fire_shot.hpp"
 #include "expanded/weapons/goro/inferno/smash_blast.hpp"
-#include "expanded/weapons/goro/channel_elements.hpp"
 #include "expanded/weapons/goro/midas_curse.hpp"
 #include "expanded/weapons/goro/midas_touch.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
@@ -113,6 +113,7 @@
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
+#include "expanded/weapons/xiao/steel_hammer_shot.hpp"
 #include "expanded/weapons/xiao/steel_slingshot.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
 #include "monstorunit.hpp"
@@ -245,6 +246,7 @@ void DungeonMonstersCleared(bool drop_stars) {
     SceneLightReset();
     BigBangShotReset();
     GemShotReset();
+    SteelHeadShotReset();
     ZeusChargeReset();
     ZeusShotReset();
     OwnSoundsReset();
@@ -275,6 +277,7 @@ void DungeonMonstersTick() {
     SolarFlashStep();
     BigBangShotStep();
     GemShotStep();
+    SteelHeadShotStep();
     ZeusChargeStep();
     ZeusShotStep();
     TyphoonShotStep();
@@ -414,6 +417,7 @@ void PelletFired(CSHOT &shots, int slot) {
     SolarShotFired(shots, slot);
     BigBangShotFired(shots, slot);
     GemShotFired(shots, slot);
+    SteelHeadShotFired(shots, slot);
     ZeusShotFired(shots, slot);
     TyphoonShotFired(shots, slot);
     ColossusPelletFired(shots, slot);
@@ -436,6 +440,7 @@ void PelletEnded(CSHOT &shots, int slot, const float *point, bool struck) {
     SolarShotEnded(shots, slot, point, struck);
     BigBangShotEnded(shots, slot, point);
     GemShotEnded(shots, slot);
+    SteelHeadShotEnded(shots, slot);
     ZeusShotEnded(shots, slot, point, struck);
     TyphoonShotEnded(shots, slot, point, struck);
     RicochetShotEnded(shots, slot, point, struck);
