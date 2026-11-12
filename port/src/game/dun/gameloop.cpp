@@ -282,7 +282,7 @@ ENEMY_LIFE_GAGE EnemyLifeGage;
 CWeaponEffect CWeaponFx;
 
 /* The element trails the player's weapon leaves. */
-CWeaponElement CWeaponElFx[4];
+CWeaponElement CWeaponElFx[kWeaponElFxSlots];
 
 /* The five Atlamillia effects. */
 CSHOT_EFFECT MasekiEffect[5];

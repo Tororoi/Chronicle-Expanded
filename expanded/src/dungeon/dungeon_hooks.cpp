@@ -39,6 +39,7 @@
 #include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/goro/inferno/fire_shot.hpp"
 #include "expanded/weapons/goro/inferno/smash_blast.hpp"
+#include "expanded/weapons/goro/channel_elements.hpp"
 #include "expanded/weapons/goro/midas_curse.hpp"
 #include "expanded/weapons/goro/midas_touch.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
@@ -259,6 +260,7 @@ void DungeonMonstersTick() {
     ConfuseTick();
     CurseStep();
     MidasCurseStep();
+    ChannelElementsStep();
     AtlamilliaStep();
     BloodPriceStep();
     GreatswordStep();

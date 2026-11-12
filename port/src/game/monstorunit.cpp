@@ -51,6 +51,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/in_play.hpp"
+#include "expanded/weapons/goro/channel_elements.hpp"
 #include "expanded/weapons/goro/midas_touch.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
@@ -1535,12 +1536,23 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
                         static int   element_fx_slot = 0;
                         CWeaponElFx[element_fx_slot].Set(&effect[current_monster].position[i], effect[current_monster].position[i], strength, element, monster[current_monster].body_radius);
 
-                        if (element_fx_slot >= 3) {
+                        if (element_fx_slot >= kWeaponElFxSlots - 1) {
                             element_fx_slot = 0;
                         } else {
                             element_fx_slot++;
                         }
                     }
+#ifdef CHRONICLE_EXPANDED
+                    // A channeled hit (Magical Hammer's Channel Elements): every element's effect at once.
+                    else if (expanded::ChannelHit(element_flags) && owner >= 0) {
+                        WEAPON_HAVE *weapon = &UserStatus->chara_weapons[owner][UserStatus->equipped_weapon_slot[owner]];
+                        static int   channel_slot = 0;
+                        for (int channeled = 0; channeled < WEAPON_ELEMENT_NONE; channeled++) {
+                            CWeaponElFx[channel_slot].Set(&effect[current_monster].position[i], effect[current_monster].position[i], static_cast<float>(weapon->elem[channeled]), channeled, monster[current_monster].body_radius);
+                            channel_slot = (channel_slot + 1) % kWeaponElFxSlots;
+                        }
+                    }
+#endif
 
                     float chance = 100.0f * static_cast<float>(rand()) / 2147483648.0f;
 
@@ -1661,6 +1673,18 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
                         damage = 1.0f;
                     }
 
+#ifdef CHRONICLE_EXPANDED
+                    if (expanded::ChannelHit(element_flags) && owner >= 0) {
+                        // Channel Elements: each element's magic part at its own resistance, added.
+                        float        old_damage = damage;
+                        WEAPON_HAVE *weapon = &UserStatus->chara_weapons[owner][UserStatus->equipped_weapon_slot[owner]];
+                        damage = expanded::ChannelDamage(damage, weapon->magic, weapon->elem, monster[index].attachment_weight);
+
+                        if (damage <= 0.0f && !(old_damage <= 0.0f)) {
+                            immune = 1;
+                        }
+                    } else
+#endif
                     if (element_flags != 0) {
                         float old_damage = damage;
                         float bonus = 0;
@@ -1749,6 +1773,12 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
                     if (amount > 0 && (owner == 0 || owner == 2 || owner == 4) && element >= 0 && element < WEAPON_ELEMENT_NONE) {
                         SndSePlay(element + 0x65, -1, 0);
                     }
+#ifdef CHRONICLE_EXPANDED
+                    // A channeled hit sounds as the element the hammer has most points in.
+                    if (amount > 0 && (owner == 0 || owner == 2 || owner == 4) && expanded::ChannelHit(element_flags)) {
+                        SndSePlay(expanded::ChannelStrongest(UserStatus->chara_weapons[owner][UserStatus->equipped_weapon_slot[owner]]) + 0x65, -1, 0);
+                    }
+#endif
 
                     BtActStatus.monstor_target = owner;
                     monster[current_monster].hp -= amount;
