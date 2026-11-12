@@ -11,15 +11,16 @@
 #include "expanded/data/fishing_poses.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/data/gemron_models.hpp"
-#include "expanded/data/goro_shirt.hpp"
-#include "expanded/data/monster_scripts.hpp"
 #include "expanded/data/gold_bar.hpp"
 #include "expanded/data/gold_statue.hpp"
+#include "expanded/data/goro_shirt.hpp"
+#include "expanded/data/monster_scripts.hpp"
 #include "expanded/data/pink_fire.hpp"
 #include "expanded/data/prop_models.hpp"
 #include "expanded/data/queens_canal.hpp"
 #include "expanded/data/script_damage.hpp"
 #include "expanded/data/spirit_cat.hpp"
+#include "expanded/data/steel_hammer_head.hpp"
 #include "expanded/data/tall_hammer_silver.hpp"
 #include "expanded/data/toan_grip.hpp"
 #include "expanded/data/town_model.hpp"
@@ -50,6 +51,7 @@ const DataKind kDataKinds[] = {
     {"queens canal", QueensCanalBuilds},
     {"weapon model", WolfSteveBuilds},
     {"weapon model", TallHammerSilverBuilds},
+    {"effect", SteelHammerHeadBuilds},
     {"effect", ColossusPopBuilds},
     {"effect", PinkFireBuilds},
     {"effect", GoldStatueBuilds},
