@@ -183,6 +183,7 @@ TEST(StageFile, EveryKeyIsRead) {
                                      "place_after = 30\n"
                                      "big_room = yes\n"
                                      "circle = 5\n"
+                                     "chest = 192\n"
                                      "keep_alive = true\r\n",
                                      stage, &why))
         << why;
@@ -203,6 +204,7 @@ TEST(StageFile, EveryKeyIsRead) {
     EXPECT_EQ(stage.place_after, 30);
     EXPECT_TRUE(stage.big_room);
     EXPECT_EQ(stage.circle, 5);
+    EXPECT_EQ(stage.chest, 192);
     EXPECT_TRUE(stage.keep_alive);
 }
 
