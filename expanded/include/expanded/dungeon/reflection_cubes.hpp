@@ -10,7 +10,7 @@ namespace expanded {
 // six square faces of kReflectionFace texels, captured a few tiles a tick from the floor's first drawn tick (the map
 // parts and the background models only: no characters, effects or menus) into one texture for the floor.
 inline constexpr int   kReflectionFace = 64;
-inline constexpr float kReflectionEyeHeight = 20.0f;
+inline constexpr float kReflectionEyeHeight = 12.0f;
 inline constexpr int   kReflectionTilesPerTick = 16;
 
 // Captures the next tiles, while the floor has tiles left. Called where the dungeon's draw has set the floor's light,
