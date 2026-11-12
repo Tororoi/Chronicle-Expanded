@@ -116,6 +116,7 @@
 #include "expanded/weapons/xiao/flamingo.hpp"
 #include "expanded/weapons/xiao/hardshooter.hpp"
 #include "expanded/weapons/xiao/matador.hpp"
+#include "expanded/weapons/xiao/rapid_fire.hpp"
 #include "expanded/weapons/xiao/steel_hammer_shot.hpp"
 #include "expanded/weapons/xiao/steel_slingshot.hpp"
 #include "expanded/weapons/zeus_shot.hpp"
@@ -169,6 +170,7 @@ void DungeonFrameBegins() {
     StageFrame();
     PumpedUpFrame();
     FlameGunFrame();
+    RapidFireFrame();
 }
 
 void DungeonShadowsDrawn(const float *player) {
@@ -423,6 +425,7 @@ void MonsterScriptStepped(CMonstorUnit &unit, int monster) {
 }
 
 void PelletFired(CSHOT &shots, int slot) {
+    RapidFirePellet(shots, slot);
     MoonlitFocusShot(shots.vector[slot]);
     SolarShotFired(shots, slot);
     BigBangShotFired(shots, slot);
@@ -665,6 +668,9 @@ void PlayerHitsChecking() {
 }
 
 bool XiaoShotPlaying(CCharacter &chara, int aimed) {
+    if (RapidFireShot(chara)) {
+        return true;
+    }
     QuickDrawShot(chara, aimed);
     return FlameGunShot(aimed);
 }
@@ -674,7 +680,7 @@ float WeaponWear(const WEAPON_HAVE &weapon, float amount) {
 }
 
 float XiaoShotWear(float wear) {
-    return ChargedShotWear(EnduranceUpShotWear(wear));
+    return RapidFireWear(ChargedShotWear(EnduranceUpShotWear(wear)));
 }
 
 int MonsterSpherePercent(const CMonstorUnit &unit, int monster, int sphere, int owner, const COLLISION_HIT &hit, int percent) {

@@ -353,7 +353,48 @@ void LiftMotion(tagMOTION_TYPE *motion, bool restore) {
     *entry = {};
 }
 
+namespace {
+
+struct Carry {
+    tagMOTION_TYPE *motion;
+    int             key;
+    unsigned int    frame;
+    float           blend_step;
+    bool            taken = false;
+};
+
+std::vector<Carry> carries;
+
+// The carries of motion: a change into the key takes one, its fade keeps its step, and one past is dropped.
+void Carried(tagMOTION_TYPE *motion, MOTION_STATE *state) {
+    for (auto it = carries.begin(); it != carries.end();) {
+        if (it->motion != motion) {
+            ++it;
+            continue;
+        }
+        bool changing = state->motion_no == it->key && state->playing_no != state->motion_no;
+        bool fading = it->taken && state->motion_no == it->key && state->blending != 0;
+        if (!it->taken && changing) {
+            state->next_frame = it->frame;
+            it->taken = true;
+        } else if (!fading) {
+            it = carries.erase(it);
+            continue;
+        }
+        state->blend_step = it->blend_step; // Step puts the game's back after SetMotionEX
+        ++it;
+    }
+}
+
+} // namespace
+
+void CarryMotion(tagMOTION_TYPE *motion, int key, unsigned int frame, float blend_step) {
+    std::erase_if(carries, [motion](const Carry &c) { return c.motion == motion; });
+    carries.push_back({.motion = motion, .key = key, .frame = frame, .blend_step = blend_step});
+}
+
 void MotionPosing(tagMOTION_TYPE *motion, MOTION_STATE *state) {
+    Carried(motion, state);
     const Entry *entry = Find(motion);
     if (entry == nullptr || entry->layer == nullptr) {
         return;

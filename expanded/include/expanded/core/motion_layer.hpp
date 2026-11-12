@@ -29,6 +29,11 @@ struct MotionLayer {
 void LayMotion(tagMOTION_TYPE *motion, MotionLayer *layer);
 void LiftMotion(tagMOTION_TYPE *motion, bool restore);
 
+// A key change handed on without a layer: motion's next cross-fade into key (its index in the motion's set) arrives at
+// frame instead of the key's start, blend_step a step (the game's 0.1, ten steps) for the whole fade. Taken on the step
+// the key changes, which is the next one SetMotionEX makes for motion; dropped when that step is no change into key.
+void CarryMotion(tagMOTION_TYPE *motion, int key, unsigned int frame, float blend_step);
+
 // Hooks: SetMotionEX, before the motion's state moves on (a key change takes the carry), and once its tracks have posed
 // frame (before the look-at and the skin), where a motion mix (motion_mix.hpp) goes first.
 void MotionPosing(tagMOTION_TYPE *motion, MOTION_STATE *state);
