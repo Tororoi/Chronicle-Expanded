@@ -13,6 +13,7 @@ namespace expanded {
 // each of Xiao's hits a kSuperSteveStarChance chance; as every Osmond sphere does, it also lets her move while she shoots
 // (xiao/moves_while_firing.hpp). A hit rolls once, however many of a monster's spheres or monsters it meets
 // (kStarRolledMark).
+// The Star Breaker also has the Swallow's "Stopping Power" (swallow.hpp) and the G Crusher's "Guard Crusher" (g_crusher.hpp).
 inline constexpr double kShootingStarChance = 0.001;
 inline constexpr double kSuperSteveStarChance = 0.005;
 

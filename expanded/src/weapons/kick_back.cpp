@@ -3,6 +3,7 @@
 #include <libvu0.h>
 
 #include "collisiondata.hpp"
+#include "expanded/weapons/osmond/swallow.hpp"
 #include "expanded/weapons/toan/baselard.hpp"
 #include "expanded/weapons/toan/kitchen_knife.hpp"
 #include "monstorunit.hpp"
@@ -29,6 +30,8 @@ void WeaponKickBack(CMonstorUnit &unit, int slot, const COLLISION_HIT &record) {
         KickMonster(unit, slot, origin, kHeavyKickBack);
     } else if (KitchenKnifeHit(record)) {
         KickMonster(unit, slot, origin, kGemKickBack);
+    } else if (StoppingPowerHit(record)) {
+        KickMonster(unit, slot, origin, kLightKickBack);
     }
 }
 

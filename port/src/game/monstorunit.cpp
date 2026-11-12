@@ -1359,6 +1359,11 @@ MonsterDamageResult CMonstorUnit::CheckDmg() {
                             float time = chara[current_monster][0].motion_type.state.time;
 
                             if (guard[current_monster].motion_start[j] <= time && !(guard[current_monster].motion_end[j] < time)) {
+#ifdef CHRONICLE_EXPANDED
+                                if (expanded::MonsterGuardBroken(*this, current_monster, NowColData->hit[hit])) {
+                                    break;
+                                }
+#endif
                                 COLLISION_HIT *record = &(*NowColData->Get(hit));
 
                                 if (record->knockback_mode == 2) {
