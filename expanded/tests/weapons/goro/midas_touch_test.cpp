@@ -195,6 +195,25 @@ TEST_F(MidasTouch, OnlyWhileGoroIsCursed) {
     EXPECT_FALSE(HitUntilGold(hit));
 }
 
+TEST_F(MidasTouch, XiaosHitWithItsSphereOnSuperSteveTurns) {
+    expanded::test::Wielding steve(ITEM_WEAPON_SUPER_STEVE, ITEM_WEAPON_BIG_BUCKS_HAMMER);
+    CUserStatus             &status = floor_.status();
+    status.cur_chara = CHARA_XIAO;
+    status.hp[CHARA_XIAO] = 100;
+    status.equipped_weapon_slot[CHARA_XIAO] = 0;
+    status.chara_weapons[CHARA_XIAO][0] = steve.weapon();
+    expanded::CurseStep();
+    ASSERT_TRUE(expanded::MidasTouchWielded());
+
+    floor_.unit().monster[0].hp = 10; // under a quarter
+    COLLISION_HIT hit = Hit();
+    hit.owner = CHARA_XIAO; // her pellet's
+    expanded::MidasHitTaken(floor_.unit(), 0, hit);
+    EXPECT_TRUE(expanded::MidasStatue(floor_.unit(), 0));
+    status.equipped_weapon_slot[CHARA_XIAO] = -1;
+    expanded::CurseStep();
+}
+
 TEST_F(MidasTouch, AnotherCharactersHitNeverTurns) {
     floor_.unit().monster[0].hp = 10;
     COLLISION_HIT hit = Hit();

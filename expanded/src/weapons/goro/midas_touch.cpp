@@ -28,7 +28,6 @@ namespace expanded {
 
 namespace {
 
-constexpr int   kGoroOwner = 2;      // a hit's owner: Goro's
 constexpr int   kLethalTimes = 10;   // the hit's damage once it turns the monster to gold: its life times this,
 constexpr int   kLethalMore = 100;   // and this more
 constexpr int   kStatues = 16;       // as many as the floor's monsters
@@ -187,11 +186,17 @@ void MidasUnpolish() {
 }
 
 bool MidasTouchWielded() {
-    return Playing(CHARA_GORO) && NowWeapon == &MainWeapon && WeaponWielded(ITEM_WEAPON_BIG_BUCKS_HAMMER) && MidasCursed();
+    if (UserStatus == nullptr) {
+        return false;
+    }
+    int  chara = UserStatus->cur_chara;
+    bool goro = chara == CHARA_GORO && NowWeapon == &MainWeapon && WeaponWielded(ITEM_WEAPON_BIG_BUCKS_HAMMER);
+    bool xiao = chara == CHARA_XIAO && SuperSteveSphere() == ITEM_WEAPON_BIG_BUCKS_HAMMER;
+    return (goro || xiao) && MidasCursed(chara);
 }
 
 bool MidasGuardSound() {
-    if (!(Playing(CHARA_GORO) && GoroGold())) {
+    if (UserStatus == nullptr || !MidasGold(UserStatus->cur_chara)) {
         return false;
     }
     Clink();
@@ -216,7 +221,7 @@ bool MidasHold(CMonstorUnit &unit, int monster, CCharacter &character) {
 
 void MidasHitTaken(CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {
     PutBack();
-    if (!InPlay(unit, monster) || hit.owner != kGoroOwner || !MidasTouchWielded() || statues[monster].on) {
+    if (!InPlay(unit, monster) || UserStatus == nullptr || hit.owner != UserStatus->cur_chara || !MidasTouchWielded() || statues[monster].on) {
         return;
     }
     const MONSTOR &live = unit.monster[monster];
@@ -399,12 +404,8 @@ MonsterDamageResult MidasCheckDmg(CMonstorUnit &unit, MonsterDamageResult result
 }
 
 void MidasLight(const CCharacter &character, float *ambient) {
-    // Gold Goro shines as a statue does: his model in play, and the item menu's of him.
-    GoroGoldLight(character, ambient);
-    if (GoroGold() && ((Playing(CHARA_GORO) && &character == &CharaMain) || &character == &MenuCharaFrame)) {
-        for (int c = 0; c < 3; c++) {
-            ambient[c] += kMidasShine[c];
-        }
+    // A gold player shines as a statue does: the model in play, and the item menu's of them.
+    if (MidasGoldLight(character, ambient)) {
         return;
     }
     if (NowMonstorUnit == nullptr) {

@@ -2164,7 +2164,7 @@ void Draw_MainUnit() {
     TexManager.ReloadTexture(Vif1Packet, 0x11);
     CharaMain.TextureAnime(0x11);
 #ifdef CHRONICLE_EXPANDED
-    expanded::GoroDrawing(); // gold Goro, his hammer too
+    expanded::PlayerGoldDrawing(); // a gold player, the weapon too
 #endif
     CharaMain.Draw();
 
@@ -2173,7 +2173,7 @@ void Draw_MainUnit() {
         NowWeapon->Draw();
     }
 #ifdef CHRONICLE_EXPANDED
-    expanded::GoroDrawn();
+    expanded::PlayerGoldDrawn();
 #endif
 
     MGSetAmbient(saved_ambient);
