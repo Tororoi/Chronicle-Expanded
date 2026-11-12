@@ -47,6 +47,7 @@
 #include "vector.hpp"
 #include "weaponeffect.hpp"
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/core/item_models.hpp"
 #include "expanded/dungeon/atla_drops.hpp"
 #include "expanded/weapons/toan/sax.hpp"
 #endif
@@ -197,6 +198,10 @@ std::pair<std::string, std::string> ItemPaths(int item_no) {
             model_path += '0';
         }
         model_path += std::to_string(offset);
+#ifdef CHRONICLE_EXPANDED
+    } else if (const char *own = expanded::ExpandedItemModel(item_no); own != nullptr) {
+        model_path = own;
+#endif
     } else {
         if (ITEM_NAME_TBL_NEW[item_no - ITEM_ATTACH_START] == nullptr) {
             item_no = ITEM_REGULAR_WATER;
@@ -498,7 +503,11 @@ void BtGetTreasureboxSmall_Init(int dungeon) {
 
     NowDngMap->events[iventActive].kind = DNG_EVENT_NONE;
 
+#ifdef CHRONICLE_EXPANDED
+    if (ITEM_NAME_TBL_NEW[item_no - ITEM_ATTACH_START] == nullptr && expanded::ExpandedItemModel(item_no) == nullptr) {
+#else
     if (ITEM_NAME_TBL_NEW[item_no - ITEM_ATTACH_START] == nullptr) {
+#endif
         item_no = ITEM_ATTACH_PERIDOT;
     }
 

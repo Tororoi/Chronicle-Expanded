@@ -13,6 +13,8 @@
 #include "expanded/data/gemron_models.hpp"
 #include "expanded/data/goro_shirt.hpp"
 #include "expanded/data/monster_scripts.hpp"
+#include "expanded/data/gold_bar.hpp"
+#include "expanded/data/gold_statue.hpp"
 #include "expanded/data/pink_fire.hpp"
 #include "expanded/data/prop_models.hpp"
 #include "expanded/data/queens_canal.hpp"
@@ -50,6 +52,8 @@ const DataKind kDataKinds[] = {
     {"weapon model", TallHammerSilverBuilds},
     {"effect", ColossusPopBuilds},
     {"effect", PinkFireBuilds},
+    {"effect", GoldStatueBuilds},
+    {"item", GoldBarBuilds},
     {"look", XiaoColossusBuilds},
     {"character model", ToanGripBuilds},
     {"character model", GoroShirtBuilds},

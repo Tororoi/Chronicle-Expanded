@@ -97,6 +97,9 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/magic_circles.hpp"
+#include "expanded/dungeon/reflection_cubes.hpp"
+#include "expanded/weapons/goro/midas_curse.hpp"
+#include "expanded/weapons/goro/midas_touch.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -2160,12 +2163,18 @@ void Draw_MainUnit() {
     MGSetAmbient(ambient);
     TexManager.ReloadTexture(Vif1Packet, 0x11);
     CharaMain.TextureAnime(0x11);
+#ifdef CHRONICLE_EXPANDED
+    expanded::GoroDrawing(); // gold Goro, his hammer too
+#endif
     CharaMain.Draw();
 
     if (NowWeapon != nullptr && NowWeapon->frame != nullptr && BtActStatus.weapon_visible != 0) {
         TexManager.ReloadTexture(Vif1Packet, 0x1D);
         NowWeapon->Draw();
     }
+#ifdef CHRONICLE_EXPANDED
+    expanded::GoroDrawn();
+#endif
 
     MGSetAmbient(saved_ambient);
     sceVu0CopyMatrix(light, saved_light);
@@ -2292,6 +2301,9 @@ void DunMainDraw() {
 
     TexManager.ReloadTexture(Vif1Packet, 3);
     BtTexAnime.TexAnime(3);
+#ifdef CHRONICLE_EXPANDED
+    expanded::ReflectionCubesCapture();
+#endif
     NowDngMap->DrawBGModel(NowCamera__3);
     NowDngMap->DrawDummyModel(NowCamera__3);
 
@@ -4160,10 +4172,16 @@ int BtCheckDamageProc() {
                     }
 
                     if (dmgSnd <= 0) {
-                        SndSePlay(SE_HIT_BLOCKED, -1, 0);
+#ifdef CHRONICLE_EXPANDED
+                        if (!expanded::MidasGuardSound()) // gold Goro's clink
+#endif
+                            SndSePlay(SE_HIT_BLOCKED, -1, 0);
                         dmgSnd = 30;
                     }
                 } else {
+#ifdef CHRONICLE_EXPANDED
+                    damage = expanded::PlayerHitDamage(damage);
+#endif
                     SndSePlay(SE_CHARA_HURT, -1, 0);
                     SndSePlay(SE_PLAYER_HIT, -1, 0);
                     BtActStatus.hud_shake_frames = 15;
@@ -4230,10 +4248,16 @@ int BtCheckDamageProc() {
                     }
 
                     if (dmgSnd <= 0) {
-                        SndSePlay(SE_HIT_BLOCKED, -1, 0);
+#ifdef CHRONICLE_EXPANDED
+                        if (!expanded::MidasGuardSound()) // gold Goro's clink
+#endif
+                            SndSePlay(SE_HIT_BLOCKED, -1, 0);
                         dmgSnd = 30;
                     }
                 } else {
+#ifdef CHRONICLE_EXPANDED
+                    damage = expanded::PlayerHitDamage(damage);
+#endif
                     SndSePlay(SE_CHARA_HURT_HEAVY, -1, 0);
                     SndSePlay(SE_PLAYER_HIT, -1, 0);
                     BtActStatus.hud_shake_frames = 25;

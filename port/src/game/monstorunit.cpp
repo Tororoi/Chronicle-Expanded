@@ -51,6 +51,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/in_play.hpp"
+#include "expanded/weapons/goro/midas_touch.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -974,7 +975,12 @@ void CMonstorUnit::DrawShadowMonstor() {
 
     for (int i = 0; i < 16; i++) {
         const MONSTOR &mon = monster[i];
+#ifdef CHRONICLE_EXPANDED
+        const bool drawn = mon.state == 2 || (mon.state == 1 && mon.player_distance < detail_distance) ||
+                           expanded::MidasSolid(*this, i); // a gold statue keeps its shadow
+#else
         const bool     drawn = mon.state == 2 || (mon.state == 1 && mon.player_distance < detail_distance);
+#endif
 
         if (!drawn || mon.shadow_visible == 0 || mon.revealed == 0) {
             continue;
@@ -1842,7 +1848,12 @@ void CMonstorUnit::MoveCheck(float *position, float *movement, int flat) {
     float lower = end[1];
 
     for (int i = 0; i < 16; i++) {
+#ifdef CHRONICLE_EXPANDED
+        // A gold statue stays as solid as the monster was.
+        if ((monster[i].state == 2 || expanded::MidasSolid(*this, i)) && monster[i].revealed != 0) {
+#else
         if (monster[i].state == 2 && monster[i].revealed != 0) {
+#endif
             if (effect3[i].count == 0) {
                 CCharacter *character = &chara[i][0];
                 character->GetPosition(center);
@@ -2185,7 +2196,7 @@ void CMonstorUnit::Step(int pause) {
                 }
 
 #ifdef CHRONICLE_EXPANDED
-                switch (expanded::ReviveCheckDmg(*this, CheckDmg())) {
+                switch (expanded::ReviveCheckDmg(*this, expanded::MidasCheckDmg(*this, CheckDmg()))) {
 #else
                 switch (CheckDmg()) {
 #endif

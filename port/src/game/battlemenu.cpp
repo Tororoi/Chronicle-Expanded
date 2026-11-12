@@ -56,6 +56,7 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/items/empty_sphere.hpp"
 #include "expanded/status/confuse.hpp"
+#include "expanded/weapons/goro/midas_curse.hpp"
 #include "expanded/weapons/attach_boost.hpp"
 #include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/toan/buster_sword.hpp"
@@ -6965,7 +6966,13 @@ void MenuCharaPolyDraw() {
         MenuCharaFrame.ClothStep(0);
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::MenuCharaDrawing(ItemMenuMode.chara); // gold Goro
+#endif
     MenuCharaFrame.Draw();
+#ifdef CHRONICLE_EXPANDED
+    expanded::MenuCharaDrawn(ItemMenuMode.chara);
+#endif
     SetItemMenuOldAmbient();
 }
 

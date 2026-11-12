@@ -211,6 +211,9 @@ float PlayerHurtReach();
 bool PlayerHitShrugged(const COLLISION_HIT &hit);
 int  PlayerHitKind(const COLLISION_HIT &hit);
 
+// The damage a monster's hit that lands unblocked deals the player, the game's (after his defense) as features change it.
+int PlayerHitDamage(int damage);
+
 // Whether the player stands on a hit switch (a door's PT_HIT_MARKER event at pos, radius its own, for chara_no) and
 // sets it off as a hit on it would (CDungeonEventMan::CheckCollisionDataHit).
 bool HitSwitchSteppedOn(int chara_no, const float *pos, float radius);

@@ -3,6 +3,7 @@
 #include "character.hpp"
 #include "expanded/core/options.hpp"
 #include "expanded/enemies/ally_unit.hpp"
+#include "expanded/weapons/goro/midas_touch.hpp"
 #include "monstorunit.hpp"
 
 namespace expanded {
@@ -37,6 +38,9 @@ bool FasterInHitWindow(const CMonstorUnit &unit, int monster_no, float time) {
 }
 
 void FasterMotionStep(CMonstorUnit &unit, int monster_no, CCharacter &character) {
+    if (MidasHold(unit, monster_no, character)) {
+        return; // gold: held as it was struck
+    }
     float speed = character.motion_speed;
 
     // Motions on their own rate (-1) keep it; attacks keep theirs through the hit window so the hit lands.

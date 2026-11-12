@@ -39,6 +39,8 @@
 #include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/goro/inferno/fire_shot.hpp"
 #include "expanded/weapons/goro/inferno/smash_blast.hpp"
+#include "expanded/weapons/goro/midas_curse.hpp"
+#include "expanded/weapons/goro/midas_touch.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_sparks.hpp"
@@ -191,6 +193,7 @@ void DungeonEffectsDrawn() {
     GuardianReflectorDraw();
     SnakeCharmerGlowDraw();
     BurningAuraFlameDraw();
+    MidasDraw();
 }
 
 void DungeonRasterDrawn() {
@@ -213,13 +216,17 @@ bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
 }
 
 void PlayerHitReached(COLLISION_HIT &hit) {
-    BreakFreeze(&hit);
+    if (!MidasShrugs()) {
+        BreakFreeze(&hit); // gold Goro's freeze holds
+    }
+    MidasPlayerHit(hit);
     RoughCounterHit(hit);
     DivineGuardHit(hit);
     HerosCourageHit(hit);
 }
 
 void PlayerHitReacted(bool blocked, const COLLISION_HIT &hit) {
+    MidasPlayerReacted(hit);
     DivineGuardBlocked(blocked);
     ColossusShrugged(blocked);
     ColossusHitTaken(hit);
@@ -251,10 +258,12 @@ void DungeonMonstersTick() {
     OwnSoundsStep();
     ConfuseTick();
     CurseStep();
+    MidasCurseStep();
     AtlamilliaStep();
     BloodPriceStep();
     GreatswordStep();
     BigHammerStep();
+    MidasStep();
     TyphoonStep();
     HerosCourageStep();
     BlindTick();
@@ -308,6 +317,7 @@ void MonsterDrawing(CMonstorUnit &unit, int monster) {
     if (AllyUnit(unit)) {
         return;
     }
+    MidasDrawing(unit, monster);
     BombGemronDrawing(unit, monster);
     CrystalGemronDrawing(unit, monster);
     AtlaGemronDrawing(unit, monster);
@@ -317,6 +327,7 @@ void MonsterDrawn(CMonstorUnit &unit, int monster) {
     if (AllyUnit(unit)) {
         return;
     }
+    MidasDrawn(unit, monster);
     BombGemronDrawn(unit, monster);
     AtlaGemronDrawn(unit, monster);
 }
@@ -336,7 +347,7 @@ int MonsterDropItem(const CMonstorUnit &unit, int monster, int drop_item) {
     if (AllyUnit(unit)) {
         return drop_item;
     }
-    return SolarHarvestDrop(unit, monster, drop_item);
+    return SolarHarvestDrop(unit, monster, MidasDropItem(unit, monster, drop_item));
 }
 
 int MonsterKillAbs(const CMonstorUnit &unit, int monster, int abs) {
@@ -488,6 +499,7 @@ void MonsterHitTaken(CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {
     BigRockHitTaken(unit, monster, hit);
     StarBreakerHitLanded(unit, monster, hit, false);
     DoubleTakeHitTaken(unit, monster, hit);
+    MidasHitTaken(unit, monster, hit);
 }
 
 void MonsterHitBlocked(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {
@@ -520,6 +532,7 @@ void MonsterDamaged(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, i
     SnailMonsterDamaged(unit, monster, hit, amount);
     ColdStorageMonsterDamaged(unit, monster, hit, amount);
     pocklekul::PockleMonsterDamaged(monster, hit, amount);
+    MidasDamaged(unit, monster, hit);
 }
 
 void MonsterSwingSet(CMonstorUnit &unit, int, int hit) {
@@ -550,6 +563,7 @@ void MonsterMoveChecked(CMonstorUnit &unit, int monster) {
 }
 
 void PlayerMoveChecked(const float *position, float *velocity) {
+    MidasPlayerMove(velocity);
     AllyPlayerMove(position, velocity);
     SolidColumnPlayerMove(position, velocity);
 }
@@ -580,7 +594,11 @@ float PlayerHurtReach() {
 }
 
 bool PlayerHitShrugged(const COLLISION_HIT &hit) {
-    return ColossusShrugsOff(hit.kind);
+    return ColossusShrugsOff(hit.kind) || MidasShrugs();
+}
+
+int PlayerHitDamage(int damage) {
+    return MidasPlayerDamage(damage);
 }
 
 int PlayerHitKind(const COLLISION_HIT &hit) {
@@ -677,7 +695,7 @@ bool KillAbsTaken(WEAPON_HAVE &weapon, int abs, int max_abs) {
 }
 
 bool AilmentAllowed(int ailment) {
-    return CurseAllowsAilment(ailment) && HerosCourageAllowsAilment(ailment);
+    return CurseAllowsAilment(ailment) && HerosCourageAllowsAilment(ailment) && MidasAllowsAilment();
 }
 
 bool MonsterCanGuard(int monster) {
