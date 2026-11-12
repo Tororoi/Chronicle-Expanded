@@ -34,11 +34,11 @@
 #include "expanded/weapons/charge.hpp"
 #include "expanded/weapons/curse.hpp"
 #include "expanded/weapons/goro/battle_ax.hpp"
+#include "expanded/weapons/goro/big_hammer.hpp"
 #include "expanded/weapons/goro/frozen_tuna.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/goro/inferno/fire_shot.hpp"
 #include "expanded/weapons/goro/inferno/smash_blast.hpp"
-#include "expanded/weapons/goro/growing_hammer.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_sparks.hpp"
@@ -254,7 +254,7 @@ void DungeonMonstersTick() {
     AtlamilliaStep();
     BloodPriceStep();
     GreatswordStep();
-    GrowingHammerStep();
+    BigHammerStep();
     TyphoonStep();
     HerosCourageStep();
     BlindTick();
@@ -444,7 +444,7 @@ void ShotEffectHitSet(CSHOT_EFFECT &effect, int slot, COLLISION_HIT &hit) {
     angel_gear::NoteShotHit(effect, slot, hit);
     ColossusShotHitSet(effect, slot, hit);
     InfernoImpactHit(effect, slot, hit);
-    GrowingHammerHitSet(effect, slot, hit);
+    BigHammerHitSet(effect, slot, hit);
 }
 
 void PelletStepping(CSHOT &shots, int slot) {
