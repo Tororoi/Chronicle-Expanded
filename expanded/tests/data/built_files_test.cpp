@@ -55,7 +55,7 @@ constexpr Built kBuilt[] = {
     {"look/xiao_colossus.chr",         151232,  0xbdb4e3ab3699fcd3ULL},
     {"enemies/script_damage.txt",      2475,    0x95ea0a4a8b6351fdULL},
     {"item/gold_bar.img",              17536,   0x2ec77efd2a1cd95dULL},
-    {"item/gold_bar.mds",              7088,    0x75f8cf9ec9d7a83cULL},
+    {"item/gold_bar.mds",              3248,    0x07cd01aa9a56660eULL},
     {"fishing/e03.col",                25684,   0x88799f90c4c174bdULL},
     {"fishing/s04.col",                7404,    0xcb314e0a7bd3084eULL},
     {"fishing/s13.col",                2392,    0xe85b3ce26bce2af9ULL},
