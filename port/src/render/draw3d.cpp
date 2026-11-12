@@ -255,6 +255,20 @@ void Draw3DShadowCount(gfx::DrawState &state, bool subtract) {
     state.stencil_front = state.stencil_back = face;
 }
 
+#ifdef CHRONICLE_EXPANDED
+namespace {
+int texture_override = -1;
+} // namespace
+
+void Draw3DSetTextureOverride(int handle) {
+    texture_override = handle;
+}
+
+int Draw3DTextureOverride() {
+    return texture_override;
+}
+#endif
+
 } // namespace dc::render
 
 namespace dc::game {

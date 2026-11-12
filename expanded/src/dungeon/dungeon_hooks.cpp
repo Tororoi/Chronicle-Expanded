@@ -39,6 +39,7 @@
 #include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/goro/inferno/fire_shot.hpp"
 #include "expanded/weapons/goro/inferno/smash_blast.hpp"
+#include "expanded/weapons/goro/midas_touch.hpp"
 #include "expanded/weapons/goro/satans_ax.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_shot.hpp"
 #include "expanded/weapons/goro/satans_ax/underworld_sparks.hpp"
@@ -191,6 +192,7 @@ void DungeonEffectsDrawn() {
     GuardianReflectorDraw();
     SnakeCharmerGlowDraw();
     BurningAuraFlameDraw();
+    MidasDraw();
 }
 
 void DungeonRasterDrawn() {
@@ -255,6 +257,7 @@ void DungeonMonstersTick() {
     BloodPriceStep();
     GreatswordStep();
     BigHammerStep();
+    MidasStep();
     TyphoonStep();
     HerosCourageStep();
     BlindTick();
@@ -308,6 +311,7 @@ void MonsterDrawing(CMonstorUnit &unit, int monster) {
     if (AllyUnit(unit)) {
         return;
     }
+    MidasDrawing(unit, monster);
     BombGemronDrawing(unit, monster);
     CrystalGemronDrawing(unit, monster);
     AtlaGemronDrawing(unit, monster);
@@ -317,6 +321,7 @@ void MonsterDrawn(CMonstorUnit &unit, int monster) {
     if (AllyUnit(unit)) {
         return;
     }
+    MidasDrawn(unit, monster);
     BombGemronDrawn(unit, monster);
     AtlaGemronDrawn(unit, monster);
 }
@@ -488,6 +493,7 @@ void MonsterHitTaken(CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {
     BigRockHitTaken(unit, monster, hit);
     StarBreakerHitLanded(unit, monster, hit, false);
     DoubleTakeHitTaken(unit, monster, hit);
+    MidasHitTaken(unit, monster, hit);
 }
 
 void MonsterHitBlocked(const CMonstorUnit &unit, int monster, COLLISION_HIT &hit) {
@@ -520,6 +526,7 @@ void MonsterDamaged(CMonstorUnit &unit, int monster, const COLLISION_HIT &hit, i
     SnailMonsterDamaged(unit, monster, hit, amount);
     ColdStorageMonsterDamaged(unit, monster, hit, amount);
     pocklekul::PockleMonsterDamaged(monster, hit, amount);
+    MidasDamaged(unit, monster, hit);
 }
 
 void MonsterSwingSet(CMonstorUnit &unit, int, int hit) {

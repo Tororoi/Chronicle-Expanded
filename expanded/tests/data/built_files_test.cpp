@@ -46,6 +46,7 @@ constexpr Built kBuilt[] = {
     {"disc/gedit/s13/scene.scn",       1092800,                  0xdcc553521ecc789fULL},
     {"effect/atla_s.chr",              228304,                   0xf08713b17be8b175ULL},
     {"effect/colossus_pop.chr",        46528,   0x2e2edd95095dd8ccULL},
+    {"effect/gold_statue.chr",         73168,   0x05d3e03c26e40662ULL},
     {"effect/pink_blast.chr",          58144,   0xf287b16ba9f54fa7ULL},
     {"effect/pink_fireball.chr",       100272,  0x6e0d4dea44925a4aULL},
     {"effect/babel_beam.chr",          59744,                    0xc8e2a64f097d90a3ULL},

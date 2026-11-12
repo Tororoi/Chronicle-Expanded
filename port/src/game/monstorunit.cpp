@@ -51,6 +51,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/faster.hpp"
 #include "expanded/enemies/in_play.hpp"
+#include "expanded/weapons/goro/midas_touch.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/revive.hpp"
 #include "expanded/enemies/roster.hpp"
@@ -2185,7 +2186,7 @@ void CMonstorUnit::Step(int pause) {
                 }
 
 #ifdef CHRONICLE_EXPANDED
-                switch (expanded::ReviveCheckDmg(*this, CheckDmg())) {
+                switch (expanded::ReviveCheckDmg(*this, expanded::MidasCheckDmg(*this, CheckDmg()))) {
 #else
                 switch (CheckDmg()) {
 #endif

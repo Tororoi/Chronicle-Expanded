@@ -283,6 +283,14 @@ void Draw3DFinishVisual(Draw3DVisual &visual);
  */
 void Draw3DInvalidateStripRuns(Draw3DVisual &visual);
 
+#ifdef CHRONICLE_EXPANDED
+/**
+ * A texture every lit, textured strip draws with in place of its own while set (-1: none), wrapping across the mesh.
+ */
+void Draw3DSetTextureOverride(int handle);
+int  Draw3DTextureOverride();
+#endif
+
 /**
  * Draws a built visual with the given model matrix and VU1 program.
  */

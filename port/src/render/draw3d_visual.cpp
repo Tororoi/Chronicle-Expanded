@@ -243,8 +243,14 @@ void Draw3DDrawVisual(const Draw3DVisual &visual, const float model[4][4], const
         gfx::TextureBinding binding;
         if (lit && strip.texture >= 0) {
             int handle = strip.texture;
-            if (!strip.texture_name.empty() &&
-                std::string_view(TexManager.GetTexture(handle)->name) != strip.texture_name) {
+#ifdef CHRONICLE_EXPANDED
+            const int override_texture = Draw3DTextureOverride();
+            if (override_texture >= 0) {
+                handle = override_texture;
+            } else
+#endif
+                if (!strip.texture_name.empty() &&
+                    std::string_view(TexManager.GetTexture(handle)->name) != strip.texture_name) {
                 std::string name = strip.texture_name;
                 int         moved = TexManager.GetTextureHandle(name.data(), -1);
                 if (moved >= 0) {
@@ -261,6 +267,12 @@ void Draw3DDrawVisual(const Draw3DVisual &visual, const float model[4][4], const
                     binding.wrap_u = gfx::Wrap::Repeat;
                     binding.wrap_v = gfx::Wrap::Repeat;
                 }
+#ifdef CHRONICLE_EXPANDED
+                if (override_texture >= 0) { // laid over the whole mesh
+                    binding.wrap_u = gfx::Wrap::Repeat;
+                    binding.wrap_v = gfx::Wrap::Repeat;
+                }
+#endif
                 u_long tex1 = strip.tex1 ? strip.tex1 : *reinterpret_cast<const u_long *>(&mgTEX1Env);
                 binding.filter = (tex1 >> 5) & 1 ? gfx::Filter::Linear : gfx::Filter::Nearest;
             }
