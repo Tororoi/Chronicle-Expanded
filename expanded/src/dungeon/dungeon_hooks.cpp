@@ -640,7 +640,7 @@ void ShotPlayerPoint(float *point) {
 }
 
 float ActionGaugeGain(float gain) {
-    return RapidFireGaugeGain(FlameGunGaugeGain(GuardianReflectorGaugeGain(gain)));
+    return FlameGunGaugeGain(GuardianReflectorGaugeGain(gain));
 }
 
 int HealCounter(int counter) {
@@ -680,7 +680,7 @@ float WeaponWear(const WEAPON_HAVE &weapon, float amount) {
 }
 
 float XiaoShotWear(float wear) {
-    return RapidFireWear(ChargedShotWear(EnduranceUpShotWear(wear)));
+    return ChargedShotWear(EnduranceUpShotWear(wear));
 }
 
 int MonsterSpherePercent(const CMonstorUnit &unit, int monster, int sphere, int owner, const COLLISION_HIT &hit, int percent) {

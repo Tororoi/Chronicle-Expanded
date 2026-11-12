@@ -26,7 +26,6 @@ using expanded::kXiaoHold;
 using expanded::kXiaoShot;
 
 constexpr int kDamage = 40;
-constexpr int kSpeed = 60; // the stream burns 1.5 - 0.6 = 0.9 of the gauge a frame
 
 struct alignas(64) PadDmaBuffer {
     std::array<unsigned char, 1024> bytes;
@@ -60,7 +59,6 @@ protected:
         BtActStatus = {};
         BtActStatus.action_gauge = expanded::kFullGauge;
         floor_.status().cur_chara = CHARA_XIAO;
-        wielding_.weapon().speed = kSpeed;
         saved_weapon_ = NowWeapon;
         NowWeapon = &weapon_;
         driveNoInterpolate = 0;
@@ -125,11 +123,11 @@ TEST_F(RapidFire, DrawnWithXHeldLetsGoAfterItsHold) {
     EXPECT_EQ(driveNoInterpolate, 1); // cut to, not blended into
 }
 
-TEST_F(RapidFire, PelletsAtFullDamageAndHalfWear) {
+TEST_F(RapidFire, PelletsAtAShotsDamageAndWear) {
     Start();
     EXPECT_EQ(Pellet(), kDamage);
     EXPECT_EQ(expanded::RapidFireShots(), 1);
-    EXPECT_FLOAT_EQ(expanded::XiaoShotWear(1.0f), expanded::kRapidFireWear);
+    EXPECT_FLOAT_EQ(expanded::XiaoShotWear(1.0f), 1.0f);
 }
 
 TEST_F(RapidFire, AfterThePelletAndItsFollowThroughPullsBack) {
@@ -321,33 +319,16 @@ TEST_F(RapidFireMotions, PullsToFullDrawExactlyAndLetsGo) {
     EXPECT_EQ(driveNoInterpolate, 1);
 }
 
-TEST_F(RapidFire, BurnsTheGaugeAsHisGunDoes) {
+TEST_F(RapidFire, EachPelletSpendsTheGaugeAsAShotDoes) {
     Start();
-    float before = BtActStatus.action_gauge;
-    EXPECT_FALSE(Shot());
-    EXPECT_FLOAT_EQ(expanded::RapidFireDrain(), 0.9f);
-    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, before - 0.9f);
-    // No refill while it goes; once it is over, the game's.
-    EXPECT_FLOAT_EQ(expanded::RapidFireGaugeGain(3.0f), 0.0f);
-    BtActStatus.action_on = 0;
-    expanded::RapidFireFrame();
-    EXPECT_FLOAT_EQ(expanded::RapidFireGaugeGain(3.0f), 3.0f);
-}
-
-TEST_F(RapidFire, RunningOutEndsTheStream) {
-    Start();
-    BtActStatus.action_gauge = 0.5f;
-    EXPECT_TRUE(Shot()); // the game ends her action
-    EXPECT_FALSE(expanded::RapidFiring());
+    Pellet();
     EXPECT_FLOAT_EQ(BtActStatus.action_gauge, 0.0f);
-    EXPECT_EQ(BtActStatus.gauge_exhausted, 1);
-}
-
-TEST_F(RapidFire, ATapBurnsNoGauge) {
-    Act(kXiaoDraw);
-    ShotButton(false);
-    Shot();
-    EXPECT_FLOAT_EQ(BtActStatus.action_gauge, expanded::kFullGauge);
+    // The stream does not wait on it: the next pull-back goes on with the gauge empty.
+    for (int i = 0; i <= expanded::kRapidFollowThrough; i++) {
+        Shot();
+    }
+    EXPECT_EQ(BtActStatus.action_no, kXiaoDraw);
+    EXPECT_TRUE(expanded::RapidFiring());
 }
 
 class RapidFireWithoutTheSphere : public RapidFire {
