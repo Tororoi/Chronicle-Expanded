@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "btactstatus.hpp"
+#include "dun/gameloop.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
 #include "expanded/weapons/xiao/moves_while_firing.hpp"
@@ -97,4 +98,23 @@ TEST(MovesWhileFiring, NotWithTheWeaponAbilitiesOff) {
     for (int sphere : OsmondWeapons()) {
         EXPECT_FALSE(Moves(CHARA_XIAO, ITEM_WEAPON_SUPER_STEVE, sphere, expanded::kXiaoDraw)) << sphere;
     }
+}
+
+// Each of Osmond's weapons fires as the game sets his gun type from it (Get_Main_EffectPtr).
+TEST(MovesWhileFiring, GunTypesAreTheGames) {
+    TestFloor     floor;
+    BT_ACT_STATUS saved = BtActStatus;
+    CUserStatus  &status = floor.status();
+    status.equipped_weapon_slot[CHARA_OSMOND] = 0;
+    for (int weapon_no : OsmondWeapons()) {
+        status.chara_weapons[CHARA_OSMOND][0].item_no = static_cast<s16>(weapon_no);
+        BtActStatus.gun_type = -1;
+        Get_Main_EffectPtr(CHARA_OSMOND, 0);
+        EXPECT_EQ(expanded::OsmondGunType(weapon_no), BtActStatus.gun_type) << weapon_no;
+    }
+    BtActStatus = saved;
+    EXPECT_EQ(expanded::OsmondGunType(ITEM_WEAPON_SWALLOW), expanded::kMachineGun);
+    EXPECT_EQ(expanded::OsmondGunType(ITEM_WEAPON_SNAIL), expanded::kLauncher);
+    EXPECT_EQ(expanded::OsmondGunType(ITEM_WEAPON_SKUNK), expanded::kFlamethrower);
+    EXPECT_EQ(expanded::OsmondGunType(ITEM_WEAPON_CACTUS), -1);
 }

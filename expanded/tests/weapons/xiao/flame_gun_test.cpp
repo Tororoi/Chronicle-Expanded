@@ -242,9 +242,9 @@ protected:
     BlessingGunFlame() : FlameGun(ITEM_WEAPON_BLESSING_GUN) {}
 };
 
-class JackalSphere : public FlameGun {
+class LauncherSphere : public FlameGun {
 protected:
-    JackalSphere() : FlameGun(ITEM_WEAPON_JACKAL) {}
+    LauncherSphere() : FlameGun(ITEM_WEAPON_HEXA_BLASTER) {}
 };
 
 class NoSphere : public FlameGun {
@@ -411,7 +411,7 @@ TEST_F(FlameGun, SheMovesWhileItBurns) {
     EXPECT_TRUE(expanded::FiringLeavesMove());
 }
 
-TEST_F(JackalSphere, OtherOsmondSpheresMoveWithNoFlame) {
+TEST_F(LauncherSphere, OtherOsmondSpheresMoveWithNoFlame) {
     Frames(60);
     EXPECT_FALSE(expanded::FlameGunLit());
     EXPECT_EQ(Burning(), 0);
@@ -537,7 +537,7 @@ TEST_F(FlameGun, OsmondsGaugeIsHis) {
 }
 
 // Another Osmond sphere, none, or Weapon Abilities off: her hold burns nothing and the gauge refills as ever.
-TEST_F(JackalSphere, TheGaugeIsUntouched) {
+TEST_F(LauncherSphere, TheGaugeIsUntouched) {
     BtActStatus.action_gauge = 0.0f;
     HoldFrames(300);
     EXPECT_FLOAT_EQ(BtActStatus.action_gauge, expanded::kFullGauge);
