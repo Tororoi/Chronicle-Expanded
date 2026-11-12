@@ -41,7 +41,7 @@ inline constexpr OwnSound kMidasTurnSound = {.path = "sound/set/snd26.snd", .ban
 inline constexpr float    kMidasRebound = 2.0f;
 inline constexpr float    kMidasReboundDecay = 0.3f;
 inline constexpr int      kMidasClinkFrames = 20;
-inline constexpr uint32_t kMidasGoldLift = 0x00'0A'1A'1Fu; // and a gold body under it (RGBA8): 0.12, 0.1, 0.04
+inline constexpr uint32_t kMidasGoldLift = 0x00'08'13'17u; // and a gold body under it (RGBA8): 0.09, 0.075, 0.03
 
 // Whether Goro is in play with Big Bucks Hammer in hand, or Xiao with its SynthSphere on Super Steve, under its curse
 // (midas_curse.hpp).
@@ -53,6 +53,10 @@ void MidasPolish(const float *at);
 // The gold ball alone, for a model shown away from the floor (the item menu's).
 void MidasPolishBall();
 void MidasUnpolish();
+
+// Hook: a chest's item about to be drawn at at: the Gold Bullion polished and lit kMidasShine brighter as the statues
+// are, true when it was, for MidasUnpolish (and the light put back) after.
+bool GoldBullionDrawing(int item_no, const float *at);
 
 // Whether monster of unit is a gold statue.
 bool MidasStatue(const CMonstorUnit &unit, int monster);

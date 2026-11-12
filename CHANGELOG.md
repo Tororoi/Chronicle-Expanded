@@ -18,7 +18,7 @@ Each section lists this repository's own changes first, then those that come fro
 
 ## Display and graphics
 
-- Gold Bullion has its own model, a gold bar, wherever it shows in the dungeon (chests and drops). [#329](https://github.com/Tororoi/Chronicle-Expanded/pull/329)
+- Gold Bullion has its own model, a gold bar with bevelled edges, wherever it shows in the dungeon (chests and drops). Rising out of a chest it is polished gold, reflecting the room around it as Midas Touch's statues do. [#329](https://github.com/Tororoi/Chronicle-Expanded/pull/329), [#334](https://github.com/Tororoi/Chronicle-Expanded/pull/334)
 
 ### From Chronicle
 

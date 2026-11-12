@@ -98,13 +98,13 @@
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/magic_circles.hpp"
 #include "expanded/dungeon/reflection_cubes.hpp"
-#include "expanded/weapons/goro/midas_curse.hpp"
-#include "expanded/weapons/goro/midas_touch.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/enemies/miniboss.hpp"
 #include "expanded/enemies/roster.hpp"
 #include "expanded/town/ally.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
+#include "expanded/weapons/goro/midas_curse.hpp"
+#include "expanded/weapons/goro/midas_touch.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/heal.hpp"
 #include "expanded/weapons/solar_flash.hpp"
@@ -2488,7 +2488,15 @@ void DunMainDraw() {
 
         lift[1] += 0.5f * sinf(itemposr);
         itemBoxModel->SetPosition(lift);
+#ifdef CHRONICLE_EXPANDED
+        bool bullion = expanded::GoldBullionDrawing(BtGetTreasureboxSmall_itemNo, lift);
+#endif
         MGDraw(itemBoxModel);
+#ifdef CHRONICLE_EXPANDED
+        if (bullion) {
+            expanded::MidasUnpolish();
+        }
+#endif
         MGSetAmbient(ambient);
         itemBoxModel->SetPosition(held);
     }

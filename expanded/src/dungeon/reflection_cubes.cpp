@@ -197,7 +197,7 @@ void Capture(CDungeonMap &map, Tile &tile, gfx::TextureHandle target, float hand
     int   row = tile.cell / kGrid;
     float eye[3] = {kDungeonTile * static_cast<float>(col), 0.0f, kDungeonTile * static_cast<float>(row)};
     float ground = 0.0f;
-    if (FloorUnder(eye[0], eye[2], 100.0f, &ground)) {
+    if (FloorUnder(eye[0], eye[2], kReflectionFloorFrom, &ground)) {
         eye[1] = ground;
     }
     eye[1] += kReflectionEyeHeight;

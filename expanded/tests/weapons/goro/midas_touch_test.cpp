@@ -13,7 +13,9 @@
 #include "expanded/weapons/goro/midas_curse.hpp"
 #include "expanded/weapons/goro/midas_touch.hpp"
 #include "itemdata.hpp"
+#include "mglib.hpp"
 #include "monstorunit.hpp"
+#include "render/draw3d.hpp"
 #include "test_support.hpp"
 #include "userstatus.hpp"
 
@@ -281,4 +283,19 @@ TEST_F(MidasTouch, AnotherKillIsLeftToTheGame) {
     unit.current_monster = 0;
     EXPECT_EQ(expanded::MidasCheckDmg(unit, MonsterDamageResult::Killed), MonsterDamageResult::Killed);
     EXPECT_EQ(unit.monster[0].state, 2);
+}
+
+// (The Bullion's own polish loads the gold ball, from the game's data: the clip shows it.)
+TEST(GoldBullion, AChestsOtherItemsAreLeftAsTheyAre) {
+    float before[4] = {10.0f, 20.0f, 30.0f, 128.0f};
+    float at[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+    MGSetAmbient(before);
+    EXPECT_FALSE(expanded::GoldBullionDrawing(ITEM_GOLD_BULLION - 1, at));
+    float after[4];
+    MGGetAmbient(after);
+    for (int c = 0; c < 4; c++) {
+        EXPECT_FLOAT_EQ(after[c], before[c]);
+    }
+    EXPECT_FALSE(dc::render::Draw3DReflecting());
+    EXPECT_EQ(dc::render::Draw3DReflectionCubeSet(), nullptr);
 }

@@ -66,6 +66,8 @@ constexpr float kAway = 2000.0f; // where monsters not set out are sent
 
 // How far in front of the member the stage's magic circle is set out.
 constexpr float kCircleAhead = 40.0f;
+// How far in front of the member the stage's chest is set out: its opening point, 8 nearer, within reach.
+constexpr float kChestAhead = 12.0f;
 
 // The sub maps (gedit/s01-s42) by MapNo, and two that are fished.
 constexpr int kFirstSubMap = 11;
@@ -98,6 +100,7 @@ struct Run {
     float to[2] = {};
     bool  placed = false;
     bool  circled = false;     // the magic circle set out
+    bool  chested = false;     // the chest set out
     bool  arrived = false;     // the stage's town in play
     bool  at_sign = false;     // the player stood at the fishing sign (or none asked for)
     bool  bait_asked = false;  // the bait change asked for
@@ -244,6 +247,7 @@ constexpr Key kKeys[] = {
     {"character",    [](std::string_view v, Stage &s) { return Character(v, s.character); }                  },
     {"weapon",       [](std::string_view v, Stage &s) { return Count(v, s.weapon); }                         },
     {"attack",       [](std::string_view v, Stage &s) { return Count(v, s.attack); }                         },
+    {"life",         [](std::string_view v, Stage &s) { return Count(v, s.life); }                           },
     {"whp",          [](std::string_view v, Stage &s) { return Count(v, s.whp); }                            },
     {"sphere",       [](std::string_view v, Stage &s) { return Count(v, s.sphere); }                         },
     {"seed",         [](std::string_view v, Stage &s) { return Number(v, s.seed) && s.seed >= 0; }           },
@@ -262,6 +266,7 @@ constexpr Key kKeys[] = {
     {"bait",         [](std::string_view v, Stage &s) { return Bait(v, s.bait); }                            },
     {"time",         [](std::string_view v, Stage &s) { return Time(v, s.time); }                            },
     {"give",         [](std::string_view v, Stage &s) { return Items(v, s.give); }                           },
+    {"chest",        [](std::string_view v, Stage &s) { return Count(v, s.chest); }                          },
 };
 
 // One key's value into stage; false for an unknown key or a bad value.
@@ -325,7 +330,8 @@ void Walk() {
     run.walking = distance > kWalkStep;
 }
 
-// The stage's monsters set out in front of the member, every other one in play sent away (one in a chest stays).
+// The stage's monsters set out in front of the member (at the stage's life), every other one in play sent away (one in
+// a chest stays).
 void Place(const Stage &stage) {
     CMonstorUnit &unit = *NowMonstorUnit;
     unsigned      placed = 0;
@@ -342,6 +348,9 @@ void Place(const Stage &stage) {
         float a = CharaMain.rotation.y + stage.angle + offset;
         unit.chara[m][0].SetPosition(CharaMain.pos[0] + stage.distance * std::sin(a), CharaMain.pos[1],
                                      CharaMain.pos[2] + stage.distance * std::cos(a));
+        if (stage.life >= 0) {
+            unit.monster[m].hp = std::min(stage.life, static_cast<int>(unit.monster[m].max_hp));
+        }
         placed |= 1u << m;
         n++;
     }
@@ -363,6 +372,37 @@ void SetOutCircle(const Stage &stage) {
     circle.state = 1;
     circle.kind = stage.circle;
     circle.timer = 0.0f;
+}
+
+// The floor's first closed small chest given the stage's item and set out kChestAhead behind the member's position
+// along -z (a chest faces +z, its opening point 8 in front of it), the member turned to face it; false when the floor
+// has none.
+bool SetOutChest(const Stage &stage) {
+    CDungeonMap &map = *NowDngMap;
+    for (int b = 0; b < static_cast<int>(std::size(map.boxes)); b++) {
+        TREASURE_BOX &box = map.boxes[b];
+        if (box.used == 0 || box.closed == 0 || box.kind != TREASURE_BOX_SMALL) {
+            continue;
+        }
+        box.item_no = stage.chest;
+        box.trap_no = 0;
+        box.pos[0] = CharaMain.pos[0];
+        box.pos[1] = CharaMain.pos[1];
+        box.pos[2] = CharaMain.pos[2] - kChestAhead;
+        box.pos[3] = 1.0f;
+        for (DUNGEON_EVENT &event : map.events) {
+            if (event.kind == DNG_EVENT_TREASURE_BOX && event.index == b) {
+                event.origin_x = static_cast<int>(box.pos[0]);
+                event.origin_z = static_cast<int>(box.pos[2]);
+                event.pos[0] = box.pos[0];
+                event.pos[1] = box.pos[1];
+                event.pos[2] = box.pos[2] + 8.0f;
+            }
+        }
+        CharaMain.SetRotation(0.0f, std::numbers::pi_v<float>, 0.0f);
+        return true;
+    }
+    return false;
 }
 
 // The floor in play with no action or event running: when a member can be brought out.
@@ -632,6 +672,11 @@ void StageStep() {
         Place(*active);
         run.placed = true;
         LogEvent("stage", "\"step\":\"placed\"");
+    }
+    bool chest_due = active->chest >= 0 && !run.chested && run.steps >= active->place_after && !run.walking;
+    if (chest_due && NowDngMap != nullptr) {
+        run.chested = true;
+        LogEvent("stage", SetOutChest(*active) ? "\"step\":\"chest\"" : "\"step\":\"no chest\"");
     }
     bool circle_due = active->circle >= 0 && !run.circled && run.steps >= active->place_after && !run.walking;
     if (circle_due && NowDngMap != nullptr) {
