@@ -247,6 +247,7 @@ constexpr Key kKeys[] = {
     {"character",    [](std::string_view v, Stage &s) { return Character(v, s.character); }                  },
     {"weapon",       [](std::string_view v, Stage &s) { return Count(v, s.weapon); }                         },
     {"attack",       [](std::string_view v, Stage &s) { return Count(v, s.attack); }                         },
+    {"life",         [](std::string_view v, Stage &s) { return Count(v, s.life); }                           },
     {"whp",          [](std::string_view v, Stage &s) { return Count(v, s.whp); }                            },
     {"sphere",       [](std::string_view v, Stage &s) { return Count(v, s.sphere); }                         },
     {"seed",         [](std::string_view v, Stage &s) { return Number(v, s.seed) && s.seed >= 0; }           },
@@ -329,7 +330,8 @@ void Walk() {
     run.walking = distance > kWalkStep;
 }
 
-// The stage's monsters set out in front of the member, every other one in play sent away (one in a chest stays).
+// The stage's monsters set out in front of the member (at the stage's life), every other one in play sent away (one in
+// a chest stays).
 void Place(const Stage &stage) {
     CMonstorUnit &unit = *NowMonstorUnit;
     unsigned      placed = 0;
@@ -346,6 +348,9 @@ void Place(const Stage &stage) {
         float a = CharaMain.rotation.y + stage.angle + offset;
         unit.chara[m][0].SetPosition(CharaMain.pos[0] + stage.distance * std::sin(a), CharaMain.pos[1],
                                      CharaMain.pos[2] + stage.distance * std::cos(a));
+        if (stage.life >= 0) {
+            unit.monster[m].hp = std::min(stage.life, static_cast<int>(unit.monster[m].max_hp));
+        }
         placed |= 1u << m;
         n++;
     }

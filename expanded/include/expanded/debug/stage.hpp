@@ -29,6 +29,7 @@ struct Stage {
     float       spread = 0.35f;     // spread: radians between them
     float       angle = 0.0f;       // angle: radians turned from the member's facing
     int         place_kind = -1;    // place_kind: only monsters of this kind
+    int         life = -1;          // life: the monsters set out left with this much life
     int         place_after = 100;  // place_after: monster steps after the member is out
     bool        big_room = false;   // big_room: the member walked to the middle of the nearest big room first
     bool        keep_alive = false; // keep_alive: the party's life kept full
