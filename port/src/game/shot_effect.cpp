@@ -10,6 +10,7 @@
 #include "dataread.hpp"
 #include "dun/gameloop.hpp"
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/goro/channel_elements.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -80,7 +81,11 @@ void CSHOT::step() {
                     NowColData->SetUserID(1, 0);
                     s8              weapon_element = NowWeaponHave->best_elem;
                     CCollisionData *attr_col = NowColData;
+#ifdef CHRONICLE_EXPANDED
+                    attr_col->hit[attr_col->now_hit].flags = expanded::AttackElementFlags(weapon_element); // Channel Elements on Super Steve
+#else
                     attr_col->hit[attr_col->now_hit].flags = GetWeaponElementAttr(weapon_element);
+#endif
                     NowColData->hit[NowColData->now_hit].weapon_flags = NowWeaponHave->flags;
                     NowColData->hit[NowColData->now_hit].vs_monster = NowWeaponHave->vs_monster;
 #ifdef CHRONICLE_EXPANDED

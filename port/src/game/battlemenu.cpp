@@ -56,6 +56,7 @@
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/items/empty_sphere.hpp"
 #include "expanded/status/confuse.hpp"
+#include "expanded/weapons/goro/channel_elements.hpp"
 #include "expanded/weapons/goro/midas_curse.hpp"
 #include "expanded/weapons/attach_boost.hpp"
 #include "expanded/weapons/ruby/crystal_ring.hpp"
@@ -2273,6 +2274,16 @@ void DrawWeaponElemTag(int x, int y, WEAPON_HAVE *weapon, int build, int weapon_
         int tag_y = y + 0x24 + best * 0x18;
         DrawMenu2DSprite(WepStatus, CRect_i_(x + 6, tag_y + 1, 0x2C, 0x18), CRect_i_(0xD4, src_y, 0x2C, 0x18), alpha);
     }
+#ifdef CHRONICLE_EXPANDED
+    // Channel Elements: every element's tag, all five chosen.
+    for (int element = 0; element < 5; element++) {
+        if (expanded::ChannelChosen(*weapon, element)) {
+            int src_y = element * 0x18 + 0x68;
+            int tag_y = y + 0x24 + element * 0x18;
+            DrawMenu2DSprite(WepStatus, CRect_i_(x + 6, tag_y + 1, 0x2C, 0x18), CRect_i_(0xD4, src_y, 0x2C, 0x18), alpha);
+        }
+    }
+#endif
 
     RECT row = {0, 0, -4, -4};
     row.x = x + 0x4A;
@@ -2327,6 +2338,15 @@ void DrawWeaponElemTag(int x, int y, WEAPON_HAVE *weapon, int build, int weapon_
         int mark_y = y + 0x30 + best * 0x18;
         DrawMenu2DSprite(WepStatus, CRect_i_(x + 0x8A, mark_y, 0x42, 0x15), CRect_i_(0xD4, 0x190, 0x42, 0x16), (alpha * 0x6E) >> 7);
     }
+#ifdef CHRONICLE_EXPANDED
+    // Channel Elements: every element marked active.
+    for (int element = 0; element < 5; element++) {
+        if (expanded::ChannelChosen(*weapon, element)) {
+            int mark_y = y + 0x30 + element * 0x18;
+            DrawMenu2DSprite(WepStatus, CRect_i_(x + 0x8A, mark_y, 0x42, 0x15), CRect_i_(0xD4, 0x190, 0x42, 0x16), (alpha * 0x6E) >> 7);
+        }
+    }
+#endif
 }
 
 void DrawWeaponVsMonster(int x, int y, WEAPON_HAVE *weapon, int build, int weapon_no, int alpha) {
@@ -2530,7 +2550,7 @@ void WeaponMenuCheckElemValue(WEAPON_HAVE *weapon, WEAPON_HAVE *attachment) {
 int WeaponMenuCheckEnableSetElem(WEAPON_HAVE *weapon, WEAPON_HAVE *attachment, int elem) {
 #ifdef CHRONICLE_EXPANDED
     // A weapon its curse holds to an element refuses the others, with warning 0 (its text the curse's).
-    if (expanded::ElementRefused(*weapon, elem)) {
+    if (expanded::ElementRefused(*weapon, elem) || expanded::ChannelRefused(*weapon)) {
         WepMenu.state = WEP_STATE_WARNING;
         WepMenu.warning_no = 0;
         return 1;
@@ -2729,6 +2749,7 @@ void WeaponMenuSelect() {
 
 #ifdef CHRONICLE_EXPANDED
     expanded::CrystalRingMenuStep();
+    expanded::ChannelElementsMenuStep();
 #endif
 
     switch (WepMenu.state) {
@@ -2833,6 +2854,7 @@ void WeaponMenuSelect() {
                     case WEP_STATE_BUILDUP_EFFECT:
 #ifdef CHRONICLE_EXPANDED
                         expanded::CrystalRingBuiltUp(*weapon);
+                        expanded::ChannelElementsBuiltUp(*weapon, MenuWepLevelUp.preview.item_no);
                         break;
 #endif
                     case WEP_STATE_REPAIR_EFFECT:
@@ -3109,13 +3131,21 @@ void WeaponMenuSelect() {
             break;
         }
         case WEP_MENU_ELEMENT:
+#ifdef CHRONICLE_EXPANDED
+            if (weapon->best_elem == WepMenu.element || expanded::ChannelChosen(*weapon, WepMenu.element)) {
+#else
             if (weapon->best_elem == WepMenu.element) {
+#endif
                 mes_no += 0x15;
             }
 
             break;
         case WEP_MENU_ATTACH_TAGS:
+#ifdef CHRONICLE_EXPANDED
+            if (WepMenu.tag_page == WEP_TAG_ELEMENT && (weapon->best_elem == WepMenu.tag_row || expanded::ChannelChosen(*weapon, WepMenu.tag_row))) {
+#else
             if (WepMenu.tag_page == WEP_TAG_ELEMENT && weapon->best_elem == WepMenu.tag_row) {
+#endif
                 mes_no += 0x15;
             }
 

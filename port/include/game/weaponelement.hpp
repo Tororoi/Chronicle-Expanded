@@ -170,6 +170,11 @@ STATIC_ASSERT(sizeof(CWeaponElement) == 0x7C0);
 /**
  * Elemental weapon effects the dungeon can run.
  */
-extern CWeaponElement CWeaponElFx[4];
+#ifdef CHRONICLE_EXPANDED
+inline constexpr int kWeaponElFxSlots = 8; // a channeled hit shows five at once
+#else
+inline constexpr int kWeaponElFxSlots = 4;
+#endif
+extern CWeaponElement CWeaponElFx[kWeaponElFxSlots];
 
 } // namespace dc::game

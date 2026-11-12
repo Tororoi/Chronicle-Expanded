@@ -51,6 +51,7 @@
 #include "weaponelement.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/weapons/goro/channel_elements.hpp"
 #include "expanded/weapons/attach_boost.hpp"
 #include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/super_steve.hpp"
@@ -1773,6 +1774,10 @@ void ClosePicker() {
 
 bool ElementPickerHasChoice() {
 #ifdef CHRONICLE_EXPANDED
+    // A weapon channeling every element has none to pick.
+    if (expanded::ChannelElements(*NowWeaponHave)) {
+        return false;
+    }
     // A weapon held to an element opens the picker on it, to show it.
     if (expanded::HeldElement(*NowWeaponHave) >= 0) {
         return true;

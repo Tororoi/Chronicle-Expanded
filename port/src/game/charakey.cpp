@@ -37,6 +37,7 @@
 #include "expanded/weapons/toan/macho_sword.hpp"
 #include "expanded/weapons/toan/sand_breaker.hpp"
 #include "expanded/weapons/toan/small_sword.hpp"
+#include "expanded/weapons/goro/channel_elements.hpp"
 #include "expanded/weapons/toan/sword_of_zeus.hpp"
 #include "expanded/weapons/toan/tsukikage.hpp"
 #endif
@@ -58,7 +59,7 @@ void basic_damage(int kind, int owner) {
     hit.vs_monster = NowWeaponHave->vs_monster;
     hit.weapon_flags = NowWeaponHave->flags;
 #ifdef CHRONICLE_EXPANDED
-    hit.flags = GetWeaponElementAttr(expanded::InfernoAttackElement(kind, owner, NowWeaponHave->best_elem));
+    hit.flags = expanded::AttackElementFlags(expanded::InfernoAttackElement(kind, owner, NowWeaponHave->best_elem));
 #else
     hit.flags = GetWeaponElementAttr(NowWeaponHave->best_elem);
 #endif
@@ -1045,7 +1046,7 @@ void GoroKey_Play() {
         NowMainEffect->SetDmg(static_cast<int>(1.2f * static_cast<float>(damage)));
         NowMainEffect->SetWait(45);
 #ifdef CHRONICLE_EXPANDED
-        NowMainEffect->SetAttribute(GetWeaponElementAttr(expanded::InfernoAttackElement(1, 2, NowWeaponHave->best_elem)));
+        NowMainEffect->SetAttribute(expanded::AttackElementFlags(expanded::InfernoAttackElement(1, 2, NowWeaponHave->best_elem)));
 #else
         NowMainEffect->SetAttribute(GetWeaponElementAttr(NowWeaponHave->best_elem));
 #endif
