@@ -16,6 +16,12 @@ namespace expanded {
 // person (the hand model's draw, 10 to 21) pulls the same. Each pellet of the stream does the shot's full damage and wears her slingshot kRapidFireWear times what a shot does, as his gun's bullets wear his gun. Let go during
 // a pull-back, the stream ends there; let go during a shot, that shot finishes. A tap fires her ordinary shot. She walks
 // while she fires (moves_while_firing.hpp).
+//
+// The stream burns her action gauge as his gun burns his: from the frame it starts, RapidFireDrain a frame (his gun's
+// 1.5 - 0.01 x the weapon's speed) with no refill while it goes. Her shot spent the gauge as it started, as every shot of
+// hers does, so the stream burns what has refilled since. Let go before the gauge is out, it refills at her own rate. Run
+// out, the stream ends there (the game ends her action) and the gauge refills at his rate once his has run out
+// (flame_gun.hpp's kSpentGaugeRate) before she can shoot again.
 inline constexpr int   kRapidFollowThrough = 0;
 inline constexpr float kRapidBlendStep = 0.2f;
 inline constexpr int   kRapidPullFrom = 4;
@@ -25,6 +31,9 @@ inline constexpr int   kRapidHold = 1;
 inline constexpr float kRapidFireWear = 0.5f;
 
 bool RapidFireSphere();
+
+// The gauge the stream burns a frame, by the weapon in hand's speed.
+float RapidFireDrain();
 
 // Whether a stream is going, and the pellets it has fired (for tests).
 bool RapidFiring();
@@ -37,6 +46,9 @@ bool RapidFireShot(CCharacter &chara);
 
 // Hook: a pellet fired into slot (PelletFired): one of the stream's.
 void RapidFirePellet(CSHOT &shots, int slot);
+
+// Hook: motionDrive's refill of the action gauge (ActionGaugeGain): none while the stream goes.
+float RapidFireGaugeGain(float gain);
 
 // Hook: a shot's wear (XiaoShotWear).
 float RapidFireWear(float wear);

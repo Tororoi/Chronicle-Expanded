@@ -89,6 +89,10 @@ bool RapidFireSphere() {
     return SuperSteveSphere() == ITEM_WEAPON_MACHINE_GUN;
 }
 
+float RapidFireDrain() {
+    return NowWeaponHave != nullptr ? 1.5f - 0.01f * static_cast<float>(NowWeaponHave->speed) : 1.5f;
+}
+
 bool RapidFiring() {
     return stream.on;
 }
@@ -119,6 +123,16 @@ bool RapidFireShot(CCharacter &chara) {
     }
     if (!stream.on) {
         return false;
+    }
+
+    // His gun's gauge burns down while the stream goes, and the stream ends as it runs out.
+    BtActStatus.action_gauge -= RapidFireDrain();
+    if (BtActStatus.action_gauge <= 0.0f) {
+        BtActStatus.action_gauge = 0.0f;
+        BtActStatus.gauge_exhausted = 1;
+        LogEvent("rapid_fire", std::format("\"step\":\"empty\",\"shots\":{}", stream.shots));
+        stream = {};
+        return true;
     }
 
     // The pellet gone and its follow-through played with X still held: pull back again.
@@ -174,7 +188,12 @@ void RapidFirePellet(CSHOT &shots, int slot) {
     stream.fired = true;
     stream.after = 0;
     stream.shots++;
-    LogEvent("rapid_fire", std::format("\"step\":\"shot\",\"shots\":{},\"damage\":{}", stream.shots, shots.damage[slot]));
+    LogEvent("rapid_fire", std::format("\"step\":\"shot\",\"shots\":{},\"damage\":{},\"gauge\":{:.1f}", stream.shots, shots.damage[slot],
+                                       BtActStatus.action_gauge));
+}
+
+float RapidFireGaugeGain(float gain) {
+    return stream.on && Playing(CHARA_XIAO) ? 0.0f : gain;
 }
 
 float RapidFireWear(float wear) {

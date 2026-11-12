@@ -640,7 +640,7 @@ void ShotPlayerPoint(float *point) {
 }
 
 float ActionGaugeGain(float gain) {
-    return FlameGunGaugeGain(GuardianReflectorGaugeGain(gain));
+    return RapidFireGaugeGain(FlameGunGaugeGain(GuardianReflectorGaugeGain(gain)));
 }
 
 int HealCounter(int counter) {
