@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 
+#include "battlemenu.hpp"
 #include "btactstatus.hpp"
 #include "character.hpp"
 #include "collisiondata.hpp"
@@ -26,16 +28,25 @@ namespace expanded {
 
 namespace {
 
-bool gold = false;   // Goro turned to gold, until his freeze is healed
-int  flash = 0;      // frames of his turning flash left
-bool lifted = false; // the curse lifted on this floor: off until the next
+constexpr int kMembers = 6;
 
-bool Cursing(const CUserStatus &status, int chara) {
-    return chara == CHARA_GORO && !gold && !lifted && EquippedCarries(status, chara, ITEM_WEAPON_BIG_BUCKS_HAMMER);
+bool gold[kMembers] = {};   // turned to gold, until the freeze is healed
+int  flash[kMembers] = {};  // frames of the turning flash left
+bool lifted[kMembers] = {}; // the curse lifted on this floor: off until the next
+bool menu_gold = false;     // the item menu's model is being drawn gold
+
+bool Member(int chara) {
+    return chara >= 0 && chara < kMembers;
 }
 
-void Lifted(CUserStatus &, int) {
-    TurnGoroGold();
+// Goro with Big Bucks Hammer, Xiao with its SynthSphere on Super Steve.
+bool Cursing(const CUserStatus &status, int chara) {
+    return (chara == CHARA_GORO || chara == CHARA_XIAO) && !gold[chara] && !lifted[chara] &&
+           EquippedCarries(status, chara, ITEM_WEAPON_BIG_BUCKS_HAMMER);
+}
+
+void Lifted(CUserStatus &, int chara) {
+    TurnGold(chara);
 }
 
 constexpr int kMonsterOwners = 200; // a monster's hit's owner: 200 + its slot times kOwnersPerMonster
@@ -44,62 +55,72 @@ constexpr int kOwnersPerMonster = 5;
 constexpr CurseRule kMidasCurse = {.cursing = Cursing, .lifted = Lifted, .immune = false};
 
 void OnFloor() {
-    lifted = false;
+    std::fill(std::begin(lifted), std::end(lifted), false);
 }
 
 [[maybe_unused]] const bool kRegistered = (AddCurseRule(&kMidasCurse), AddEnemyFloorListener(OnFloor), true);
 
-// Gold Goro as the one in play.
+int InPlay() {
+    return UserStatus != nullptr ? UserStatus->cur_chara : -1;
+}
+
+// The one in play, gold.
 bool GoldInPlay() {
-    return Playing(CHARA_GORO) && GoroGold();
+    return MidasGold(InPlay());
 }
 
 } // namespace
 
-bool MidasCursed() {
-    return UserStatus != nullptr && CurseOn(CHARA_GORO) == &kMidasCurse && (UserStatus->ailments[CHARA_GORO] & AILMENT_CURSE) != 0;
+bool MidasCursed(int chara) {
+    return UserStatus != nullptr && Member(chara) && CurseOn(chara) == &kMidasCurse && (UserStatus->ailments[chara] & AILMENT_CURSE) != 0;
 }
 
-bool GoroGold() {
-    return gold && UserStatus != nullptr && (UserStatus->ailments[CHARA_GORO] & AILMENT_FREEZE) != 0;
+bool MidasGold(int chara) {
+    return UserStatus != nullptr && Member(chara) && gold[chara] && (UserStatus->ailments[chara] & AILMENT_FREEZE) != 0;
 }
 
-void TurnGoroGold() {
-    if (UserStatus == nullptr) {
+void TurnGold(int chara) {
+    if (UserStatus == nullptr || !Member(chara)) {
         return;
     }
-    gold = true;
-    lifted = true;
+    gold[chara] = true;
+    lifted[chara] = true;
     // Frozen and nothing else; 0 frames left: the game's countdown never ends it.
-    UserStatus->ailments[CHARA_GORO] = AILMENT_FREEZE;
-    UserStatus->ailment_frames[CHARA_GORO] = 0;
-    UserStatus->hp[CHARA_GORO] = std::max<s16>(UserStatus->hp[CHARA_GORO], 1);
-    if (Playing(CHARA_GORO)) {
+    UserStatus->ailments[chara] = AILMENT_FREEZE;
+    UserStatus->ailment_frames[chara] = 0;
+    UserStatus->hp[chara] = std::max<s16>(UserStatus->hp[chara], 1);
+    if (Playing(chara)) {
         BtActStatus.movement_locked = 1;
     }
-    MidasTurnEffect(flash);
+    MidasTurnEffect(flash[chara]);
 }
 
 void MidasCurseStep() {
-    if (flash > 0) {
-        flash--;
-    }
-    if (!gold || UserStatus == nullptr) {
+    if (UserStatus == nullptr) {
         return;
     }
-    if ((UserStatus->ailments[CHARA_GORO] & AILMENT_FREEZE) == 0) {
-        gold = false; // healed
-        return;
+    for (int chara = 0; chara < kMembers; chara++) {
+        if (flash[chara] > 0) {
+            flash[chara]--;
+        }
+        if (!gold[chara]) {
+            continue;
+        }
+        if ((UserStatus->ailments[chara] & AILMENT_FREEZE) == 0) {
+            gold[chara] = false; // healed
+            continue;
+        }
+        UserStatus->ailment_frames[chara] = 0;
     }
-    UserStatus->ailment_frames[CHARA_GORO] = 0;
 }
 
 int MidasPlayerDamage(int damage) {
-    if (!Playing(CHARA_GORO) || !MidasCursed() || damage < UserStatus->hp[CHARA_GORO]) {
+    int chara = InPlay();
+    if (!MidasCursed(chara) || damage < UserStatus->hp[chara]) {
         return damage;
     }
-    damage = std::max(UserStatus->hp[CHARA_GORO] - 1, 0);
-    TurnGoroGold();
+    damage = std::max(UserStatus->hp[chara] - 1, 0);
+    TurnGold(chara);
     return damage;
 }
 
@@ -143,40 +164,52 @@ bool MidasAllowsAilment() {
     return !GoldInPlay();
 }
 
-void GoroDrawing() {
+void PlayerGoldDrawing() {
     if (GoldInPlay()) {
         MidasPolish(CharaMain.pos);
     }
 }
 
-void GoroDrawn() {
+void PlayerGoldDrawn() {
     if (GoldInPlay()) {
         MidasUnpolish();
     }
 }
 
 void MenuCharaDrawing(int chara) {
-    if (chara == CHARA_GORO && GoroGold() && mode == GAME_MODE_DUNGEON) {
+    menu_gold = MidasGold(chara) && mode == GAME_MODE_DUNGEON;
+    if (menu_gold) {
         MidasPolishBall(); // shown away from the floor: the gold ball, which reads as gold anywhere
     }
 }
 
-void MenuCharaDrawn(int chara) {
-    if (chara == CHARA_GORO && GoroGold() && mode == GAME_MODE_DUNGEON) {
+void MenuCharaDrawn(int) {
+    if (menu_gold) {
         MidasUnpolish();
     }
+    menu_gold = false;
 }
 
-void GoroGoldLight(const CCharacter &character, float *ambient) {
-    if (flash > 0 && Playing(CHARA_GORO) && &character == &CharaMain) {
-        MidasFlashLight(flash, ambient);
+bool MidasGoldLight(const CCharacter &character, float *ambient) {
+    int  chara = InPlay();
+    bool player = &character == &CharaMain && Member(chara);
+    if (player && flash[chara] > 0) {
+        MidasFlashLight(flash[chara], ambient);
     }
+    if ((player && MidasGold(chara)) || (menu_gold && &character == &MenuCharaFrame)) {
+        for (int c = 0; c < 3; c++) {
+            ambient[c] += kMidasShine[c];
+        }
+        return true;
+    }
+    return player && flash[chara] > 0;
 }
 
 void MidasCurseReset() {
-    flash = 0;
-    gold = false;
-    lifted = false;
+    std::fill(std::begin(flash), std::end(flash), 0);
+    std::fill(std::begin(gold), std::end(gold), false);
+    std::fill(std::begin(lifted), std::end(lifted), false);
+    menu_gold = false;
 }
 
 } // namespace expanded

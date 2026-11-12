@@ -13,7 +13,8 @@ struct COLLISION_HIT;
 
 namespace expanded {
 
-// Big Bucks Hammer's Midas Touch: Goro's hit with Big Bucks Hammer in hand turns a monster (not a boss) to gold when it
+// Big Bucks Hammer's Midas Touch: Goro's hit with Big Bucks Hammer in hand (and Xiao's with its SynthSphere on Super
+// Steve, the same in every way) turns a monster (not a boss) to gold when it
 // kills it, or when it lands while the monster has less than kMidasLowLife in 100 of its life left (the hit made killing).
 // Its kill and ABS are as any other's, and its drop, but for a kMidasBarChance in 100 chance of a gold bar in its place
 // (never in place of an item the floor gave it beforehand, as a key). It turns with kMidasTurnSound and a gold flash
@@ -42,7 +43,8 @@ inline constexpr float    kMidasReboundDecay = 0.3f;
 inline constexpr int      kMidasClinkFrames = 20;
 inline constexpr uint32_t kMidasGoldLift = 0x00'0A'1A'1Fu; // and a gold body under it (RGBA8): 0.12, 0.1, 0.04
 
-// Whether Goro is in play with Big Bucks Hammer in hand, under its curse (midas_curse.hpp).
+// Whether Goro is in play with Big Bucks Hammer in hand, or Xiao with its SynthSphere on Super Steve, under its curse
+// (midas_curse.hpp).
 bool MidasTouchWielded();
 
 // Draws what follows as polished gold standing at at (its floor tile's reflection, else the gold ball), until

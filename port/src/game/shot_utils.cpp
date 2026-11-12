@@ -11,6 +11,7 @@
 #include "dungeonmap.hpp"
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/dungeon_hooks.hpp"
+#include "expanded/weapons/goro/midas_touch.hpp"
 #endif
 #include "fishing.hpp"
 #include "mathutil.hpp"
@@ -55,7 +56,12 @@ SHOT_COLLISION_RESULT checkCollision(float *hit_position, float *position, float
 
     if (target_mode != 1) {
         for (int monster_no = 0; monster_no < 16; monster_no++) {
+#ifdef CHRONICLE_EXPANDED
+            // A gold statue stops a shot as the monster did, and clinks.
+            if (NowMonstorUnit->monster[monster_no].state == -1 && !expanded::MidasSolid(*NowMonstorUnit, monster_no)) {
+#else
             if (NowMonstorUnit->monster[monster_no].state == -1) {
+#endif
                 continue;
             }
 
