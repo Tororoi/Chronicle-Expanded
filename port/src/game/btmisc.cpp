@@ -27,6 +27,10 @@
 #include "savedata.hpp"
 #include "snd.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/core/item_models.hpp"
+#endif
+
 namespace dc::game {
 
 namespace {
@@ -140,6 +144,10 @@ void BtGetItemNamePath(char *model_path, char *texture_path, int item_no) {
 
     if (item_no >= ITEM_WEAPON_START) {
         model = makeWeaponName(item_no);
+#ifdef CHRONICLE_EXPANDED
+    } else if (const char *own = expanded::ExpandedItemModel(item_no); own != nullptr) {
+        model = own;
+#endif
     } else {
         if (ITEM_NAME_TBL_NEW[item_no - ITEM_ATTACH_START] == nullptr) {
             item_no = ITEM_REGULAR_WATER;

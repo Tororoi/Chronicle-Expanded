@@ -289,6 +289,13 @@ void Draw3DInvalidateStripRuns(Draw3DVisual &visual);
  */
 void Draw3DSetTextureOverride(int handle);
 int  Draw3DTextureOverride();
+
+/**
+ * While set, the lit draws are a reflection map (gfx::kMeshReflect) of the override texture: each pixel samples it
+ * where its surface faces on screen, as polished metal reflects its surroundings.
+ */
+void Draw3DSetReflecting(bool on);
+bool Draw3DReflecting();
 #endif
 
 /**

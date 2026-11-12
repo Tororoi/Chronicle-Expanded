@@ -113,11 +113,13 @@ void MidasDrawing(CMonstorUnit &unit, int monster) {
     }
     unit.chara[monster][0].fade[0] = 1.0f; // its fade held
     dc::render::Draw3DSetTextureOverride(Gold());
+    dc::render::Draw3DSetReflecting(true);
 }
 
 void MidasDrawn(CMonstorUnit &unit, int monster) {
     if (MidasStatue(unit, monster)) {
         dc::render::Draw3DSetTextureOverride(-1);
+        dc::render::Draw3DSetReflecting(false);
     }
 }
 
@@ -162,8 +164,10 @@ void MidasDraw() {
         CCharacter &body = unit.chara[monster][0];
         body.fade[0] = 1.0f;
         dc::render::Draw3DSetTextureOverride(Gold());
+        dc::render::Draw3DSetReflecting(true);
         body.Draw();
         dc::render::Draw3DSetTextureOverride(-1);
+        dc::render::Draw3DSetReflecting(false);
     }
 }
 

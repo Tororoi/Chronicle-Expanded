@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstring>
 #include <memory>
 #include <span>
@@ -179,6 +180,23 @@ void Draw3DDrawVisual(const Draw3DVisual &visual, const float model[4][4], const
     } else {
         constants.flags = (lit ? gfx::kMeshLit : 0u) | (visual.vertex_colour ? gfx::kMeshVertexColor : 0u) |
                           (fog ? gfx::kMeshFog : 0u);
+#ifdef CHRONICLE_EXPANDED
+        // A reflection map: the view's x and y axes in world (lighting) space, each unit length.
+        if (lit && Draw3DReflecting()) {
+            constants.flags |= gfx::kMeshReflect;
+            for (int axis = 0; axis < 2; axis++) {
+                float length = 0.0f;
+                for (int c = 0; c < 3; c++) {
+                    length += info.view_scaled[c][axis] * info.view_scaled[c][axis];
+                }
+                length = length > 0.0f ? std::sqrt(length) : 1.0f;
+                for (int c = 0; c < 3; c++) {
+                    constants.world_uv[axis][c] = info.view_scaled[c][axis] / length;
+                }
+                constants.world_uv[axis][3] = 0.0f;
+            }
+        }
+#endif
     }
 
     gfx::DrawState state = Draw3DState(info, fog);
