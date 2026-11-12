@@ -171,7 +171,19 @@ void Draw3DDrawVisual(const Draw3DVisual &visual, const float model[4][4], const
     gfx::MeshTransform transform = {};
     Draw3DSceneConstants(constants, info, model, &transform);
     // A visual drawn outside a CFrame is known by its record, unless the record lasts one tick.
-    bool unkeyed = gfx::CurrentInterpKey() == 0 && !visual.immediate;
+    bool                                  unkeyed = gfx::CurrentInterpKey() == 0 && !visual.immediate;
+    [[maybe_unused]] const gfx::InterpKey outer_key = gfx::CurrentInterpKey();
+    [[maybe_unused]] const bool           outer_still = gfx::CurrentNoInterpolation();
+    const gfx::MeshTransform             *moves = &transform;
+#ifdef CHRONICLE_EXPANDED
+    // A capture's draws are its own: a key no other draw has, and the constants replayed as recorded.
+    static const char kCaptureKey = 0;
+    if (Draw3DCapturing()) {
+        gfx::SetInterpKey(reinterpret_cast<uintptr_t>(&kCaptureKey), true);
+        moves = nullptr;
+        unkeyed = false;
+    }
+#endif
     if (unkeyed) {
         gfx::SetInterpKey(reinterpret_cast<uintptr_t>(&visual));
     }
@@ -182,7 +194,27 @@ void Draw3DDrawVisual(const Draw3DVisual &visual, const float model[4][4], const
                           (fog ? gfx::kMeshFog : 0u);
 #ifdef CHRONICLE_EXPANDED
         // A reflection map: the view's x and y axes in world (lighting) space, each unit length.
-        if (lit && Draw3DReflecting()) {
+        const Draw3DReflectionCube *cube = Draw3DReflectionCubeSet();
+        float                       model_matrix[16];
+        float                       world_to_model[16];
+        std::memcpy(model_matrix, model, sizeof(model_matrix));
+        if (lit && cube != nullptr && gfx::InvertAffineTransform(model_matrix, world_to_model)) {
+            // The cube: the eye brought into the model's space, where the ray reflects; the block where it is.
+            constants.flags |= gfx::kMeshReflectCube;
+            for (int row = 0; row < 3; row++) {
+                constants.world_uv[0][row] = world_to_model[12 + row];
+                for (int c = 0; c < 3; c++) {
+                    constants.world_uv[0][row] += world_to_model[c * 4 + row] * info.view_position[c];
+                }
+            }
+            constants.world_uv[0][3] = cube->hand;
+            constants.world_uv[1][0] = cube->corner[0];
+            constants.world_uv[1][1] = cube->corner[1];
+            constants.world_uv[1][2] = cube->face[0];
+            constants.world_uv[1][3] = cube->face[1];
+            constants.reflect_tint = cube->tint;
+            constants.reflect_lift = cube->lift;
+        } else if (lit && Draw3DReflecting()) {
             constants.flags |= gfx::kMeshReflect;
             for (int axis = 0; axis < 2; axis++) {
                 float length = 0.0f;
@@ -259,7 +291,16 @@ void Draw3DDrawVisual(const Draw3DVisual &visual, const float model[4][4], const
         }
 
         gfx::TextureBinding binding;
-        if (lit && strip.texture >= 0) {
+#ifdef CHRONICLE_EXPANDED
+        if ((base_flags & gfx::kMeshReflectCube) != 0) {
+            binding.texture = Draw3DReflectionCubeSet()->texture;
+            binding.filter = gfx::Filter::Linear;
+            binding.wrap_u = gfx::Wrap::Clamp;
+            binding.wrap_v = gfx::Wrap::Clamp;
+            binding.ignore_alpha = true; // the capture's alpha is the GS's, not coverage: TEXA's opaque 0x80 in its place
+        } else
+#endif
+            if (lit && strip.texture >= 0) {
             int handle = strip.texture;
 #ifdef CHRONICLE_EXPANDED
             const int override_texture = Draw3DTextureOverride();
@@ -296,6 +337,13 @@ void Draw3DDrawVisual(const Draw3DVisual &visual, const float model[4][4], const
             }
         }
         gfx::DrawState strip_state = state;
+#ifdef CHRONICLE_EXPANDED
+        if ((base_flags & gfx::kMeshReflectCube) != 0) {
+            // The cube's texture has no alpha: every texel opaque, black ones too (no AEM).
+            strip_state.texa_aem = false;
+            strip_state.texa_ta0 = 0x80;
+        }
+#endif
         if (strip.ground_transition) {
             strip_state.alpha = {.a = 0, .b = 1, .c = 0, .d = 1, .fix = 0x80};
             strip_state.depth_write = false;
@@ -304,15 +352,20 @@ void Draw3DDrawVisual(const Draw3DVisual &visual, const float model[4][4], const
         if (visual.immediate) {
             gfx::DrawMeshImmediate(visual.vertices,
                                    std::span<const uint32_t>(visual.indices).subspan(strip.first_index, index_count),
-                                   constants, binding, strip_state, &transform);
+                                   constants, binding, strip_state, moves);
         } else {
             gfx::DrawMesh(visual.mesh, strip.first_index, index_count, constants, binding, strip_state,
-                          &transform);
+                          moves);
         }
     }
     if (unkeyed) {
         gfx::SetInterpKey(0);
     }
+#ifdef CHRONICLE_EXPANDED
+    if (Draw3DCapturing()) {
+        gfx::SetInterpKey(outer_key, outer_still);
+    }
+#endif
 
     if (projected) {
         // The GS is left with the second pass's ALPHA, Cd - Cs.

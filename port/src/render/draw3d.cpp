@@ -257,9 +257,27 @@ void Draw3DShadowCount(gfx::DrawState &state, bool subtract) {
 
 #ifdef CHRONICLE_EXPANDED
 namespace {
-int  texture_override = -1;
-bool reflecting = false;
+int                         texture_override = -1;
+bool                        reflecting = false;
+const Draw3DReflectionCube *reflection_cube = nullptr;
+bool                        capturing = false;
 } // namespace
+
+void Draw3DSetReflectionCube(const Draw3DReflectionCube *cube) {
+    reflection_cube = cube;
+}
+
+const Draw3DReflectionCube *Draw3DReflectionCubeSet() {
+    return reflection_cube;
+}
+
+void Draw3DSetCapturing(bool on) {
+    capturing = on;
+}
+
+bool Draw3DCapturing() {
+    return capturing;
+}
 
 void Draw3DSetReflecting(bool on) {
     reflecting = on;

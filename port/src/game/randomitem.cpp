@@ -19,6 +19,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/dungeon_hooks.hpp"
+#include "expanded/weapons/goro/midas_touch.hpp"
 #endif
 
 namespace dc::game {
@@ -132,6 +133,9 @@ int CRandomItem::CheckPosition() {
             continue;
         }
 
+#ifdef CHRONICLE_EXPANDED
+        expanded::MidasPullDrop(position[i]); // out of a gold statue the player is against, toward him
+#endif
         distance[i] = DistVector(position[i], player_position);
 
         if (pickup_blocked[i] > 0 && distance[i] >= 8.5f) {

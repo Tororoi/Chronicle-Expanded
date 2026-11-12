@@ -296,6 +296,33 @@ int  Draw3DTextureOverride();
  */
 void Draw3DSetReflecting(bool on);
 bool Draw3DReflecting();
+
+/**
+ * A reflection cube (gfx::kMeshReflectCube): six square faces of what stands around a point, laid in a block of a
+ * texture as the renderer lays them.
+ */
+struct Draw3DReflectionCube {
+    gfx::TextureHandle texture = gfx::kNullTexture; /**< The texture that holds the block. */
+    float              corner[2] = {};              /**< The block's top left corner, in texture units. */
+    float              face[2] = {};                /**< One face's width and height, in texture units. */
+    float              hand = 1.0f;                 /**< 1 when the faces' right is cross(down, forward), -1 when opposite. */
+    uint32_t           tint = 0x40404040u;          /**< The reflection's scale, RGBA8 with 0x40 as 1.0. */
+    uint32_t           lift = 0;                    /**< What is added to the reflection, RGBA8. */
+};
+
+/**
+ * While set (null: none), the lit draws are a reflection of the cube in place of their own textures, seen from the
+ * eye that the view matrix was set with: each pixel samples where its reflected view ray leaves the cube.
+ */
+void                        Draw3DSetReflectionCube(const Draw3DReflectionCube *cube);
+const Draw3DReflectionCube *Draw3DReflectionCubeSet();
+
+/**
+ * While set, the 3D draws are a capture into a render target of its own: drawn with the constants as they are, never
+ * matched with this tick's or the last tick's draws by a display frame.
+ */
+void Draw3DSetCapturing(bool on);
+bool Draw3DCapturing();
 #endif
 
 /**

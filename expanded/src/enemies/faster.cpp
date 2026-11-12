@@ -38,8 +38,8 @@ bool FasterInHitWindow(const CMonstorUnit &unit, int monster_no, float time) {
 }
 
 void FasterMotionStep(CMonstorUnit &unit, int monster_no, CCharacter &character) {
-    if (MidasStatue(unit, monster_no)) {
-        return; // gold: frozen as it was struck
+    if (MidasHold(unit, monster_no, character)) {
+        return; // gold: held as it was struck
     }
     float speed = character.motion_speed;
 
