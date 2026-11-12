@@ -6,11 +6,13 @@ struct Draw3DReflectionCube;
 
 namespace expanded {
 
-// Each floor tile's surroundings as a reflection cube: the map seen from kReflectionEyeHeight above the tile's middle,
+// Each floor tile's surroundings as a reflection cube: the map seen from kReflectionEyeHeight above the tile's middle
+// (above its floor: the highest at or below kReflectionFloorFrom, so not a roof, a deck or a wall's top over it),
 // six square faces of kReflectionFace texels, captured a few tiles a tick from the floor's first drawn tick (the map
 // parts and the background models only: no characters, effects or menus) into one texture for the floor.
 inline constexpr int   kReflectionFace = 64;
 inline constexpr float kReflectionEyeHeight = 12.0f;
+inline constexpr float kReflectionFloorFrom = 40.0f;
 inline constexpr int   kReflectionTilesPerTick = 16;
 
 // Captures the next tiles, while the floor has tiles left. Called where the dungeon's draw has set the floor's light,
