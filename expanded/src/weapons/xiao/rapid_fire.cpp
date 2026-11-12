@@ -11,6 +11,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/weapons/player_state.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/weapons/xiao/moves_while_firing.hpp"
 #include "gamepad.hpp"
 #include "gameutil.hpp"
 #include "itemdata.hpp"
@@ -86,7 +87,7 @@ void DrawSpeed(CCharacter &chara, float speed) {
 } // namespace
 
 bool RapidFireSphere() {
-    return SuperSteveSphere() == ITEM_WEAPON_MACHINE_GUN;
+    return OsmondGunType(SuperSteveSphere()) == kMachineGun;
 }
 
 bool RapidFiring() {

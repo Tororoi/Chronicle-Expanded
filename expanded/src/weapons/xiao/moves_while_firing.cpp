@@ -19,6 +19,23 @@ bool OsmondWeapon(int weapon_no) {
     return data != nullptr && data->owner == CHARA_OSMOND;
 }
 
+int OsmondGunType(int weapon_no) {
+    if (!OsmondWeapon(weapon_no)) {
+        return -1;
+    }
+    switch (weapon_no) {
+        case ITEM_WEAPON_HEXA_BLASTER:
+        case ITEM_WEAPON_SUPERNOVA:
+        case ITEM_WEAPON_SNAIL:
+            return kLauncher;
+        case ITEM_WEAPON_BLESSING_GUN:
+        case ITEM_WEAPON_SKUNK:
+            return kFlamethrower;
+        default:
+            return kMachineGun;
+    }
+}
+
 bool MovesWhileFiring() {
     return OsmondWeapon(SuperSteveSphere());
 }

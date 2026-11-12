@@ -7,7 +7,8 @@ class CSHOT;
 
 namespace expanded {
 
-// Rapid fire: Super Steve carrying the Machine Gun's SynthSphere fires Xiao's pellets one after another while she holds X.
+// Rapid fire: Super Steve carrying a machine gun's SynthSphere (OsmondGunType kMachineGun: the Machine Gun, Jackal,
+// Swallow, G Crusher and Star Breaker) fires Xiao's pellets one after another while she holds X.
 // Her first draw is her own; drawn with X still held, she holds it kRapidHold frames and lets go. kRapidFollowThrough
 // frames after each pellet her shot cross-fades back into the draw (the game's own fade between motions, in
 // 1 / kRapidBlendStep steps) landing kRapidPullFrom frames into it, pulls back from there at kRapidDrawSpeed (her draw's

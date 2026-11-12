@@ -333,7 +333,7 @@ TEST_F(RapidFire, EachPelletSpendsTheGaugeAsAShotDoes) {
 
 class RapidFireWithoutTheSphere : public RapidFire {
 protected:
-    RapidFireWithoutTheSphere() : RapidFire(ITEM_WEAPON_SWALLOW) {}
+    RapidFireWithoutTheSphere() : RapidFire(ITEM_WEAPON_HEXA_BLASTER) {}
 };
 
 TEST_F(RapidFireWithoutTheSphere, HoldStaysHeld) {
@@ -344,3 +344,18 @@ TEST_F(RapidFireWithoutTheSphere, HoldStaysHeld) {
 }
 
 } // namespace
+
+// The machine guns' spheres fire so, the launchers' and the flamethrowers' do not.
+TEST(RapidFireSpheres, EveryMachineGun) {
+    expanded::test::TestFloor floor;
+    floor.status().cur_chara = CHARA_XIAO;
+    for (int sphere : {ITEM_WEAPON_MACHINE_GUN, ITEM_WEAPON_JACKAL, ITEM_WEAPON_SWALLOW, ITEM_WEAPON_G_CRUSHER, ITEM_WEAPON_STAR_BREAKER}) {
+        expanded::test::Wielding wielding(ITEM_WEAPON_SUPER_STEVE, sphere);
+        EXPECT_TRUE(expanded::RapidFireSphere()) << sphere;
+    }
+    for (int sphere : {ITEM_WEAPON_HEXA_BLASTER, ITEM_WEAPON_SUPERNOVA, ITEM_WEAPON_SNAIL, ITEM_WEAPON_BLESSING_GUN, ITEM_WEAPON_SKUNK,
+                       ITEM_WEAPON_DIVINEBEASTTITLE}) {
+        expanded::test::Wielding wielding(ITEM_WEAPON_SUPER_STEVE, sphere);
+        EXPECT_FALSE(expanded::RapidFireSphere()) << sphere;
+    }
+}
