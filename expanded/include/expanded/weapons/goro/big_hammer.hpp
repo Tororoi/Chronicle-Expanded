@@ -9,8 +9,8 @@ struct COLLISION_HIT;
 
 namespace expanded {
 
-// Big Bucks Hammer's Big Hammer, and the hammers it builds up into (Magical Hammer, Gaia Hammer, Last Judgement and
-// the Inferno: kBigHammers): while Goro holds the guard with one in hand the hammer grows, evenly, to its full size
+// Steel Hammer's Big Hammer, and the hammers it builds up into (Plate Hammer, Magical Hammer, Gaia Hammer, Last
+// Judgement and the Inferno: kBigHammers): while Goro holds the guard with one in hand the hammer grows, evenly, to its full size
 // (the hammer's tier's, kBigHammers) over kBigHammerGrowFrames; let go before it is full and it shrinks back at
 // the same rate (over as long as it grew). Full (the game's charge-complete flash on the party as it gets there), it
 // keeps that size kBigHammerFullFrames, then shrinks back as it grew, and grows again only from a fresh hold of the
@@ -23,11 +23,12 @@ struct BigHammerTier {
 };
 
 inline constexpr BigHammerTier kBigHammers[] = {
-    {ITEM_WEAPON_BIG_BUCKS_HAMMER, 1.3f},
-    {ITEM_WEAPON_MAGICAL_HAMMER,   1.4f},
-    {ITEM_WEAPON_GAIA_HAMMER,      1.5f},
-    {ITEM_WEAPON_LAST_JUDGEMENT,   1.5f},
-    {ITEM_WEAPON_INFERNO,          1.5f},
+    {ITEM_WEAPON_STEEL_HAMMER,   1.3f},
+    {ITEM_WEAPON_PLATE_HAMMER,   1.3f},
+    {ITEM_WEAPON_MAGICAL_HAMMER, 1.4f},
+    {ITEM_WEAPON_GAIA_HAMMER,    1.5f},
+    {ITEM_WEAPON_LAST_JUDGEMENT, 1.5f},
+    {ITEM_WEAPON_INFERNO,        1.5f},
 };
 inline constexpr int kBigHammerGrowFrames = 120;
 inline constexpr int kBigHammerFullFrames = 900;
