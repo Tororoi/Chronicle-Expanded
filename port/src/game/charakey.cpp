@@ -28,7 +28,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/weapons/goro/inferno.hpp"
 #include "expanded/weapons/goro/inferno/smash_blast.hpp"
-#include "expanded/weapons/goro/last_judgement.hpp"
+#include "expanded/weapons/goro/big_hammer.hpp"
 #include "expanded/weapons/goro/tall_hammer.hpp"
 #include "expanded/weapons/toan/big_bang.hpp"
 #include "expanded/weapons/toan/claymore.hpp"
@@ -998,8 +998,8 @@ void GoroKey_On() {
 void GoroKey_Play() {
     float time = CharaMain.motion_type.state.time;
 #ifdef CHRONICLE_EXPANDED
-    int   damage = expanded::JudgementHammerAttack(expanded::ColossusAttack(expanded::SpringsBlessingAttack(NowWeaponHave->attack)));
-    float radius = expanded::JudgementHammerHitRadius(expanded::ColossusHitRadius(5.0f));
+    int   damage = expanded::BigHammerAttack(expanded::ColossusAttack(expanded::SpringsBlessingAttack(NowWeaponHave->attack)));
+    float radius = expanded::BigHammerHitRadius(expanded::ColossusHitRadius(5.0f));
     float kick = expanded::ColossusKickSpeed(2.5f);
 #else
     int   damage = NowWeaponHave->attack;
@@ -1036,7 +1036,7 @@ void GoroKey_Play() {
         const int impact = NowMainEffect->Set(hit_pos, shot_vector, 2, -1, 0, nullptr, -1);
         expanded::ColossusImpact(*NowMainEffect, impact);
         expanded::InfernoImpact(*NowMainEffect, impact, hit_pos);
-        expanded::JudgementHammerImpact(*NowMainEffect, impact);
+        expanded::BigHammerImpact(*NowMainEffect, impact);
 #else
         NowMainEffect->Set(hit_pos, shot_vector, 2, -1, 0, nullptr, -1);
 #endif

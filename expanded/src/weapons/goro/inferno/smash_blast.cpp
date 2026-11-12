@@ -8,8 +8,8 @@
 #include "expanded/data/pink_fire.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/weapons/goro/big_hammer.hpp"
 #include "expanded/weapons/goro/inferno.hpp"
-#include "expanded/weapons/goro/last_judgement.hpp"
 #include "itemdata.hpp"
 #include "shot_effect.hpp"
 
@@ -62,7 +62,7 @@ bool SmashBlastAt(const float *at, BlastLook look, float size) {
 
 void InfernoImpact(CSHOT_EFFECT &effect, int slot, const float *at) {
     if (!InfernoWielded() || slot < 0 || slot >= static_cast<int>(std::size(effect.chara)) ||
-        !SmashBlastAt(at, BlastLook::kOrange, JudgementHammerScale())) {
+        !SmashBlastAt(at, BlastLook::kOrange, BigHammerScale())) {
         return;
     }
     effect.chara[slot].SetScale(0.0f, 0.0f, 0.0f);
