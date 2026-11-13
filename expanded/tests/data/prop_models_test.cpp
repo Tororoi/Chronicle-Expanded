@@ -72,6 +72,19 @@ TEST(PropModels, TheShadowDiscIsAFlatUnitDiscCastAsAShadow) {
     EXPECT_EQ(tim8::Read(bank.entries[0].second, false).width, kShadowDiscStandIn);
 }
 
+TEST(PropModels, ThePricklyIsItsItemModelAsItIs) {
+    DATA_OR_SKIP(data);
+    Bytes       model = ReadDataFile(fs::path(data) / kPricklyModelSource);
+    Bytes       images = ReadDataFile(fs::path(data) / kPricklyImageSource);
+    ChrPack     pack = ChrPack::Parse(BuildPrickly(model, images));
+    Bytes       cfg = pack.Require(kPricklyCfg).Payload();
+    std::string text(cfg.begin(), cfg.end());
+    EXPECT_NE(text.find("MODEL \"togecchi.mds\""), std::string::npos);
+    EXPECT_NE(text.find("IMG 0,\"togecchi.img\""), std::string::npos);
+    EXPECT_EQ(pack.Require("togecchi.mds").Payload(), model);
+    EXPECT_EQ(pack.Require("togecchi.img").Payload(), images);
+}
+
 TEST(PropModels, BabelsBeamIsTheGeniesBeamInCyanAndFainter) {
     DATA_OR_SKIP(data);
     Bytes   source = ReadDataFile(fs::path(data) / kBabelBeamSource);

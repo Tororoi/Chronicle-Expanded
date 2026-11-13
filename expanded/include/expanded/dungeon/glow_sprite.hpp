@@ -31,6 +31,8 @@ enum class GlowLook {
     kHoly,
     kNoElement,
     kSerpent, // a periwinkle core out to a dull fuchsia edge (the Serpent Sword's snake)
+    kThorn,   // a soft green core out to a dim deep green edge (the Thorn Armlet's)
+    kPrickly, // a deep purple core out to a teal edge (Super Steve's Pricklys)
     kCount,
 };
 

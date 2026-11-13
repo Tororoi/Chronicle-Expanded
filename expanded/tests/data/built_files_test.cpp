@@ -23,6 +23,7 @@ struct Built {
 
 // What `dcdata expanded` builds, as the PS2 mod's tools build it, from PAL and NTSC data alike.
 constexpr Built kBuilt[] = {
+    {"chara/prickly.chr",              33584,   0x92fae079a2945e8aULL},
     {"chara/queens_trees.chr",         83520,   0x8e1dda13dad52c72ULL},
     {"chara/shadow_disc.chr",          5584,    0xd148f318c2a885c2ULL},
     {"chara/spirit_cat.chr",           437152,  0x6d1be3bc3aff86c5ULL},

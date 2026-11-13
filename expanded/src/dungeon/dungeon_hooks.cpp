@@ -201,6 +201,7 @@ void DungeonEffectsDrawn() {
     SpiritBeastDraw();
     GuardianReflectorDraw();
     SnakeCharmerGlowDraw();
+    ThornArmletGlowDraw();
     BurningAuraFlameDraw();
     MidasDraw();
 }
