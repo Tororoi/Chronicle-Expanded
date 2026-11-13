@@ -3,6 +3,7 @@
 #include <array>
 #include <cctype>
 #include <cmath>
+#include <cstring>
 #include <numbers>
 #include <stdexcept>
 #include <string>
@@ -227,11 +228,22 @@ Bytes BuildBabelBeam(std::span<const unsigned char> beam) {
     return pack.Rebuild();
 }
 
+Bytes BuildPrickly(std::span<const unsigned char> model, std::span<const unsigned char> images) {
+    if (model.size() < 4 || std::memcmp(model.data(), "MDS", 3) != 0) {
+        throw std::runtime_error(std::string(kPricklyModelSource) + " is not a model");
+    }
+    ImgBank::Parse(images); // throws when it is no bank
+    return ChrPack::Build({ChrRecord::Make(kPricklyCfg, ToBytes(Cfg("prickly", "togecchi.img", "togecchi.mds"))),
+                           ChrRecord::Make("togecchi.mds", Bytes(model.begin(), model.end())),
+                           ChrRecord::Make("togecchi.img", Bytes(images.begin(), images.end()))});
+}
+
 std::vector<DataBuild> PropModelBuilds() {
     using Files = const std::vector<Bytes> &;
     return {
         DataBuild::FromSources("Queens' trees", kQueensTreesFile, {kQueensSceneFile, kQueensImagesFile}, [](Files s) { return BuildQueensTrees(s[0], s[1]); }),
         DataBuild::FromSources("shadow disc", kShadowDiscFile, {kShadowDiscSource}, [](Files s) { return BuildShadowDisc(s[0]); }),
+        DataBuild::FromSources("the Prickly", kPricklyFile, {kPricklyModelSource, kPricklyImageSource}, [](Files s) { return BuildPrickly(s[0], s[1]); }),
         DataBuild::FromSources("Babel's beam", kBabelBeamFile, {kBabelBeamSource}, [](Files s) { return BuildBabelBeam(s[0]); }),
     };
 }

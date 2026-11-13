@@ -14,9 +14,11 @@
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
 #include "expanded/core/frames.hpp"
+#include "expanded/data/prop_models.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/dungeon/collision_hits.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
+#include "expanded/dungeon/glow_sprite.hpp"
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/enemies/monster_queries.hpp"
 #include "expanded/status/confuse_state.hpp"
@@ -38,14 +40,17 @@ constexpr int kHitReserve = 16; // free hit records a turned hit leaves the game
 constexpr int kNeverSeen = -1000;
 
 struct Armlet {
-    CCharacter *model = nullptr;  // the copy, loaded on this floor
-    bool        failed = false;   // it could not be: not tried again until the next floor
+    CCharacter *model = nullptr;   // the copy, loaded on this floor
+    bool        failed = false;    // it could not be: not tried again until the next floor
+    CCharacter *prickly = nullptr; // Super Steve's form: the Prickly, drawn kPricklyCount times
+    bool        prickly_failed = false;
     bool        standing = false; // raised on a full gauge, until it fades or breaks
     bool        breaking = false; // its last hit taken: clearing away
     bool        cooling = false;  // broken: the gauge has to fill before it stands again
     float       refilled = 0.0f;  // while broken, the gauge its own refill has given back (a hit's refill does not count)
     int         hits = 0;         // the hits it turns before it breaks
     float       alpha = 0.0f;
+    float       glow = 0.0f; // the glow's size (0 to 1), on its own clock
     float       turn = 0.0f;
 };
 
@@ -59,9 +64,9 @@ void Forget() {
 
 [[maybe_unused]] const bool kListening = (Forget(), AddEnemyFloorListener(ThornArmletReset), true);
 
-// The ring stood upright: its axis, the model's x, turned a quarter about z onto the root's -y (the model upside
-// down, as the user chose). The draw keeps a rigid model's root rotation under the character's turn, so the turn about the
-// wielder spins the ring about its axis.
+// The ring stood upright: its axis, the model's x, turned a quarter about z onto the root's -y, the model upside down.
+// The draw keeps a rigid model's root rotation under the character's turn, so the turn about the wielder spins the ring
+// about its axis.
 void StandUp(CFrame &root) {
     float row0[3], row1[3];
     std::copy(root.local[0], root.local[0] + 3, row0);
@@ -92,7 +97,32 @@ void Waist(float *waist) {
     waist[2] = CharaMain.pos[2];
 }
 
+// Super Steve's form: the wielder carries the thorns by his sphere, not the armlet in hand.
+bool PricklyForm() {
+    return !WeaponWielded(ITEM_WEAPON_THORN_ARMLET);
+}
+
+bool LoadPrickly() {
+    if (armlet.prickly != nullptr) {
+        return true;
+    }
+    if (armlet.prickly_failed) {
+        return false;
+    }
+    armlet.prickly = EnterFloorCharacter(kPricklyFile, kPricklyCfg);
+    if (armlet.prickly == nullptr || armlet.prickly->frame == nullptr) {
+        std::fprintf(stderr, "thorn guard: %s could not be loaded\n", kPricklyFile);
+        armlet.prickly = nullptr;
+        armlet.prickly_failed = true;
+        return false;
+    }
+    return true;
+}
+
 bool Load() {
+    if (PricklyForm()) {
+        return LoadPrickly();
+    }
     if (armlet.model != nullptr) {
         return true;
     }
@@ -206,6 +236,10 @@ float ThornArmletAlpha() {
     return armlet.alpha;
 }
 
+float ThornArmletGlow() {
+    return armlet.glow;
+}
+
 float ThornArmletTurn() {
     return armlet.turn;
 }
@@ -266,36 +300,84 @@ void ThornArmletStep() {
     if (armlet.cooling && std::fabs(BtActStatus.action_gauge - armlet.refilled) > 0.5f) {
         BtActStatus.action_gauge = armlet.refilled;
     }
+    bool rising = false;
     if (armlet.breaking) {
         armlet.alpha = std::max(0.0f, armlet.alpha - 1.0f / static_cast<float>(kThornBreakFrames));
     } else if (guard && Raise()) {
+        rising = true;
         armlet.alpha = std::min(1.0f, armlet.alpha + 1.0f / static_cast<float>(kThornFadeFrames));
     } else {
         armlet.alpha = std::max(0.0f, armlet.alpha - 1.0f / static_cast<float>(kThornFadeFrames));
     }
+    float grow = 1.0f / static_cast<float>(kThornGlowFrames);
+    armlet.glow = std::clamp(armlet.glow + (rising ? grow : -grow), 0.0f, 1.0f);
     if (armlet.alpha <= 0.0f && (armlet.breaking || !guard)) {
         armlet.standing = false;
         armlet.breaking = false;
     }
     if (armlet.alpha > 0.0f) {
-        armlet.turn = std::fmod(armlet.turn + 2.0f * std::numbers::pi_v<float> / static_cast<float>(kThornTurnFrames),
+        // Its yaw falls (a turn of 0 to -2 pi), for the way it spins.
+        armlet.turn = std::fmod(armlet.turn - 2.0f * std::numbers::pi_v<float> / static_cast<float>(kThornTurnFrames),
                                 2.0f * std::numbers::pi_v<float>);
     }
 }
 
+// A copy's tint: added to the light it is drawn in (CCharacter::Draw's ambient, with its ambient_offset).
+void Tint(CCharacter &model, const float *tint) {
+    for (int c = 0; c < 3; c++) {
+        model.ambient_offset[c] = tint[c];
+    }
+}
+
+// Super Steve's form: kPricklyCount Pricklys evenly round the wielder's middle, each facing out, turning together.
+void DrawPricklys(const float *waist) {
+    CCharacter &model = *armlet.prickly;
+    float       y = waist[1] + kThornLift - kPricklyMiddle * kPricklyScale;
+    for (int i = 0; i < kPricklyCount; i++) {
+        float bearing = armlet.turn + 2.0f * std::numbers::pi_v<float> * static_cast<float>(i) / static_cast<float>(kPricklyCount);
+        model.SetPosition(waist[0] + kPricklyRadius * std::sin(bearing), y, waist[2] + kPricklyRadius * std::cos(bearing));
+        model.SetRotation(0.0f, bearing, 0.0f);
+        model.SetScale(kPricklyScale, kPricklyScale, kPricklyScale);
+        Tint(model, kPricklyTint);
+        model.ambient_offset[3] = 128.0f * armlet.alpha;
+        DrawFloorCharacter(model);
+    }
+}
+
 void ThornArmletDraw() {
-    if (armlet.alpha <= 0.0f || armlet.model == nullptr || armlet.model->frame == nullptr || UserStatus == nullptr) {
+    if (armlet.alpha <= 0.0f || UserStatus == nullptr) {
+        return;
+    }
+    float waist[3];
+    Waist(waist);
+    if (PricklyForm()) {
+        if (armlet.prickly != nullptr && armlet.prickly->frame != nullptr) {
+            DrawPricklys(waist);
+        }
+        return;
+    }
+    if (armlet.model == nullptr || armlet.model->frame == nullptr) {
         return;
     }
     CCharacter &model = *armlet.model;
-    float       waist[3];
-    Waist(waist);
     // The ring's middle kThornLift above her waist: its axis runs down, so its middle along it is that far below the root.
     model.SetPosition(waist[0], waist[1] + kThornLift + kArmletAxisMiddle * kThornScale, waist[2]);
     model.SetRotation(0.0f, armlet.turn, 0.0f);
     model.SetScale(kThornScale, kThornScale, kThornScale);
+    Tint(model, kThornArmletTint);
     model.ambient_offset[3] = 128.0f * armlet.alpha;
     DrawFloorCharacter(model);
+}
+
+void ThornArmletGlowDraw() {
+    bool prickly = PricklyForm();
+    if (armlet.glow <= 0.0f || UserStatus == nullptr || (prickly ? armlet.prickly : armlet.model) == nullptr) {
+        return;
+    }
+    float waist[3];
+    Waist(waist);
+    float middle[4] = {waist[0], waist[1] + kThornLift, waist[2], 1.0f};
+    DrawGlowDisc(prickly ? GlowLook::kPrickly : GlowLook::kThorn, middle, kThornGlowSize * armlet.glow, kThornGlowPull);
 }
 
 CCharacter *ThornArmletCharacter() {

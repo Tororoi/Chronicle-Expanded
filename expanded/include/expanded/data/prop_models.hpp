@@ -40,6 +40,13 @@ inline constexpr const char *kBabelBeamName = "babel_beam";
 inline constexpr const char *kBabelBeamSource = "dun/monstor/c17_beem_s.chr";
 inline constexpr float       kBabelBeamAlpha = 0.3f;
 
+// The Prickly (the fishing bait, item 199), whole: its dungeon item model (dun/item/main_data/togecchi.mds: one frame,
+// togecchi, sitting on its base) and its picture bank as they are, the model of a character of its own.
+inline constexpr const char *kPricklyFile = "expanded/chara/prickly.chr";
+inline constexpr const char *kPricklyCfg = "prickly.cfg";
+inline constexpr const char *kPricklyModelSource = "dun/item/main_data/togecchi.mds";
+inline constexpr const char *kPricklyImageSource = "dun/item/main_data/togecchi.img";
+
 // The trees' pack, from the scene and the image pack of gedit/e03.
 Bytes BuildQueensTrees(std::span<const unsigned char> scene, std::span<const unsigned char> images);
 
@@ -48,6 +55,9 @@ Bytes BuildShadowDisc(std::span<const unsigned char> rock);
 
 // The beam's pack, from the genie's beam's.
 Bytes BuildBabelBeam(std::span<const unsigned char> beam);
+
+// The Prickly's pack, from its item model and picture bank.
+Bytes BuildPrickly(std::span<const unsigned char> model, std::span<const unsigned char> images);
 
 // The props' models and the beam.
 std::vector<DataBuild> PropModelBuilds();

@@ -11,6 +11,7 @@
 #include "character.hpp"
 #include "collisiondata.hpp"
 #include "dun/gameloop.hpp"
+#include "expanded/data/prop_models.hpp"
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/dungeon/floor_characters.hpp"
 #include "expanded/weapons/hit_marks.hpp"
@@ -172,7 +173,7 @@ TEST_F(ThornGuard, TheArmletStandsAroundHerWhileSheGuards) {
     // Turning a full turn every kThornTurnFrames.
     float before = expanded::ThornArmletTurn();
     Steps(expanded::kThornTurnFrames / 4);
-    EXPECT_NEAR(expanded::ThornArmletTurn() - before, std::numbers::pi_v<float> / 2.0f, 1e-3f);
+    EXPECT_NEAR(expanded::ThornArmletTurn() - before, -std::numbers::pi_v<float> / 2.0f, 1e-3f);
 
     Guard(false);
     Steps(expanded::kThornFadeFrames);
@@ -183,6 +184,22 @@ TEST_F(ThornGuard, TheArmletStandsAroundHerWhileSheGuards) {
     Steps(1);
     EXPECT_EQ(loaded.size(), 1u);
     EXPECT_FLOAT_EQ(root.local[0][1], -1.0f);
+}
+
+// The glow grows over kThornGlowFrames as the thorns rise, and shrinks over as many once they go.
+TEST_F(ThornGuard, TheGlowGrowsAndShrinksOverAQuarterSecond) {
+    Guard(true);
+    Steps(expanded::kThornGlowFrames - 1);
+    EXPECT_LT(expanded::ThornArmletGlow(), 1.0f);
+    EXPECT_FLOAT_EQ(expanded::ThornArmletAlpha(), 1.0f); // the thorns are solid sooner
+    Steps(1);
+    EXPECT_FLOAT_EQ(expanded::ThornArmletGlow(), 1.0f);
+    Guard(false);
+    Steps(expanded::kThornGlowFrames / 2);
+    EXPECT_GT(expanded::ThornArmletGlow(), 0.0f);
+    EXPECT_LT(expanded::ThornArmletGlow(), 1.0f);
+    Steps(expanded::kThornGlowFrames);
+    EXPECT_FLOAT_EQ(expanded::ThornArmletGlow(), 0.0f);
 }
 
 TEST_F(ThornGuard, AMeleeHitTurnsOnTheMonster) {
@@ -349,6 +366,8 @@ TEST_F(ThornGuardBySuperSteve, XiaoCarriesThemToo) {
     Guard(true);
     Steps(expanded::kThornFadeFrames);
     EXPECT_TRUE(expanded::ThornArmletUp());
+    // Her thorns are the Pricklys, not the armlet.
+    EXPECT_EQ(loaded, std::vector<std::string>{expanded::kPricklyFile});
     EXPECT_TRUE(expanded::ThornGuardHit(Bite()));
     ASSERT_EQ(Planted().size(), 1u);
     EXPECT_EQ(Planted()[0]->owner, CHARA_XIAO);
