@@ -63,6 +63,7 @@
 #include "expanded/weapons/ruby/crystal_ring.hpp"
 #include "expanded/weapons/ruby/pocklekul.hpp"
 #include "expanded/weapons/ruby/pocklekul/fights.hpp"
+#include "expanded/weapons/ruby/thorn_armlet.hpp"
 #include "expanded/weapons/solar_flash.hpp"
 #include "expanded/weapons/solid_column.hpp"
 #include "expanded/weapons/toan/agas_sword.hpp"
@@ -180,6 +181,7 @@ void DungeonShadowsDrawn(const float *player) {
 void DungeonMonstersDrawn() {
     AllyDraw();
     DesertBloomDraw();
+    ThornArmletDraw();
     BigRockDraw();
     CurseOfBabelDraw();
     SnakeCharmerDraw();
@@ -219,7 +221,8 @@ void DungeonRunDustDrawn() {
 }
 
 bool PlayerHitPassesBy(const COLLISION_HIT &hit) {
-    return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit) || PackHitPassesBy(hit) || ColossusPassesBy(hit) || InfernoFireproof(hit);
+    return PlayerHitSkipped(hit) || RoughCounterPassesBy(hit) || PackHitPassesBy(hit) || ColossusPassesBy(hit) || InfernoFireproof(hit) ||
+           ThornGuardHit(hit);
 }
 
 void PlayerHitReached(COLLISION_HIT &hit) {
@@ -292,6 +295,7 @@ void DungeonMonstersTick() {
     TornadoChargeStep();
     GuardianGraceStep();
     DesertBloomStep();
+    ThornArmletStep();
     ColossusStep();
     SnakeCharmerStep();
     UnderworldSparksStep();
@@ -566,7 +570,7 @@ std::optional<MonsterDamageResult> MonsterFriendlyHit(CMonstorUnit &unit, int sp
 }
 
 bool HitWearsWeapon(const COLLISION_HIT &hit) {
-    return !DesertBloomPrick(hit) && !CurseOfBabelCatch(hit) && !UngagaBlastHit(hit) && !BigRockHit(hit) && !ColossusTrample(hit);
+    return !DesertBloomPrick(hit) && !ThornHit(hit) && !CurseOfBabelCatch(hit) && !UngagaBlastHit(hit) && !BigRockHit(hit) && !ColossusTrample(hit);
 }
 
 bool MonsterPathBlockedBy(const CMonstorUnit &unit, int monster, int other) {
@@ -640,7 +644,7 @@ void ShotPlayerPoint(float *point) {
 }
 
 float ActionGaugeGain(float gain) {
-    return FlameGunGaugeGain(GuardianReflectorGaugeGain(gain));
+    return ThornGuardGaugeGain(FlameGunGaugeGain(GuardianReflectorGaugeGain(gain)));
 }
 
 int HealCounter(int counter) {
