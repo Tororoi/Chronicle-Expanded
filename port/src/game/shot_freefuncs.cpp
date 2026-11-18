@@ -44,6 +44,7 @@
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/weapons/super_steve.hpp"
+#include "expanded/quests/yellow_drops.hpp"
 #include "expanded/weapons/toan/kitchen_knife.hpp"
 #include "expanded/weapons/toan/macho_sword.hpp"
 #endif
@@ -250,6 +251,9 @@ void WaterSplash_Init() {
 void HealingWater() {
 #ifdef CHRONICLE_EXPANDED
     expanded::SpringsBlessingStep();
+    if (expanded::SpringsDry()) {
+        return;
+    }
 #endif
 
     if (CheckHealZone() || CheckHealingWater()) {

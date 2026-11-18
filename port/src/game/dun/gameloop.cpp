@@ -3391,6 +3391,9 @@ void BtCleatRandomMap() {
     BtUraDongeon = 0;
     BtEquipMap = 0;
     BtEquipMasuisyou = 0;
+#ifdef CHRONICLE_EXPANDED
+    expanded::DungeonFloorBuilt();
+#endif
 }
 
 void BtCleatFreeMap() {
@@ -3408,6 +3411,9 @@ void BtCleatFreeMap() {
     NowEventMan = &DngEventMan;
     BtEquipMap = 0;
     BtEquipMasuisyou = 0;
+#ifdef CHRONICLE_EXPANDED
+    expanded::DungeonFloorBuilt();
+#endif
 }
 
 void BtArrengeMonstor() {

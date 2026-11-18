@@ -38,6 +38,8 @@ them by model (`p01a.chr`, two ASCII digits read from memory); `PEOPLE2 "p01a"` 
 | Ro (French: Ed) | Matataki (1) | 10 | p21a | Item hunt |
 | Phil | Queens (2) | 12 | p42a | Item hunt |
 | Zabo | Muska Lacka (3) | 2 | p50a | Item hunt |
+| Ledan | Yellow Drops (23) | 0 | p75a | The puzzle |
+| Samba | Yellow Drops (23) | 1 | p74a | The challenge |
 
 ## Monster Slayer
 
@@ -99,13 +101,33 @@ Monster Slayer's stages. Half the time a count quest, half a size quest:
 - `heard` moves to `found` by a rule once the item is had, so the giver's next word is the found one; the hunt is
   then done and the giver's choice goes. The item is the reward.
 
+## Yellow Drops
+
+`quests/yellow_drops.cpp`. Both wait on the whole party (six; the Yellow Drops villagers' Boss, Osmond, last):
+`hidden` moves to `offered` by a rule.
+
+- **The puzzle** (`yd_crystal`: `hidden`, `offered`, `asked`, `done`): Ledan's hint is what Blue Terra's people
+  needed; the answer is the Gooey Peach, Escape Powder, Stamina Drink and Bomb in the bag's first four slots, in that
+  order (`IGame::PackItem`). It pays the Magical Crystal.
+- **The challenge** (`yd_map`: `hidden`, `offered`, `taken`, `cleared`, `done`): clear the Moon Sea's floor 7 back
+  floor (`selectMapNo` 4, `cur_floor` 6, `BtUraDongeon`) as Toan with only the Dagger. `MoonSeaChallengeStep`
+  (each dungeon step) begins it `kChallengeSettle` frames onto the floor if Toan has the Dagger in hand; another
+  member or weapon, or an item thrown (`CMainItemModel::SetThrowModel`), ends it until the floor is come onto again.
+  Once a monster has been seen alive there, none living clears it. `HealingWater` heals nothing there while the
+  challenge is taken (`SpringsDry`). Each turn is told at the bottom of the screen. It pays the Map.
+- **The rewards**: carried in the pack, the Map and Magical Crystal act on every floor as the floor's own do once
+  picked up (`BtEquipMap`, `BtEquipMasuisyou`, set after `BtCleatRandomMap`'s and `BtCleatFreeMap`'s reset:
+  `DungeonFloorBuilt`), and each floor's own (its first two small chests) holds another of the floor's items in
+  their place (`PresetSmallItemNo_Get`: `CarriedMapChests`).
+
 ## Trying them
 
 A quest moved on in play is logged as a `quest` event (its id, stage and `left`) with `--event-log`, and a hunt's
 item put in a back floor's chest as `quest_item`. A town stage
 with `villager` stands the player in front of a giver (`expanded/docs/recording.md`): Macho with
 `town = norune` and `villager = 3`. A save folder's `saves/<slot>/quests.json` sets a quest's stage and vars to start
-from, for instance two Dashers from done:
+from, for instance two Dashers from done (a dungeon stage's `back_floor` reaches Samba's floor: `dungeon = 4`,
+`floor = 6`):
 
 ```json
 {"version": 1, "quests": {"slayer_macho": {"stage": "active", "vars": {"dungeon": 0, "monster": 3, "left": 2, "total": 12, "given": 1}}}}

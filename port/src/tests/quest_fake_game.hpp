@@ -31,6 +31,7 @@ public:
     std::map<int, std::string>          talk_lines;
     int                                 money = 0;
     int                                 fishing_points = 0;
+    std::vector<int>                    pack; // the pack's slots in order, for PackItem
     int                                 party = 1;
     int                                 pack_room = 10;
     std::optional<quest::ShopSpec>      shop;
@@ -49,6 +50,10 @@ public:
         --pack_room;
         ++items[item];
         return true;
+    }
+
+    [[nodiscard]] int PackItem(int slot) const override {
+        return slot >= 0 && slot < static_cast<int>(pack.size()) ? pack[slot] : -1;
     }
 
     bool TakeItem(int item) override {

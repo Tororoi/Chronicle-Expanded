@@ -155,5 +155,19 @@
     "expanded.quest.hunt.found.laura": "Oh, ¿lo has encontrado? ¡Genial! ¿Es un Polvo Medusa?{page}¿Me preguntas cómo se usa? Lo siento, no sé qué es.",
     "expanded.quest.hunt.found.ro": "¿Has encontrado el objeto antiguo? ¿Dices que es un PolvoTraslado?{page}Mmm, algo así parece demasiado poderoso. Quizá por eso nunca ha podido mostrar todo su potencial.",
     "expanded.quest.hunt.found.phil": "¿Has encontrado el anillo de boda de la Reina? ¡Así que los rumores eran ciertos! Interesante.{page}Puedes quedarte el anillo. Quién sabe dónde podrías necesitarlo en tu aventura.",
-    "expanded.quest.hunt.found.zabo": "Veo que has encontrado el polvo misterioso. Creo que los antiguos lo llamaban Polvondure.{page}Ojalá supiéramos más sobre él."
+    "expanded.quest.hunt.found.zabo": "Veo que has encontrado el polvo misterioso. Creo que los antiguos lo llamaban Polvondure.{page}Ojalá supiéramos más sobre él.",
+    "expanded.quest.giver.ledan": "Ledan",
+    "expanded.quest.giver.samba": "Samba",
+    "expanded.quest.yd.puzzle.intro": "Tengo un cristal valiosísimo.{page}Sé que eres fuerte, pero si quieres mi cristal, ¡tendrás que demostrar que también eres listo!{page}Tengo un acertijo para ti.",
+    "expanded.quest.yd.puzzle.hint": "Muéstrame cuatro objetos en el orden correcto: ponlos en las cuatro primeras casillas de tu bolsa.{page}¿Qué objetos? ¡No te lo voy a decir así como así! Pero...{page}En Terra Azul, tu mundo, quizá conociste a gente que necesitaba algo.{page}¿Quizá ellos sean la clave de la respuesta?",
+    "expanded.quest.yd.puzzle.solved": "¡Correcto, bien hecho! ¡Has resuelto el acertijo!{page}Como recompensa, toma este rarísimo Cristal Mágico.{page}Mientras esté en tu bolsa, funciona como el Cristal Mágico de las mazmorras, ¡pero siempre!{page}Y los Cristales Mágicos que encuentres en las mazmorras serán otro botín. Merece la pena, ¿eh?",
+    "expanded.quest.yd.puzzle.no_room": "¡Correcto, bien hecho!{page}Haz sitio en tu bolsa para mi cristal y vuelve a hablar conmigo.",
+    "expanded.quest.yd.challenge.task": "Tengo un desafío para poner a prueba tu verdadera fuerza.{page}Si logras limpiar la planta de atrás del nivel 7 del Mar Luna como {name1}, usando solo el Puñal, mi recompensa será tuya.{page}Sus manantiales curativos están secos, así que hazte con provisiones.",
+    "expanded.quest.yd.challenge.still": "Si logras limpiar la planta de atrás del nivel 7 del Mar Luna como {name1}, usando solo el Puñal, mi recompensa será tuya.{page}Sus manantiales curativos están secos, así que hazte con provisiones.",
+    "expanded.quest.yd.challenge.reward": "¿Has superado el desafío? ¡Extraordinario!{page}Toma, quédate este Mapa especial.{page}Mientras esté en tu bolsa, funciona como el Mapa de las mazmorras, ¡pero siempre!{page}Y los Mapas que encuentres en las mazmorras serán otro botín. Mola, ¿eh?",
+    "expanded.quest.yd.challenge.no_room": "¿Has superado el desafío? ¡Extraordinario!{page}Haz sitio en tu bolsa para mi recompensa y vuelve a hablar conmigo.",
+    "expanded.quest.yd.challenge.begun": "¡Empieza el desafío de Samba!\nDerrota a todos los monstruos solo con el Puñal.",
+    "expanded.quest.yd.challenge.not_begun": "El desafío de Samba no ha empezado.\nVuelve como {name1} con el Puñal.",
+    "expanded.quest.yd.challenge.ended": "El desafío de Samba ha terminado.\nVuelve a este nivel para intentarlo de nuevo.",
+    "expanded.quest.yd.challenge.cleared": "Desafío de Samba superado. ¡Bien hecho!"
 }

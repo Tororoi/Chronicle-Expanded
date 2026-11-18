@@ -38,8 +38,13 @@ void DungeonShotsStep(CMonstorUnit &unit);
 void DungeonFloorUnloaded();
 void DungeonFloorLoaded(CMonstorUnit &unit);
 
-// A floor's chests set out (CDungeonMap::buildEventData), the back floor's when back_floor.
+// A floor's chests set out (CDungeonMap::buildEventData), the back floor's when back_floor, and the floor and its back
+// floor built (BtCleatRandomMap, BtCleatFreeMap: after their reset of what the floor's Map and Magical Crystal show).
 void FloorChestsPlaced(CDungeonMap &map, bool back_floor);
+void DungeonFloorBuilt();
+
+// An item thrown (CMainItemModel::SetThrowModel).
+void DungeonItemThrown();
 
 // The party's status taken up as a dungeon visit begins (GameInit, after UserStatus->Init).
 void DungeonStatusReady();

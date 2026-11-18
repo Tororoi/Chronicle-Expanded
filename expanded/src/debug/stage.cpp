@@ -60,6 +60,7 @@ namespace expanded {
 
 namespace {
 
+constexpr int   kBackFloorStep = 60; // the step the back floor is gone onto, the floor in play
 constexpr int   kWalkFrom = 10;    // the monster step the walk to a big room starts on
 constexpr float kWalkStep = 10.0f; // and how far it goes a step (further flings the player off stale collision)
 constexpr int   kBigRoomCells = 9;
@@ -265,6 +266,7 @@ constexpr Key kKeys[] = {
     {"place_kind",   [](std::string_view v, Stage &s) { return Count(v, s.place_kind); }                     },
     {"place_after",  [](std::string_view v, Stage &s) { return Count(v, s.place_after); }                    },
     {"big_room",     [](std::string_view v, Stage &s) { return Flag(v, s.big_room); }                        },
+    {"back_floor",   [](std::string_view v, Stage &s) { return Flag(v, s.back_floor); }                      },
     {"keep_alive",   [](std::string_view v, Stage &s) { return Flag(v, s.keep_alive); }                      },
     {"circle",       [](std::string_view v, Stage &s) { return Within(v, s.circle, 0, 9); }                  },
     {"town",         [](std::string_view v, Stage &s) { return Town(v, s.town); }                            },
@@ -692,6 +694,11 @@ void StageStep() {
         }
     }
     run.steps++;
+    if (active->back_floor && run.steps == kBackFloorStep && BtUraDongeon == 0) {
+        // As a back floor's door takes the player through.
+        gameTask = GAME_TASK_URA_SWAP;
+        LogEvent("stage", "\"step\":\"back_floor\"");
+    }
     if (active->big_room && run.steps == kWalkFrom) {
         run.walking = NearestBigRoom(run.to);
     }

@@ -88,6 +88,11 @@ public:
      */
     virtual bool GiveItem(int item) = 0;
     /**
+     * The item in a slot of the pack, from its first (0), as the item menu lists them; -1 for an empty slot or
+     * one past the pack's end.
+     */
+    virtual int PackItem(int slot) const = 0;
+    /**
      * Takes one item from the player: false, changing nothing, where they have none.
      */
     virtual bool TakeItem(int item) = 0;

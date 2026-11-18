@@ -15,6 +15,7 @@
 #include "expanded/enemies/enemy_events.hpp"
 #include "expanded/quests/item_hunts.hpp"
 #include "expanded/quests/monster_slayer.hpp"
+#include "expanded/quests/yellow_drops.hpp"
 #include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/atla_gemron.hpp"
 #include "expanded/enemies/black_knight.hpp"
@@ -267,6 +268,7 @@ void DungeonMonstersCleared(bool drop_stars) {
 }
 
 void DungeonMonstersTick() {
+    MoonSeaChallengeStep();
     MonsterStepClockAdvance();
     angel_gear::TrackReturns();
     RoughCounterStep();
@@ -352,6 +354,15 @@ void MonsterDrawn(CMonstorUnit &unit, int monster) {
 
 void FloorChestsPlaced(CDungeonMap &map, bool back_floor) {
     ItemHuntChests(map, selectMapNo, back_floor);
+    CarriedMapChests(map, selectMapNo, UserStatus != nullptr ? UserStatus->cur_floor : 0, back_floor);
+}
+
+void DungeonFloorBuilt() {
+    CarriedMapsAct();
+}
+
+void DungeonItemThrown() {
+    ItemThrown();
 }
 
 bool MonsterKilled(const CMonstorUnit &unit, int monster) {

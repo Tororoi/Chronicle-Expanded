@@ -155,5 +155,19 @@
     "expanded.quest.hunt.found.laura": "Oh, l'hai trovato? Fantastico! È una Polvere di Medusa?{page}Mi chiedi come si usa? Mi dispiace, non so cosa sia.",
     "expanded.quest.hunt.found.ro": "Hai trovato l'oggetto antico? Dici che è una Polvere di Trasporto?{page}Mmh, una cosa del genere sembra troppo potente. Forse è per questo che non ha mai potuto mostrare il suo potenziale.",
     "expanded.quest.hunt.found.phil": "Hai trovato la fede nuziale della Regina? Allora le voci erano vere! Interessante.{page}Puoi tenere l'anello. Chissà dove potrebbe servirti nella tua avventura.",
-    "expanded.quest.hunt.found.zabo": "Vedo che hai trovato la polvere misteriosa. Credo che gli antichi la chiamassero Polvere Congelante.{page}Vorrei che ne sapessimo di più."
+    "expanded.quest.hunt.found.zabo": "Vedo che hai trovato la polvere misteriosa. Credo che gli antichi la chiamassero Polvere Congelante.{page}Vorrei che ne sapessimo di più.",
+    "expanded.quest.giver.ledan": "Ledan",
+    "expanded.quest.giver.samba": "Samba",
+    "expanded.quest.yd.puzzle.intro": "Possiedo un cristallo di valore inestimabile.{page}So che sei forte, ma se vuoi il mio cristallo dovrai dimostrarmi di essere anche intelligente!{page}Ho un indovinello per te.",
+    "expanded.quest.yd.puzzle.hint": "Mostrami quattro oggetti nell'ordine giusto: mettili nei primi quattro spazi della tua borsa.{page}Quali oggetti? Non te lo dico così su due piedi! Però...{page}Sulla Terra Blu, il tuo mondo, forse hai incontrato persone che avevano bisogno di qualcosa.{page}Forse sono loro la chiave della risposta giusta?",
+    "expanded.quest.yd.puzzle.solved": "Esatto, ben fatto! Hai risolto l'indovinello!{page}Come ricompensa, prendi questo rarissimo Cristallo magico.{page}Finché è nella tua borsa, funziona come il Cristallo magico che trovi nei labirinti, ma sempre!{page}E i Cristalli magici che trovi nei labirinti diventeranno altro bottino. Ne vale la pena, no?",
+    "expanded.quest.yd.puzzle.no_room": "Esatto, ben fatto!{page}Fai spazio nella borsa per il mio cristallo e torna a parlarmi.",
+    "expanded.quest.yd.challenge.task": "Ho una sfida per mettere alla prova la tua vera forza.{page}Se riesci a ripulire il Piano Posteriore del piano 7 del Mare Lunare nei panni di {name1}, usando solo il Pugnale, avrai la mia ricompensa.{page}Le sue fonti curative sono prosciugate, quindi fai scorta.",
+    "expanded.quest.yd.challenge.still": "Se riesci a ripulire il Piano Posteriore del piano 7 del Mare Lunare nei panni di {name1}, usando solo il Pugnale, avrai la mia ricompensa.{page}Le sue fonti curative sono prosciugate, quindi fai scorta.",
+    "expanded.quest.yd.challenge.reward": "Hai superato la sfida? Straordinario!{page}Ecco, prendi questa Mappa speciale.{page}Finché è nella tua borsa, funziona come la Mappa che trovi nei labirinti, ma sempre!{page}E le Mappe che trovi nei labirinti diventeranno altro bottino. Niente male, eh?",
+    "expanded.quest.yd.challenge.no_room": "Hai superato la sfida? Straordinario!{page}Fai spazio nella borsa per la mia ricompensa e torna a parlarmi.",
+    "expanded.quest.yd.challenge.begun": "La sfida di Samba è iniziata!\nSconfiggi ogni mostro solo con il Pugnale.",
+    "expanded.quest.yd.challenge.not_begun": "La sfida di Samba non è iniziata.\nTorna nei panni di {name1} con il Pugnale.",
+    "expanded.quest.yd.challenge.ended": "La sfida di Samba è terminata.\nTorna a questo piano per riprovare.",
+    "expanded.quest.yd.challenge.cleared": "Sfida di Samba superata. Ben fatto!"
 }
