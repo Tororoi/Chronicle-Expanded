@@ -139,5 +139,21 @@
     "expanded.quest.fish.hamahama": "Hamahamas",
     "expanded.quest.fish.negie": "Negies",
     "expanded.quest.fish.den": "Dens",
-    "expanded.quest.fish.heela": "Heelas"
+    "expanded.quest.fish.heela": "Heelas",
+    "expanded.quest.giver.laura": "Laura",
+    "expanded.quest.giver.ro": "Ro",
+    "expanded.quest.giver.phil": "Phil",
+    "expanded.quest.giver.zabo": "Zabo",
+    "expanded.quest.hunt.rumour.laura": "Man munkelt, dass du auf den Hinteren Ebenen der Götterbiest-Höhle einen seltenen Gegenstand finden kannst.{page}Angeblich ist es eine Art Pulver.",
+    "expanded.quest.hunt.rumour.ro": "Eine der Eulen aus dem Eulenwald hat mir erzählt, dass man tief auf den Hinteren Ebenen des Waldes einen geheimnisvollen Gegenstand finden kann.{page}Es heißt, es sei ein uralter Gegenstand, dessen Bestimmung sich nie erfüllt hat.",
+    "expanded.quest.hunt.rumour.phil": "Es gibt da noch ein paar Dinge über die Königin, die ich dir nicht erzählt habe.{page}Es heißt, als sie mit dem Wrack sank, ging ihr Ehering verloren.{page}Der Ring könnte noch irgendwo tief im Wrack liegen, auf seinen Hinteren Ebenen. Glaubst du, du kannst ihn finden?",
+    "expanded.quest.hunt.rumour.zabo": "Vor langer Zeit gab es ein seltenes, geheimnisvolles gelbes Pulver, und nein, ich meine nicht das Reparatur-Pulver.{page}Niemand weiß Genaueres darüber, aber die Alten haben vielleicht eines auf der dunklen Seite des Sonnen- und Mondtempels zurückgelassen: auf seinen Hinteren Ebenen.",
+    "expanded.quest.hunt.still.laura": "Hast du den seltenen Gegenstand schon gefunden? Angeblich ist er irgendwo auf den Hinteren Ebenen der Götterbiest-Höhle.",
+    "expanded.quest.hunt.still.ro": "Hast du den uralten Gegenstand schon gefunden? Er soll irgendwo auf den Hinteren Ebenen des Eulenwalds sein.",
+    "expanded.quest.hunt.still.phil": "Der Ehering der Königin könnte irgendwo auf den Hinteren Ebenen des Wracks versteckt sein. Viel Glück bei der Suche!",
+    "expanded.quest.hunt.still.zabo": "Hast du das Pulver schon gefunden? Vielleicht liegt noch eines irgendwo auf der dunklen Seite des Sonnen- und Mondtempels.",
+    "expanded.quest.hunt.found.laura": "Oh, du hast es gefunden? Toll! Es ist ein Medusapulver?{page}Du fragst mich, wie man es benutzt? Tut mir leid, ich weiß nicht, was das ist.",
+    "expanded.quest.hunt.found.ro": "Du hast den uralten Gegenstand gefunden? Du sagst, es ist ein Warp-Pulver?{page}Hm, so etwas klingt zu mächtig. Vielleicht konnte es deshalb nie zeigen, was in ihm steckt.",
+    "expanded.quest.hunt.found.phil": "Du hast den Ehering der Königin gefunden? Dann stimmten die Gerüchte also! Interessant.{page}Du kannst den Ring behalten. Wer weiß, wofür du ihn auf deinem Abenteuer noch brauchst.",
+    "expanded.quest.hunt.found.zabo": "Wie ich sehe, hast du das geheimnisvolle Pulver gefunden. Ich glaube, die Alten nannten es Steife-Pulver.{page}Ich wünschte, wir wüssten mehr darüber."
 }

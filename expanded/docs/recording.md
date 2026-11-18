@@ -184,6 +184,7 @@ false}` in the save copy's `config.json` lands every struck fish as the original
 | `damage` | `monster`, `kind`, `amount`, `life` left, for a weapon's hit, and the hit's `owner` (the member) and `attack` (which of theirs) |
 | `kill` | `monster`, `kind`, `by` (the member the kill is credited to; the ABS goes to their weapon when they are out) |
 | `quest` | `quest` (its id, as `quests.json` keeps it), `stage`, `left`: a quest moved on in play, by a kill or a catch ([quests.md](quests.md)) |
+| `quest_item` | `quest`, `item`: an item hunt's item put in a chest of the back floor just set out |
 | `steal` | `monster`, `kind`, `item`, and `steals`, the times that monster has been robbed, as a hit steals its item |
 | `life` | `chara`, `from`, `to`, the member's life as it changes |
 | `whp` | `chara`, `weapon`, `from`, `to`, its weapon HP as it changes |

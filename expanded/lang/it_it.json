@@ -139,5 +139,21 @@
     "expanded.quest.fish.hamahama": "Hamahama",
     "expanded.quest.fish.negie": "Negie",
     "expanded.quest.fish.den": "Den",
-    "expanded.quest.fish.heela": "Heela"
+    "expanded.quest.fish.heela": "Heela",
+    "expanded.quest.giver.laura": "Laura",
+    "expanded.quest.giver.ro": "Ro",
+    "expanded.quest.giver.phil": "Phil",
+    "expanded.quest.giver.zabo": "Zabo",
+    "expanded.quest.hunt.rumour.laura": "Si mormora che, se ti avventuri nei Piani Posteriori della Caverna del Divino Dran, potresti trovare un oggetto raro.{page}A quanto pare è una specie di polvere.",
+    "expanded.quest.hunt.rumour.ro": "Uno dei gufi della Selva del Gufo mi ha detto che nel profondo dei Piani Posteriori della selva si può trovare un oggetto misterioso.{page}Si dice che sia un oggetto antico il cui scopo non si è mai compiuto.",
+    "expanded.quest.hunt.rumour.phil": "Ci sono alcuni dettagli sulla Regina che non ti ho raccontato.{page}Si dice che quando affondò con il Relitto, la sua fede nuziale andò perduta.{page}L'anello potrebbe essere ancora da qualche parte in fondo al Relitto, nei suoi Piani Posteriori. Pensi di riuscire a trovarlo?",
+    "expanded.quest.hunt.rumour.zabo": "Tanto tempo fa esisteva una polvere gialla rara e misteriosa, e no, non parlo della Polvere Riparatrice.{page}Nessuno ne conosce la verità, ma gli antichi potrebbero averne lasciata una nel lato oscuro del Tempio Sole & Luna: nei suoi Piani Posteriori.",
+    "expanded.quest.hunt.still.laura": "Hai già trovato quell'oggetto raro? A quanto pare si trova da qualche parte nei Piani Posteriori della Caverna del Divino Dran.",
+    "expanded.quest.hunt.still.ro": "Hai già trovato l'oggetto antico? Si dice che sia da qualche parte nei Piani Posteriori della Selva del Gufo.",
+    "expanded.quest.hunt.still.phil": "La fede nuziale della Regina potrebbe nascondersi da qualche parte nei Piani Posteriori del Relitto. Buona fortuna con la ricerca!",
+    "expanded.quest.hunt.still.zabo": "Hai già trovato la polvere? Potrebbe essercene ancora una da qualche parte nel lato oscuro del Tempio Sole & Luna.",
+    "expanded.quest.hunt.found.laura": "Oh, l'hai trovato? Fantastico! È una Polvere di Medusa?{page}Mi chiedi come si usa? Mi dispiace, non so cosa sia.",
+    "expanded.quest.hunt.found.ro": "Hai trovato l'oggetto antico? Dici che è una Polvere di Trasporto?{page}Mmh, una cosa del genere sembra troppo potente. Forse è per questo che non ha mai potuto mostrare il suo potenziale.",
+    "expanded.quest.hunt.found.phil": "Hai trovato la fede nuziale della Regina? Allora le voci erano vere! Interessante.{page}Puoi tenere l'anello. Chissà dove potrebbe servirti nella tua avventura.",
+    "expanded.quest.hunt.found.zabo": "Vedo che hai trovato la polvere misteriosa. Credo che gli antichi la chiamassero Polvere Congelante.{page}Vorrei che ne sapessimo di più."
 }

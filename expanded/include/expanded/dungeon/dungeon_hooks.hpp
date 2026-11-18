@@ -8,6 +8,7 @@
 namespace dc::game {
 enum class MonsterDamageResult : int;
 class CCharacter;
+class CDungeonMap;
 class CMonstorUnit;
 class CRandomItem;
 class CSHOT;
@@ -36,6 +37,9 @@ void DungeonShotsStep(CMonstorUnit &unit);
 // load), and a floor's monsters loaded (BtLoadMonstor, after its kinds were set up).
 void DungeonFloorUnloaded();
 void DungeonFloorLoaded(CMonstorUnit &unit);
+
+// A floor's chests set out (CDungeonMap::buildEventData), the back floor's when back_floor.
+void FloorChestsPlaced(CDungeonMap &map, bool back_floor);
 
 // The party's status taken up as a dungeon visit begins (GameInit, after UserStatus->Init).
 void DungeonStatusReady();
