@@ -262,6 +262,14 @@ void CarriedMapsAct() {
     }
 }
 
+const Giver &Ledan() {
+    return kLedan;
+}
+
+const Giver &Samba() {
+    return kSamba;
+}
+
 bool PuzzleOn() {
     return AtStage(kPuzzle, "asked");
 }

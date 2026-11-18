@@ -169,5 +169,19 @@
     "expanded.quest.yd.challenge.begun": "Le défi de Samba commence !\nBats tous les monstres avec la Dague seule.",
     "expanded.quest.yd.challenge.not_begun": "Le défi de Samba n'a pas commencé.\nReviens en tant que {name1} avec la Dague.",
     "expanded.quest.yd.challenge.ended": "Le défi de Samba est terminé.\nReviens à ce niveau pour réessayer.",
-    "expanded.quest.yd.challenge.cleared": "Défi de Samba relevé. Bravo !"
+    "expanded.quest.yd.challenge.cleared": "Défi de Samba relevé. Bravo !",
+    "expanded.quest.tracker.category": "Quêtes",
+    "expanded.quest.tracker.title": "JOURNAL : QUÊTES",
+    "expanded.quest.tracker.under_way": "EN COURS",
+    "expanded.quest.tracker.none": "Aucune quête en cours. Un villageois qui a du travail pour toi le propose quand tu lui parles.",
+    "expanded.quest.tracker.controls": "{up} / {down} Choisir   {circle} Retour",
+    "expanded.quest.tracker.complete": "Terminé ! Retourne voir %1.",
+    "expanded.quest.tracker.progress": "Progression",
+    "expanded.quest.tracker.slayer": "Vaincre %1 %2 %3.",
+    "expanded.quest.tracker.fish_count": "Attraper %1 %2 %3.",
+    "expanded.quest.tracker.fish_size": "Attraper un poisson de %1 à %2 cm %3.",
+    "expanded.quest.tracker.hunt": "Trouver l'objet rare perdu %1, dans ses Arrière-salles.",
+    "expanded.quest.tracker.puzzle": "Montrer à %1 les quatre objets dont les gens de la Terre bleue avaient besoin, dans l'ordre, dans les quatre premières cases du sac.",
+    "expanded.quest.tracker.challenge": "Vider l'Arrière-salle du niveau 7 de la Mer de lune en tant que %1, avec la Dague pour seule arme.",
+    "battlemenu.journal.help": "Manuels, coffres\nmiraculeux et quêtes."
 }

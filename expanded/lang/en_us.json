@@ -31,5 +31,6 @@
     "expanded.wise_owl.door": "I've always got a spare with me, hoo.",
     "expanded.star_breaker.shooting_star": "The Star Breaker sent you a shooting star!",
     "expanded.empty_sphere.slot_one": "An empty SynthSphere\nonly fits the\nfirst slot.",
-    "expanded.empty_sphere.break_confirm": "{alert}Seal 60% weapon\nability to sphere.\n(Uses empty sphere.)\n Do status break?"
+    "expanded.empty_sphere.break_confirm": "{alert}Seal 60% weapon\nability to sphere.\n(Uses empty sphere.)\n Do status break?",
+    "battlemenu.journal.help": "Check manuals, chest\ntracker and quests."
 }

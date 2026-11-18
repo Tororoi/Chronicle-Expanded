@@ -30,6 +30,10 @@
 #include "ui/name_mouse.hpp"
 #include "weapon_buildup.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/quests/tracker.hpp"
+#endif
+
 // The mouse in the game's menus. Each tick, ahead of the game's read of the pad, the screen that is
 // open (the Register Name screen, or a page of the pause menu) takes the mouse as a pointer: what
 // the pointer is over becomes the game's own cursor, a click a pad press the game reads, so the
@@ -1045,10 +1049,20 @@ void JournalMouse(const MenuPointerTake &take) {
     }
     const float x = g_battle.x;
     const float y = g_battle.y;
+#ifdef CHRONICLE_EXPANDED
+    // Expanded's Quests page, a sixth category (menu_manual.cpp).
+    constexpr int kCategories = 6;
+    if (ManualMenu.mode == 101) {
+        expanded::QuestTrackerPointer(x, y);
+        return;
+    }
+#else
+    constexpr int kCategories = 5;
+#endif
     if (ManualMenu.mode == 100) {
         journal_chest::HandlePointer(x, y);
     } else if (ManualMenu.mode == MANUAL_MODE_SELECT && ManualMenu.selection_level == -2) {
-        if (x >= 135 && x < 355 && y >= 96 && y < 236) {
+        if (x >= 135 && x < 355 && y >= 96 && y < 96 + kCategories * 28) {
             ManualMenu.category = static_cast<int>((y - 96) / 28);
             MenuPointerPress(kInputCross);
         }
