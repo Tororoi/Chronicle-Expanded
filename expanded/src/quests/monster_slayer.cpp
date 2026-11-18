@@ -235,6 +235,7 @@ void MonsterSlayerKill(int dungeon, Monster monster) {
                 ctx.SetStage("complete");
                 QuestNotice(LocalizeFormat(QuestText(kDone), {QuestText(giver.giver.name)}));
             }
+            LogQuest(ctx);
         });
     }
 }

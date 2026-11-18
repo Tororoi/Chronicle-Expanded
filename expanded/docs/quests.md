@@ -30,6 +30,10 @@ them by model (`p01a.chr`, two ASCII digits read from memory); `PEOPLE2 "p01a"` 
 | Gob | Matataki (1) | 5 | p25a | Monster Slayer |
 | Jake | Queens (2) | 8 | p43a | Monster Slayer |
 | Chief Bonka | Muska Lacka (3) | 0 | p48a | Monster Slayer |
+| Pike (PAL: Dike) | Norune (0) | 5 | p06a | Fishing |
+| Pao | Matataki (1) | 7 | p24a | Fishing |
+| Sam | Queens (2) | 11 | p34a | Fishing (at East Harbor) |
+| Devia | Muska Lacka (3) | 5 | p53a | Fishing |
 
 ## Monster Slayer
 
@@ -47,9 +51,33 @@ them by model (`p01a.chr`, two ASCII digits read from memory); `PEOPLE2 "p01a"` 
 - The reward is a Powerup Powder (`IGame::GiveItem`), shown as the town's events show an item received; a pack with
   no room keeps the quest complete until there is.
 
+## Fishing
+
+`quests/fishing_quests.cpp`, one quest a giver (`fishing_pike`, `fishing_pao`, `fishing_sam`, `fishing_devia`), with
+Monster Slayer's stages. Half the time a count quest, half a size quest:
+
+| Giver | Waters (spots) | Count quest's kinds | Size window (least rolled; width) | Count points per fish | Size bonus |
+|---|---|---|---|---|---|
+| Pike | Norune pond (0) | Niler, Gummy, Nonky, Gobbler | 80–140; 5 | 35–65 | 0 |
+| Pao | Peanut Pond (1) or the waterfall (2) | pond: Baku Baku, Gobbler, Tarton, Umadakara; waterfall: Baku Baku, Nonky, Niler, Mardan and Baron Garayan | 80–140; 5 | 43–73, a Garayan ×2 | 10 |
+| Sam | East Harbor (3) | Bobo, Kaji, Gobbler, Bon, Hamahama | 90–160; 10 | 51–81 | 20 |
+| Devia | the oasis (4) | Negie, Den, Heela, Mardan and Baron Garayan | 100–180; 5 | 60–90 | 30 |
+
+- The kinds are the spots' pools as Expanded has them (`PoolFish`: the waterfall's Niler, East Harbor's Gobbler). A
+  Garayan is rolled again once and asked for alone; the rest two at a time. Pao's count quests are at one of his two
+  waters, half the time each; the Baku Baku, in both, and his size quests are anywhere in Matataki.
+- Vars: `size` (0 a count quest), `fish`, `left`, `total`, `least`, `most`, `place` (`FishPlace`), and Sam's `done`
+  (quests completed) and `shown`.
+- A catch counts at `ED_FISHING_MES_EVALUATE` (`FishingQuestCatch`), at the quest's waters (`FishingSpotNow`).
+- A count quest pays its points per fish × the count; a size quest a roll from its window's most − 30 to its most − 1,
+  and the waters' bonus (`IGame::EarnFishingPoints`).
+- Sam's third completed quest also sets `shown`: `FishingLoadFish` draws East Harbor's fish under the water from then
+  on (`EastHarborFishShown`), where the original game hides them.
+
 ## Trying them
 
-A town stage with `villager` stands the player in front of a giver (`expanded/docs/recording.md`): Macho with
+A quest moved on in play is logged as a `quest` event (its id, stage and `left`) with `--event-log`. A town stage
+with `villager` stands the player in front of a giver (`expanded/docs/recording.md`): Macho with
 `town = norune` and `villager = 3`. A save folder's `saves/<slot>/quests.json` sets a quest's stage and vars to start
 from, for instance two Dashers from done:
 

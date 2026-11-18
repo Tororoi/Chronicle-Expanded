@@ -1,11 +1,13 @@
 #include "expanded/quests/givers.hpp"
 
+#include <format>
 #include <optional>
 #include <string>
 #include <utility>
 
 #include "clsmes.hpp"
 #include "expanded/core/menu_text.hpp"
+#include "expanded/debug/event_log.hpp"
 #include "localize/localize.hpp"
 #include "sysmes.hpp"
 
@@ -34,6 +36,13 @@ dc::quest::Builder &Offers(dc::quest::Builder &quest, const Giver &giver, std::i
 
 std::string QuestText(dc::quest::Text text) {
     return LocalizeText(text.key, text.english);
+}
+
+void LogQuest(const dc::quest::Context &ctx) {
+    if (EventLogOn()) {
+        LogEvent("quest", std::format("\"quest\":\"{}\",\"stage\":\"{}\",\"left\":{}", ctx.QuestId(), ctx.Stage(),
+                                      ctx.Var("left")));
+    }
 }
 
 void QuestNotice(std::string text) {
