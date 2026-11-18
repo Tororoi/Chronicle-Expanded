@@ -475,12 +475,18 @@ Blessing Gun → Skunk ★
 
 - Fish sizes taper smoothly into each species' maximum instead of piling up at it. [Chronicle#141](https://github.com/TheMoonPeople/Chronicle/pull/141)
 
+## Quests
+
+- Villagers with a quest have a choice for it below Talk in their conversation: "Got anything for me?" while they have one to give, and "About the quest." while it is under way. Every other villager talks as before. [#340](https://github.com/Tororoi/Chronicle-Expanded/pull/340)
+- Monster Slayer quests: Macho (Norune), Gob (Matataki), Jake (Queens) and Chief Bonka (Muska Lacka) each ask you to defeat 8 to 18 of one kind of monster in a dungeon you have been to, one of four kinds there (the Divine Beast Cave's Master Jackets, Dashers, Mimics and Dragons, for instance); Macho's first is always Dashers in the Divine Beast Cave. Only kills in that dungeon count, their stronger copies too, and you are told when the last one falls. Each pays a Powerup Powder and gives a new quest whenever you ask; no two at once want the same kind. [#340](https://github.com/Tororoi/Chronicle-Expanded/pull/340)
+
 ## Developer tools
 
 - Enemy roster: the developer menu's "enemy roster" row (typed in) or `--roster 20!,60` lays out these monster kinds on every dungeon floor from the next dungeon visit, in debug mode. [#156](https://github.com/Tororoi/Chronicle-Expanded/pull/156)
 - The enemy roster refuses a roster it cannot lay out and says why, naming the kinds to add or drop: the Ice Queen (80) and King's Curse (81, 82) need another kind beside them, since they come only with Ruby or Ungaga in the party. [#182](https://github.com/Tororoi/Chronicle-Expanded/pull/182)
 - Staged recordings: `--stage` starts a save's party on a dungeon floor with the member, weapon and monsters a clip needs, `--event-log` writes damage, kills, life, weapon HP and sounds as JSON lines, and `scripts/port/clip.py` records a clip and the same run with Weapon Abilities off side by side ([recording.md](expanded/docs/recording.md)). [#237](https://github.com/Tororoi/Chronicle-Expanded/pull/237)
 - Fishing stages: `--stage` starts in a town with the save's game and debug mode off, at a fishing sign with a bait ready and the time of day set, and `--event-log` follows the fishing: casts, bites, hooked fish, escapes, catches (kind, size, points) and lost bait ([recording.md](expanded/docs/recording.md#fishing)). [#277](https://github.com/Tororoi/Chronicle-Expanded/pull/277)
+- Town stages can stand you in front of a villager, ready to talk (`villager`). [#340](https://github.com/Tororoi/Chronicle-Expanded/pull/340)
 
 ### From Chronicle
 

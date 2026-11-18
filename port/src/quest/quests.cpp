@@ -1,5 +1,9 @@
 #include "quest/quests.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/quests/quests.hpp"
+#endif
+
 namespace dc::quest {
 
 const NpcMatch &NoruneMayor() {
@@ -10,6 +14,9 @@ const NpcMatch &NoruneMayor() {
 void RegisterAllQuests() {
     Register(MayorSupplies());
     Register(CarlsSlingshot());
+#ifdef CHRONICLE_EXPANDED
+    expanded::RegisterQuests();
+#endif
 }
 
 std::vector<std::pair<std::string, std::string>> QuestStrings() {

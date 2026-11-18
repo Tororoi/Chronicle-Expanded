@@ -46,6 +46,7 @@
 #include "memorycardaccess.hpp"
 #include "menu_inventory.hpp"
 #include "monstorunit.hpp"
+#include "npcharacter.hpp"
 #include "runscript.hpp"
 #include "savedata.hpp"
 #include "userstatus.hpp"
@@ -68,6 +69,10 @@ constexpr float kAway = 2000.0f; // where monsters not set out are sent
 constexpr float kCircleAhead = 40.0f;
 // How far in front of the member the stage's chest is set out: its opening point, 8 nearer, within reach.
 constexpr float kChestAhead = 12.0f;
+// How far in front of a villager the player stands to talk to them.
+constexpr float kVillagerDistance = 10.0f;
+// Town frames waited for the villager before saying who is out instead.
+constexpr int kVillagerWait = 60;
 
 // The sub maps (gedit/s01-s42) by MapNo, and two that are fished.
 constexpr int kFirstSubMap = 11;
@@ -103,6 +108,8 @@ struct Run {
     bool  chested = false;     // the chest set out
     bool  arrived = false;     // the stage's town in play
     bool  at_sign = false;     // the player stood at the fishing sign (or none asked for)
+    bool  by_villager = false; // the player stood by the villager (or none asked for)
+    int   villager_waits = 0;  // town frames the villager has not been out
     bool  bait_asked = false;  // the bait change asked for
     bool  bait_picked = false; // and the stage's bait picked in it
     bool  baited = false;      // and on the hook
@@ -263,6 +270,7 @@ constexpr Key kKeys[] = {
     {"town",         [](std::string_view v, Stage &s) { return Town(v, s.town); }                            },
     {"fishing_spot", [](std::string_view v, Stage &s) { return Count(v, s.fishing_spot); }                   },
     {"event_point",  [](std::string_view v, Stage &s) { return Count(v, s.event_point); }                    },
+    {"villager",     [](std::string_view v, Stage &s) { return Count(v, s.villager); }                       },
     {"bait",         [](std::string_view v, Stage &s) { return Bait(v, s.bait); }                            },
     {"time",         [](std::string_view v, Stage &s) { return Time(v, s.time); }                            },
     {"give",         [](std::string_view v, Stage &s) { return Items(v, s.give); }                           },
@@ -488,6 +496,28 @@ bool StandAt(const std::function<bool(int)> &matches, int nth) {
     return true;
 }
 
+// Stands the player kVillagerDistance in front of the villager, facing them; false while they are not in the town.
+bool StandBy(int villager) {
+    for (CNPCharacter &npc : EdVillager) {
+        if (npc.villager_id != villager || npc.CheckDraw() == 0) {
+            continue;
+        }
+        const float   yaw = npc.rotation.y;
+        sceVu0FVECTOR position = {npc.pos[0] + kVillagerDistance * std::sin(yaw), npc.pos[1],
+                                  npc.pos[2] + kVillagerDistance * std::cos(yaw), 1.0f};
+        sceVu0FVECTOR rotation = {0.0f, AngleLimit(yaw + std::numbers::pi_v<float>), 0.0f, 0.0f};
+        Chara->SetPosition(position);
+        Chara->SetRotation(rotation);
+        MainCamera.FollowOn();
+        MainCamera.SetAngleSoon(AngleLimit(rotation[1] + std::numbers::pi_v<float>));
+        MainCamera.SetFollow(position[0], position[1] + Chara->body_height - 3.0f, position[2]);
+        EdInitCameraParam(&MainCamera);
+        MainCamera.Step(-1);
+        return true;
+    }
+    return false;
+}
+
 // The bait put in the bag when it lacks one.
 void GiveBait(int bait) {
     CDngStatusData &status = *SaveData->GetDngStatus();
@@ -538,6 +568,10 @@ bool ParseStage(std::string_view text, Stage &stage, std::string *why) {
         mixed = "an event_point with no town";
     } else if (parsed.fishing_spot >= 0 && parsed.event_point >= 0) {
         mixed = "a fishing_spot and an event_point";
+    } else if (parsed.town < 0 && parsed.villager >= 0) {
+        mixed = "a villager with no town";
+    } else if (parsed.villager >= 0 && (parsed.fishing_spot >= 0 || parsed.event_point >= 0)) {
+        mixed = "a villager and a fishing_spot or event_point";
     } else if (parsed.town < 0 && parsed.bait >= 0) {
         mixed = "a bait with no town";
     }
@@ -693,6 +727,7 @@ void StageTownStep() {
     if (!run.arrived) {
         run.arrived = true;
         run.at_sign = active->fishing_spot < 0 && active->event_point < 0;
+        run.by_villager = active->villager < 0;
         if (active->bait >= 0) {
             GiveBait(active->bait);
         }
@@ -712,6 +747,16 @@ void StageTownStep() {
             std::fprintf(stderr, "stage: map %d has no fishing sign %d or event point %d\n", MapNo, active->fishing_spot,
                          active->event_point);
         }
+    }
+    if (!run.by_villager && StandBy(active->villager)) {
+        run.by_villager = true;
+        LogEvent("stage", "\"step\":\"at_villager\"");
+    } else if (!run.by_villager && ++run.villager_waits == kVillagerWait) {
+        std::string out;
+        for (CNPCharacter &npc : EdVillager) {
+            out += std::format(" {}{}", npc.villager_id, npc.CheckDraw() != 0 ? "" : "(hidden)");
+        }
+        std::fprintf(stderr, "stage: villager %d is not out in map %d; out:%s\n", active->villager, MapNo, out.c_str());
     }
     ED_MOVE_CHARA_INFO &info = EdMoveCharaInfo;
     bool                standing = info.fishing != 0 && chara_fishing == ED_FISHING_STAND && info.event_no < 0 && info.system_event_no < 0;

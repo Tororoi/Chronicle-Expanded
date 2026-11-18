@@ -184,6 +184,56 @@ constexpr int No(Monster monster) {
     return static_cast<int>(monster);
 }
 
+// The enhanced species that stand in for a regular one (stronger.hpp), each with the one it is a stronger copy of.
+inline constexpr Monster kEnhancedOf[][2] = {
+    {Monster::ALEXANDER_ENHANCED, Monster::ALEXANDER},
+    {Monster::ARTHUR_ENHANCED, Monster::ARTHUR},
+    {Monster::AUNTIE_MEDU_ENHANCED, Monster::AUNTIE_MEDU},
+    {Monster::BOMBER_HEAD_ENHANCED, Monster::BOMBER_HEAD},
+    {Monster::CAPTAIN_ENHANCED, Monster::CAPTAIN},
+    {Monster::CAVE_BAT_ENHANCED, Monster::CAVE_BAT},
+    {Monster::CLUB_ENHANCED, Monster::CLUB},
+    {Monster::CORCEA_ENHANCED, Monster::CORCEA},
+    {Monster::CRABBY_HERMIT_ENHANCED, Monster::CRABBY_HERMIT},
+    {Monster::CRESCENT_BARON_ENHANCED, Monster::CRESCENT_BARON},
+    {Monster::CURSED_ROSE_ENHANCED, Monster::CURSED_ROSE},
+    {Monster::DIAMOND_ENHANCED, Monster::DIAMOND},
+    {Monster::EVIL_BAT_ENHANCED, Monster::EVIL_BAT},
+    {Monster::GOL_ENHANCED, Monster::GOL},
+    {Monster::GYON_ENHANCED, Monster::GYON},
+    {Monster::HALLOWEEN_ENHANCED, Monster::HALLOWEEN},
+    {Monster::HEART_ENHANCED, Monster::HEART},
+    {Monster::JOKER_ENHANCED, Monster::JOKER},
+    {Monster::LICH_ENHANCED, Monster::LICH},
+    {Monster::LIVING_ARMOR_ENHANCED, Monster::LIVING_ARMOR},
+    {Monster::MASK_OF_PRAJNA_ENHANCED, Monster::MASK_OF_PRAJNA},
+    {Monster::MASTER_JACKET_ENHANCED, Monster::MASTER_JACKET},
+    {Monster::MUMMY_ENHANCED, Monster::MUMMY},
+    {Monster::PIRATES_CHARIOT_ENHANCED, Monster::PIRATES_CHARIOT},
+    {Monster::RASH_DASHER_ENHANCED, Monster::RASH_DASHER},
+    {Monster::ROCKANOFF_ENHANCED, Monster::ROCKANOFF},
+    {Monster::SIL_ENHANCED, Monster::SIL},
+    {Monster::SPACE_GYON_ENHANCED, Monster::SPACE_GYON},
+    {Monster::SPADE_ENHANCED, Monster::SPADE},
+    {Monster::STATUE_DOG_ENHANCED, Monster::STATUE_DOG},
+    {Monster::STEEL_GIANT_ENHANCED, Monster::STEEL_GIANT},
+    {Monster::TITAN_ENHANCED, Monster::TITAN},
+    {Monster::VULCAN_ENHANCED, Monster::VULCAN},
+    {Monster::WHITE_FANG_ENHANCED, Monster::WHITE_FANG},
+    {Monster::WITCH_HELLZA_ENHANCED, Monster::WITCH_HELLZA},
+    {Monster::YAMMICH_ENHANCED, Monster::YAMMICH},
+};
+
+// The species an enhanced one is a stronger copy of, or the species itself.
+constexpr Monster BaseOf(Monster monster) {
+    for (const auto &pair : kEnhancedOf) {
+        if (pair[0] == monster) {
+            return pair[1];
+        }
+    }
+    return monster;
+}
+
 // The Mimic and the King Mimic, dungeon by dungeon, then Demon Shaft's from floor 40, 60 and 80.
 inline constexpr Monster kMimicLine[] = {
     Monster::MIMIC_DBC,
