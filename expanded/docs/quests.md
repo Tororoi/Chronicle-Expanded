@@ -71,8 +71,10 @@ Monster Slayer's stages. Half the time a count quest, half a size quest:
 - A catch counts at `ED_FISHING_MES_EVALUATE` (`FishingQuestCatch`), at the quest's waters (`FishingSpotNow`).
 - A count quest pays its points per fish × the count; a size quest a roll from its window's most − 30 to its most − 1,
   and the waters' bonus (`IGame::EarnFishingPoints`).
-- Sam's third completed quest also sets `shown`: `FishingLoadFish` draws East Harbor's fish under the water from then
-  on (`EastHarborFishShown`), where the original game hides them.
+- Sam's third completed quest also sets `shown`: from then on `FishingLoadFish` draws East Harbor's fish and the line
+  under the water (`EastHarborFishShown`), where the original game hides them. The original game draws East Harbor's
+  sea with the ground, before the fish; Expanded draws it with the water, after them, as every other fishing water is
+  drawn (`expanded/town/sea.hpp`).
 
 ## Trying them
 

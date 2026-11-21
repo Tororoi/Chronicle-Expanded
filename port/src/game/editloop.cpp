@@ -96,6 +96,7 @@
 #include "expanded/town/fishing.hpp"
 #include "expanded/town/fishing_fight.hpp"
 #include "expanded/town/queens_canal.hpp"
+#include "expanded/town/sea.hpp"
 #endif
 
 namespace dc::game {
@@ -4949,6 +4950,9 @@ void LoadGroundData() {
         }
 
         int kind = info->kind;
+#ifdef CHRONICLE_EXPANDED
+        kind = expanded::TownPartPass(MapNo, info->name[0], kind);
+#endif
 
         parts->handle = i;
         parts->category_no = kind;
