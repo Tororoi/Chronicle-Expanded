@@ -153,6 +153,15 @@ public:
         return false;
     }
 
+    [[nodiscard]] int PackItem(int slot) const override {
+        const CDngStatusData *status = Status();
+        if (status == nullptr || slot < 0 || std::cmp_greater_equal(slot, std::size(status->item_pack.item))) {
+            return -1;
+        }
+        const int item = status->item_pack.item[slot];
+        return item > 0 ? item : -1;
+    }
+
     bool TakeItem(int item) override {
         CDngStatusData *status = Status();
         return status != nullptr && InPack(item) && status->LostItem(item) >= 0;

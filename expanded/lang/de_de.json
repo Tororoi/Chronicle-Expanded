@@ -155,5 +155,19 @@
     "expanded.quest.hunt.found.laura": "Oh, du hast es gefunden? Toll! Es ist ein Medusapulver?{page}Du fragst mich, wie man es benutzt? Tut mir leid, ich weiß nicht, was das ist.",
     "expanded.quest.hunt.found.ro": "Du hast den uralten Gegenstand gefunden? Du sagst, es ist ein Warp-Pulver?{page}Hm, so etwas klingt zu mächtig. Vielleicht konnte es deshalb nie zeigen, was in ihm steckt.",
     "expanded.quest.hunt.found.phil": "Du hast den Ehering der Königin gefunden? Dann stimmten die Gerüchte also! Interessant.{page}Du kannst den Ring behalten. Wer weiß, wofür du ihn auf deinem Abenteuer noch brauchst.",
-    "expanded.quest.hunt.found.zabo": "Wie ich sehe, hast du das geheimnisvolle Pulver gefunden. Ich glaube, die Alten nannten es Steife-Pulver.{page}Ich wünschte, wir wüssten mehr darüber."
+    "expanded.quest.hunt.found.zabo": "Wie ich sehe, hast du das geheimnisvolle Pulver gefunden. Ich glaube, die Alten nannten es Steife-Pulver.{page}Ich wünschte, wir wüssten mehr darüber.",
+    "expanded.quest.giver.ledan": "Ledan",
+    "expanded.quest.giver.samba": "Samba",
+    "expanded.quest.yd.puzzle.intro": "Ich besitze einen äußerst wertvollen Kristall.{page}Ich weiß, dass du stark bist, aber wenn du meinen Kristall willst, musst du beweisen, dass du auch klug bist!{page}Ich habe ein Rätsel für dich.",
+    "expanded.quest.yd.puzzle.hint": "Zeig mir vier Gegenstände in der richtigen Reihenfolge: Leg sie in die ersten vier Felder deiner Tasche.{page}Welche Gegenstände? Das verrate ich dir nicht einfach so! Aber...{page}Auf Blue Terra, deiner Heimat, bist du vielleicht Leuten begegnet, die etwas brauchten.{page}Vielleicht sind sie der Schlüssel zur richtigen Antwort?",
+    "expanded.quest.yd.puzzle.solved": "Richtig, gut gemacht! Du hast das Rätsel gelöst!{page}Zur Belohnung bekommst du diesen äußerst seltenen Zauberkristall.{page}Solange er in deiner Tasche ist, wirkt er wie der Zauberkristall aus den Verliesen, nur immer!{page}Und die Zauberkristalle, die du in den Verliesen findest, werden zu anderer Beute. Lohnt sich, oder?",
+    "expanded.quest.yd.puzzle.no_room": "Richtig, gut gemacht!{page}Mach Platz in deiner Tasche für meinen Kristall und sprich dann noch einmal mit mir.",
+    "expanded.quest.yd.challenge.task": "Ich habe eine Herausforderung, die deine wahre Stärke prüft.{page}Wenn du die Hintere Ebene der Ebene 7 im Mondmeer als {name1} säuberst, nur mit dem Dolch, bekommst du meine Belohnung.{page}Ihre Heilquellen sind versiegt, also deck dich gut ein.",
+    "expanded.quest.yd.challenge.still": "Wenn du die Hintere Ebene der Ebene 7 im Mondmeer als {name1} säuberst, nur mit dem Dolch, bekommst du meine Belohnung.{page}Ihre Heilquellen sind versiegt, also deck dich gut ein.",
+    "expanded.quest.yd.challenge.reward": "Du hast die Herausforderung bestanden? Außergewöhnlich!{page}Hier, nimm diese besondere Karte.{page}Solange sie in deiner Tasche ist, wirkt sie wie die Karte aus den Verliesen, nur immer!{page}Und die Karten, die du in den Verliesen findest, werden zu anderer Beute. Ziemlich cool, was?",
+    "expanded.quest.yd.challenge.no_room": "Du hast die Herausforderung bestanden? Außergewöhnlich!{page}Mach Platz in deiner Tasche für meine Belohnung und sprich dann noch einmal mit mir.",
+    "expanded.quest.yd.challenge.begun": "Sambas Herausforderung beginnt!\nBesiege alle Monster nur mit dem Dolch.",
+    "expanded.quest.yd.challenge.not_begun": "Sambas Herausforderung hat nicht begonnen.\nKomm als {name1} mit dem Dolch wieder.",
+    "expanded.quest.yd.challenge.ended": "Sambas Herausforderung ist beendet.\nKomm zurück auf diese Ebene, um es erneut zu versuchen.",
+    "expanded.quest.yd.challenge.cleared": "Sambas Herausforderung bestanden. Gut gemacht!"
 }

@@ -431,6 +431,13 @@ TEST(StageFile, AnEventPointIsStoodAtInATown) {
     EXPECT_EQ(why, "a fishing_spot and an event_point");
 }
 
+TEST(StageFile, ABackFloorIsGoneOnto) {
+    Stage       stage;
+    std::string why;
+    ASSERT_TRUE(expanded::ParseStage("dungeon = 4\nfloor = 6\nback_floor = yes\n", stage, &why)) << why;
+    EXPECT_TRUE(stage.back_floor);
+}
+
 // A villager by the dialog framework's number; only in a town, and not with a sign or event point.
 TEST(StageFile, AVillagerIsStoodByInATown) {
     Stage       stage;

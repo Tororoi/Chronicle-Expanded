@@ -155,5 +155,19 @@
     "expanded.quest.hunt.found.laura": "Oh, tu l'as trouvé ? Génial ! C'est une Poudre de la Méduse ?{page}Tu me demandes comment s'en servir ? Désolée, je ne sais pas ce que c'est.",
     "expanded.quest.hunt.found.ro": "Tu as trouvé l'objet ancien ? Tu dis que c'est une Poudre motrice ?{page}Hum, quelque chose comme ça semble trop puissant. C'est peut-être pour ça qu'il n'a jamais pu montrer son potentiel.",
     "expanded.quest.hunt.found.phil": "Tu as trouvé l'alliance de la Reine ? Alors les rumeurs étaient vraies ! Intéressant.{page}Tu peux garder l'anneau. Qui sait, il te servira peut-être pendant ton aventure.",
-    "expanded.quest.hunt.found.zabo": "Je vois que tu as trouvé la poudre mystérieuse. Je crois que les anciens l'appelaient Poudre durcissante.{page}J'aimerais en savoir plus à son sujet."
+    "expanded.quest.hunt.found.zabo": "Je vois que tu as trouvé la poudre mystérieuse. Je crois que les anciens l'appelaient Poudre durcissante.{page}J'aimerais en savoir plus à son sujet.",
+    "expanded.quest.giver.ledan": "Ledan",
+    "expanded.quest.giver.samba": "Samba",
+    "expanded.quest.yd.puzzle.intro": "J'ai un cristal d'une valeur inestimable.{page}Je sais que tu es fort, mais si tu veux mon cristal, il faudra me prouver que tu es malin aussi !{page}J'ai une énigme pour toi.",
+    "expanded.quest.yd.puzzle.hint": "Montre-moi quatre objets dans le bon ordre : mets-les dans les quatre premières cases de ton sac.{page}Quels objets ? Je ne vais pas te le dire comme ça ! Mais...{page}Sur la Terre bleue, ton monde, tu as peut-être rencontré des gens qui avaient besoin de quelque chose.{page}Ce sont peut-être eux, la clé de l'énigme ?",
+    "expanded.quest.yd.puzzle.solved": "C'est exact, bravo ! Tu as résolu l'énigme !{page}En récompense, prends ce Cristal magique rarissime.{page}Tant qu'il est dans ton sac, il agit comme le Cristal magique que l'on trouve dans les dédales, mais toujours !{page}Et les Cristaux magiques que tu trouveras dans les dédales deviendront d'autres trésors. Ça vaut le coup, non ?",
+    "expanded.quest.yd.puzzle.no_room": "C'est exact, bravo !{page}Fais de la place dans ton sac pour mon cristal, et reviens me parler.",
+    "expanded.quest.yd.challenge.task": "J'ai un défi pour mettre ta vraie force à l'épreuve.{page}Si tu arrives à vider l'Arrière-salle du niveau 7 de la Mer de lune en tant que {name1}, avec la Dague pour seule arme, ma récompense est à toi.{page}Ses sources de soin sont taries, alors fais des provisions.",
+    "expanded.quest.yd.challenge.still": "Si tu arrives à vider l'Arrière-salle du niveau 7 de la Mer de lune en tant que {name1}, avec la Dague pour seule arme, ma récompense est à toi.{page}Ses sources de soin sont taries, alors fais des provisions.",
+    "expanded.quest.yd.challenge.reward": "Tu as relevé le défi ? Extraordinaire !{page}Tiens, prends cette Carte spéciale.{page}Tant qu'elle est dans ton sac, elle agit comme la Carte que l'on trouve dans les dédales, mais toujours !{page}Et les Cartes que tu trouveras dans les dédales deviendront d'autres trésors. Pas mal, hein ?",
+    "expanded.quest.yd.challenge.no_room": "Tu as relevé le défi ? Extraordinaire !{page}Fais de la place dans ton sac pour ma récompense, et reviens me parler.",
+    "expanded.quest.yd.challenge.begun": "Le défi de Samba commence !\nBats tous les monstres avec la Dague seule.",
+    "expanded.quest.yd.challenge.not_begun": "Le défi de Samba n'a pas commencé.\nReviens en tant que {name1} avec la Dague.",
+    "expanded.quest.yd.challenge.ended": "Le défi de Samba est terminé.\nReviens à ce niveau pour réessayer.",
+    "expanded.quest.yd.challenge.cleared": "Défi de Samba relevé. Bravo !"
 }

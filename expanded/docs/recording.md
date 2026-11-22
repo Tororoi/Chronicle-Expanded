@@ -79,6 +79,7 @@ need a `town`.
 | `place_kind` | only monsters of this kind |
 | `place_after` | monster steps after the member is out (default 100) |
 | `big_room` | `yes`: walk the member to the middle of the nearest big room first |
+| `back_floor` | `yes`: go onto the floor's back floor first (a second after the floor starts), before the monsters are set out. The player keeps their spot, where the door's script would move them: on a back floor with no ground there they fall (the Moon Sea's floor 7 has ground, the Divine Beast Cave's floor 3 none) |
 | `circle` | 0-9: the floor's first magic circle set to this kind (`ps2/include/dungeonmap.hpp`) and moved 40 in front of the member, as the monsters are set out, for the member to walk onto |
 | `keep_alive` | `yes`: the party's life kept full |
 | `town` | start in this map: `norune`, `matataki`, `queens`, `muska_lacka`, `yellow_drops` (4, the georama; the pond's west bank is the dome, 23), `brownboo` (14), `east_harbor` (19), or its MapNo: 0-4 the towns (`gedit/e01`-`e05`), 11-52 the other maps (`s01`-`s42`) |
@@ -178,7 +179,7 @@ false}` in the save copy's `config.json` lands every struck fish as the original
 |---|---|
 | `floor` | `dungeon`, `floor` as a floor's monsters load |
 | `character` | `chara`, the member out, as it changes |
-| `stage` | `step`: `out`, `walked`, `placed`, `circle`; in a town `town` (in play), `at_sign`, `at_point`, `at_villager` and `bait` (`item`, on the hook) |
+| `stage` | `step`: `out`, `back_floor`, `walked`, `placed`, `circle`; in a town `town` (in play), `at_sign`, `at_point`, `at_villager` and `bait` (`item`, on the hook) |
 | `fishing` | `step`: `start` (fishing, with its `bait`, -1 for none), `ready` (the rod ready to cast again), `cast`, `float` (in the water), `reeled` (in again), each with the `bait`; `bite` (a nibble), `let_go`, `hooked`, `escaped` (unstruck), `missed` (struck in a nibble), `fight` (struck when hooked), `got_away` (lost in a fight) and `landed`, each with the `fish` (0-5) and its `kind`, `bite` and `hooked` also with its `affinity` for the bait (0-1, as its roll saw it: the game's `food_affinity`, as the weapons change it); `caught` (`kind`, `size` in cm, `points`, the `total` FP); `bait` (`bait`, put on), `bait_lost` (`bait`); `quit` |
 | `fishing_fight` | `step`: `start` (the fish's `kind`, `size` in cm as `caught` gives it, `strength` 0-2, `out`, its distance from the angler, the `line`'s length from the rod tip to the hook, the `reach` (twice it) the line holds it to across the ground, and its distance `from_rod` (the rod tip) and `across` the ground from it, the `way` it runs first, in degrees from the way out from the angler to it (inside ±60), and that `run`'s frames), `switch` (`way`, `run`, and the frames of the run just ended that `pulled`), `landed` (the bar full) and `got_away` (the bar empty), each with the fight's `frames` so far and its `bar` (0-1), and all but `start` with the way to pull, `target`, and the stick's last way, `stick`, in screen degrees (0 up, 90 right, 180 down, -90 left), and how far the stick is pushed, `push` (as the game reads it) |
 | `damage` | `monster`, `kind`, `amount`, `life` left, for a weapon's hit, and the hit's `owner` (the member) and `attack` (which of theirs) |

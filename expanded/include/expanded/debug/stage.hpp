@@ -32,6 +32,7 @@ struct Stage {
     int         life = -1;          // life: the monsters set out left with this much life
     int         place_after = 100;  // place_after: monster steps after the member is out
     bool        big_room = false;   // big_room: the member walked to the middle of the nearest big room first
+    bool        back_floor = false; // back_floor: the floor's back floor gone onto first
     bool        keep_alive = false; // keep_alive: the party's life kept full
     int         circle = -1;        // circle: a magic circle of this kind (0-9) set out in front of the member
     int         town = -1;          // town: the map (MapNo) started in with that save's game, debug mode off

@@ -22,6 +22,7 @@
 #include "texture.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/weapons/toan/crysknife.hpp"
 #endif
 
@@ -146,6 +147,9 @@ int CMainItemModel::SetThrowModel(int source_no, float *position, float *heading
     throw_time[slot] = 0;
     model_cash[slot] = model_cash[source_no];
     cash_lock[model_cash[source_no]]++;
+#ifdef CHRONICLE_EXPANDED
+    expanded::DungeonItemThrown();
+#endif
     return slot;
 }
 

@@ -96,6 +96,7 @@ members are `{name2}`...`{name6}` in the text rather than their names, as retail
 |---|---|
 | `ItemCount(item)` | Copies in the pack (for pack items, the ones `TakeItem` takes); other kinds as the game counts them. |
 | `GiveItem(item)` | One item, as a pickup is (`CDngStatusData::GetItem`): a dungeon item into the pack, a weapon to the character who wields it. False when there is no room (a full pack; ten weapons). |
+| `PackItem(slot)` | The item in a slot of the pack, in the item menu's order: -1 for an empty one. |
 | `TakeItem(item)` | One out of the pack (`LostItem`); false when there is none. |
 | `Money`, `SpendMoney`, `EarnMoney` | The party's Gilda, at most 65535. |
 | `FishingPoints`, `EarnFishingPoints` | The fishing points, at most 9999, as a catch adds them (`CSaveData::AddFishingPoint`). |
