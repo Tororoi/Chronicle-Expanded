@@ -12,6 +12,8 @@
 #include "expanded/dungeon/own_sounds.hpp"
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
+#include "expanded/enemies/enemy_events.hpp"
+#include "expanded/quests/monster_slayer.hpp"
 #include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/atla_gemron.hpp"
 #include "expanded/enemies/black_knight.hpp"
@@ -355,6 +357,7 @@ bool MonsterKilled(const CMonstorUnit &unit, int monster) {
     BossRecordKill(unit, monster);
     VampireKill(unit, monster);
     PumpedUpKill(unit, monster);
+    MonsterSlayerKill(selectMapNo, static_cast<Monster>(ModelKind(unit.monster[monster].base_model)));
     return BossCastCountsKill(monster);
 }
 

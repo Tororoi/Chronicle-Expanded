@@ -37,6 +37,7 @@ struct Stage {
     int         town = -1;          // town: the map (MapNo) started in with that save's game, debug mode off
     int         fishing_spot = -1;  // fishing_spot: the town's fishing sign stood at (0 its first)
     int         event_point = -1;   // event_point: the town's event point stood at, by its script's label
+    int         villager = -1;      // villager: stood facing this villager (the dialog framework's number), ready to talk
     int         bait = -1;          // bait: put on the hook as fishing starts (an item number, given if the bag lacks it)
     float       time = -1.0f;       // time: the game's clock (0-12) the save starts at
     std::string give;               // give: item and weapon numbers given, as --give takes them

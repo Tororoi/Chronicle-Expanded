@@ -431,6 +431,18 @@ TEST(StageFile, AnEventPointIsStoodAtInATown) {
     EXPECT_EQ(why, "a fishing_spot and an event_point");
 }
 
+// A villager by the dialog framework's number; only in a town, and not with a sign or event point.
+TEST(StageFile, AVillagerIsStoodByInATown) {
+    Stage       stage;
+    std::string why;
+    ASSERT_TRUE(expanded::ParseStage("town = norune\nvillager = 3\n", stage, &why)) << why;
+    EXPECT_EQ(stage.villager, 3);
+    EXPECT_FALSE(expanded::ParseStage("villager = 3\n", stage, &why));
+    EXPECT_EQ(why, "a villager with no town");
+    EXPECT_FALSE(expanded::ParseStage("town = norune\nfishing_spot = 0\nvillager = 3\n", stage, &why));
+    EXPECT_EQ(why, "a villager and a fishing_spot or event_point");
+}
+
 TEST(StageFile, TownsByNameOrMapNo) {
     constexpr std::pair<const char *, int> kTowns[] = {
         {"norune",       TOWN_NORUNE      },

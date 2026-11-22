@@ -362,6 +362,17 @@ const Progress *FindProgress(std::string_view id) {
     return entry != nullptr ? &entry->progress : nullptr;
 }
 
+bool Act(std::string_view id, const std::function<void(Context &)> &fn) {
+    Entry *entry = FindEntry(id);
+    IGame *game = Get().game;
+    if (entry == nullptr || game == nullptr || !fn) {
+        return false;
+    }
+    Context ctx(entry->quest, entry->progress, *game);
+    fn(ctx);
+    return true;
+}
+
 void SetGame(IGame *game) { Get().game = game; }
 
 IGame *Game() { return Get().game; }

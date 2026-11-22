@@ -224,46 +224,6 @@ const SpeciesLoot kLoot[] = {
     {{std::begin(kMimicLine), std::end(kMimicLine)}, {}, kGemDrops},
 };
 
-// Enhanced species that take their base's loot.
-constexpr Monster kTakesLootOf[][2] = {
-    {Monster::ALEXANDER_ENHANCED, Monster::ALEXANDER},
-    {Monster::ARTHUR_ENHANCED, Monster::ARTHUR},
-    {Monster::AUNTIE_MEDU_ENHANCED, Monster::AUNTIE_MEDU},
-    {Monster::BOMBER_HEAD_ENHANCED, Monster::BOMBER_HEAD},
-    {Monster::CAPTAIN_ENHANCED, Monster::CAPTAIN},
-    {Monster::CAVE_BAT_ENHANCED, Monster::CAVE_BAT},
-    {Monster::CLUB_ENHANCED, Monster::CLUB},
-    {Monster::CORCEA_ENHANCED, Monster::CORCEA},
-    {Monster::CRABBY_HERMIT_ENHANCED, Monster::CRABBY_HERMIT},
-    {Monster::CRESCENT_BARON_ENHANCED, Monster::CRESCENT_BARON},
-    {Monster::CURSED_ROSE_ENHANCED, Monster::CURSED_ROSE},
-    {Monster::DIAMOND_ENHANCED, Monster::DIAMOND},
-    {Monster::EVIL_BAT_ENHANCED, Monster::EVIL_BAT},
-    {Monster::GOL_ENHANCED, Monster::GOL},
-    {Monster::GYON_ENHANCED, Monster::GYON},
-    {Monster::HALLOWEEN_ENHANCED, Monster::HALLOWEEN},
-    {Monster::HEART_ENHANCED, Monster::HEART},
-    {Monster::JOKER_ENHANCED, Monster::JOKER},
-    {Monster::LICH_ENHANCED, Monster::LICH},
-    {Monster::LIVING_ARMOR_ENHANCED, Monster::LIVING_ARMOR},
-    {Monster::MASK_OF_PRAJNA_ENHANCED, Monster::MASK_OF_PRAJNA},
-    {Monster::MASTER_JACKET_ENHANCED, Monster::MASTER_JACKET},
-    {Monster::MUMMY_ENHANCED, Monster::MUMMY},
-    {Monster::PIRATES_CHARIOT_ENHANCED, Monster::PIRATES_CHARIOT},
-    {Monster::RASH_DASHER_ENHANCED, Monster::RASH_DASHER},
-    {Monster::ROCKANOFF_ENHANCED, Monster::ROCKANOFF},
-    {Monster::SIL_ENHANCED, Monster::SIL},
-    {Monster::SPACE_GYON_ENHANCED, Monster::SPACE_GYON},
-    {Monster::SPADE_ENHANCED, Monster::SPADE},
-    {Monster::STATUE_DOG_ENHANCED, Monster::STATUE_DOG},
-    {Monster::STEEL_GIANT_ENHANCED, Monster::STEEL_GIANT},
-    {Monster::TITAN_ENHANCED, Monster::TITAN},
-    {Monster::VULCAN_ENHANCED, Monster::VULCAN},
-    {Monster::WHITE_FANG_ENHANCED, Monster::WHITE_FANG},
-    {Monster::WITCH_HELLZA_ENHANCED, Monster::WITCH_HELLZA},
-    {Monster::YAMMICH_ENHANCED, Monster::YAMMICH},
-};
-
 const DungeonWeapons kWeapons[DUNGEON_COUNT] = {
     // Divine Beast Cave
     {9, {{ITEM_WEAPON_BASELARD, ITEM_WEAPON_GLADIUS, ITEM_WEAPON_CRYSKNIFE, ITEM_WEAPON_BONE_RAPIER},
@@ -314,11 +274,7 @@ int Pick(const std::vector<int> &items) {
 }
 
 const SpeciesLoot *LootOf(Monster species) {
-    for (const auto &alias : kTakesLootOf) {
-        if (alias[0] == species) {
-            species = alias[1];
-        }
-    }
+    species = BaseOf(species);
     for (const SpeciesLoot &loot : kLoot) {
         if (std::find(loot.species.begin(), loot.species.end(), species) != loot.species.end()) {
             return &loot;

@@ -453,6 +453,12 @@ void Register(Definition quest);
 void              Clear();
 const Definition *Find(std::string_view id);
 const Progress   *FindProgress(std::string_view id);
+/**
+ * Acts on a registered quest outside a conversation (something in play moving it on, as a kill or a
+ * catch does): fn is given its context. False, doing nothing, for a quest that is not registered or
+ * before the game is set.
+ */
+bool Act(std::string_view id, const std::function<void(Context &)> &fn);
 
 /**
  * The game quests act on; until it is set, rules and choices do nothing.
