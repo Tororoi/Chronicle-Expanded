@@ -169,5 +169,19 @@
     "expanded.quest.yd.challenge.begun": "Sambas Herausforderung beginnt!\nBesiege alle Monster nur mit dem Dolch.",
     "expanded.quest.yd.challenge.not_begun": "Sambas Herausforderung hat nicht begonnen.\nKomm als {name1} mit dem Dolch wieder.",
     "expanded.quest.yd.challenge.ended": "Sambas Herausforderung ist beendet.\nKomm zurück auf diese Ebene, um es erneut zu versuchen.",
-    "expanded.quest.yd.challenge.cleared": "Sambas Herausforderung bestanden. Gut gemacht!"
+    "expanded.quest.yd.challenge.cleared": "Sambas Herausforderung bestanden. Gut gemacht!",
+    "expanded.quest.tracker.category": "Aufträge",
+    "expanded.quest.tracker.title": "LOGBUCH: AUFTRÄGE",
+    "expanded.quest.tracker.under_way": "LAUFEND",
+    "expanded.quest.tracker.none": "Keine laufenden Aufträge. Wer im Dorf Arbeit für dich hat, bietet sie dir an, wenn du mit ihm sprichst.",
+    "expanded.quest.tracker.controls": "{up} / {down} Wählen   {circle} Zurück",
+    "expanded.quest.tracker.complete": "Erledigt! Geh zurück zu %1.",
+    "expanded.quest.tracker.progress": "Fortschritt",
+    "expanded.quest.tracker.slayer": "Besiege %1 %2 %3.",
+    "expanded.quest.tracker.fish_count": "Fang %1 %2 %3.",
+    "expanded.quest.tracker.fish_size": "Fang einen Fisch von %1 bis %2 cm Länge %3.",
+    "expanded.quest.tracker.hunt": "Finde den seltenen Gegenstand, der %1 verloren ging, auf seinen Hinteren Ebenen.",
+    "expanded.quest.tracker.puzzle": "Zeig %1 die vier Gegenstände, die die Leute auf Blue Terra brauchten, der Reihe nach in den ersten vier Feldern der Tasche.",
+    "expanded.quest.tracker.challenge": "Säubere die Hintere Ebene der Ebene 7 im Mondmeer als %1, nur mit dem Dolch.",
+    "battlemenu.journal.help": "Handbücher, Wunder-\ntruhen und Aufträge."
 }

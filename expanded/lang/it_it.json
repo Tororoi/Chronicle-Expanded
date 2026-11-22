@@ -169,5 +169,19 @@
     "expanded.quest.yd.challenge.begun": "La sfida di Samba è iniziata!\nSconfiggi ogni mostro solo con il Pugnale.",
     "expanded.quest.yd.challenge.not_begun": "La sfida di Samba non è iniziata.\nTorna nei panni di {name1} con il Pugnale.",
     "expanded.quest.yd.challenge.ended": "La sfida di Samba è terminata.\nTorna a questo piano per riprovare.",
-    "expanded.quest.yd.challenge.cleared": "Sfida di Samba superata. Ben fatto!"
+    "expanded.quest.yd.challenge.cleared": "Sfida di Samba superata. Ben fatto!",
+    "expanded.quest.tracker.category": "Missioni",
+    "expanded.quest.tracker.title": "REGISTRO: MISSIONI",
+    "expanded.quest.tracker.under_way": "IN CORSO",
+    "expanded.quest.tracker.none": "Nessuna missione in corso. Un abitante che ha un lavoro per te te lo propone quando gli parli.",
+    "expanded.quest.tracker.controls": "{up} / {down} Seleziona   {circle} Indietro",
+    "expanded.quest.tracker.complete": "Fatto! Torna da %1.",
+    "expanded.quest.tracker.progress": "Progresso",
+    "expanded.quest.tracker.slayer": "Sconfiggi %1 %2 %3.",
+    "expanded.quest.tracker.fish_count": "Pesca %1 %2 %3.",
+    "expanded.quest.tracker.fish_size": "Pesca un pesce lungo da %1 a %2 cm %3.",
+    "expanded.quest.tracker.hunt": "Trova l'oggetto raro perduto %1, nei suoi Piani Posteriori.",
+    "expanded.quest.tracker.puzzle": "Mostra a %1 i quattro oggetti di cui avevano bisogno gli abitanti della Terra Blu, in ordine, nei primi quattro spazi della borsa.",
+    "expanded.quest.tracker.challenge": "Ripulisci il Piano Posteriore del piano 7 del Mare Lunare nei panni di %1, usando solo il Pugnale.",
+    "battlemenu.journal.help": "Manuali, forzieri\nmiracolosi e missioni."
 }

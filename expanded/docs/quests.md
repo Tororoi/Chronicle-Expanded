@@ -120,6 +120,17 @@ Monster Slayer's stages. Half the time a count quest, half a size quest:
   `DungeonFloorBuilt`), and each floor's own (its first two small chests) holds another of the floor's items in
   their place (`PresetSmallItemNo_Get`: `CarriedMapChests`).
 
+## The quest tracker
+
+`quests/tracker.cpp`: the journal's Quests category (the sixth, after Miracle Chests: `menu_manual.cpp`, mode 101) opens
+a page like the Chest Tracker's. `TrackedQuests` lists the quests under way in the order they are registered (Monster
+Slayer, fishing, item hunts, Yellow Drops), each with its giver, their town (the Chest Tracker's names,
+`tracker.town.<n>`), its task, its progress (kills, fish, 0 or 1 for the rest) and the item drawn beside it (the
+reward, or Ledan's and Samba's prizes). A quest complete says to go back to its giver in place of its progress. Up and
+Down choose among them, six shown at a time with a scroll bar past that; the pointer chooses a row. Samba's task names
+Toan as the player named him (`CSaveData::GetCharaName`, through the name entry's codes). Expanded's language files
+also give the dungeon menu's Journal help (`battlemenu.journal.help`) a word of the quests.
+
 ## Trying them
 
 A quest moved on in play is logged as a `quest` event (its id, stage and `left`) with `--event-log`, and a hunt's

@@ -35,6 +35,10 @@
 #include "ui/journal_chest.hpp"
 #include "userstatus.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/quests/tracker.hpp"
+#endif
+
 namespace dc::game {
 
 using namespace dc::localize;
@@ -129,6 +133,14 @@ namespace {
 
 // Port-only mode for the Miracle Chests tracker, outside the retail ManualMenuMode range.
 constexpr s16 kManualModeTracker = 100;
+#ifdef CHRONICLE_EXPANDED
+// Expanded's Quests page, the category after the Miracle Chests (expanded/quests/tracker.hpp).
+constexpr s16 kManualModeQuests = 101;
+constexpr int kQuestsCategory = 5;
+constexpr int kCategoryCount = 6;
+#else
+constexpr int kCategoryCount = 5;
+#endif
 
 ui::Cursor s_menu_cursor;
 
@@ -380,17 +392,21 @@ void DrawCategoryMenu() {
     const int     alpha = (ManualMenu.selection_level == -1) ? 0x40 : 0x80;
     constexpr int spacing = 28;
 
-    ui::TrackerWindow::Draw(135, 85, 220, 170, alpha, ui::BLUE_STONE_MENU);
+    ui::TrackerWindow::Draw(135, 85, 220, 170 + (kCategoryCount - 5) * spacing, alpha, ui::BLUE_STONE_MENU);
     MenuTextureReload(0x1A);
 
-    const std::array<std::string, 5> categories = {
+    const std::array<std::string, kCategoryCount> categories = {
         LocalizeText("manual.category.georama", "Georama"),
         LocalizeText("manual.category.dungeon", "Dungeon"),
         LocalizeText("manual.category.weapon", "Weapon"),
         LocalizeText("manual.category.savings", "Savings/Other"),
-        LocalizeText("manual.category.miracle_chests", "Miracle Chests")};
+        LocalizeText("manual.category.miracle_chests", "Miracle Chests"),
+#ifdef CHRONICLE_EXPANDED
+        expanded::QuestTrackerCategory(),
+#endif
+    };
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < kCategoryCount; i++) {
         const u32 color = (i == ManualMenu.category && ManualMenu.selection_level == -2)
                               ? ui::ColorYellow
                               : ui::ColorWhite;
@@ -439,7 +455,7 @@ int MenuManualKey() {
             int *selection = nullptr;
 
             if (ManualMenu.selection_level == -2) {
-                maximum = 4;
+                maximum = kCategoryCount - 1;
                 selection = &ManualMenu.category;
             } else if (ManualMenu.selection_level == -1) {
                 constexpr std::array k_entry_max = {4, 4, 3, 2};
@@ -490,6 +506,11 @@ int MenuManualKey() {
                     if (ManualMenu.category == 4) {
                         ManualMenu.mode = kManualModeTracker;
                         ui::journal_chest::Open();
+#ifdef CHRONICLE_EXPANDED
+                    } else if (ManualMenu.category == kQuestsCategory) {
+                        ManualMenu.mode = kManualModeQuests;
+                        expanded::QuestTrackerOpen();
+#endif
                     } else {
                         ManualMenu.selection_level++;
                         CommonMenuMes3.cursor_row = 0;
@@ -520,6 +541,13 @@ int MenuManualKey() {
                 ManualMenu.mode = MANUAL_MODE_SELECT;
             }
             break;
+#ifdef CHRONICLE_EXPANDED
+        case kManualModeQuests:
+            if (expanded::QuestTrackerKey()) {
+                ManualMenu.mode = MANUAL_MODE_SELECT;
+            }
+            break;
+#endif
 
         case MANUAL_MODE_READING:
             CommonMenuMes3.cursor_row = -1;
@@ -592,6 +620,12 @@ void MenuManualDraw() {
         ui::journal_chest::Draw();
         return;
     }
+#ifdef CHRONICLE_EXPANDED
+    if (ManualMenu.mode == kManualModeQuests) {
+        expanded::QuestTrackerDraw();
+        return;
+    }
+#endif
 
     if (ManualMenu.mode >= MANUAL_MODE_OPENING && ManualMenu.mode < MANUAL_MODE_COUNT && ManualMenu.images_ready != 0) {
         MenuTextureReload(ManualMenu.image_texture_block);

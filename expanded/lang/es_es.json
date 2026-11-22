@@ -169,5 +169,19 @@
     "expanded.quest.yd.challenge.begun": "¡Empieza el desafío de Samba!\nDerrota a todos los monstruos solo con el Puñal.",
     "expanded.quest.yd.challenge.not_begun": "El desafío de Samba no ha empezado.\nVuelve como {name1} con el Puñal.",
     "expanded.quest.yd.challenge.ended": "El desafío de Samba ha terminado.\nVuelve a este nivel para intentarlo de nuevo.",
-    "expanded.quest.yd.challenge.cleared": "Desafío de Samba superado. ¡Bien hecho!"
+    "expanded.quest.yd.challenge.cleared": "Desafío de Samba superado. ¡Bien hecho!",
+    "expanded.quest.tracker.category": "Misiones",
+    "expanded.quest.tracker.title": "DIARIO: MISIONES",
+    "expanded.quest.tracker.under_way": "EN CURSO",
+    "expanded.quest.tracker.none": "No hay misiones en curso. Un aldeano con trabajo para ti te lo ofrece cuando hablas con él.",
+    "expanded.quest.tracker.controls": "{up} / {down} Elegir   {circle} Volver",
+    "expanded.quest.tracker.complete": "¡Hecho! Vuelve con %1.",
+    "expanded.quest.tracker.progress": "Progreso",
+    "expanded.quest.tracker.slayer": "Derrota a %1 %2 %3.",
+    "expanded.quest.tracker.fish_count": "Pesca %1 %2 %3.",
+    "expanded.quest.tracker.fish_size": "Pesca un pez de %1 a %2 cm %3.",
+    "expanded.quest.tracker.hunt": "Encuentra el objeto raro perdido %1, en sus plantas de atrás.",
+    "expanded.quest.tracker.puzzle": "Muestra a %1 los cuatro objetos que necesitaba la gente de Terra Azul, en orden, en las cuatro primeras casillas de la bolsa.",
+    "expanded.quest.tracker.challenge": "Limpia la planta de atrás del nivel 7 del Mar Luna como %1, usando solo el Puñal.",
+    "battlemenu.journal.help": "Manuales, cofres\nmilagrosos y misiones."
 }

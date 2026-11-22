@@ -52,6 +52,10 @@ bool SpringsDry();
 void CarriedMapChests(CDungeonMap &map, int dungeon, int floor, bool back_floor);
 void CarriedMapsAct();
 
+// The givers.
+const Giver &Ledan();
+const Giver &Samba();
+
 // Where the quests stand, for the quest tracker: the puzzle asked and unsolved, the challenge taken or cleared.
 bool PuzzleOn();
 bool ChallengeOn();
