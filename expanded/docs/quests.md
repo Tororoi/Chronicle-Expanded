@@ -34,6 +34,10 @@ them by model (`p01a.chr`, two ASCII digits read from memory); `PEOPLE2 "p01a"` 
 | Pao | Matataki (1) | 7 | p24a | Fishing |
 | Sam | Queens (2) | 11 | p34a | Fishing (at East Harbor) |
 | Devia | Muska Lacka (3) | 5 | p53a | Fishing |
+| Laura | Norune (0) | 10 | p04a | Item hunt |
+| Ro (French: Ed) | Matataki (1) | 10 | p21a | Item hunt |
+| Phil | Queens (2) | 12 | p42a | Item hunt |
+| Zabo | Muska Lacka (3) | 2 | p50a | Item hunt |
 
 ## Monster Slayer
 
@@ -76,9 +80,29 @@ Monster Slayer's stages. Half the time a count quest, half a size quest:
   sea with the ground, before the fish; Expanded draws it with the water, after them, as every other fishing water is
   drawn (`expanded/town/sea.hpp`).
 
+## Item hunts
+
+`quests/item_hunts.cpp`, one quest a giver (`hunt_laura`, `hunt_ro`, `hunt_phil`, `hunt_zabo`):
+
+    unheard  -- the rumour -->  heard  -- the item had -->  found  -- the giver told -->  done
+
+| Giver | Dungeon | Item |
+|---|---|---|
+| Laura | Divine Beast Cave | Medusa Powder (171) |
+| Ro | Wise Owl Forest | Warp Powder (173) |
+| Phil | Shipwreck | Shell Ring (243) |
+| Zabo | Sun & Moon Temple | Hardening Powder (172) |
+
+- While a hunt is `heard` and the player has not the item (carried or stored: `HasItemAnywhere`), each back floor of
+  its dungeon has a one-in-three chance of it in its first small chest (`ItemHuntChests`, from `FloorChestsPlaced`
+  at the end of `CDungeonMap::buildEventData`; the back floor is the one built without atla, `place_atla` 0).
+- `heard` moves to `found` by a rule once the item is had, so the giver's next word is the found one; the hunt is
+  then done and the giver's choice goes. The item is the reward.
+
 ## Trying them
 
-A quest moved on in play is logged as a `quest` event (its id, stage and `left`) with `--event-log`. A town stage
+A quest moved on in play is logged as a `quest` event (its id, stage and `left`) with `--event-log`, and a hunt's
+item put in a back floor's chest as `quest_item`. A town stage
 with `villager` stands the player in front of a giver (`expanded/docs/recording.md`): Macho with
 `town = norune` and `villager = 3`. A save folder's `saves/<slot>/quests.json` sets a quest's stage and vars to start
 from, for instance two Dashers from done:

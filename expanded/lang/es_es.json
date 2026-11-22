@@ -139,5 +139,21 @@
     "expanded.quest.fish.hamahama": "Hamahamas",
     "expanded.quest.fish.negie": "Negies",
     "expanded.quest.fish.den": "Guaridas",
-    "expanded.quest.fish.heela": "Heelas"
+    "expanded.quest.fish.heela": "Heelas",
+    "expanded.quest.giver.laura": "Laura",
+    "expanded.quest.giver.ro": "Ro",
+    "expanded.quest.giver.phil": "Phil",
+    "expanded.quest.giver.zabo": "Zabo",
+    "expanded.quest.hunt.rumour.laura": "Se rumorea que si te aventuras por las plantas de atrás de la Guarida Bestia Divina, podrías dar con un objeto raro.{page}Al parecer, es una especie de polvo.",
+    "expanded.quest.hunt.rumour.ro": "Uno de los búhos del Bosque Búho Sabio me contó que en lo más hondo de las plantas de atrás del bosque se puede encontrar un objeto misterioso.{page}Dicen que es un objeto antiguo cuyo propósito nunca llegó a cumplirse.",
+    "expanded.quest.hunt.rumour.phil": "Hay algunos detalles sobre la Reina que no te conté.{page}Se rumorea que cuando se hundió con el Barco hundido, perdió su anillo de boda.{page}Puede que el anillo siga en algún lugar del fondo del Barco hundido, en sus plantas de atrás. ¿Crees que podrás encontrarlo?",
+    "expanded.quest.hunt.rumour.zabo": "Hace mucho tiempo existía un polvo amarillo raro y misterioso, y no, no hablo del Polvo Repara.{page}Nadie conoce la verdad sobre él, pero puede que los antiguos dejaran uno en el lado oscuro del Templo Sol/Luna: en sus plantas de atrás.",
+    "expanded.quest.hunt.still.laura": "¿Ya has encontrado ese objeto raro? Al parecer está en algún lugar de las plantas de atrás de la Guarida Bestia Divina.",
+    "expanded.quest.hunt.still.ro": "¿Ya has encontrado el objeto antiguo? Dicen que está en algún lugar de las plantas de atrás del Bosque Búho Sabio.",
+    "expanded.quest.hunt.still.phil": "El anillo de boda de la Reina podría estar escondido en algún lugar de las plantas de atrás del Barco hundido. ¡Suerte con la búsqueda!",
+    "expanded.quest.hunt.still.zabo": "¿Ya has encontrado el polvo? Puede que aún quede uno en algún lugar del lado oscuro del Templo Sol/Luna.",
+    "expanded.quest.hunt.found.laura": "Oh, ¿lo has encontrado? ¡Genial! ¿Es un Polvo Medusa?{page}¿Me preguntas cómo se usa? Lo siento, no sé qué es.",
+    "expanded.quest.hunt.found.ro": "¿Has encontrado el objeto antiguo? ¿Dices que es un PolvoTraslado?{page}Mmm, algo así parece demasiado poderoso. Quizá por eso nunca ha podido mostrar todo su potencial.",
+    "expanded.quest.hunt.found.phil": "¿Has encontrado el anillo de boda de la Reina? ¡Así que los rumores eran ciertos! Interesante.{page}Puedes quedarte el anillo. Quién sabe dónde podrías necesitarlo en tu aventura.",
+    "expanded.quest.hunt.found.zabo": "Veo que has encontrado el polvo misterioso. Creo que los antiguos lo llamaban Polvondure.{page}Ojalá supiéramos más sobre él."
 }

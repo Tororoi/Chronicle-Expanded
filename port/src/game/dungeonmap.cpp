@@ -32,6 +32,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/dungeon/atla_drops.hpp"
+#include "expanded/dungeon/dungeon_hooks.hpp"
 #include "expanded/weapons/toan/antique_sword.hpp"
 #include "expanded/weapons/toan/drain_seeker.hpp"
 #endif
@@ -2477,6 +2478,9 @@ void CDungeonMap::buildEventData(int floor_no, int enabled, int place_atla) {
         }
     }
 
+#ifdef CHRONICLE_EXPANDED
+    expanded::FloorChestsPlaced(*this, place_atla == 0);
+#endif
     this->initTrapCircle();
 
     for (int i = 0; i < 3; i++) {

@@ -13,6 +13,7 @@
 #include "expanded/dungeon/scene_light.hpp"
 #include "expanded/dungeon/shot_effects.hpp"
 #include "expanded/enemies/enemy_events.hpp"
+#include "expanded/quests/item_hunts.hpp"
 #include "expanded/quests/monster_slayer.hpp"
 #include "expanded/enemies/ally_unit.hpp"
 #include "expanded/enemies/atla_gemron.hpp"
@@ -347,6 +348,10 @@ void MonsterDrawn(CMonstorUnit &unit, int monster) {
     MidasDrawn(unit, monster);
     BombGemronDrawn(unit, monster);
     AtlaGemronDrawn(unit, monster);
+}
+
+void FloorChestsPlaced(CDungeonMap &map, bool back_floor) {
+    ItemHuntChests(map, selectMapNo, back_floor);
 }
 
 bool MonsterKilled(const CMonstorUnit &unit, int monster) {

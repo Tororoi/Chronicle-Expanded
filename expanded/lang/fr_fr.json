@@ -139,5 +139,21 @@
     "expanded.quest.fish.hamahama": "Hamahamas",
     "expanded.quest.fish.negie": "Negies",
     "expanded.quest.fish.den": "Dens",
-    "expanded.quest.fish.heela": "Heelas"
+    "expanded.quest.fish.heela": "Heelas",
+    "expanded.quest.giver.laura": "Laura",
+    "expanded.quest.giver.ro": "Ed",
+    "expanded.quest.giver.phil": "Phil",
+    "expanded.quest.giver.zabo": "Zabo",
+    "expanded.quest.hunt.rumour.laura": "On murmure que si tu t'aventures dans les Arrière-salles de la Tanière de la bête, tu pourrais trouver un objet rare.{page}Apparemment, c'est une sorte de poudre.",
+    "expanded.quest.hunt.rumour.ro": "Un des hiboux de la Forêt du hibou m'a dit que tout au fond de ses Arrière-salles, on peut trouver un objet mystérieux.{page}On dit que c'est un objet ancien dont le but n'a jamais été accompli.",
+    "expanded.quest.hunt.rumour.phil": "Il y a quelques détails que je ne t'ai pas racontés sur la Reine.{page}On raconte que lorsqu'elle a sombré avec l'Épave, son alliance s'est perdue.{page}L'anneau est peut-être encore quelque part au fond de l'Épave, dans ses Arrière-salles. Tu crois pouvoir le trouver ?",
+    "expanded.quest.hunt.rumour.zabo": "Il y a très longtemps existait une poudre jaune rare et mystérieuse, et non, je ne parle pas de la Poudre réparatrice.{page}Personne n'en connaît la vérité, mais les anciens en ont peut-être laissé une du côté obscur du Temple sacré : ses Arrière-salles.",
+    "expanded.quest.hunt.still.laura": "Tu as trouvé cet objet rare ? Il paraît qu'il est quelque part dans les Arrière-salles de la Tanière de la bête.",
+    "expanded.quest.hunt.still.ro": "Tu as trouvé l'objet ancien ? On dit qu'il est quelque part dans les Arrière-salles de la Forêt du hibou.",
+    "expanded.quest.hunt.still.phil": "L'alliance de la Reine pourrait se cacher quelque part dans les Arrière-salles de l'Épave. Bonne chance !",
+    "expanded.quest.hunt.still.zabo": "Tu as trouvé la poudre ? Il en reste peut-être une quelque part du côté obscur du Temple sacré.",
+    "expanded.quest.hunt.found.laura": "Oh, tu l'as trouvé ? Génial ! C'est une Poudre de la Méduse ?{page}Tu me demandes comment s'en servir ? Désolée, je ne sais pas ce que c'est.",
+    "expanded.quest.hunt.found.ro": "Tu as trouvé l'objet ancien ? Tu dis que c'est une Poudre motrice ?{page}Hum, quelque chose comme ça semble trop puissant. C'est peut-être pour ça qu'il n'a jamais pu montrer son potentiel.",
+    "expanded.quest.hunt.found.phil": "Tu as trouvé l'alliance de la Reine ? Alors les rumeurs étaient vraies ! Intéressant.{page}Tu peux garder l'anneau. Qui sait, il te servira peut-être pendant ton aventure.",
+    "expanded.quest.hunt.found.zabo": "Je vois que tu as trouvé la poudre mystérieuse. Je crois que les anciens l'appelaient Poudre durcissante.{page}J'aimerais en savoir plus à son sujet."
 }
