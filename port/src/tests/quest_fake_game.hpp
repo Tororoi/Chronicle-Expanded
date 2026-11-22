@@ -30,6 +30,7 @@ public:
     std::map<std::pair<int, int>, bool> map_flags;
     std::map<int, std::string>          talk_lines;
     int                                 money = 0;
+    int                                 fishing_points = 0;
     int                                 party = 1;
     int                                 pack_room = 10;
     std::optional<quest::ShopSpec>      shop;
@@ -70,6 +71,10 @@ public:
     }
 
     void EarnMoney(int amount) override { money += amount; }
+
+    [[nodiscard]] int FishingPoints() const override { return fishing_points; }
+
+    void EarnFishingPoints(int amount) override { fishing_points += amount; }
 
     [[nodiscard]] int DeepestFloor(int dungeon) const override {
         const auto it = floors.find(dungeon);

@@ -98,6 +98,7 @@ members are `{name2}`...`{name6}` in the text rather than their names, as retail
 | `GiveItem(item)` | One item, as a pickup is (`CDngStatusData::GetItem`): a dungeon item into the pack, a weapon to the character who wields it. False when there is no room (a full pack; ten weapons). |
 | `TakeItem(item)` | One out of the pack (`LostItem`); false when there is none. |
 | `Money`, `SpendMoney`, `EarnMoney` | The party's Gilda, at most 65535. |
+| `FishingPoints`, `EarnFishingPoints` | The fishing points, at most 9999, as a catch adds them (`CSaveData::AddFishingPoint`). |
 | `HasItemAnywhere(item)` | In the pack or stored, as retail's `PlayerAllItemCheck` looks. |
 | `DeepestFloor(dungeon)` | `floor_reached`: -1 for a dungeon never entered; 0 is the Divine Beast Cave. |
 | `DungeonCount(dungeon)` | `CSaveData::QuestDungeon(dungeon, 0)`, as the town scripts read it: 0 until the player has been in. |

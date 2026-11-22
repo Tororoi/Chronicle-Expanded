@@ -45,6 +45,7 @@
 
 #ifdef CHRONICLE_EXPANDED
 #include "expanded/debug/event_log.hpp"
+#include "expanded/quests/fishing_quests.hpp"
 #include "expanded/town/ally.hpp"
 #include "expanded/town/fishing.hpp"
 #include "expanded/town/fishing_fight.hpp"
@@ -2450,6 +2451,7 @@ void EdMoveChara() {
                                 SaveData->SetFishingRank(fish_kind, static_cast<float>(size));
 #ifdef CHRONICLE_EXPANDED
                                 expanded::EventLogCaught(fish_kind, size, fish_points);
+                                expanded::FishingQuestCatch(fish_kind, size, expanded::FishingSpotNow());
 #endif
                                 fishing_mes++;
                                 EditMes1.mes_no[0] = GetFishMsgNo(fish_kind);

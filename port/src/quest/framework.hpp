@@ -106,6 +106,15 @@ public:
     virtual void EarnMoney(int amount) = 0;
 
     /**
+     * The player's fishing points.
+     */
+    virtual int FishingPoints() const = 0;
+    /**
+     * Gives the player amount fishing points, up to the most the game holds.
+     */
+    virtual void EarnFishingPoints(int amount) = 0;
+
+    /**
      * Whether the player has the item anywhere: the pack or the stored items.
      */
     virtual bool HasItemAnywhere(int item) const = 0;

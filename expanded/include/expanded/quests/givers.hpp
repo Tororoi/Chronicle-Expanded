@@ -34,6 +34,9 @@ dc::quest::Builder &Offers(dc::quest::Builder &quest, const Giver &giver, std::i
 // A text in the player's language, as a quest shows it.
 std::string QuestText(dc::quest::Text text);
 
+// Logs a quest moved on in play (the event log's "quest": its id, stage and what it has left).
+void LogQuest(const dc::quest::Context &ctx);
+
 // Shows text at the bottom of the screen, as the dungeon tells of an item found: a quest's progress told in play.
 void QuestNotice(std::string text);
 

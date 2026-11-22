@@ -179,6 +179,14 @@ public:
         }
     }
 
+    [[nodiscard]] int FishingPoints() const override { return SaveData != nullptr ? SaveData->GetFishingPoint() : 0; }
+
+    void EarnFishingPoints(int amount) override {
+        if (SaveData != nullptr && amount > 0) {
+            SaveData->AddFishingPoint(amount);
+        }
+    }
+
     [[nodiscard]] int DeepestFloor(int dungeon) const override {
         const CDngStatusData *status = Status();
         if (status == nullptr || dungeon < 0 || std::cmp_greater_equal(dungeon, std::size(status->floor_reached))) {

@@ -17,8 +17,10 @@ struct FloorDropZone;
 // The game's fishing hooks, each calling the features that act there in turn.
 
 // FishingLoadFish's spots Expanded names.
+inline constexpr int kPeanutPond = 1;
 inline constexpr int kMatatakiWaterfall = 2;
 inline constexpr int kEastHarbor = 3;
+inline constexpr int kMuskaLackaOasis = 4;
 
 // The bait Expanded names: its index in esa_info (CFish's food_kind).
 inline constexpr int kMellowBanana = 7;
@@ -32,6 +34,8 @@ float FishSize(float size, const FishInfo &info);
 
 // FishingLoadFish having loaded a spot's fish (spot, the script's fish set), and FishingStepFish about to step them.
 void FishSpotLoaded(int spot);
+// The spot fished last (FishSpotLoaded's), -1 before any.
+int FishingSpotNow();
 void FishStep();
 
 // The distance from which fish notice the bait on the hook (FishingStepFish): radius, the game's for bait item_no, as

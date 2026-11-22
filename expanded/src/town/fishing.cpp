@@ -193,6 +193,7 @@ void StopAtCanal(const FishingCanal &canal) {
 
 // The spot _LOAD_FISHING_DATA last loaded, and the water it set; null for the game's own.
 const FishingSpot *fished = nullptr;
+int                spot_now = -1;
 float              fished_water = 0.0f;
 
 // The spot fished: the one last loaded, while in its town.
@@ -255,7 +256,12 @@ float FishSize(float size, const FishInfo &info) {
 }
 
 void FishSpotLoaded(int spot) {
+    spot_now = spot;
     FishSteeringLoaded(spot);
+}
+
+int FishingSpotNow() {
+    return spot_now;
 }
 
 void FishStep() {

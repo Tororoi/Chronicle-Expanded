@@ -29,6 +29,7 @@
 #include "vu0_ops.hpp"
 
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/quests/fishing_quests.hpp"
 #include "expanded/town/baits.hpp"
 #include "expanded/town/fishing.hpp"
 #include "expanded/town/fishing_fight.hpp"
@@ -159,6 +160,11 @@ void FishingLoadFish(int spot, CDataAlloc2<1> *alloc, int slot) {
 
     if (spot == 3) {
         draw_under_water = 0;
+#ifdef CHRONICLE_EXPANDED
+        // Sam's special reward: East Harbor's fish are seen as the other waters' are (its sea drawn with the water:
+        // expanded/town/sea.hpp).
+        draw_under_water = expanded::EastHarborFishShown() ? 1 : 0;
+#endif
     }
 
     Fish = new (reinterpret_cast<u_long128 *>(alloc->Alloc(0xD8C))) CFish[6];
