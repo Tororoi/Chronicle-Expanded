@@ -223,6 +223,19 @@ constexpr float kEyeRadius = 7.0f;
 // The sphere the look-at point is brought out from the player's chest with.
 constexpr float kPivotRadius = 2.0f;
 
+// The line the eye must see the player along: a thin sphere, so a wall's corner beside the line hides nothing.
+constexpr float kSightRadius = 1.0f;
+
+// With no room between the player and the wall behind them, the eye rises this far over the point it looks at...
+constexpr float kRise = 15.0f;
+
+// ...leaning this far toward where it would be, so it still looks the way it did...
+constexpr float kLean = 2.0f;
+
+// ...from as far as this from that point toward it, rising more the nearer it is (a sphere that fits beside a head).
+constexpr float kRoom = 10.0f;
+constexpr float kHeadRadius = 4.0f;
+
 // A wall the eye could rise over: its top no higher than this above where the eye meets it...
 constexpr float kLowWall = 25.0f;
 
@@ -276,6 +289,23 @@ float Reach(const Point &pivot, const Point &eye) {
     }
 }
 
+// The eye at `at`, lifted over the point it looks at as it nears it (or is pushed past it, away from where it would be
+// at `eye`), so with a wall at the player's back it looks down at them rather than at the wall through their head.
+Point Rise(const Point &look, const Point &eye, const Point &at) {
+    const float way[2] = {eye[0] - look[0], eye[2] - look[2]};
+    const float across = std::hypot(way[0], way[1]);
+    if (across <= 0.0f) {
+        return at;
+    }
+    const float along = ((at[0] - look[0]) * way[0] + (at[2] - look[2]) * way[1]) / across;
+    const float lift = std::clamp((kRoom - along) / kRoom, 0.0f, 1.0f);
+    if (lift <= 0.0f) {
+        return at;
+    }
+    const Point top = {look[0] + way[0] / across * kLean, look[1] + kRise, look[2] + way[1] / across * kLean};
+    return Lerp(at, Lerp(look, top, Sweep(look, top, kHeadRadius)), lift);
+}
+
 } // namespace
 
 bool TownCameraOn(bool fishing) {
@@ -293,11 +323,14 @@ void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
     const Point look = {MainCamera.ref[0], MainCamera.ref[1], MainCamera.ref[2]};
     const Point pivot = PushOut(Lerp(chest, look, Sweep(chest, look, kPivotRadius)), kEyeRadius);
     const Point eye = {MainCamera.pos[0], MainCamera.pos[1], MainCamera.pos[2]};
-    const float reach = Reach(pivot, eye);
-    if (reach < 1.0f) {
-        // The camera eases back out from here as the way clears.
-        const Point stopped = Lerp(pivot, eye, reach);
-        std::copy(stopped.begin(), stopped.end(), MainCamera.pos);
+    // Seen along a clear line, only the eye's own sphere is kept out of what is near it.
+    const bool  seen = Sweep(pivot, eye, kSightRadius) >= 1.0f;
+    const float reach = seen ? 1.0f : Reach(pivot, eye);
+    // The camera eases back out from here as the way clears.
+    const Point solved = seen ? PushOut(eye, kEyeRadius) : Lerp(pivot, eye, reach);
+    const Point placed = solved == eye ? eye : Rise(look, eye, solved);
+    if (placed != eye) {
+        std::copy(placed.begin(), placed.end(), MainCamera.pos);
     }
 }
 
