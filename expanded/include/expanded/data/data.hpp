@@ -9,8 +9,16 @@
 
 namespace expanded {
 
-// Builds every derived file into data, at the end of an extraction. Returns the failures.
+// Builds every derived file into data, at the end of an extraction. Returns the failures. With none, stamps the data
+// with these builders' fingerprint (kExpandedDataStamp).
 int BuildExpandedData(const std::filesystem::path &data, std::FILE *log);
+
+// The file at the data's root holding the fingerprint (expanded/data/data_version.hpp) of the builders that built it.
+inline constexpr const char *kExpandedDataStamp = "expanded.version";
+
+// Whether the data's derived files were built by these builders: false for data built by older ones (or never), whose
+// files may be out of date.
+bool ExpandedDataCurrent(const std::filesystem::path &data);
 
 // Converts the textures of the game files under raw into baked texture documents under out/data/textures, at the same
 // paths as the files (dcdata's texture conversion).
