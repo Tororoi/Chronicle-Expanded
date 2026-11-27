@@ -1,6 +1,8 @@
-# The mod's resources: the Confuse icon as a generated header, and expanded/lang beside the executable.
+# The mod's resources: the data builders' fingerprint and the Confuse icon as generated headers, and expanded/lang
+# beside the executable.
 set(EXPANDED_GENERATED_DIR ${CMAKE_BINARY_DIR}/expanded_generated)
 target_include_directories(dc_options INTERFACE ${EXPANDED_GENERATED_DIR})
+include(${CMAKE_CURRENT_LIST_DIR}/data_version.cmake)
 
 # resources/confuse-20.rgba, the Confuse ability's 20x20 menu icon (confuse-20.png) as raw RGBA.
 set(CONFUSE_ICON_RGBA ${EXPANDED_DIR}/resources/confuse-20.rgba)

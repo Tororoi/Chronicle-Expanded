@@ -64,6 +64,7 @@
 #include "title/opening.hpp"
 #include "title/rushmovi.hpp"
 #ifdef CHRONICLE_EXPANDED
+#include "expanded/core/data_refresh.hpp"
 #include "expanded/debug/enemy_roster.hpp"
 #include "expanded/debug/event_log.hpp"
 #include "expanded/debug/stage.hpp"
@@ -656,6 +657,9 @@ int Run(int argc, const char **argv) {
     const char *fast_load = std::getenv("DC_FAST_LOAD");
     GameSetFastLoad(options.fast_load || (fast_load != nullptr && *fast_load != '\0' && *fast_load != '0'));
     RequireData();
+#ifdef CHRONICLE_EXPANDED
+    expanded::RefreshExpandedData(PathsDataRoot());
+#endif
     GameLoadTraceCheckpoint("data_ready");
     DC_ANDROID_TRACE("Run: data available");
     datapacks::Load(PathsDataRoot());

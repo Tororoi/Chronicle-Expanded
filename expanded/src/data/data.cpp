@@ -8,6 +8,7 @@
 #include "expanded/data/boss_model.hpp"
 #include "expanded/data/colossus_pop.hpp"
 #include "expanded/data/data_build.hpp"
+#include "expanded/data/data_version.hpp"
 #include "expanded/data/fishing_poses.hpp"
 #include "expanded/data/fishing_spots.hpp"
 #include "expanded/data/gemron_models.hpp"
@@ -68,7 +69,20 @@ int BuildExpandedData(const std::filesystem::path &data, std::FILE *log) {
     for (const DataKind &kind : kDataKinds) {
         failures += kind.run != nullptr ? kind.run(data, log) : RunDataBuilds(data, kind.kind, kind.builds(), log);
     }
+    if (failures == 0) {
+        WriteIfChanged(data / kExpandedDataStamp, std::span(reinterpret_cast<const unsigned char *>(kExpandedDataVersion.data()),
+                                                            kExpandedDataVersion.size()));
+    }
     return failures;
+}
+
+bool ExpandedDataCurrent(const std::filesystem::path &data) {
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(data / kExpandedDataStamp, error)) {
+        return false;
+    }
+    const Bytes stamp = ReadDataFile(data / kExpandedDataStamp);
+    return std::string_view(reinterpret_cast<const char *>(stamp.data()), stamp.size()) == kExpandedDataVersion;
 }
 
 void BakeExpandedTextures(const std::filesystem::path &data, const TextureBaker &bake, std::FILE *log) {

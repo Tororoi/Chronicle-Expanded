@@ -6,6 +6,8 @@ Each section lists this repository's own changes first, then those that come fro
 
 ## Platforms and packaging
 
+- Data extracted by an older version is brought up to date at launch: Expanded's files built from the disc are rebuilt when the code that builds them has changed, so fixes to them (such as the Queens low-tide fishing area) reach existing installs. [#345](https://github.com/Tororoi/Chronicle-Expanded/pull/345)
+
 ### From Chronicle
 
 - Native PC port for Linux, macOS (Apple Silicon) and Windows on SDL3 and Vulkan. [Chronicle#1](https://github.com/TheMoonPeople/Chronicle/pull/1), [Chronicle#44](https://github.com/TheMoonPeople/Chronicle/pull/44), [Chronicle#51](https://github.com/TheMoonPeople/Chronicle/pull/51)
