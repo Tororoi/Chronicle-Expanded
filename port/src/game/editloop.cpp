@@ -96,6 +96,7 @@
 #include "expanded/town/fishing.hpp"
 #include "expanded/town/fishing_fight.hpp"
 #include "expanded/town/queens_canal.hpp"
+#include "expanded/town/camera.hpp"
 #include "expanded/town/sea.hpp"
 #endif
 
@@ -933,6 +934,9 @@ int EditInit(void * /*param*/) {
     RoadParts = new (reinterpret_cast<u_long128 *>(EtcDataBuffer.Alloc(Quadwords<CMapParts>(6)))) CMapParts[6];
     float near_clip = 10.0f;
     MGSetRenderInfo(800.0f, near_clip, 65535.0f);
+#ifdef CHRONICLE_EXPANDED
+    expanded::TownCameraReset();
+#endif
     map_path = std::string(EditDataDir) + "mapinfo.cfb";
     EditMapInfo = reinterpret_cast<EDIT_MAP_INFO *>(EtcDataBuffer.Alloc(Quadwords<EDIT_MAP_INFO>(1)));
     EdInInfo = reinterpret_cast<EDIT_IN_INFO *>(EtcDataBuffer.Alloc(Quadwords<EDIT_IN_INFO>(1)));
@@ -1827,6 +1831,9 @@ int EditLoop() {
 
     TownZoomEnd();
     TownMouseApply(NowCamera, pEditGround, MapNo, GameMode);
+#ifdef CHRONICLE_EXPANDED
+    expanded::TownCameraSolve(NowCamera, pEditGround, GameMode);
+#endif
 
     sceVu0FMATRIX view;
     sceVu0FVECTOR eye;

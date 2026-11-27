@@ -740,6 +740,9 @@ int CVisualVu1::CreateVUdataFromMDT(u_int *block, u_int *data, int /*unknown0*/,
         visual.strips.push_back(strip);
     }
 
+#ifdef CHRONICLE_EXPANDED
+    visual.triangles = visual.indices;
+#endif
     SpanWholeTexture(visual, runs);
     AddForestGroundTransitions(visual);
     AddForestGroundBorders(visual);

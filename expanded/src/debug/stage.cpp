@@ -61,8 +61,8 @@ namespace expanded {
 namespace {
 
 constexpr int   kBackFloorStep = 60; // the step the back floor is gone onto, the floor in play
-constexpr int   kWalkFrom = 10;    // the monster step the walk to a big room starts on
-constexpr float kWalkStep = 10.0f; // and how far it goes a step (further flings the player off stale collision)
+constexpr int   kWalkFrom = 10;      // the monster step the walk to a big room starts on
+constexpr float kWalkStep = 10.0f;   // and how far it goes a step (further flings the player off stale collision)
 constexpr int   kBigRoomCells = 9;
 constexpr float kAway = 2000.0f; // where monsters not set out are sent
 
@@ -173,6 +173,20 @@ bool Within(std::string_view text, int &out, int low, int high) {
 }
 
 // A map by name or MapNo; the names are the towns' and two fishing maps'.
+// "x y z yaw": the place a player stands in a town and the way they face.
+bool Spot(std::string_view text, Stage &stage) {
+    for (float &value : stage.stand) {
+        text = Trim(text);
+        const size_t end = std::min(text.find(' '), text.size());
+        if (end == 0 || !Number(text.substr(0, end), value)) {
+            return false;
+        }
+        text.remove_prefix(end);
+    }
+    stage.stands = true;
+    return Trim(text).empty();
+}
+
 bool Town(std::string_view text, int &out) {
     constexpr std::pair<std::string_view, int> kNames[] = {
         {"norune",       TOWN_NORUNE      },
@@ -273,6 +287,7 @@ constexpr Key kKeys[] = {
     {"fishing_spot", [](std::string_view v, Stage &s) { return Count(v, s.fishing_spot); }                   },
     {"event_point",  [](std::string_view v, Stage &s) { return Count(v, s.event_point); }                    },
     {"villager",     [](std::string_view v, Stage &s) { return Count(v, s.villager); }                       },
+    {"stand",        [](std::string_view v, Stage &s) { return Spot(v, s); }                                 },
     {"bait",         [](std::string_view v, Stage &s) { return Bait(v, s.bait); }                            },
     {"time",         [](std::string_view v, Stage &s) { return Time(v, s.time); }                            },
     {"give",         [](std::string_view v, Stage &s) { return Items(v, s.give); }                           },
@@ -498,6 +513,19 @@ bool StandAt(const std::function<bool(int)> &matches, int nth) {
     return true;
 }
 
+// Stands the player at a stage's spot, facing its way, the camera behind them.
+void StandAt(const float *spot) {
+    sceVu0FVECTOR position = {spot[0], spot[1], spot[2], 1.0f};
+    sceVu0FVECTOR rotation = {0.0f, AngleLimit(spot[3]), 0.0f, 0.0f};
+    Chara->SetPosition(position);
+    Chara->SetRotation(rotation);
+    MainCamera.FollowOn();
+    MainCamera.SetAngleSoon(AngleLimit(rotation[1] + std::numbers::pi_v<float>));
+    MainCamera.SetFollow(position[0], position[1] + Chara->body_height - 3.0f, position[2]);
+    EdInitCameraParam(&MainCamera);
+    MainCamera.Step(-1);
+}
+
 // Stands the player kVillagerDistance in front of the villager, facing them; false while they are not in the town.
 bool StandBy(int villager) {
     for (CNPCharacter &npc : EdVillager) {
@@ -574,6 +602,8 @@ bool ParseStage(std::string_view text, Stage &stage, std::string *why) {
         mixed = "a villager with no town";
     } else if (parsed.villager >= 0 && (parsed.fishing_spot >= 0 || parsed.event_point >= 0)) {
         mixed = "a villager and a fishing_spot or event_point";
+    } else if (parsed.stands && (parsed.town < 0 || parsed.fishing_spot >= 0 || parsed.event_point >= 0 || parsed.villager >= 0)) {
+        mixed = "a stand with no town, or with a fishing_spot, event_point or villager";
     } else if (parsed.town < 0 && parsed.bait >= 0) {
         mixed = "a bait with no town";
     }
@@ -733,7 +763,7 @@ void StageTownStep() {
     }
     if (!run.arrived) {
         run.arrived = true;
-        run.at_sign = active->fishing_spot < 0 && active->event_point < 0;
+        run.at_sign = active->fishing_spot < 0 && active->event_point < 0 && !active->stands;
         run.by_villager = active->villager < 0;
         if (active->bait >= 0) {
             GiveBait(active->bait);
@@ -743,6 +773,11 @@ void StageTownStep() {
             std::fprintf(stderr, "stage: character %d cannot walk map %d\n", active->character, MapNo);
         }
         LogEvent("stage", "\"step\":\"town\"");
+    }
+    if (!run.at_sign && active->stands) {
+        run.at_sign = true;
+        StandAt(active->stand);
+        LogEvent("stage", "\"step\":\"at_spot\"");
     }
     if (!run.at_sign) {
         run.at_sign = true;

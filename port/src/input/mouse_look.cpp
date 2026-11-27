@@ -15,6 +15,10 @@
 #include "platform/config.hpp"
 #include "platform/input.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town/camera.hpp"
+#endif
+
 namespace dc::input {
 
 using namespace dc::game;
@@ -267,6 +271,13 @@ void TownMouseApply(CCamera *shown, CEditGround *ground, int map, int mode) {
     if (!ground) {
         return;
     }
+#ifdef CHRONICLE_EXPANDED
+    // Expanded's camera turns freely and keeps its own eye out of the town.
+    if (expanded::TownCameraOn(request.fishing)) {
+        MouseLookTurnOrbit(camera, -request.yaw);
+        return;
+    }
+#endif
     int     mask = request.fishing ? 1 : 0xFFFF;
     CBoxVu0 box = CameraBox(*camera);
     int     count = MouseCameraPolys(*ground, box, mask, g_town_polys);

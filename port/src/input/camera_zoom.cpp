@@ -14,6 +14,11 @@
 #include "platform/config.hpp"
 #include "platform/input.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "edit.hpp"
+#include "expanded/town/camera.hpp"
+#endif
+
 namespace dc::input {
 
 using namespace dc::game;
@@ -72,9 +77,17 @@ CBoxVu0 Box(const CCameraFollow &camera, float requested) {
 void ApplyTown() {
     auto   *camera = g_town.camera;
     auto   *ground = static_cast<CEditGround *>(g_town.scene);
-    CBoxVu0 box = Box(*camera, g_town.requested);
-    int     count = MouseCameraPolys(*ground, box, 0xFFFF, g_polys);
-    float   accepted = MouseCameraClampDistance(*camera, g_town.requested, g_polys.data(), count);
+    float   accepted = g_town.requested;
+#ifdef CHRONICLE_EXPANDED
+    // Expanded's camera keeps the eye out of the town at any distance.
+    if (!expanded::TownCameraOn(EdMoveCharaInfo.fishing != 0)) {
+#endif
+        CBoxVu0 box = Box(*camera, g_town.requested);
+        int     count = MouseCameraPolys(*ground, box, 0xFFFF, g_polys);
+        accepted = MouseCameraClampDistance(*camera, g_town.requested, g_polys.data(), count);
+#ifdef CHRONICLE_EXPANDED
+    }
+#endif
     camera->SetDistance(accepted);
     // The retail clear-camera branch otherwise assigns 70 every frame before Step.
     // Its wall/floor rules run normally using this validated distance for the current update.

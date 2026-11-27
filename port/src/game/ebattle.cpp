@@ -47,6 +47,7 @@
 #include "expanded/debug/event_log.hpp"
 #include "expanded/quests/fishing_quests.hpp"
 #include "expanded/town/ally.hpp"
+#include "expanded/town/camera.hpp"
 #include "expanded/town/fishing.hpp"
 #include "expanded/town/fishing_fight.hpp"
 #include "expanded/town/ladder.hpp"
@@ -1672,7 +1673,9 @@ void EdMoveChara() {
     int right_clear = 1;
 
 #ifdef CHRONICLE_EXPANDED
-    if (viewMode == 0 && interior == 0 && EdDebugMoveFlag < 2 && !expanded::FishingCameraInCanal()) {
+    // Expanded's camera keeps the walking eye out of the town itself (expanded/town/camera.hpp).
+    if (viewMode == 0 && interior == 0 && EdDebugMoveFlag < 2 && !expanded::FishingCameraInCanal() &&
+        !expanded::TownCameraOn(EdMoveCharaInfo.fishing != 0)) {
 #else
     if (viewMode == 0 && interior == 0 && EdDebugMoveFlag < 2) {
 #endif
