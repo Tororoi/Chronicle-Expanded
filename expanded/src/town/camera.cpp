@@ -55,6 +55,9 @@ struct Town {
     int                                       map = -1;
     std::uint32_t                             generation = 0;
     std::unordered_map<const CFrame *, Piece> pieces;
+    float                                     shown = -1.0f; // how far from the point looked at the eye was shown
+    bool                                      moved = false; // whether the eye shown is not the game's own
+    Point                                     own{};         // the game's own eye, put back once the frame is drawn
 };
 
 Town town;
@@ -236,6 +239,15 @@ constexpr float kLean = 2.0f;
 constexpr float kRoom = 10.0f;
 constexpr float kHeadRadius = 4.0f;
 
+// The share of the way back out the eye goes each frame once the line to the player clears.
+constexpr float kEaseOut = 0.1f;
+
+// Ground that asks for a high camera (AREA_KIND_HIGH_CAMERA) raises it this share of the way a frame, within these
+// steps, where the original game lifts it at once.
+constexpr float kHighRise = 0.05f;
+constexpr float kHighRiseLeast = 0.35f;
+constexpr float kHighRiseMost = 1.0f;
+
 // A wall the eye could rise over: its top no higher than this above where the eye meets it...
 constexpr float kLowWall = 25.0f;
 
@@ -270,23 +282,32 @@ bool LowWall(const Point &at, const Point &eye, Point &past) {
            Sweep(past, above, kEyeRadius) >= 1.0f;
 }
 
-// How far (0 to 1) from the pivot to the eye its sphere goes before it meets the town, passing low walls.
-float Reach(const Point &pivot, const Point &eye) {
+// Whether the line from the pivot to the eye is clear (its low walls passed over), and if not where the town cuts it.
+bool Clear(const Point &pivot, const Point &eye, Point &cut) {
     Point from = pivot;
     for (int wall = 0;; wall++) {
-        const float t = Sweep(from, eye, kEyeRadius);
-        const Point at = Lerp(from, eye, t);
-        Point       past{};
-        if (t >= 1.0f || wall == 4 || !LowWall(at, eye, past)) {
-            if (t >= 1.0f) {
-                return 1.0f;
-            }
-            const float whole = std::hypot(eye[0] - pivot[0], eye[1] - pivot[1], eye[2] - pivot[2]);
-            const float left = std::hypot(eye[0] - at[0], eye[1] - at[1], eye[2] - at[2]);
-            return whole > 0.0f ? 1.0f - left / whole : 0.0f;
+        const float t = Sweep(from, eye, kSightRadius);
+        if (t >= 1.0f) {
+            return true;
+        }
+        cut = Lerp(from, eye, t);
+        Point past{};
+        if (wall == 4 || !LowWall(cut, eye, past)) {
+            return false;
         }
         from = past;
     }
+}
+
+// The eye stopped short of where the line to it is cut, its sphere's width nearer the pivot and out of what is near.
+Point ShortOf(const Point &pivot, const Point &eye, const Point &cut) {
+    const float way[3] = {eye[0] - pivot[0], eye[1] - pivot[1], eye[2] - pivot[2]};
+    const float whole = std::hypot(way[0], way[1], way[2]);
+    const float there = std::hypot(cut[0] - pivot[0], cut[1] - pivot[1], cut[2] - pivot[2]);
+    if (whole <= 0.0f || there <= kEyeRadius) {
+        return pivot;
+    }
+    return PushOut(Lerp(pivot, eye, (there - kEyeRadius) / whole), kEyeRadius);
 }
 
 // The eye at `at`, lifted over the point it looks at as it nears it (or is pushed past it, away from where it would be
@@ -315,6 +336,7 @@ bool TownCameraOn(bool fishing) {
 void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
     if (shown != &MainCamera || ground == nullptr || mode != ED_MODE_WALK || viewMode != 0 || Chara == nullptr ||
         !MainCamera.follow_on || CCamera::StopCamera || !TownCameraOn(false)) {
+        town.shown = -1.0f;
         return;
     }
     Update(*ground);
@@ -323,15 +345,38 @@ void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
     const Point look = {MainCamera.ref[0], MainCamera.ref[1], MainCamera.ref[2]};
     const Point pivot = PushOut(Lerp(chest, look, Sweep(chest, look, kPivotRadius)), kEyeRadius);
     const Point eye = {MainCamera.pos[0], MainCamera.pos[1], MainCamera.pos[2]};
-    // Seen along a clear line, only the eye's own sphere is kept out of what is near it.
-    const bool  seen = Sweep(pivot, eye, kSightRadius) >= 1.0f;
-    const float reach = seen ? 1.0f : Reach(pivot, eye);
-    // The camera eases back out from here as the way clears.
-    const Point solved = seen ? PushOut(eye, kEyeRadius) : Lerp(pivot, eye, reach);
+    // Seen along a clear line, only the eye's own sphere is kept out of what is near it; else it stops short of the cut.
+    Point      cut{};
+    const bool seen = Clear(pivot, eye, cut);
+    Point      solved = seen ? PushOut(eye, kEyeRadius) : ShortOf(pivot, eye, cut);
+    // In at once, back out eased.
+    const float wanted = std::hypot(solved[0] - look[0], solved[1] - look[1], solved[2] - look[2]);
+    if (town.shown >= 0.0f && wanted > town.shown && wanted > 0.0f) {
+        const float eased = town.shown + kEaseOut * (wanted - town.shown);
+        solved = PushOut(Lerp(look, solved, eased / wanted), kEyeRadius);
+    }
+    town.shown = std::hypot(solved[0] - look[0], solved[1] - look[1], solved[2] - look[2]);
     const Point placed = solved == eye ? eye : Rise(look, eye, solved);
     if (placed != eye) {
+        // Shown this frame only: the game eases its own eye on from where it was (TownCameraRestore).
+        town.moved = true;
+        town.own = eye;
         std::copy(placed.begin(), placed.end(), MainCamera.pos);
     }
+}
+
+void TownCameraRestore() {
+    if (town.moved) {
+        town.moved = false;
+        std::copy(town.own.begin(), town.own.end(), MainCamera.pos);
+    }
+}
+
+float TownCameraHighRise(float height, float lowest, bool fishing) {
+    if (!TownCameraOn(fishing)) {
+        return lowest;
+    }
+    return std::min(lowest, height + std::clamp(kHighRise * (lowest - height), kHighRiseLeast, kHighRiseMost));
 }
 
 void TownCameraReset() {

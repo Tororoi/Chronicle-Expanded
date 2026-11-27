@@ -93,10 +93,10 @@
 #include "expanded/debug/event_log.hpp"
 #include "expanded/debug/stage.hpp"
 #include "expanded/town/ally.hpp"
+#include "expanded/town/camera.hpp"
 #include "expanded/town/fishing.hpp"
 #include "expanded/town/fishing_fight.hpp"
 #include "expanded/town/queens_canal.hpp"
-#include "expanded/town/camera.hpp"
 #include "expanded/town/sea.hpp"
 #endif
 
@@ -1889,6 +1889,10 @@ int EditLoop() {
         default:
             break;
     }
+
+#ifdef CHRONICLE_EXPANDED
+    expanded::TownCameraRestore();
+#endif
 
     CheckKeyLock();
 

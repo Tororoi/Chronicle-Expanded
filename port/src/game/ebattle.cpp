@@ -1962,7 +1962,13 @@ void EdMoveChara() {
             }
 
             if (camera->GetHeight() < lowest) {
+#ifdef CHRONICLE_EXPANDED
+                camera->SetHeight(shallow != 0
+                                      ? expanded::TownCameraHighRise(camera->GetHeight(), lowest, EdMoveCharaInfo.fishing != 0)
+                                      : lowest);
+#else
                 camera->SetHeight(lowest);
+#endif
             }
 
             if (camera->GetHeight() > 5.0f) {
