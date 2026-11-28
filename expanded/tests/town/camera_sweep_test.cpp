@@ -103,19 +103,20 @@ TEST(CameraSweep, ClosestFindsTheNearestPointWithinTheRadius) {
     EXPECT_EQ(mesh.Closest({0, 0, 0}, 5.0f, nearest), 5.0f);
 }
 
-// A box from (x, 0, z) up to height, size across in x and deep (size when 0) in z, as its 12 triangles; its corners
+// A box from (x, y, z) up height, size across in x and deep (size when 0) in z, as its 12 triangles; its corners
 // shared.
-std::vector<Triangle> Box(float x, float z, float size, float height, float deep = 0.0f) {
+std::vector<Triangle> Box(float x, float z, float size, float height, float deep = 0.0f, float y = 0.0f) {
     const float d = deep > 0.0f ? deep : size;
+    const float top = y + height;
     const Point p[8] = {
-        {x,        0,      z    },
-        {x + size, 0,      z    },
-        {x + size, 0,      z + d},
-        {x,        0,      z + d},
-        {x,        height, z    },
-        {x + size, height, z    },
-        {x + size, height, z + d},
-        {x,        height, z + d}
+        {x,        y,   z    },
+        {x + size, y,   z    },
+        {x + size, y,   z + d},
+        {x,        y,   z + d},
+        {x,        top, z    },
+        {x + size, top, z    },
+        {x + size, top, z + d},
+        {x,        top, z + d}
     };
     const int faces[6][4] = {
         {0, 1, 2, 3},
@@ -133,14 +134,14 @@ std::vector<Triangle> Box(float x, float z, float size, float height, float deep
     return out;
 }
 
-TEST(CameraSweep, KeepLargeLetsSmallPiecesGo) {
+TEST(CameraSweep, KeepBlockingLetsPassThroughPiecesGo) {
     std::vector<Triangle> all;
     const auto            add = [&](const std::vector<Triangle> &part) { all.insert(all.end(), part.begin(), part.end()); };
     add(Box(0, 0, 100, 60));       // a house: kept
     add(Box(200, 0, 10, 80));      // a pillar: narrow
     add(Box(300, 0, 60, 15, 4));   // a low wall: low
     add(Box(-500, -500, 1000, 2)); // the ground: broad
-    const std::vector<Triangle> kept = KeepLarge(all);
+    const std::vector<Triangle> kept = KeepBlocking(all);
     EXPECT_EQ(kept.size(), 24u);
     const SweepMesh mesh = Mesh(kept);
     EXPECT_LT(mesh.Sweep({50, 30, -20}, {50, 30, 20}, 2.0f), 1.0f);   // the house stops it
@@ -149,20 +150,20 @@ TEST(CameraSweep, KeepLargeLetsSmallPiecesGo) {
     EXPECT_LT(mesh.Sweep({0, 10, 0}, {0, -10, 0}, 2.0f), 1.0f);       // the ground does
 }
 
-TEST(CameraSweep, KeepLargeSizesTouchingPiecesTogether) {
+TEST(CameraSweep, KeepBlockingSizesTouchingPiecesTogether) {
     std::vector<Triangle>       all = Box(0, 0, 100, 60);    // a tent
     const std::vector<Triangle> door = Box(40, 100, 20, 20); // the low curtain across its door, touching it: kept with it
     all.insert(all.end(), door.begin(), door.end());
     const std::vector<Triangle> ground = Box(-500, -500, 1000, 1); // the ground under both
     all.insert(all.end(), ground.begin(), ground.end());
-    const std::vector<Triangle> post = Box(300, 0, 10, 50); // a post on the ground: still small
+    const std::vector<Triangle> post = Box(300, 0, 10, 50); // a post on the ground: still passes
     all.insert(all.end(), post.begin(), post.end());
     const std::vector<Triangle> leg = Box(-12, 40, 10, 80); // a pillar against the tent: still a pillar
     all.insert(all.end(), leg.begin(), leg.end());
-    EXPECT_EQ(KeepLarge(all).size(), 36u);
+    EXPECT_EQ(KeepBlocking(all).size(), 36u);
 }
 
-TEST(CameraSweep, KeepLargeKeepsFloorTiles) {
+TEST(CameraSweep, KeepBlockingKeepsFloorTiles) {
     // Low and narrow, but floor: a plaza's tile is kept, a low wall's rim is not.
     std::vector<Triangle> all = {
         Triangle{Point{0, 0, 0}, Point{50, 0, 0},  Point{50, 0, 50}},
@@ -170,16 +171,78 @@ TEST(CameraSweep, KeepLargeKeepsFloorTiles) {
     };
     const std::vector<Triangle> rim = Box(300, 0, 60, 10, 4);
     all.insert(all.end(), rim.begin(), rim.end());
-    EXPECT_EQ(KeepLarge(all).size(), 2u);
+    EXPECT_EQ(KeepBlocking(all).size(), 2u);
 }
 
-TEST(CameraSweep, KeepLargeWeldsCornersSplitByTheMesh) {
+TEST(CameraSweep, KeepBlockingLetsAnArchsLegsThroughHoweverWide) {
+    std::vector<Triangle> all = Box(0, 0, 45, 60); // a leg as wide as a house
+    const auto            add = [&](const std::vector<Triangle> &part) { all.insert(all.end(), part.begin(), part.end()); };
+    add(Box(100, 0, 45, 60));         // the other leg
+    add(Box(-5, 0, 155, 25, 45, 59)); // the span across them, above y 59
+    add(Box(300, 0, 45, 60));         // a lone rock as wide: still blocks
+    const std::vector<Triangle> kept = KeepBlocking(all);
+    const SweepMesh             mesh = Mesh(kept);
+    EXPECT_EQ(mesh.Sweep({20, 30, -20}, {20, 30, 80}, 2.0f), 1.0f);   // through one leg
+    EXPECT_EQ(mesh.Sweep({120, 30, -20}, {120, 30, 80}, 2.0f), 1.0f); // and the other
+    EXPECT_LT(mesh.Sweep({72, 70, -20}, {72, 70, 80}, 2.0f), 1.0f);   // the span between them blocks
+    EXPECT_LT(mesh.Sweep({320, 30, -20}, {320, 30, 80}, 2.0f), 1.0f); // the lone rock blocks
+}
+
+TEST(CameraSweep, KeepBlockingLetsThroughWhatAPillarHoldsJustOverIt) {
+    // A stilt house: a stilt 20 across and 30 tall, its rounded top 40 across up to y 51, the house on that.
+    std::vector<Triangle> all = Box(50, 50, 20, 30);
+    const auto            add = [&](const std::vector<Triangle> &part) { all.insert(all.end(), part.begin(), part.end()); };
+    add(Box(40, 40, 40, 22, 0, 29));   // the stilt's top, touching the house: it would block with it
+    add(Box(0, 0, 120, 25, 0, 51.5f)); // the house
+    const SweepMesh mesh = Mesh(KeepBlocking(all));
+    EXPECT_EQ(mesh.Sweep({60, 15, -20}, {60, 15, 140}, 2.0f), 1.0f); // through the stilt
+    EXPECT_EQ(mesh.Sweep({60, 40, -20}, {60, 40, 140}, 2.0f), 1.0f); // and its top
+    EXPECT_LT(mesh.Sweep({60, 65, -20}, {60, 65, 140}, 2.0f), 1.0f); // the house blocks
+}
+
+TEST(CameraSweep, PassThroughPartsTellWhichWayTheirFacesTurn) {
+    // A post as a tetrahedron, (b - a) × (c - a) pointing out of each face; then the same turned inside out.
+    const Point                 o{0, 0, 0}, x{10, 0, 0}, y{0, 10, 0}, z{0, 0, 10};
+    const std::vector<Triangle> out = {
+        Triangle{o, y, x},
+        Triangle{o, x, z},
+        Triangle{o, z, y},
+        Triangle{x, y, z},
+    };
+    const std::vector<bool> none(out.size(), false);
+    std::vector<PassPart>   parts = PassThroughParts(out, none);
+    ASSERT_EQ(parts.size(), 1u);
+    EXPECT_TRUE(parts[0].outward);
+    EXPECT_EQ(parts[0].max[1], 10.0f);
+    std::vector<Triangle> in;
+    for (const Triangle &t : out) {
+        in.push_back({t.a, t.c, t.b});
+    }
+    parts = PassThroughParts(in, none);
+    ASSERT_EQ(parts.size(), 1u);
+    EXPECT_FALSE(parts[0].outward);
+    // A blocking mesh has no pass-through parts.
+    EXPECT_TRUE(PassThroughParts(out, std::vector<bool>(out.size(), true)).empty());
+}
+
+TEST(CameraSweep, KeepBlockingCanKeepTallPiecesHoweverNarrow) {
+    // A stilt house's leg, 15 across and 27 tall, under its floor: passes, unless tall pieces block.
+    std::vector<Triangle>       all = Box(50, 50, 15, 27);
+    const std::vector<Triangle> house = Box(0, 0, 120, 40, 0, 27);
+    all.insert(all.end(), house.begin(), house.end());
+    EXPECT_EQ(KeepBlocking(all).size(), 12u);
+    Blocking legs;
+    legs.tall_blocks = true;
+    EXPECT_EQ(KeepBlocking(all, legs).size(), 24u);
+}
+
+TEST(CameraSweep, KeepBlockingWeldsCornersSplitByTheMesh) {
     // A tall wide wall as two triangles whose shared corners differ by under a hundredth: one piece, kept.
     const std::vector<Triangle> wall = {
         Triangle{Point{0, 0, 0},      Point{100, 0, 0},       Point{100, 60, 0}},
         Triangle{Point{0.001f, 0, 0}, Point{100.001f, 60, 0}, Point{0, 60, 0}  },
     };
-    EXPECT_EQ(KeepLarge(wall).size(), 2u);
+    EXPECT_EQ(KeepBlocking(wall).size(), 2u);
 }
 
 TEST(CameraSweep, ATouchingTriangleStillStopsItFurtherAlong) {

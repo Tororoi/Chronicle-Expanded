@@ -47,6 +47,7 @@ struct Piece {
     float                           matrix[4][4] = {};
     double                          shape = 0.0; // the vertices' sum: an area's ground is remade in place
     SweepMesh                       mesh;
+    std::vector<PassPart>           passing; // its pass-through pieces, in the world
     std::uint32_t                   seen = 0;
 };
 
@@ -57,6 +58,7 @@ struct Town {
     std::unordered_map<const CFrame *, Piece> pieces;
     float                                     shown = -1.0f; // how far from the point looked at the eye was shown
     bool                                      moved = false; // whether the eye shown is not the game's own
+    std::vector<dc::render::Draw3DVisual *>   culled;        // the meshes drawn without their insides
     Point                                     own{};         // the game's own eye, put back once the frame is drawn
 };
 
@@ -81,6 +83,26 @@ double Shape(const dc::render::Draw3DVisual &visual) {
     return sum;
 }
 
+// Buildings whose legs block the camera, by town and the start of their frames' names: Brownboo's stilt houses (its
+// central building's legs, a walkway running among them, pass).
+struct Legs {
+    int         map;
+    const char *frames;
+};
+
+constexpr Legs kLegsBlock[] = {
+    {14, "h03"},
+};
+
+bool LegsBlock(int map, const char *frame) {
+    for (const Legs &legs : kLegsBlock) {
+        if (legs.map == map && std::strncmp(frame, legs.frames, std::strlen(legs.frames)) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Build(Piece &piece, const dc::render::Draw3DVisual &visual, const float matrix[4][4], double shape, const char *piece_name) {
     piece.visual = &visual;
     piece.shape = shape;
@@ -94,9 +116,13 @@ void Build(Piece &piece, const dc::render::Draw3DVisual &visual, const float mat
         Transform(matrix, visual.vertices[visual.triangles[i + 2]].position, t.c);
         triangles.push_back(t);
     }
-    // Only its large pieces stop the camera.
-    const std::vector<bool> large = LargeMask(triangles);
-    std::vector<Triangle>   kept;
+    // Only its blocking pieces stop the camera.
+    Blocking blocking;
+    blocking.tall_blocks = LegsBlock(MapNo, piece_name);
+    const std::vector<bool> large = BlockingMask(triangles, blocking);
+    piece.passing = PassThroughParts(triangles, large);
+
+    std::vector<Triangle> kept;
     kept.reserve(triangles.size());
     for (std::size_t i = 0; i < triangles.size(); i++) {
         if (large[i]) {
@@ -173,10 +199,10 @@ void Update(CEditGround &ground) {
     std::erase_if(town.pieces, [](const auto &entry) { return entry.second.seen != town.generation; });
 }
 
-bool Meets(const Piece &piece, const Point &from, const Point &to, float radius) {
+bool Meets(const SweepMesh &mesh, const Point &from, const Point &to, float radius) {
     for (int axis = 0; axis < 3; axis++) {
-        if (std::max(from[axis], to[axis]) < piece.mesh.Min()[axis] - radius ||
-            std::min(from[axis], to[axis]) > piece.mesh.Max()[axis] + radius) {
+        if (std::max(from[axis], to[axis]) < mesh.Min()[axis] - radius ||
+            std::min(from[axis], to[axis]) > mesh.Max()[axis] + radius) {
             return false;
         }
     }
@@ -186,7 +212,7 @@ bool Meets(const Piece &piece, const Point &from, const Point &to, float radius)
 float Sweep(const Point &from, const Point &to, float radius) {
     float best = 1.0f;
     for (const auto &[frame, piece] : town.pieces) {
-        if (!piece.mesh.Empty() && Meets(piece, from, to, radius)) {
+        if (!piece.mesh.Empty() && Meets(piece.mesh, from, to, radius)) {
             best = piece.mesh.Sweep(from, to, radius, best);
         }
     }
@@ -195,7 +221,7 @@ float Sweep(const Point &from, const Point &to, float radius) {
 
 Point PushOut(Point point, float radius) {
     for (const auto &[frame, piece] : town.pieces) {
-        if (!piece.mesh.Empty() && Meets(piece, point, point, radius)) {
+        if (!piece.mesh.Empty() && Meets(piece.mesh, point, point, radius)) {
             point = piece.mesh.PushOut(point, radius, radius);
         }
     }
@@ -211,7 +237,7 @@ float Closest(const Point &point, float radius, Point &nearest) {
     float best = radius;
     for (const auto &[frame, piece] : town.pieces) {
         Point near{};
-        if (!piece.mesh.Empty() && Meets(piece, point, point, radius) && piece.mesh.Closest(point, best, near) < best) {
+        if (!piece.mesh.Empty() && Meets(piece.mesh, point, point, radius) && piece.mesh.Closest(point, best, near) < best) {
             best = std::hypot(near[0] - point[0], near[1] - point[1], near[2] - point[2]);
             nearest = near;
         }
@@ -282,6 +308,88 @@ bool LowWall(const Point &at, const Point &eye, Point &past) {
            Sweep(past, above, kEyeRadius) >= 1.0f;
 }
 
+// The walking view: its near plane's distance (EditLoop) and the projection's scale, in frame units at a distance of
+// one, that the visible frame's half extent is measured against.
+constexpr float kNear = 5.0f;
+constexpr float kProjection = 800.0f;
+
+// What the eye keeps between its view and what blocks.
+constexpr float kMargin = 0.5f;
+
+// The eye's view toward the point it looks at: the near plane's rectangle out in front of it.
+struct View {
+    float forward[3], right[3], up[3];
+    float half_width, half_height;
+};
+
+View ViewOf(const Point &eye, const Point &look) {
+    View        view{};
+    float       f[3] = {look[0] - eye[0], look[1] - eye[1], look[2] - eye[2]};
+    const float length = std::hypot(f[0], f[1], f[2]);
+    if (length <= 0.0f) {
+        f[0] = 0.0f, f[1] = 0.0f, f[2] = 1.0f;
+    } else {
+        f[0] /= length, f[1] /= length, f[2] /= length;
+    }
+    // Right is level; up is square to both.
+    float       r[3] = {f[2], 0.0f, -f[0]};
+    const float level = std::hypot(r[0], r[2]);
+    if (level <= 0.0f) {
+        r[0] = 1.0f, r[2] = 0.0f;
+    } else {
+        r[0] /= level, r[2] /= level;
+    }
+    const float u[3] = {r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]};
+    for (int axis = 0; axis < 3; axis++) {
+        view.forward[axis] = f[axis];
+        view.right[axis] = r[axis];
+        view.up[axis] = u[axis];
+    }
+    const dc::render::Draw3DExtent extent = dc::render::Draw3DVisibleExtent();
+    view.half_width = kNear * extent.half_width / kProjection;
+    view.half_height = kNear * extent.half_height / kProjection;
+    return view;
+}
+
+// How far the eye keeps from a surface whose normal, toward the eye, is `n`: far enough that no corner of the near
+// plane reaches it. Square on to a wall ahead that is the near plane's distance, beside one its half width, and with
+// the wall behind only the margin.
+float Clearance(const View &view, const float n[3]) {
+    auto        dot = [&](const float v[3]) { return n[0] * v[0] + n[1] * v[1] + n[2] * v[2]; };
+    const float reach = -kNear * dot(view.forward) + view.half_width * std::abs(dot(view.right)) +
+                        view.half_height * std::abs(dot(view.up));
+    return kMargin + std::max(reach, 0.0f);
+}
+
+// The eye moved out of what blocks until its view clears every surface near it.
+Point ClearView(Point eye, const Point &look) {
+    const View  view = ViewOf(eye, look);
+    const float most = kMargin + std::hypot(kNear, view.half_width, view.half_height);
+    for (int pass = 0; pass < 2; pass++) {
+        for (const auto &[frame, piece] : town.pieces) {
+            if (piece.mesh.Empty() || !Meets(piece.mesh, eye, eye, most)) {
+                continue;
+            }
+            for (const Triangle &triangle : piece.mesh.Triangles()) {
+                const Point near = NearestOnTriangle(eye, triangle);
+                float       n[3] = {eye[0] - near[0], eye[1] - near[1], eye[2] - near[2]};
+                const float distance = std::hypot(n[0], n[1], n[2]);
+                if (distance >= most || distance <= 0.0f) {
+                    continue;
+                }
+                n[0] /= distance, n[1] /= distance, n[2] /= distance;
+                const float needed = Clearance(view, n);
+                if (distance < needed) {
+                    for (int axis = 0; axis < 3; axis++) {
+                        eye[axis] += n[axis] * (needed - distance);
+                    }
+                }
+            }
+        }
+    }
+    return eye;
+}
+
 // Whether the line from the pivot to the eye is clear (its low walls passed over), and if not where the town cuts it.
 bool Clear(const Point &pivot, const Point &eye, Point &cut) {
     Point from = pivot;
@@ -300,14 +408,58 @@ bool Clear(const Point &pivot, const Point &eye, Point &cut) {
 }
 
 // The eye stopped short of where the line to it is cut, its sphere's width nearer the pivot and out of what is near.
-Point ShortOf(const Point &pivot, const Point &eye, const Point &cut) {
+Point ShortOf(const Point &pivot, const Point &eye, const Point &cut, const Point &look) {
     const float way[3] = {eye[0] - pivot[0], eye[1] - pivot[1], eye[2] - pivot[2]};
     const float whole = std::hypot(way[0], way[1], way[2]);
     const float there = std::hypot(cut[0] - pivot[0], cut[1] - pivot[1], cut[2] - pivot[2]);
-    if (whole <= 0.0f || there <= kEyeRadius) {
+    if (whole <= 0.0f) {
         return pivot;
     }
-    return PushOut(Lerp(pivot, eye, (there - kEyeRadius) / whole), kEyeRadius);
+    // Back from the cut as far as the view needs from the surface there; clearing the view pushes it the rest of the
+    // way out.
+    float back = kMargin;
+    Point near{};
+    if (Closest(cut, kSightRadius + 1.0f, near) < kSightRadius + 1.0f) {
+        float       n[3] = {cut[0] - near[0], cut[1] - near[1], cut[2] - near[2]};
+        const float length = std::hypot(n[0], n[1], n[2]);
+        if (length > 0.0f) {
+            n[0] /= length, n[1] /= length, n[2] /= length;
+            back = Clearance(ViewOf(cut, look), n);
+        }
+    }
+    if (there <= back) {
+        return pivot;
+    }
+    return ClearView(Lerp(pivot, eye, (there - back) / whole), look);
+}
+
+// The faces a mesh whose triangles face out shows only from inside it.
+constexpr gfx::CullMode kOutwardBack = gfx::CullMode::Back;
+
+// Draws without their insides the meshes whose pass-through pieces the eye's sphere is in (none with no eye), so the
+// eye sees out through them.
+void Insides(const Point *eye) {
+    for (dc::render::Draw3DVisual *visual : town.culled) {
+        visual->inside_cull = gfx::CullMode::None;
+    }
+    town.culled.clear();
+    if (eye == nullptr) {
+        return;
+    }
+    for (auto &[frame, piece] : town.pieces) {
+        for (const PassPart &part : piece.passing) {
+            bool in = true;
+            for (int axis = 0; axis < 3; axis++) {
+                in = in && (*eye)[axis] >= part.min[axis] - kEyeRadius && (*eye)[axis] <= part.max[axis] + kEyeRadius;
+            }
+            if (in) {
+                auto *visual = const_cast<dc::render::Draw3DVisual *>(piece.visual);
+                visual->inside_cull = part.outward ? kOutwardBack : gfx::CullMode::Front;
+                town.culled.push_back(visual);
+                break;
+            }
+        }
+    }
 }
 
 // The eye at `at`, lifted over the point it looks at as it nears it (or is pushed past it, away from where it would be
@@ -337,6 +489,7 @@ void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
     if (shown != &MainCamera || ground == nullptr || mode != ED_MODE_WALK || viewMode != 0 || Chara == nullptr ||
         !MainCamera.follow_on || CCamera::StopCamera || !TownCameraOn(false)) {
         town.shown = -1.0f;
+        Insides(nullptr);
         return;
     }
     Update(*ground);
@@ -348,15 +501,16 @@ void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
     // Seen along a clear line, only the eye's own sphere is kept out of what is near it; else it stops short of the cut.
     Point      cut{};
     const bool seen = Clear(pivot, eye, cut);
-    Point      solved = seen ? PushOut(eye, kEyeRadius) : ShortOf(pivot, eye, cut);
+    Point      solved = seen ? ClearView(eye, look) : ShortOf(pivot, eye, cut, look);
     // In at once, back out eased.
     const float wanted = std::hypot(solved[0] - look[0], solved[1] - look[1], solved[2] - look[2]);
     if (town.shown >= 0.0f && wanted > town.shown && wanted > 0.0f) {
         const float eased = town.shown + kEaseOut * (wanted - town.shown);
-        solved = PushOut(Lerp(look, solved, eased / wanted), kEyeRadius);
+        solved = ClearView(Lerp(look, solved, eased / wanted), look);
     }
     town.shown = std::hypot(solved[0] - look[0], solved[1] - look[1], solved[2] - look[2]);
     const Point placed = solved == eye ? eye : Rise(look, eye, solved);
+    Insides(&placed);
     if (placed != eye) {
         // Shown this frame only: the game eases its own eye on from where it was (TownCameraRestore).
         town.moved = true;
@@ -380,6 +534,7 @@ float TownCameraHighRise(float height, float lowest, bool fishing) {
 }
 
 void TownCameraReset() {
+    // The meshes it drew without their insides go with the town.
     town = {};
 }
 

@@ -255,6 +255,11 @@ struct Draw3DVisual {
      * renderer adds: what the town camera collides with (expanded/town/camera.hpp).
      */
     std::vector<uint32_t> triangles;
+    /**
+     * The faces left undrawn while the town camera's eye is inside one of the mesh's pass-through pieces, so the eye
+     * sees out through it rather than its inside (expanded/town/camera.hpp); none otherwise.
+     */
+    gfx::CullMode inside_cull = gfx::CullMode::None;
 #endif
     bool                                vertex_colour = false;              /**< Whether vertices carry their own colour. */
     bool                                immediate = false;                  /**< Whether the geometry is drawn per frame. */

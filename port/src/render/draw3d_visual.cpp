@@ -239,6 +239,11 @@ void Draw3DDrawVisual(const Draw3DVisual &visual, const float model[4][4], const
     if (!projected && (info.clip_flags & 4) != 0) {
         state.cull = gfx::CullMode::Back;
     }
+#ifdef CHRONICLE_EXPANDED
+    if (!projected && visual.inside_cull != gfx::CullMode::None) {
+        state.cull = visual.inside_cull;
+    }
+#endif
     if (projected || (info.shadow_pass == 8 && Draw3DShadowTargetActive())) {
         // The first of the two passes SetShadowData hands VU1, counted once wherever the
         // projection covers; a shade frame covers the volumes' stencil the same way.

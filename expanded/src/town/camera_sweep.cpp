@@ -10,6 +10,9 @@ namespace expanded {
 
 namespace {
 
+// No connected piece: a triangle left out.
+constexpr std::uint32_t kNone = 0xFFFFFFFFu;
+
 // Triangles a leaf of the tree holds at the most.
 constexpr std::uint32_t kLeaf = 8;
 
@@ -21,6 +24,10 @@ constexpr double kFlat = 0.7;
 
 // The share of a piece's area that is flat for it to be floor.
 constexpr double kFloorShare = 0.6;
+
+// What a pillar holds up passes the camera over the pillar, out to the pillar's own half width on each side and up
+// to this share of its height above its top (the rounded tops on a stilt house's stilts).
+constexpr float kPillarTop = 0.7f;
 
 // Halvings of the distance a sweep's contact is found to: 2^-30 of the way, well under a millionth of a unit.
 constexpr int kSearches = 30;
@@ -187,22 +194,9 @@ Point Bound(const Triangle &t, bool most) {
     return out;
 }
 
-} // namespace
-
-std::vector<Triangle> KeepLarge(const std::vector<Triangle> &triangles, const Largeness &largeness) {
-    const std::vector<bool> large = LargeMask(triangles, largeness);
-    std::vector<Triangle>   out;
-    out.reserve(triangles.size());
-    for (std::size_t i = 0; i < triangles.size(); i++) {
-        if (large[i]) {
-            out.push_back(triangles[i]);
-        }
-    }
-    return out;
-}
-
-std::vector<bool> LargeMask(const std::vector<Triangle> &triangles, const Largeness &largeness) {
-    // Union-find over corners welded by position.
+// Each triangle's connected piece, as one of its triangles' index: triangles are connected where they share a corner
+// (to within a hundredth of a unit). Only those `only` marks take part when it is not empty; the rest are kNone.
+std::vector<std::uint32_t> Roots(const std::vector<Triangle> &triangles, const std::vector<bool> &only) {
     std::vector<std::uint32_t> parent(triangles.size());
     for (std::uint32_t i = 0; i < parent.size(); i++) {
         parent[i] = i;
@@ -229,8 +223,12 @@ std::vector<bool> LargeMask(const std::vector<Triangle> &triangles, const Largen
     std::unordered_map<Key, std::uint32_t, Hash> corners;
     corners.reserve(triangles.size() * 2);
     for (std::uint32_t i = 0; i < triangles.size(); i++) {
+        if (!only.empty() && !only[i]) {
+            continue;
+        }
         for (const Point *corner : {&triangles[i].a, &triangles[i].b, &triangles[i].c}) {
-            const Key key{std::llround((*corner)[0] * 100.0), std::llround((*corner)[1] * 100.0), std::llround((*corner)[2] * 100.0)};
+            const Key key{std::llround((*corner)[0] * 100.0), std::llround((*corner)[1] * 100.0),
+                          std::llround((*corner)[2] * 100.0)};
             const auto [at, added] = corners.emplace(key, i);
             if (!added) {
                 const std::uint32_t a = find(at->second), b = find(i);
@@ -240,6 +238,32 @@ std::vector<bool> LargeMask(const std::vector<Triangle> &triangles, const Largen
             }
         }
     }
+    std::vector<std::uint32_t> roots(triangles.size(), kNone);
+    for (std::uint32_t i = 0; i < triangles.size(); i++) {
+        if (only.empty() || only[i]) {
+            roots[i] = find(i);
+        }
+    }
+    return roots;
+}
+
+} // namespace
+
+std::vector<Triangle> KeepBlocking(const std::vector<Triangle> &triangles, const Blocking &blocking) {
+    const std::vector<bool> blocks = BlockingMask(triangles, blocking);
+    std::vector<Triangle>   out;
+    out.reserve(triangles.size());
+    for (std::size_t i = 0; i < triangles.size(); i++) {
+        if (blocks[i]) {
+            out.push_back(triangles[i]);
+        }
+    }
+    return out;
+}
+
+std::vector<bool> BlockingMask(const std::vector<Triangle> &triangles, const Blocking &blocking) {
+    const std::vector<std::uint32_t> roots = Roots(triangles, {});
+    auto                             find = [&](std::uint32_t i) { return roots[i]; };
 
     struct Bounds {
         Point  min{std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
@@ -263,14 +287,13 @@ std::vector<bool> LargeMask(const std::vector<Triangle> &triangles, const Largen
             bounds.max[axis] = std::max(bounds.max[axis], hi[axis]);
         }
     }
-    // A low piece touching a large one is part of it (the curtain across a tent's door, a step); a narrow tall one
-    // (a pillar, an arch's leg) is not, small pieces do not make one another large, and the ground and its broad slabs
-    // make nothing on them part of them.
+    // A low piece touching a blocking one is part of it (the curtain across a tent's door, a step); a pillar is not,
+    // pass-through pieces do not make one another blocking, and the ground and its broad slabs make nothing on them
+    // part of them.
     auto wide_of = [](const Bounds &b) { return std::max(b.max[0] - b.min[0], b.max[2] - b.min[2]); };
-    auto alone = [&](const Bounds &b) {
-        const float wide = wide_of(b);
-        return wide >= largeness.wide && b.max[1] - b.min[1] >= largeness.tall;
-    };
+    auto tall_of = [](const Bounds &b) { return b.max[1] - b.min[1]; };
+    auto narrow_of = [](const Bounds &b) { return std::min(b.max[0] - b.min[0], b.max[2] - b.min[2]); };
+    auto alone = [&](const Bounds &b) { return wide_of(b) >= blocking.wide && tall_of(b) >= blocking.tall; };
     auto touch = [&](const Bounds &a, const Bounds &b) {
         for (int axis = 0; axis < 3; axis++) {
             if (a.max[axis] + kTouch < b.min[axis] || b.max[axis] + kTouch < a.min[axis]) {
@@ -279,31 +302,129 @@ std::vector<bool> LargeMask(const std::vector<Triangle> &triangles, const Largen
         }
         return true;
     };
+    // A pillar holds up a piece resting on its upper half and reaching above it.
+    auto holds = [&](const Bounds &pillar, const Bounds &held) {
+        return &pillar != &held && touch(pillar, held) && held.min[1] >= 0.5f * (pillar.min[1] + pillar.max[1]) &&
+               held.max[1] > pillar.max[1] + kTouch;
+    };
+    std::vector<const Bounds *> pillars;
+    for (const auto &[root, bounds] : pieces) {
+        if (!blocking.tall_blocks && tall_of(bounds) >= blocking.tall && wide_of(bounds) < blocking.pillar &&
+            tall_of(bounds) >= wide_of(bounds) && narrow_of(bounds) >= 0.5f * wide_of(bounds)) {
+            for (const auto &[other, held] : pieces) {
+                if (holds(bounds, held)) {
+                    pillars.push_back(&bounds);
+                    break;
+                }
+            }
+        }
+    }
     std::vector<const Bounds *> bodies;
     for (const auto &[root, bounds] : pieces) {
-        if (alone(bounds) && wide_of(bounds) < largeness.broad) {
+        if ((alone(bounds) || (blocking.tall_blocks && tall_of(bounds) >= blocking.tall)) &&
+            wide_of(bounds) < blocking.broad) {
             bodies.push_back(&bounds);
         }
     }
     // Floor: mostly facing up or down and big enough to stand on (the tiles of a plaza, a roof, a step).
-    auto                                    floor = [&](const Bounds &b) { return b.flat >= largeness.floor && b.flat >= kFloorShare * b.area; };
+    auto                                    floor = [&](const Bounds &b) { return b.flat >= blocking.floor && b.flat >= kFloorShare * b.area; };
     std::unordered_map<std::uint32_t, bool> large;
     for (const auto &[root, bounds] : pieces) {
-        bool is_large = wide_of(bounds) >= largeness.broad || alone(bounds) || floor(bounds);
-        // A pillar stays a pillar, whatever it holds up (an arch's legs), and a small thing stuck to a body stays small
-        // (a lamp on a wall, the caps on a bridge's corners).
-        const bool pillar = bounds.max[1] - bounds.min[1] >= largeness.tall;
-        const bool tiny = wide_of(bounds) < 0.5f * largeness.wide;
+        const bool holding = std::find(pillars.begin(), pillars.end(), &bounds) != pillars.end();
+        bool       is_large = !holding && (wide_of(bounds) >= blocking.broad || alone(bounds) || floor(bounds) ||
+                                     (blocking.tall_blocks && tall_of(bounds) >= blocking.tall));
+        // A pillar stays a pillar, whatever it holds up or stands against, and a small thing stuck to a body stays
+        // small (a lamp on a wall, the caps on a bridge's corners).
+        const bool pillar = tall_of(bounds) >= blocking.tall;
+        const bool tiny = wide_of(bounds) < 0.5f * blocking.wide;
         for (std::size_t i = 0; !is_large && !pillar && !tiny && i < bodies.size(); i++) {
             is_large = touch(bounds, *bodies[i]);
         }
         large[root] = is_large;
     }
+    // What a pillar holds up passes just over it.
+    auto over = [&](const Triangle &t, const Bounds &pillar) {
+        const float half = 0.5f * wide_of(pillar);
+        const float top = pillar.max[1] + kPillarTop * tall_of(pillar);
+        for (const Point *corner : {&t.a, &t.b, &t.c}) {
+            const Point &c = *corner;
+            if (c[0] < pillar.min[0] - half || c[0] > pillar.max[0] + half || c[2] < pillar.min[2] - half ||
+                c[2] > pillar.max[2] + half || c[1] < pillar.max[1] - kTouch || c[1] > top) {
+                return false;
+            }
+        }
+        return true;
+    };
+    std::vector<bool>                         passes(triangles.size(), false);
+    std::unordered_map<std::uint32_t, double> passing; // each blocking piece's area just over its pillars
+    for (std::uint32_t i = 0; i < triangles.size(); i++) {
+        if (large[find(i)] && std::any_of(pillars.begin(), pillars.end(), [&](const Bounds *pillar) {
+                return over(triangles[i], *pillar);
+            })) {
+            passes[i] = true;
+            const Tri t = T(triangles[i]);
+            passing[find(i)] += 0.5 * Length(Cross(t.b - t.a, t.c - t.a));
+        }
+    }
+    // A piece mostly over its pillars passes whole (an arch's span, a ring of stilts' tops), not in patches.
     std::vector<bool> out(triangles.size());
     for (std::uint32_t i = 0; i < triangles.size(); i++) {
-        out[i] = large[find(i)];
+        const std::uint32_t root = find(i);
+        out[i] = large[root] && !passes[i] && passing[root] < 0.5 * pieces[root].area;
     }
     return out;
+}
+
+std::vector<PassPart> PassThroughParts(const std::vector<Triangle> &triangles, const std::vector<bool> &blocks) {
+    std::vector<bool> passes(triangles.size());
+    for (std::size_t i = 0; i < triangles.size(); i++) {
+        passes[i] = !blocks[i];
+    }
+    const std::vector<std::uint32_t> roots = Roots(triangles, passes);
+
+    struct Sum {
+        PassPart part{
+            {std::numeric_limits<float>::max(),  std::numeric_limits<float>::max(),  std::numeric_limits<float>::max() },
+            {-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max()},
+            true
+        };
+        Vec    centre{0, 0, 0};
+        double area = 0.0;
+    };
+
+    std::unordered_map<std::uint32_t, Sum> sums;
+    for (std::uint32_t i = 0; i < triangles.size(); i++) {
+        if (roots[i] == kNone) {
+            continue;
+        }
+        Sum         &sum = sums[roots[i]];
+        const Tri    t = T(triangles[i]);
+        const double area = 0.5 * Length(Cross(t.b - t.a, t.c - t.a));
+        sum.centre = sum.centre + (t.a + t.b + t.c) * (area / 3.0);
+        sum.area += area;
+        const Point lo = Bound(triangles[i], false), hi = Bound(triangles[i], true);
+        for (int axis = 0; axis < 3; axis++) {
+            sum.part.min[axis] = std::min(sum.part.min[axis], lo[axis]);
+            sum.part.max[axis] = std::max(sum.part.max[axis], hi[axis]);
+        }
+    }
+    // Which way its triangles face: out from its middle, or in.
+    std::unordered_map<std::uint32_t, double> facing;
+    for (std::uint32_t i = 0; i < triangles.size(); i++) {
+        if (roots[i] == kNone) {
+            continue;
+        }
+        const Sum &sum = sums[roots[i]];
+        const Vec  centre = sum.area > 0.0 ? sum.centre * (1.0 / sum.area) : sum.centre;
+        const Tri  t = T(triangles[i]);
+        facing[roots[i]] += Dot(Cross(t.b - t.a, t.c - t.a), (t.a + t.b + t.c) * (1.0 / 3.0) - centre);
+    }
+    std::vector<PassPart> parts;
+    for (auto &[root, sum] : sums) {
+        sum.part.outward = facing[root] >= 0.0;
+        parts.push_back(sum.part);
+    }
+    return parts;
 }
 
 Point NearestOnTriangle(const Point &p, const Triangle &triangle) {
