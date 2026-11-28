@@ -1911,6 +1911,18 @@ int GameLoop() {
         case BT_GAME_MODE_ENTRANCE_MENU: {
             int floor = DunEnterMenuLoop();
 
+#ifdef CHRONICLE_EXPANDED
+            // Expanded: left from the floor select, the screen already faded out: back to the town at once, as the
+            // escape leaves once its effect ends.
+            if (floor == DUN_ENTER_LEAVE) {
+                BtEventInfo.entrance_result = nullptr;
+                BtGameModeFlag = BT_GAME_MODE_PLAY;
+                DispFade__3.FadeInit(128.0f);
+                gameTask = GAME_TASK_EXIT_FADE_WAIT;
+                break;
+            }
+#endif
+
             if (floor != -1) {
                 if (BtEventInfo.entrance_result != nullptr) {
                     BtEventInfo.entrance_result->i = floor;

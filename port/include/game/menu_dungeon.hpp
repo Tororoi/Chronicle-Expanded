@@ -44,6 +44,13 @@ int InitDunEnterMenu(int texture_block, int dungeon, int requested_floor);
  */
 int DunEnterMenuLoop();
 
+#ifdef CHRONICLE_EXPANDED
+/**
+ * Expanded: what the dungeon entrance menu returns when circle leaves the dungeon instead of choosing a floor.
+ */
+constexpr int DUN_ENTER_LEAVE = -2;
+#endif
+
 /**
  * Opens the character change menu.
  */
