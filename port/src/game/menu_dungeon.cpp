@@ -660,7 +660,14 @@ int DunEnterMenuKey() {
             }
 
             if (GamePad.Down(PAD_CIRCLE)) {
+#ifdef CHRONICLE_EXPANDED
+                // Expanded: circle leaves the dungeon, back to the town it was entered from.
+                DEnterMenu.result = DUN_ENTER_LEAVE;
+                DEnterMenu.state = DUN_ENTER_FADE_OUT;
+                ComMenuSePlay(MENU_SOUND_CONFIRM);
+#else
                 ComMenuSePlay(MENU_SOUND_REFUSE);
+#endif
             }
 
             break;
