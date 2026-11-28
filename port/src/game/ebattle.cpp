@@ -47,6 +47,7 @@
 #include "expanded/debug/event_log.hpp"
 #include "expanded/quests/fishing_quests.hpp"
 #include "expanded/town/ally.hpp"
+#include "expanded/town/camera.hpp"
 #include "expanded/town/fishing.hpp"
 #include "expanded/town/fishing_fight.hpp"
 #include "expanded/town/ladder.hpp"
@@ -1672,7 +1673,9 @@ void EdMoveChara() {
     int right_clear = 1;
 
 #ifdef CHRONICLE_EXPANDED
-    if (viewMode == 0 && interior == 0 && EdDebugMoveFlag < 2 && !expanded::FishingCameraInCanal()) {
+    // Expanded's camera keeps the walking eye out of the town itself (expanded/town/camera.hpp).
+    if (viewMode == 0 && interior == 0 && EdDebugMoveFlag < 2 && !expanded::FishingCameraInCanal() &&
+        !expanded::TownCameraOn()) {
 #else
     if (viewMode == 0 && interior == 0 && EdDebugMoveFlag < 2) {
 #endif
@@ -1959,7 +1962,13 @@ void EdMoveChara() {
             }
 
             if (camera->GetHeight() < lowest) {
+#ifdef CHRONICLE_EXPANDED
+                camera->SetHeight(shallow != 0
+                                      ? expanded::TownCameraHighRise(camera->GetHeight(), lowest)
+                                      : lowest);
+#else
                 camera->SetHeight(lowest);
+#endif
             }
 
             if (camera->GetHeight() > 5.0f) {
@@ -2533,7 +2542,9 @@ void EdMoveChara() {
 #endif
             camera->SetFollow(centre[0], centre[1], centre[2]);
 #ifdef CHRONICLE_EXPANDED
-            expanded::KeepFishingCameraInCanal(*camera);
+            if (!expanded::TownCameraOn()) {
+                expanded::KeepFishingCameraInCanal(*camera); // Modern Camera keeps it out of the walls itself
+            }
 #endif
         }
 

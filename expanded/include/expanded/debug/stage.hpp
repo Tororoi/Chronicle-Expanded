@@ -39,10 +39,12 @@ struct Stage {
     int         fishing_spot = -1;  // fishing_spot: the town's fishing sign stood at (0 its first)
     int         event_point = -1;   // event_point: the town's event point stood at, by its script's label
     int         villager = -1;      // villager: stood facing this villager (the dialog framework's number), ready to talk
-    int         bait = -1;          // bait: put on the hook as fishing starts (an item number, given if the bag lacks it)
-    float       time = -1.0f;       // time: the game's clock (0-12) the save starts at
-    std::string give;               // give: item and weapon numbers given, as --give takes them
-    int         chest = -1;         // chest: this item in the floor's first small chest, set out in front of the member
+    bool        stands = false;     // stand: the player stood at x y z, facing the yaw (radians) given
+    float       stand[4] = {};
+    int         bait = -1;    // bait: put on the hook as fishing starts (an item number, given if the bag lacks it)
+    float       time = -1.0f; // time: the game's clock (0-12) the save starts at
+    std::string give;         // give: item and weapon numbers given, as --give takes them
+    int         chest = -1;   // chest: this item in the floor's first small chest, set out in front of the member
 };
 
 // Parses a stage file's text. False, with why when given, naming the line, for an unknown key or a bad value.

@@ -249,6 +249,18 @@ struct Draw3DVisual {
      * triangle sharing it, as triangle * 4 + its edge, else -1.
      */
     std::vector<std::array<int32_t, 3>> shadow_neighbours;
+#ifdef CHRONICLE_EXPANDED
+    /**
+     * The mesh's own triangles (three vertex indices each), as its strips were built and before any band the
+     * renderer adds: what the town camera collides with (expanded/town/camera.hpp).
+     */
+    std::vector<uint32_t> triangles;
+    /**
+     * The faces left undrawn while the town camera's eye is inside one of the mesh's pass-through pieces, so the eye
+     * sees out through it rather than its inside (expanded/town/camera.hpp); none otherwise.
+     */
+    gfx::CullMode inside_cull = gfx::CullMode::None;
+#endif
     bool                                vertex_colour = false;              /**< Whether vertices carry their own colour. */
     bool                                immediate = false;                  /**< Whether the geometry is drawn per frame. */
     bool                                cache_strip_runs_on_finish = false; /**< Model builders opt in before finalization. */
