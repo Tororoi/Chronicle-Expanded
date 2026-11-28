@@ -2,17 +2,22 @@
 
 // The town's walking camera, with the Modern Camera option on: it collides with what the town draws, not with the
 // coarse camera meshes the original game gives each part. Each frame, just before the view is built from it, the line
-// from the player's head to the eye the camera has eased to is checked: clear, the eye only keeps a sphere big enough to
-// hold the near plane out of what is near it; cut, the eye moves in at once to stop short of the cut, and eases back
-// out as it clears. The eye is moved for the frame drawn only: the game's own eye is put back afterwards. Only blocking things stop it (walls, buildings, rocks, the ground): pass-through ones (posts, pillars and what
-// they hold up just over them, signs, lamps, low fences and rims) it passes, each told apart as a connected piece of
-// its mesh by its size. A mesh whose pass-through pieces the eye is in is drawn without its back faces then, so the
-// eye sees out through it rather than its inside. Water, glows
-// and the like that do not write depth are left out. The original game's wall rules (its turns away from walls,
-// pull-ins and lifts) and the mouse's wall clamps stand aside while it runs.
+// from the player's head to the eye the camera has eased to is checked: clear, the eye only keeps its near plane out of
+// what is near it; cut, it moves in along the game's own line of sight to where its view is clear, starting in early
+// where it is turning or heading to a cut, and eases back out as the line clears. It always looks the way the game's
+// own eye does, into the player's head if it must: the player fades as the near plane nears them and is not drawn once
+// it is in them. The eye is moved for the frame drawn only: the game's own eye is put back afterwards.
+//
+// Only blocking things stop it (walls, buildings, rocks, the ground): pass-through ones (posts, pillars and what they
+// hold up just over them, signs, lamps, low fences and rims) it passes, each told apart as a connected piece of its
+// mesh by its size. A mesh whose pass-through pieces the eye is in is drawn without its back faces then, so the eye
+// sees out through it rather than its inside. Water, glows and the like that do not write depth are left out. The
+// original game's wall rules (its turns away from walls, pull-ins and lifts) and the mouse's wall clamps stand aside
+// while it runs.
 
 namespace dc::game {
 class CCamera;
+class CCharacter;
 class CEditGround;
 } // namespace dc::game
 
@@ -26,9 +31,14 @@ bool TownCameraOn();
 // the town (fishing, the line to the eye runs from the float it watches).
 void TownCameraSolve(dc::game::CCamera *shown, dc::game::CEditGround *ground, int mode);
 
-// Hook: EditLoop, once the frame is drawn: the game's own eye put back where the solve moved it, so the game eases it
-// on from there and the solve starts again from where the game aims, not from where it showed the eye.
+// Hook: EditLoop, once the frame is drawn: the game's own eye and the point it looks at put back where the solve moved
+// them, so the game eases them on from there and the solve starts again from where the game aims, not from where it
+// showed the eye; the player's alpha too.
 void TownCameraRestore();
+
+// Hook: EdDrawCharacter: whether the eye shown is in the player's body, so that they are not drawn (nearing it, they
+// are drawn faded).
+bool TownCameraHidesPlayer(const dc::game::CCharacter *player);
 
 // Hook: EdMoveChara, where ground asking for a high camera lifts its height to `lowest`: the height to set this frame,
 // eased up with the option on, at once as in the original game off.

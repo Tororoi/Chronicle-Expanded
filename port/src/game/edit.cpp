@@ -57,6 +57,10 @@
 #include "sysmes.hpp"
 #include "texture.hpp"
 
+#ifdef CHRONICLE_EXPANDED
+#include "expanded/town/camera.hpp"
+#endif
+
 namespace dc::game {
 
 using namespace dc::render;
@@ -1823,6 +1827,12 @@ void EdDrawCharacter(CCharacter *player, int player_draw_mask, int npc_count, CN
         MGSetPLight(light_direction, light_colour);
     }
 
+#ifdef CHRONICLE_EXPANDED
+    // Expanded's town camera, inside the player's head, does not see them (expanded/town/camera.hpp).
+    if (expanded::TownCameraHidesPlayer(player)) {
+        player_draw_mask &= ~1;
+    }
+#endif
     if (player_draw_mask & 1) {
         TexManager.ReloadTexture(Vif1Packet, 8);
         player->TextureAnime(8);

@@ -2542,7 +2542,9 @@ void EdMoveChara() {
 #endif
             camera->SetFollow(centre[0], centre[1], centre[2]);
 #ifdef CHRONICLE_EXPANDED
-            expanded::KeepFishingCameraInCanal(*camera);
+            if (!expanded::TownCameraOn()) {
+                expanded::KeepFishingCameraInCanal(*camera); // Modern Camera keeps it out of the walls itself
+            }
 #endif
         }
 
