@@ -9,6 +9,7 @@
 
 #include "camerafollow.hpp"
 #include "character.hpp"
+#include "collision.hpp"
 #include "ebattle.hpp"
 #include "editarea.hpp"
 #include "editground.hpp"
@@ -58,6 +59,7 @@ struct Town {
     std::unordered_map<const CFrame *, Piece> pieces;
     float                                     shown = -1.0f; // how far from the point looked at the eye was shown
     bool                                      moved = false; // whether the eye shown is not the game's own
+    float                                     lift = 0.0f;   // how far over the ground it was lifted last frame
     std::vector<dc::render::Draw3DVisual *>   culled;        // the meshes drawn without their insides
     Point                                     own{};         // the game's own eye, put back once the frame is drawn
 };
@@ -83,27 +85,82 @@ double Shape(const dc::render::Draw3DVisual &visual) {
     return sum;
 }
 
-// Buildings whose legs block the camera, by town and the start of their frames' names: Brownboo's stilt houses (its
-// central building's legs, a walkway running among them, pass).
-struct Legs {
+// Parts whose blocking the camera sets beyond what their size would, by town and the start of their frames' names (or
+// the whole name, for names that start others), and the part they are in (a root frame's name) where that is given:
+// all of each part blocks, its tall pieces block however narrow (its small trim still passing), none of it does, or all
+// but its pillars does.
+// The first that fits a frame holds.
+enum class Blocks {
+    All,
+    Tall,
+    None,
+    AllButPillars
+};
+
+struct BlockingPart {
     int         map;
     const char *frames;
+    Blocks      blocks;
+    bool        whole_name = false;
+    const char *under = nullptr;
 };
 
-constexpr Legs kLegsBlock[] = {
-    {14, "h03"},
+constexpr BlockingPart kBlockingParts[] = {
+    {.map = 0, .frames = "door", .blocks = Blocks::Tall}, // Norune's doors to the Divine Beast's cave
+    {.map = 1, .frames = "suisya", .blocks = Blocks::All}, // Matataki's watermills: the wheels' housings...
+    {.map = 1, .frames = "kuruma", .blocks = Blocks::All}, // ...the wheels...
+    {.map = 1, .frames = "obj5", .blocks = Blocks::All, .whole_name = true}, // ...and the mill houses
+    {.map = 1, .frames = "h01", .blocks = Blocks::Tall}, // Pao's house's pillars
+    {.map = 1, .frames = "h04", .blocks = Blocks::Tall}, // Kye & Momo's house's walls
+    {.map = 3, .frames = "e04a", .blocks = Blocks::Tall}, // Muska Lacka's totem poles: on their bases...
+    {.map = 3, .frames = "1", .blocks = Blocks::All, .whole_name = true}, // ...their middles...
+    {.map = 3, .frames = "2", .blocks = Blocks::All, .whole_name = true}, // ...and tops
+    {.map = 4, .frames = "hasigo", .blocks = Blocks::None, .under = "e05a01"}, // the Moon Factory's Lookout: its ladders
+    {.map = 4, .frames = "", .blocks = Blocks::All, .under = "e05a01"}, // pass, the rest blocks
+    {.map = 11, .frames = "obj70", .blocks = Blocks::All}, // Goro's house...
+    {.map = 11, .frames = "obj71", .blocks = Blocks::All},
+    {.map = 11, .frames = "nuki", .blocks = Blocks::All},
+    {.map = 11, .frames = "win", .blocks = Blocks::All}, // ...its windows...
+    {.map = 11, .frames = "obj66", .blocks = Blocks::All},
+    {.map = 11, .frames = "ki", .blocks = Blocks::All}, // ...and the trees round it, trunks and crowns
+    {.map = 11, .frames = "ha1", .blocks = Blocks::All},
+    {.map = 14, .frames = "h03", .blocks = Blocks::Tall}, // Brownboo's stilt houses' legs (its central building's, a
+                                                                // walkway running among them, pass)
+    {.map = 19, .frames = "hasi", .blocks = Blocks::None}, // East Harbor's walkway out to the submarine
+    {.map = 23, .frames = "kanban", .blocks = Blocks::None}, // Yellow Drops: its fishing sign passes...
+    {.map = 23, .frames = "", .blocks = Blocks::All}, // ...everything else blocks
+    {.map = 24, .frames = "", .blocks = Blocks::All}, // Dark Heaven Castle from outside, far...
+    {.map = 40, .frames = "", .blocks = Blocks::All}, // ...near...
+    {.map = 50, .frames = "", .blocks = Blocks::All}, // ...and far again
+    {.map = 38, .frames = "", .blocks = Blocks::AllButPillars}, // inside, its entrance: only the pillars carrying flames pass
 };
 
-bool LegsBlock(int map, const char *frame) {
-    for (const Legs &legs : kLegsBlock) {
-        if (legs.map == map && std::strncmp(frame, legs.frames, std::strlen(legs.frames)) == 0) {
+bool Named(const char *name, const BlockingPart &part) {
+    return part.whole_name ? std::strcmp(name, part.frames) == 0
+                           : std::strncmp(name, part.frames, std::strlen(part.frames)) == 0;
+}
+
+// Whether a frame is in the part rooted at a frame of this name.
+bool Under(const CFrame &frame, const char *root) {
+    for (const CFrame *up = frame.reference != 0 ? nullptr : frame.parent; up != nullptr;
+         up = up->reference != 0 ? nullptr : up->parent) {
+        if (std::strncmp(up->name, root, std::strlen(root)) == 0) {
             return true;
         }
     }
     return false;
 }
 
-void Build(Piece &piece, const dc::render::Draw3DVisual &visual, const float matrix[4][4], double shape, const char *piece_name) {
+const BlockingPart *BlockingPartOf(int map, const CFrame &frame) {
+    for (const BlockingPart &part : kBlockingParts) {
+        if (part.map == map && Named(frame.name, part) && (part.under == nullptr || Under(frame, part.under))) {
+            return &part;
+        }
+    }
+    return nullptr;
+}
+
+void Build(Piece &piece, const dc::render::Draw3DVisual &visual, const float matrix[4][4], double shape, const CFrame &frame) {
     piece.visual = &visual;
     piece.shape = shape;
     std::memcpy(piece.matrix, matrix, sizeof(piece.matrix));
@@ -117,9 +174,13 @@ void Build(Piece &piece, const dc::render::Draw3DVisual &visual, const float mat
         triangles.push_back(t);
     }
     // Only its blocking pieces stop the camera.
-    Blocking blocking;
-    blocking.tall_blocks = LegsBlock(MapNo, piece_name);
-    const std::vector<bool> large = BlockingMask(triangles, blocking);
+    const BlockingPart *part = BlockingPartOf(MapNo, frame);
+    Blocking            blocking;
+    blocking.tall_blocks = part != nullptr && part->blocks == Blocks::Tall;
+    blocking.pillars_only = part != nullptr && part->blocks == Blocks::AllButPillars;
+    const std::vector<bool> large = part != nullptr && (part->blocks == Blocks::All || part->blocks == Blocks::None)
+                                        ? std::vector<bool>(triangles.size(), part->blocks == Blocks::All)
+                                        : BlockingMask(triangles, blocking);
     piece.passing = PassThroughParts(triangles, large);
 
     std::vector<Triangle> kept;
@@ -146,7 +207,7 @@ void Gather(CFrame *frame) {
             Piece       &piece = town.pieces[frame];
             const double shape = Shape(*built);
             if (piece.visual != built || piece.shape != shape || std::memcmp(piece.matrix, matrix, sizeof(piece.matrix)) != 0) {
-                Build(piece, *built, matrix, shape, frame->name);
+                Build(piece, *built, matrix, shape, *frame);
             }
             piece.seen = town.generation;
         }
@@ -264,6 +325,30 @@ constexpr float kLean = 2.0f;
 // ...from as far as this from that point toward it, rising more the nearer it is (a sphere that fits beside a head).
 constexpr float kRoom = 10.0f;
 constexpr float kHeadRadius = 4.0f;
+
+// How far the eye is lifted over ground at the most, and the halvings that find the least lift.
+constexpr float kGroundLift = 60.0f;
+
+// How near straight up the line meets ground from: at least this share of its way out of the surface; the line to the
+// feet, meeting steps at their edges, less.
+constexpr float kGroundFacing = 0.5f;
+constexpr float kFeetGroundFacing = 0.3f;
+
+// The player's feet the eye keeps in view over ground, this far over where they stand.
+constexpr float kFeetRise = 3.0f;
+
+// The share of the way up toward showing the feet the eye rises a frame, and back down as the ground falls away; it
+// rises at once as far as the line to the head needs.
+constexpr float kLiftRise = 0.15f;
+constexpr float kLiftFall = 0.1f;
+
+// Ground the line meets counts so no higher than a step over where it meets it, nor further under it than this, within
+// this far across of it; and the collision faces gathered there at the most.
+constexpr float kStepRise = 16.0f;
+constexpr float kTreadSlack = kSightRadius + 1.5f; // the line's sphere stops its radius off the face
+constexpr float kFootReach = 4.0f;
+constexpr int   kPolyRoom = 4096;
+constexpr int   kLiftSearches = 8;
 
 // The share of the way back out the eye goes each frame once the line to the player clears.
 constexpr float kEaseOut = 0.1f;
@@ -407,6 +492,89 @@ bool Clear(const Point &pivot, const Point &eye, Point &cut) {
     }
 }
 
+// Whether what cuts the line at `cut` is ground: the ground the player walks on (their own collision's walkable
+// faces) lies under it, or no more than a step over it (a step's tread behind its riser). Roofs, statues and walls, with
+// no walkable face so near, are not.
+bool Ground(const Point &cut) {
+    if (town.ground == nullptr) {
+        return false;
+    }
+    CBoxVu0 box{};
+    box.min[0] = cut[0] - kFootReach, box.max[0] = cut[0] + kFootReach;
+    box.min[1] = cut[1] - kTreadSlack, box.max[1] = cut[1] + kStepRise;
+    box.min[2] = cut[2] - kFootReach, box.max[2] = cut[2] + kFootReach;
+    static std::vector<CCPoly> polys(kPolyRoom);
+    const int                  count = const_cast<CEditGround *>(town.ground)->PickUpPoly(polys.data(), box, 0);
+    for (int i = 0; i < std::min(count, kPolyRoom); i++) {
+        const CCPoly &poly = polys[i];
+        const float   length = std::hypot(poly.normal[0], poly.normal[1], poly.normal[2]);
+        if (length <= 0.0f || poly.normal[1] < kGroundFacing * length) {
+            continue;
+        }
+        // The face's height under the cut.
+        const float height = poly.vertex[0][1] - (poly.normal[0] * (cut[0] - poly.vertex[0][0]) +
+                                                  poly.normal[2] * (cut[2] - poly.vertex[0][2])) /
+                                                     poly.normal[1];
+        if (height >= cut[1] - kTreadSlack && height <= cut[1] + kStepRise) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// The eye lifted over the ground that cuts the line to it at `cut` (a slope or stairs behind a player going down them,
+// a crest), as little as clears the line; false when what cuts it is no ground or no lift within reach clears it.
+bool Lifted(const Point &pivot, const Point &eye, const Point &cut, Point &lifted) {
+    Point again{};
+    if (!Ground(cut) || !Clear(pivot, {eye[0], eye[1] + kGroundLift, eye[2]}, again)) {
+        return false;
+    }
+    float low = 0.0f, high = kGroundLift;
+    for (int step = 0; step < kLiftSearches; step++) {
+        const float mid = 0.5f * (low + high);
+        if (Clear(pivot, {eye[0], eye[1] + mid, eye[2]}, again)) {
+            high = mid;
+        } else {
+            low = mid;
+        }
+    }
+    lifted = {eye[0], eye[1] + high, eye[2]};
+    return true;
+}
+
+// Whether ground hides the player's feet from the eye: the line down to them meets it from above.
+bool FeetHidden(const Point &eye, const Point &feet) {
+    const float t = Sweep(eye, feet, kSightRadius);
+    if (t >= 1.0f) {
+        return false;
+    }
+    const Point cut = Lerp(eye, feet, t);
+    Point       near{};
+    if (Closest(cut, kSightRadius + 1.0f, near) >= kSightRadius + 1.0f) {
+        return false;
+    }
+    const float out[3] = {cut[0] - near[0], cut[1] - near[1], cut[2] - near[2]};
+    return out[1] >= kFeetGroundFacing * std::hypot(out[0], out[1], out[2]) && Ground(cut);
+}
+
+// The least lift that shows the player's feet over the ground between them and the eye (stairs or a slope going down
+// before the eye), or none when nothing hides them or no lift within reach shows them.
+float FeetLift(const Point &eye, const Point &feet) {
+    if (!FeetHidden(eye, feet) || FeetHidden({eye[0], eye[1] + kGroundLift, eye[2]}, feet)) {
+        return 0.0f;
+    }
+    float low = 0.0f, high = kGroundLift;
+    for (int step = 0; step < kLiftSearches; step++) {
+        const float mid = 0.5f * (low + high);
+        if (FeetHidden({eye[0], eye[1] + mid, eye[2]}, feet)) {
+            low = mid;
+        } else {
+            high = mid;
+        }
+    }
+    return high;
+}
+
 // The eye stopped short of where the line to it is cut, its sphere's width nearer the pivot and out of what is near.
 Point ShortOf(const Point &pivot, const Point &eye, const Point &cut, const Point &look) {
     const float way[3] = {eye[0] - pivot[0], eye[1] - pivot[1], eye[2] - pivot[2]};
@@ -481,14 +649,15 @@ Point Rise(const Point &look, const Point &eye, const Point &at) {
 
 } // namespace
 
-bool TownCameraOn(bool fishing) {
-    return !fishing && OptionOn(kModernCamera);
+bool TownCameraOn() {
+    return OptionOn(kModernCamera);
 }
 
 void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
-    if (shown != &MainCamera || ground == nullptr || mode != ED_MODE_WALK || viewMode != 0 || Chara == nullptr ||
-        !MainCamera.follow_on || CCamera::StopCamera || !TownCameraOn(false)) {
+    if (shown != &MainCamera || ground == nullptr || (mode != ED_MODE_WALK && mode != ED_MODE_FISHING) ||
+        viewMode != 0 || Chara == nullptr || !MainCamera.follow_on || CCamera::StopCamera || !TownCameraOn()) {
         town.shown = -1.0f;
+        town.lift = 0.0f;
         Insides(nullptr);
         return;
     }
@@ -501,7 +670,21 @@ void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
     // Seen along a clear line, only the eye's own sphere is kept out of what is near it; else it stops short of the cut.
     Point      cut{};
     const bool seen = Clear(pivot, eye, cut);
-    Point      solved = seen ? ClearView(eye, look) : ShortOf(pivot, eye, cut, look);
+    // Under the ground behind the player it rises out, keeping its distance; cut by anything else it moves in.
+    Point       lifted{};
+    const bool  lifts = !seen && Lifted(pivot, eye, cut, lifted);
+    const float need = lifts ? lifted[1] - eye[1] : 0.0f;
+    // Over ground it rises at a pace to keep the player's feet in view too (walking, not fishing), and settles slowly.
+    const Point feet = {Chara->pos[0], Chara->pos[1] + kFeetRise, Chara->pos[2]};
+    const float aim = !(seen || lifts) ? 0.0f : mode == ED_MODE_WALK ? std::max(need, FeetLift(eye, feet))
+                                                                     : need;
+    float       lift = town.lift + (aim > town.lift ? kLiftRise : kLiftFall) * (aim - town.lift);
+    lift = std::max(lift, need);
+    if (lift > need && !Clear(pivot, {eye[0], eye[1] + lift, eye[2]}, lifted)) {
+        lift = need; // not into what hangs over it
+    }
+    town.lift = lift;
+    Point solved = !(seen || lifts) ? ShortOf(pivot, eye, cut, look) : ClearView({eye[0], eye[1] + lift, eye[2]}, look);
     // In at once, back out eased.
     const float wanted = std::hypot(solved[0] - look[0], solved[1] - look[1], solved[2] - look[2]);
     if (town.shown >= 0.0f && wanted > town.shown && wanted > 0.0f) {
@@ -526,8 +709,8 @@ void TownCameraRestore() {
     }
 }
 
-float TownCameraHighRise(float height, float lowest, bool fishing) {
-    if (!TownCameraOn(fishing)) {
+float TownCameraHighRise(float height, float lowest) {
+    if (!TownCameraOn()) {
         return lowest;
     }
     return std::min(lowest, height + std::clamp(kHighRise * (lowest - height), kHighRiseLeast, kHighRiseMost));

@@ -307,6 +307,14 @@ std::vector<bool> BlockingMask(const std::vector<Triangle> &triangles, const Blo
         return &pillar != &held && touch(pillar, held) && held.min[1] >= 0.5f * (pillar.min[1] + pillar.max[1]) &&
                held.max[1] > pillar.max[1] + kTouch;
     };
+    if (blocking.pillars_only) {
+        std::vector<bool> out(triangles.size());
+        for (std::uint32_t i = 0; i < triangles.size(); i++) {
+            const Bounds &b = pieces[find(i)];
+            out[i] = !(tall_of(b) >= 2.0f * blocking.tall && wide_of(b) < blocking.wide);
+        }
+        return out;
+    }
     std::vector<const Bounds *> pillars;
     for (const auto &[root, bounds] : pieces) {
         if (!blocking.tall_blocks && tall_of(bounds) >= blocking.tall && wide_of(bounds) < blocking.pillar &&

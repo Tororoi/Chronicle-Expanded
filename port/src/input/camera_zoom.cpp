@@ -15,7 +15,6 @@
 #include "platform/input.hpp"
 
 #ifdef CHRONICLE_EXPANDED
-#include "edit.hpp"
 #include "expanded/town/camera.hpp"
 #endif
 
@@ -80,7 +79,7 @@ void ApplyTown() {
     float   accepted = g_town.requested;
 #ifdef CHRONICLE_EXPANDED
     // Expanded's camera keeps the eye out of the town at any distance.
-    if (!expanded::TownCameraOn(EdMoveCharaInfo.fishing != 0)) {
+    if (!expanded::TownCameraOn()) {
 #endif
         CBoxVu0 box = Box(*camera, g_town.requested);
         int     count = MouseCameraPolys(*ground, box, 0xFFFF, g_polys);

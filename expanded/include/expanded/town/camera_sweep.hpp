@@ -75,7 +75,8 @@ struct Blocking {
     float broad = 200.0f;
     float floor = 400.0f; // the flat area of a piece that is mostly floor, blocking however low
     float pillar = 60.0f;
-    bool  tall_blocks = false; // every piece as tall as `tall` blocks, however narrow (a stilt house's legs)
+    bool  tall_blocks = false;  // every piece as tall as `tall` blocks, however narrow (a stilt house's legs)
+    bool  pillars_only = false; // only pillars pass, twice as tall as `tall` and narrower than `wide`; all else blocks
 };
 
 // The triangles of the mesh's blocking connected pieces only. Triangles are connected where they share a corner (to

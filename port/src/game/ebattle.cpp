@@ -1675,7 +1675,7 @@ void EdMoveChara() {
 #ifdef CHRONICLE_EXPANDED
     // Expanded's camera keeps the walking eye out of the town itself (expanded/town/camera.hpp).
     if (viewMode == 0 && interior == 0 && EdDebugMoveFlag < 2 && !expanded::FishingCameraInCanal() &&
-        !expanded::TownCameraOn(EdMoveCharaInfo.fishing != 0)) {
+        !expanded::TownCameraOn()) {
 #else
     if (viewMode == 0 && interior == 0 && EdDebugMoveFlag < 2) {
 #endif
@@ -1964,7 +1964,7 @@ void EdMoveChara() {
             if (camera->GetHeight() < lowest) {
 #ifdef CHRONICLE_EXPANDED
                 camera->SetHeight(shallow != 0
-                                      ? expanded::TownCameraHighRise(camera->GetHeight(), lowest, EdMoveCharaInfo.fishing != 0)
+                                      ? expanded::TownCameraHighRise(camera->GetHeight(), lowest)
                                       : lowest);
 #else
                 camera->SetHeight(lowest);

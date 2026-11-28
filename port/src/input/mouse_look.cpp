@@ -273,7 +273,7 @@ void TownMouseApply(CCamera *shown, CEditGround *ground, int map, int mode) {
     }
 #ifdef CHRONICLE_EXPANDED
     // Expanded's camera turns freely and keeps its own eye out of the town.
-    if (expanded::TownCameraOn(request.fishing)) {
+    if (expanded::TownCameraOn()) {
         MouseLookTurnOrbit(camera, -request.yaw);
         return;
     }

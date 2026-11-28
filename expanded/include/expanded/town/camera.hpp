@@ -18,11 +18,12 @@ class CEditGround;
 
 namespace expanded {
 
-// Whether the walking camera's collision is Expanded's: the option on and not fishing (whose camera keeps the
-// original game's). EdMoveChara skips its own wall rules then, and the mouse its clamps.
-bool TownCameraOn(bool fishing);
+// Whether the town camera's collision is Expanded's, walking and fishing alike: the option on. EdMoveChara skips its
+// own wall rules then, and the mouse its clamps.
+bool TownCameraOn();
 
-// Hook: EditMainDraw, before the view is built from the camera shown: the walking camera's eye kept out of the town.
+// Hook: EditMainDraw, before the view is built from the camera shown: the walking or fishing camera's eye kept out of
+// the town (fishing, the line to the eye runs from the float it watches).
 void TownCameraSolve(dc::game::CCamera *shown, dc::game::CEditGround *ground, int mode);
 
 // Hook: EditLoop, once the frame is drawn: the game's own eye put back where the solve moved it, so the game eases it
@@ -31,7 +32,7 @@ void TownCameraRestore();
 
 // Hook: EdMoveChara, where ground asking for a high camera lifts its height to `lowest`: the height to set this frame,
 // eased up with the option on, at once as in the original game off.
-float TownCameraHighRise(float height, float lowest, bool fishing);
+float TownCameraHighRise(float height, float lowest);
 
 // Leaves the town: its triangles let go.
 void TownCameraReset();
