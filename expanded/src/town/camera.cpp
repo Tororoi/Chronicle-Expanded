@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <unordered_map>
 #include <vector>
 
@@ -60,6 +61,7 @@ struct Town {
     float                                     shown = -1.0f;               // how far from the point looked at the eye was shown
     bool                                      moved = false;               // whether the eye shown is not the game's own
     float                                     out = 0.0f;                  // how fast it was easing back out last frame
+    float                                     in = 0.0f;                   // how fast it was moving in last frame
     float                                     lift = 0.0f;                 // how far over the ground it was lifted last frame...
     Point                                     pad{};                       // ...and pushed off what is near its view
     bool                                      held = false;                // whether it was solved last frame...
@@ -349,6 +351,9 @@ constexpr int kAheadStep = 2;
 // How many frames ahead it looks for walls it will be pulled in by (every kAheadStep), moving in at a pace to be there
 // by then.
 constexpr int kPullAhead = 16;
+
+// How much its pace in may gather or slacken a frame.
+constexpr float kInGather = 0.75f;
 
 // Ground the line meets counts so no higher than a step over where it meets it, nor further under it than this, within
 // this far across of it; and the collision faces gathered there at the most.
@@ -643,19 +648,20 @@ constexpr int   kSightSteps = 8;
 constexpr float kSightLine = 0.05f;
 
 // The eye pulled in on the game's own line of sight, from `eye` toward `look`, as far out as `most` from `look` with its
-// view clear of what is near it and nothing between it and `look`: the player stays where the game frames them, nearer.
-// `placed` when not even the point looked at is.
+// view clear of what stands near it and nothing between it and `look`: the player stays where the game frames them,
+// nearer. `placed` when not even the point looked at is.
 Point OnSightLine(const Point &look, const Point &eye, float most, const Point &placed) {
     const float whole = std::hypot(eye[0] - look[0], eye[1] - look[1], eye[2] - look[2]);
     if (whole <= 0.0f) {
         return placed;
     }
-    auto at = [&](float distance) { return Lerp(look, eye, distance / whole); };
+    // A point on the line, raised off the ground under its view if it must be but never pushed aside: what stands near
+    // it (a wall) it keeps clear of by being nearer.
+    auto at = [&](float distance) { return ClearView(Lerp(look, eye, distance / whole)); };
     auto fits = [&](float distance) {
-        const Point point = at(distance);
-        const Point cleared = ClearView(point);
-        return std::hypot(cleared[0] - point[0], cleared[1] - point[1], cleared[2] - point[2]) < 0.01f &&
-               Sweep(look, point, kSightLine) >= 1.0f;
+        const Point on = Lerp(look, eye, distance / whole);
+        const Point cleared = ClearView(on);
+        return std::hypot(cleared[0] - on[0], cleared[2] - on[2]) < 0.01f && Sweep(look, cleared, kSightLine) >= 1.0f;
     };
     float out = std::min(most, whole);
     if (fits(out)) {
@@ -742,6 +748,7 @@ void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
         }
         town.held = false;
         town.out = 0.0f;
+        town.in = 0.0f;
         town.player_alpha = 1.0f;
         town.shown = -1.0f;
         town.lift = 0.0f;
@@ -821,42 +828,76 @@ void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
         } else {
             town.pad = {push[0], push[1], push[2]};
         }
+        // Kept off a wall beside its view by moving in along its line, not aside, as when the wall cuts the line, so the
+        // player does not shift on screen nor the eye jump as the wall starts or stops cutting it.
+        if (std::hypot(solved[0] - base[0], solved[2] - base[2]) > 0.01f) {
+            const Point raised = {base[0], solved[1], base[2]};
+            const float whole = std::hypot(raised[0] - look[0], raised[1] - look[1], raised[2] - look[2]);
+            solved = OnSightLine(look, raised, whole, solved);
+        }
     } else {
         town.pad = {};
     }
     // Where it is turning or heading to it will be pulled in, a few frames on, it starts moving in toward now, so the pull
-    // in does not start at once: each frame as far as it must to be in that far by then. Never further out than now.
+    // in does not start at once: each frame as far as it must to be in that far by then, its pace changing gradually,
+    // and no further in than the furthest in it will need. Never further out than now.
+    float soon = std::numeric_limits<float>::max(); // the furthest in it will need to be, a few frames on
     if (town.held && town.shown >= 0.0f) {
         const float now = std::hypot(solved[0] - look[0], solved[1] - look[1], solved[2] - look[2]);
-        float       pace = 0.0f; // how far in it moves this frame to be as far in as each pull-in by the time it comes
+        float       pace = 0.0f;   // how far in it moves this frame to be as far in as each pull-in by the time it comes...
+        float       deepest = now; // ...and no further in than the furthest in of them
         for (int frames = kAheadStep; frames <= kPullAhead; frames += kAheadStep) {
             const Point later = {eye[0] + frames * (eye[0] - town.last_own[0]), eye[1] + frames * (eye[1] - town.last_own[1]),
                                  eye[2] + frames * (eye[2] - town.last_own[2])};
-            Point       later_cut{}, later_lifted{};
-            if (Clear(pivot, later, later_cut) || Lifted(pivot, later, later_cut, later_lifted)) {
+            Point       later_cut{}, later_lifted{}, there{};
+            if (Clear(pivot, later, later_cut)) {
+                // Clear, but beside a wall it will move in along its line for.
+                const Point cleared = ClearView(later);
+                if (std::hypot(cleared[0] - later[0], cleared[2] - later[2]) <= 0.01f) {
+                    continue;
+                }
+                const Point raised = {later[0], cleared[1], later[2]};
+                there = OnSightLine(look, raised, std::hypot(raised[0] - look[0], raised[1] - look[1], raised[2] - look[2]),
+                                    cleared);
+            } else if (Lifted(pivot, later, later_cut, later_lifted)) {
                 continue;
+            } else {
+                const Point stop = ShortOf(pivot, later, later_cut);
+                const float most = std::hypot(stop[0] - look[0], stop[1] - look[1], stop[2] - look[2]) + kMargin;
+                there = OnSightLine(look, later, most, stop);
             }
-            const Point stop = ShortOf(pivot, later, later_cut);
-            const float most = std::hypot(stop[0] - look[0], stop[1] - look[1], stop[2] - look[2]) + kMargin;
-            const Point there = OnSightLine(look, later, most, stop);
             const float ahead = std::hypot(there[0] - look[0], there[1] - look[1], there[2] - look[2]);
             pace = std::max(pace, (town.shown - ahead) / static_cast<float>(frames));
+            deepest = std::min(deepest, ahead);
         }
-        if (const float toward = town.shown - pace; pace > 0.0f && toward < now && now > 0.0f) {
+        // Its pace in gathers and slackens by at most kInGather a frame.
+        soon = deepest;
+        pace = std::clamp(pace, town.in - kInGather, town.in + kInGather);
+        // ...and slackens in time to stop where it will need to be furthest in.
+        pace = std::min(pace, std::sqrt(2.0f * kInGather * std::max(town.shown - deepest, 0.0f)));
+        if (const float toward = std::max(town.shown - pace, deepest); pace > 0.0f && toward < now && now > 0.0f) {
             solved = Lerp(look, solved, toward / now);
         }
     }
     // In at once, back out eased.
     const float wanted = std::hypot(solved[0] - look[0], solved[1] - look[1], solved[2] - look[2]);
     if (town.shown >= 0.0f && wanted > town.shown && wanted > 0.0f) {
-        town.out = std::min(kEaseOut * (wanted - town.shown), town.out + kOutGather);
+        // Gathering pace, and slackening in time to stop where it will soon be pulled in to.
+        town.out = std::min({kEaseOut * (wanted - town.shown), town.out + kOutGather,
+                             std::sqrt(2.0f * kOutGather * std::max(soon - town.shown, 0.0f))});
         const float eased = town.shown + town.out;
-        // On the line it would be on, moved in along it rather than aside to keep its view clear.
-        solved = OnSightLine(look, solved, eased, ClearView(Lerp(look, solved, eased / wanted)));
+        // On the game's line of sight (lifted over the ground if it is), moved in along it rather than aside to keep its
+        // view clear.
+        const Point line = seen || lifts ? Point{eye[0], eye[1] + lift, eye[2]} : eye;
+        solved = OnSightLine(look, line, eased, ClearView(Lerp(look, solved, eased / wanted)));
     } else {
         town.out = 0.0f;
     }
-    town.shown = std::hypot(solved[0] - look[0], solved[1] - look[1], solved[2] - look[2]);
+    const float distance = std::hypot(solved[0] - look[0], solved[1] - look[1], solved[2] - look[2]);
+    // Its paces out and in are how far it went: held in, it gathers none.
+    town.out = town.shown >= 0.0f ? std::clamp(distance - town.shown, 0.0f, town.out) : 0.0f;
+    town.in = town.shown >= 0.0f ? std::max(town.shown - distance, 0.0f) : 0.0f;
+    town.shown = distance;
     const Point placed = solved;
     Insides(&placed);
     town.held = true;
