@@ -49,7 +49,9 @@ struct Piece {
     float                           matrix[4][4] = {};
     double                          shape = 0.0; // the vertices' sum: an area's ground is remade in place
     SweepMesh                       mesh;
-    std::vector<PassPart>           passing; // its pass-through pieces, in the world
+    std::vector<PassPart>           passing;        // its pass-through pieces, in the world
+    bool                            hugged = false; // the camera passes it while the player stands on it (kHuggedParts)
+    SweepMesh                       whole;          // all of it, its small steps too, when it is hugged
     std::uint32_t                   seen = 0;
 };
 
@@ -62,6 +64,7 @@ struct Town {
     bool                                      moved = false;               // whether the eye shown is not the game's own
     float                                     out = 0.0f;                  // how fast it was easing back out last frame
     float                                     in = 0.0f;                   // how fast it was moving in last frame
+    bool                                      on_hugged = false;           // whether the player stands on a hugged part
     float                                     lift = 0.0f;                 // how far over the ground it was lifted last frame...
     Point                                     pad{};                       // ...and pushed off what is near its view
     bool                                      held = false;                // whether it was solved last frame...
@@ -124,6 +127,7 @@ constexpr BlockingPart kBlockingParts[] = {
     {.map = 1, .frames = "obj5", .blocks = Blocks::All, .whole_name = true}, // ...and the mill houses
     {.map = 1, .frames = "h01", .blocks = Blocks::Tall}, // Pao's house's pillars
     {.map = 1, .frames = "h04", .blocks = Blocks::Tall}, // Kye & Momo's house's walls
+    {.map = 2, .frames = "hiyoke", .blocks = Blocks::None, .under = "eo3h09"}, // Queens: King's Hideout's sunshade
     {.map = 3, .frames = "e04a", .blocks = Blocks::Tall}, // Muska Lacka's totem poles: on their bases...
     {.map = 3, .frames = "1", .blocks = Blocks::All, .whole_name = true}, // ...their middles...
     {.map = 3, .frames = "2", .blocks = Blocks::All, .whole_name = true}, // ...and tops
@@ -145,6 +149,22 @@ constexpr BlockingPart kBlockingParts[] = {
     {.map = 40, .frames = "", .blocks = Blocks::All}, // ...near...
     {.map = 50, .frames = "", .blocks = Blocks::All}, // ...and far again
     {.map = 38, .frames = "", .blocks = Blocks::AllButPillars}, // inside, its entrance: only the pillars carrying flames pass
+};
+
+// Parts the player climbs round (their stairs wind about their walls, parapets and terraces): while the player stands on
+// one, the line to the eye passes them all, though they hide the player a moment, rather than the eye moving in; not
+// with the eye inside one, which it moves in out of as from any wall. The eye's view still keeps off them.
+struct HuggedPart {
+    int         map;
+    const char *frames;
+    const char *under = nullptr; // the part they are in (a root frame's name), where that is given
+};
+
+constexpr HuggedPart kHuggedParts[] = {
+    {.map = 2, .frames = "betu"}, // Queens: Jack's Store's annex, its stairs up the side
+    {.map = 2, .frames = "eo3h09"}, // King's Hideout, its stairs up to the roof
+    {.map = 2, .frames = "e03h08"}, // Basker's Store...
+    {.map = 2, .frames = "2f", .under = "e03h08"}, // ...and its upper floor, its stairs up the side and the back
 };
 
 bool Named(const char *name, const BlockingPart &part) {
@@ -172,6 +192,16 @@ const BlockingPart *BlockingPartOf(int map, const CFrame &frame) {
     return nullptr;
 }
 
+bool Hugged(int map, const CFrame &frame) {
+    for (const HuggedPart &part : kHuggedParts) {
+        if (part.map == map && std::strncmp(frame.name, part.frames, std::strlen(part.frames)) == 0 &&
+            (part.under == nullptr || Under(frame, part.under))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Build(Piece &piece, const dc::render::Draw3DVisual &visual, const float matrix[4][4], double shape, const CFrame &frame) {
     piece.visual = &visual;
     piece.shape = shape;
@@ -194,6 +224,8 @@ void Build(Piece &piece, const dc::render::Draw3DVisual &visual, const float mat
                                         ? std::vector<bool>(triangles.size(), part->blocks == Blocks::All)
                                         : BlockingMask(triangles, blocking);
     piece.passing = PassThroughParts(triangles, large);
+    piece.hugged = Hugged(MapNo, frame);
+    piece.whole.Build(piece.hugged ? triangles : std::vector<Triangle>{});
 
     std::vector<Triangle> kept;
     kept.reserve(triangles.size());
@@ -282,10 +314,16 @@ bool Meets(const SweepMesh &mesh, const Point &from, const Point &to, float radi
     return true;
 }
 
+// Whether the line to the player passes a piece: none, or a hugged part while the player stands on one (the eye's view
+// still keeps off it).
+bool Passes(const Piece &piece) {
+    return piece.mesh.Empty() || (piece.hugged && town.on_hugged);
+}
+
 float Sweep(const Point &from, const Point &to, float radius) {
     float best = 1.0f;
     for (const auto &[frame, piece] : town.pieces) {
-        if (!piece.mesh.Empty() && Meets(piece.mesh, from, to, radius)) {
+        if (!Passes(piece) && Meets(piece.mesh, from, to, radius)) {
             best = piece.mesh.Sweep(from, to, radius, best);
         }
     }
@@ -303,6 +341,71 @@ Point PushOut(Point point, float radius) {
 
 Point Lerp(const Point &a, const Point &b, float t) {
     return {a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t};
+}
+
+// Whether the player stands on a piece (its stairs, its terrace): it lies within kStandsOn of their feet, up or down
+// (the drawn step need not sit where they tread), there or a little way round them (the edge of a step).
+constexpr float kStandsOn = 3.0f;
+constexpr float kFootSpread = 2.0f;
+
+bool StandsOn(const Piece &piece) {
+    constexpr float kAround[5][2] = {
+        {0.0f,  0.0f },
+        {1.0f,  0.0f },
+        {-1.0f, 0.0f },
+        {0.0f,  1.0f },
+        {0.0f,  -1.0f}
+    };
+    for (const auto &[x, z] : kAround) {
+        const Point above = {Chara->pos[0] + x * kFootSpread, Chara->pos[1] + kStandsOn, Chara->pos[2] + z * kFootSpread};
+        const Point under = {above[0], Chara->pos[1] - kStandsOn, above[2]};
+        if (piece.whole.Ray(above, under) < 1.0f) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Whether the eye is inside a hugged part: some of it (of any of its meshes: a floor's roof, the floor under) lies
+// straight over the eye, and straight under it or round it on all but one side (a hollow building drawn with no floor;
+// under an overhang outside, more of it is open).
+constexpr int kWalledSides = 3;
+
+bool InsideHugged(const Point &eye) {
+    bool over = false, under = false;
+    bool sides[4] = {};
+    for (const auto &[frame, piece] : town.pieces) {
+        if (!piece.hugged || piece.whole.Empty()) {
+            continue;
+        }
+        const Point &low = piece.whole.Min();
+        const Point &high = piece.whole.Max();
+        const Point  top = {eye[0], high[1] + 1.0f, eye[2]};
+        const Point  bottom = {eye[0], low[1] - 1.0f, eye[2]};
+        over = over || (top[1] > eye[1] && piece.whole.Ray(eye, top) < 1.0f);
+        under = under || (bottom[1] < eye[1] && piece.whole.Ray(eye, bottom) < 1.0f);
+        const Point ends[4] = {
+            {high[0] + 1.0f, eye[1], eye[2]        },
+            {low[0] - 1.0f,  eye[1], eye[2]        },
+            {eye[0],         eye[1], high[2] + 1.0f},
+            {eye[0],         eye[1], low[2] - 1.0f }
+        };
+        for (int side = 0; side < 4; side++) {
+            sides[side] = sides[side] || piece.whole.Ray(eye, ends[side]) < 1.0f;
+        }
+    }
+    const int walled = int(sides[0]) + int(sides[1]) + int(sides[2]) + int(sides[3]);
+    return over && (under || walled >= kWalledSides);
+}
+
+// Whether the player stands on a hugged part (any of its meshes: a building's upper floor carries its stairs).
+bool OnHugged() {
+    for (const auto &[frame, piece] : town.pieces) {
+        if (piece.hugged && !piece.whole.Empty() && StandsOn(piece)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // The nearest point of the town to `point` within `radius`, and its distance; `radius` when none is.
@@ -456,13 +559,14 @@ float Clearance(const View &view, const float n[3]) {
     return kMargin + std::max(reach, 0.0f);
 }
 
-// The eye moved out of what blocks until its view clears every surface near it.
-Point ClearView(Point eye) {
+// The eye moved out of what blocks until its view clears every surface near it (not the hugged parts the player stands
+// on, unless `hugged`).
+Point ClearView(Point eye, bool hugged = true) {
     const View  view = ViewOf();
     const float most = kMargin + std::hypot(kNear, view.half_width, view.half_height);
     for (int pass = 0; pass < 2; pass++) {
         for (const auto &[frame, piece] : town.pieces) {
-            if (piece.mesh.Empty() || !Meets(piece.mesh, eye, eye, most)) {
+            if (piece.mesh.Empty() || (!hugged && piece.hugged && town.on_hugged) || !Meets(piece.mesh, eye, eye, most)) {
                 continue;
             }
             for (const Triangle &triangle : piece.mesh.Triangles()) {
@@ -647,9 +751,25 @@ constexpr float kSightStride = 1.0f;
 constexpr int   kSightSteps = 8;
 constexpr float kSightLine = 0.05f;
 
+// Whether the eye at `eye` is inside a hugged part, or so near one its view would meet it.
+bool InHugged(const Point &eye) {
+    if (InsideHugged(eye)) {
+        return true;
+    }
+    const View  view = ViewOf();
+    const float room = kMargin + std::hypot(kNear, view.half_width, view.half_height);
+    for (const auto &[frame, piece] : town.pieces) {
+        Point nearest{};
+        if (piece.hugged && !piece.mesh.Empty() && Meets(piece.mesh, eye, eye, room) && piece.mesh.Closest(eye, room, nearest) < room) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // The eye pulled in on the game's own line of sight, from `eye` toward `look`, as far out as `most` from `look` with its
-// view clear of what stands near it and nothing between it and `look`: the player stays where the game frames them,
-// nearer. `placed` when not even the point looked at is.
+// view clear of what stands near it, nothing between it and `look` and not inside a hugged part: the player stays where
+// the game frames them, nearer. `placed` when not even the point looked at is.
 Point OnSightLine(const Point &look, const Point &eye, float most, const Point &placed) {
     const float whole = std::hypot(eye[0] - look[0], eye[1] - look[1], eye[2] - look[2]);
     if (whole <= 0.0f) {
@@ -661,7 +781,9 @@ Point OnSightLine(const Point &look, const Point &eye, float most, const Point &
     auto fits = [&](float distance) {
         const Point on = Lerp(look, eye, distance / whole);
         const Point cleared = ClearView(on);
-        return std::hypot(cleared[0] - on[0], cleared[2] - on[2]) < 0.01f && Sweep(look, cleared, kSightLine) >= 1.0f;
+        const Point walls = ClearView(on, false);
+        return std::hypot(walls[0] - on[0], walls[2] - on[2]) < 0.01f && Sweep(look, cleared, kSightLine) >= 1.0f &&
+               !(town.on_hugged && InsideHugged(cleared));
     };
     float out = std::min(most, whole);
     if (fits(out)) {
@@ -708,13 +830,28 @@ float PlayerSeen(const Point &eye) {
     return std::clamp(gap / kFadeReach, 0.0f, 1.0f);
 }
 
-// The eye shown at `at` for the frame drawn, looking the way the game's own eye does.
+// The eye shown at `at` for the frame drawn, looking at the point the game's eye looks at (lifted over the ground it is
+// off the game's line) but, near it, the way the game's own eye does, so that it does not turn about in the player's
+// head.
+constexpr float kAimNear = 4.0f;
+constexpr float kAimFar = 10.0f;
+
 void Show(const Point &at) {
     town.moved = true;
     town.own = {MainCamera.pos[0], MainCamera.pos[1], MainCamera.pos[2]};
     town.own_look = {MainCamera.ref[0], MainCamera.ref[1], MainCamera.ref[2]};
+    const float game[3] = {town.own_look[0] - town.own[0], town.own_look[1] - town.own[1], town.own_look[2] - town.own[2]};
+    const float reach = std::hypot(game[0], game[1], game[2]);
+    const float toward[3] = {town.own_look[0] - at[0], town.own_look[1] - at[1], town.own_look[2] - at[2]};
+    const float near = std::hypot(toward[0], toward[1], toward[2]);
+    const float share = near > 0.0f ? std::clamp((near - kAimNear) / (kAimFar - kAimNear), 0.0f, 1.0f) : 0.0f;
+    float       way[3];
     for (int axis = 0; axis < 3; axis++) {
-        MainCamera.ref[axis] = at[axis] + town.own_look[axis] - town.own[axis];
+        way[axis] = (reach > 0.0f ? (1.0f - share) * game[axis] / reach : 0.0f) + (near > 0.0f ? share * toward[axis] / near : 0.0f);
+    }
+    const float length = std::hypot(way[0], way[1], way[2]);
+    for (int axis = 0; axis < 3; axis++) {
+        MainCamera.ref[axis] = length > 0.0f ? at[axis] + way[axis] / length * reach : town.own_look[axis];
         MainCamera.pos[axis] = at[axis];
     }
 }
@@ -757,6 +894,7 @@ void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
         return;
     }
     Update(*ground);
+    town.on_hugged = OnHugged() && !InsideHugged({MainCamera.pos[0], MainCamera.pos[1], MainCamera.pos[2]});
 
     const Point chest = {Chara->pos[0], Chara->pos[1] + 0.5f * Chara->body_height, Chara->pos[2]};
     const Point look = {MainCamera.ref[0], MainCamera.ref[1], MainCamera.ref[2]};
@@ -830,7 +968,8 @@ void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
         }
         // Kept off a wall beside its view by moving in along its line, not aside, as when the wall cuts the line, so the
         // player does not shift on screen nor the eye jump as the wall starts or stops cutting it.
-        if (std::hypot(solved[0] - base[0], solved[2] - base[2]) > 0.01f) {
+        // (A hugged part's wall it is only kept off aside: moving in along the line would take it through the part.)
+        if (const Point walls = ClearView(base, false); std::hypot(walls[0] - base[0], walls[2] - base[2]) > 0.01f) {
             const Point raised = {base[0], solved[1], base[2]};
             const float whole = std::hypot(raised[0] - look[0], raised[1] - look[1], raised[2] - look[2]);
             solved = OnSightLine(look, raised, whole, solved);
@@ -853,7 +992,7 @@ void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
             if (Clear(pivot, later, later_cut)) {
                 // Clear, but beside a wall it will move in along its line for.
                 const Point cleared = ClearView(later);
-                if (std::hypot(cleared[0] - later[0], cleared[2] - later[2]) <= 0.01f) {
+                if (const Point walls = ClearView(later, false); std::hypot(walls[0] - later[0], walls[2] - later[2]) <= 0.01f) {
                     continue;
                 }
                 const Point raised = {later[0], cleared[1], later[2]};
@@ -875,7 +1014,11 @@ void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
         pace = std::clamp(pace, town.in - kInGather, town.in + kInGather);
         // ...and slackens in time to stop where it will need to be furthest in.
         pace = std::min(pace, std::sqrt(2.0f * kInGather * std::max(town.shown - deepest, 0.0f)));
-        if (const float toward = std::max(town.shown - pace, deepest); pace > 0.0f && toward < now && now > 0.0f) {
+        if (float toward = std::max(town.shown - pace, deepest); pace > 0.0f && toward < now && now > 0.0f) {
+            // Moving in into a hugged part, it goes on at once to the near side of it, rather than stopping inside it.
+            while (town.on_hugged && toward > 0.0f && InHugged(Lerp(look, solved, toward / now))) {
+                toward = std::max(0.0f, toward - kSightStride);
+            }
             solved = Lerp(look, solved, toward / now);
         }
     }
@@ -885,10 +1028,18 @@ void TownCameraSolve(CCamera *shown, CEditGround *ground, int mode) {
         // Gathering pace, and slackening in time to stop where it will soon be pulled in to.
         town.out = std::min({kEaseOut * (wanted - town.shown), town.out + kOutGather,
                              std::sqrt(2.0f * kOutGather * std::max(soon - town.shown, 0.0f))});
-        const float eased = town.shown + town.out;
+        float eased = town.shown + town.out;
         // On the game's line of sight (lifted over the ground if it is), moved in along it rather than aside to keep its
         // view clear.
         const Point line = seen || lifts ? Point{eye[0], eye[1] + lift, eye[2]} : eye;
+        // Easing out into a hugged part (or so near it its view would meet it), it goes on at once to the far side of it,
+        // rather than stopping inside it.
+        const float reach = std::hypot(line[0] - look[0], line[1] - look[1], line[2] - look[2]);
+        if (town.on_hugged && reach > 0.0f) {
+            while (eased < wanted && InHugged(Lerp(look, line, eased / reach))) {
+                eased = std::min(wanted, eased + kSightStride);
+            }
+        }
         solved = OnSightLine(look, line, eased, ClearView(Lerp(look, solved, eased / wanted)));
     } else {
         town.out = 0.0f;
